@@ -1,0 +1,90 @@
+{
+  "tournament_timestamp": "2026-08-28T13:01:42.001906",
+  "framework": "Physics-Informed Liquid Neural Network (PINN-LNN)",
+  "geographic_scope": "Central Luzon Synoptic Network \u2014 Pampanga River Basin",
+  "evaluation_period": "01:00 PM - 02:00 PM PST",
+  "ground_truth_target": {
+    "temperature_c": 27.9,
+    "heat_index_c": 30.6,
+    "relative_humidity_pct": 80.0,
+    "pressure_hpa": 1006.8,
+    "wind_speed_kmh": 23.1,
+    "precipitation_mm": 0.1,
+    "river_stage_m": 3.44
+  },
+  "champion_agent": {
+    "name": "PINN-LNN-EnergyConserving",
+    "description": "Hamiltonian energy-conserving PINN-LNN enforcing thermodynamic diurnal thermal equilibrium",
+    "score": 63.0,
+    "temperature_mae_c": 0.3,
+    "heat_index_mae_c": 1.56,
+    "river_stage_mae_cm": 17.1,
+    "latency_us": 74.94
+  },
+  "generation_2_evolution": {
+    "name": "Gen-2 Evolved PINN-LNN (PINN-LNN-EnergyConserving)",
+    "score": 64.2,
+    "temperature_mae_c": 0.3,
+    "heat_index_mae_c": 1.56,
+    "river_stage_mae_cm": 18.2,
+    "latency_us": 53.99,
+    "improvement_delta_pts": 1.2
+  },
+  "leaderboard": [
+    {
+      "rank": 1,
+      "agent_name": "PINN-LNN-EnergyConserving",
+      "description": "Hamiltonian energy-conserving PINN-LNN enforcing thermodynamic diurnal thermal equilibrium",
+      "composite_score": 63.0,
+      "temperature_mae_c": 0.3,
+      "heat_index_mae_c": 1.56,
+      "river_stage_mae_cm": 17.1,
+      "latency_us": 74.94,
+      "status": "PASSED WMO TOLERANCE \u2705"
+    },
+    {
+      "rank": 2,
+      "agent_name": "PINN-LNN-AdaptiveBayesian",
+      "description": "Stochastic Monte Carlo PINN-LNN with uncertainty quantification & thermodynamic bounds",
+      "composite_score": 62.94,
+      "temperature_mae_c": 0.3,
+      "heat_index_mae_c": 1.56,
+      "river_stage_mae_cm": 18.6,
+      "latency_us": 66.77,
+      "status": "PASSED WMO TOLERANCE \u2705"
+    },
+    {
+      "rank": 3,
+      "agent_name": "PINN-LNN-Canonical",
+      "description": "Pure Physics-Informed CfC Liquid Neural Network with embedded Magnus-Tetens & LCL saturation",
+      "composite_score": 61.18,
+      "temperature_mae_c": 0.3,
+      "heat_index_mae_c": 1.56,
+      "river_stage_mae_cm": 17.5,
+      "latency_us": 94.39,
+      "status": "PASSED WMO TOLERANCE \u2705"
+    },
+    {
+      "rank": 4,
+      "agent_name": "PINN-LNN-MultiScale",
+      "description": "Physics-derived tri-scale time constants: Fast LCL (0.2h), Meso Synoptic (2.5h), Diurnal (12h)",
+      "composite_score": 60.58,
+      "temperature_mae_c": 0.3,
+      "heat_index_mae_c": 1.56,
+      "river_stage_mae_cm": 21.2,
+      "latency_us": 79.38,
+      "status": "PASSED WMO TOLERANCE \u2705"
+    },
+    {
+      "rank": 5,
+      "agent_name": "PINN-LNN-CrossAttn",
+      "description": "PINN-LNN with cross-attention gating for Himawari-9 Satellite IR & Doppler Radar Reflectivity",
+      "composite_score": 59.94,
+      "temperature_mae_c": 0.3,
+      "heat_index_mae_c": 1.56,
+      "river_stage_mae_cm": 27.1,
+      "latency_us": 51.67,
+      "status": "PASSED WMO TOLERANCE \u2705"
+    }
+  ]
+}

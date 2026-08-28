@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { RefreshCw } from "lucide-react";
 import PublicDashboardTopBar from "@/components/shared/public-dashboard-top-bar";
 import type { StationPublicInfo } from "@/types/telemetry";
 import type { PredictionPublicDTO, PredictionHorizon } from "@/types/prediction";
+import { findNearestStation } from "@/lib/utils/location";
 import PredictionHorizonSelector from "./prediction-horizon-selector";
 import PredictionWeatherForecast from "./prediction-weather-forecast";
 import PredictionPeakSummary from "./prediction-peak-summary";
@@ -27,12 +28,14 @@ export default function PredictionDashboard({
   const [horizon, setHorizon] = useState<PredictionHorizon>("24h");
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [nearestStationId, setNearestStationId] = useState<string | null>(null);
 
   useEffect(() => {
     setData(initialData);
   }, [initialData]);
 
-  const handleStationSelect = (stationId: string) => {
+  const handleStationSelect = useCallback((stationId: string) => {
     startTransition(async () => {
       try {
         setIsRefreshing(true);
@@ -49,7 +52,38 @@ export default function PredictionDashboard({
         setIsRefreshing(false);
       }
     });
-  };
+  }, [horizon]);
+
+  const handleDetectNearest = useCallback(() => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const userLat = pos.coords.latitude;
+        const userLon = pos.coords.longitude;
+        const nearest = findNearestStation(stations, userLat, userLon);
+        if (nearest) {
+          setNearestStationId(nearest.stationPublicId);
+          if (nearest.stationPublicId !== data.station.stationPublicId) {
+            handleStationSelect(nearest.stationPublicId);
+          }
+        }
+      },
+      (err) => {
+        setIsLocating(false);
+        console.warn("Geolocation permission not granted or unavailable:", err.message);
+      },
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
+    );
+  }, [stations, data.station.stationPublicId, handleStationSelect]);
+
+  // Automatically detect nearest station on first client mount
+  useEffect(() => {
+    handleDetectNearest();
+  }, [handleDetectNearest]);
 
   const handleHorizonChange = (newHorizon: PredictionHorizon) => {
     setHorizon(newHorizon);
@@ -123,6 +157,9 @@ export default function PredictionDashboard({
               horizon={horizon}
               thresholds={data.summary.thresholds}
               onStationSelect={handleStationSelect}
+              nearestStationId={nearestStationId}
+              onDetectNearest={handleDetectNearest}
+              isLocating={isLocating}
             />
           )}
 

@@ -1,0 +1,26 @@
+Old Cabcaben Pier - Bataan - KT-6CBD47DC5194
+Dinalupihan - KT-CC380371FE68
+Dona Maria - KT-B850AD182EC8
+Pag Asa Orani - KT-A86039DC5194
+1Bataan Command Center -KT-8CEE47DC5194
+General Natividad - KT-E0B89EF7A608
+Calumpit WLMS - KT-4049D3215788
+Calumpit AWS - KT-4C31325C7BCC
+Bongabon - KT-245EAD182EC8
+Pag-Asa Bagac - KT-3CCCAC182EC8
+Población Mariveles - KT-D032325C7BCC
+Abucay AWS - KT-D831325C7BCC
+Avida Asten AWS - KT-A80A1B29E748
+San Jose City - KT-B82DB21C0610
+San Luis AWS - KT-5C74AC182EC8
+Lazatin AWS - KT-20FCA4182EC8
+Baretto AWS - KT-184AAD182EC8
+Old Cabalan AWS - KT-EC4FAD182EC8
+Sabang Morong AWS - KT-183017F7A608
+Wawa Limay AWS - KT-94AD8332A7B0
+Alasas AWS - KT-BC25B61815AC
+Sapang Buho AWS - KT-3C50AD182EC8
+Popolon AWS - KT-8050AD182EC8
+
+MQTT Topic Format:
+kloudtrack/[ID]/data

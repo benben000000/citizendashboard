@@ -193,6 +193,13 @@ export const fil = {
         short_burst_light: "Maikling Bugso ng Mahinang Ulan",
         none: "Walang Biglaang Ulan na Inaasahan",
       },
+      burstBadges: {
+        sudden_heavy: "Malakas",
+        short_burst_heavy: "Malakas",
+        sudden_light: "Mahina",
+        short_burst_light: "Mahina",
+        none: "Normal",
+      },
       burstLabels: {
         rate: "Tindi ng Pagbuhos",
         duration: "Tantiyang Tagal",

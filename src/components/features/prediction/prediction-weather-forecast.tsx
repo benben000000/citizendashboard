@@ -31,6 +31,9 @@ interface PredictionWeatherForecastProps {
     critical: number;
   };
   onStationSelect?: (stationId: string) => void;
+  nearestStationId?: string | null;
+  onDetectNearest?: () => void;
+  isLocating?: boolean;
 }
 
 const TAGALOG_DAYS = ["Linggo", "Lunes", "Martes", "Miyerkules", "Huwebes", "Biyernes", "Sabado"];
@@ -44,6 +47,9 @@ export default function PredictionWeatherForecast({
   horizon,
   thresholds,
   onStationSelect,
+  nearestStationId,
+  onDetectNearest,
+  isLocating,
 }: PredictionWeatherForecastProps) {
   const locale = useLocale();
   const t = useTranslations("prediction");
@@ -67,25 +73,19 @@ export default function PredictionWeatherForecast({
     const dayIndex = targetDate.getDay();
     const weekdayStr = locale === "fil" ? TAGALOG_DAYS[dayIndex] : ENGLISH_DAYS[dayIndex];
 
-    const hourOffset =
-      horizon === "1h"
-        ? 1
-        : horizon === "3h"
-          ? 3
-          : horizon === "6h"
-            ? 6
-            : horizon === "12h"
-              ? 12
-              : horizon === "24h"
-                ? 24
-                : horizon === "48h"
-                  ? 24
-                  : 24;
-
-    const hourlyMatch =
-      weather.hourly && weather.hourly.length > 0
-        ? weather.hourly[(hourOffset - 1) % weather.hourly.length]
-        : null;
+    // Find the hourly forecast point closest to targetDate
+    let hourlyMatch: typeof weather.hourly[0] | null = null;
+    if (weather.hourly && weather.hourly.length > 0) {
+      const targetTimeMs = targetDate.getTime();
+      let minDiff = Number.POSITIVE_INFINITY;
+      for (const h of weather.hourly) {
+        const diff = Math.abs(new Date(h.timestamp).getTime() - targetTimeMs);
+        if (diff < minDiff) {
+          minDiff = diff;
+          hourlyMatch = h;
+        }
+      }
+    }
 
     const temp = hourlyMatch ? hourlyMatch.temp : weather.currentTemp;
     const heatIndex = hourlyMatch ? hourlyMatch.heatIndex : weather.currentHeatIndex;
@@ -98,8 +98,9 @@ export default function PredictionWeatherForecast({
       ? targetPoint.rainfallAccumulationMm
       : hourlyMatch?.precipitationMm ?? 0.0;
     const windSpeedKmH = hourlyMatch ? hourlyMatch.windSpeedKmH : weather.windSpeed;
+    const windDirection = hourlyMatch?.windDirection ?? weather.windDirection ?? "NE";
     const humidity = hourlyMatch ? hourlyMatch.humidity : weather.humidity;
-    const pressure = Math.round(1008 - (windSpeedKmH > 15 ? 3 : 0));
+    const pressure = hourlyMatch?.pressure ?? weather.pressure ?? 1008;
 
     const condition =
       hourlyMatch?.condition ||
@@ -125,6 +126,7 @@ export default function PredictionWeatherForecast({
       rainProbability,
       precipitationMm,
       windSpeedKmH,
+      windDirection,
       humidity,
       pressure,
       predictedWaterLevel,
@@ -194,12 +196,15 @@ export default function PredictionWeatherForecast({
         {/* ── LEFT COLUMN: HERO INFORMATION ── */}
         <div className="flex flex-col items-start lg:col-span-7">
           {/* Station Location Selector */}
-          <div className="w-full mb-3 md:mb-5">
+          <div className="w-full mb-2 md:mb-3">
             <StationSelectorPopover
               station={station}
               stations={stations}
               selectedStationId={station.stationPublicId}
               onStationSelect={onStationSelect || (() => undefined)}
+              nearestStationId={nearestStationId}
+              onDetectNearest={onDetectNearest}
+              isLocating={isLocating}
               showAddress={false}
               stationGroup="weather"
               locationClassName="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-light"
@@ -284,7 +289,7 @@ export default function PredictionWeatherForecast({
 
               <div className="my-auto flex items-baseline gap-1 text-light">
                 <span className="text-xl sm:text-2xl md:text-3xl font-bold leading-none">
-                  NE {targetData.windSpeedKmH}
+                  {targetData.windDirection} {targetData.windSpeedKmH}
                 </span>
                 <span className="text-xs font-medium">km/h</span>
               </div>

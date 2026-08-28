@@ -191,6 +191,13 @@ export const en = {
           short_burst_light: "Short Burst of Passing Light Rain",
           none: "No Sudden Rain Bursts",
         },
+        burstBadges: {
+          sudden_heavy: "Heavy",
+          short_burst_heavy: "Heavy",
+          sudden_light: "Light",
+          short_burst_light: "Light",
+          none: "Normal",
+        },
         burstLabels: {
           rate: "Max Burst Rate",
           duration: "Est. Duration",

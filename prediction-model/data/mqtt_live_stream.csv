@@ -1,0 +1,1 @@
+Timestamp,Topic,Station ID,Station Name,Raw Water Level (m),Raw Temp (°C),Raw Humidity (%),Raw Pressure (hPa),Raw Rain (mm),PINN Pred Temp (°C),PINN Pred HI (°C),PINN Rain Prob (%),PINN Pred Water (m),LCL Cloud Base (m),Inference Latency (μs)

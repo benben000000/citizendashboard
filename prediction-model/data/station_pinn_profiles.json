@@ -1,0 +1,605 @@
+{
+  "updated_at": "2026-08-28T16:47:57.435200",
+  "framework": "Per-Station Adaptive Physics-Informed Liquid Neural Network (PINN-LNN)",
+  "total_stations": 23,
+  "stations": {
+    "KT-6CBD47DC5194": {
+      "station_id": "KT-6CBD47DC5194",
+      "station_name": "Old Cabcaben Pier - Bataan",
+      "microclimate_type": "COASTAL_MARINE",
+      "coordinates": {
+        "lat": 14.4532,
+        "lon": 120.5978
+      },
+      "elevation_m": 4.0,
+      "baseline_water_m": 1.85,
+      "predicted_peak_water_m": 5.157,
+      "temperature_mae_c": 1.57,
+      "avg_inference_latency_us": 34.39,
+      "calibrated_tau": [
+        0.4,
+        0.5,
+        3.0,
+        3.5,
+        4.0,
+        12.0,
+        12.42,
+        24.0
+      ],
+      "calibrated_b_temp": 28.4614,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-CC380371FE68": {
+      "station_id": "KT-CC380371FE68",
+      "station_name": "Dinalupihan",
+      "microclimate_type": "LOWLAND_VALLEY",
+      "coordinates": {
+        "lat": 14.8778,
+        "lon": 120.4636
+      },
+      "elevation_m": 28.0,
+      "baseline_water_m": 2.4,
+      "predicted_peak_water_m": 5.678,
+      "temperature_mae_c": 1.48,
+      "avg_inference_latency_us": 37.59,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.3061,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-B850AD182EC8": {
+      "station_id": "KT-B850AD182EC8",
+      "station_name": "Dona Maria",
+      "microclimate_type": "URBAN_PLAIN",
+      "coordinates": {
+        "lat": 15.0298,
+        "lon": 120.6894
+      },
+      "elevation_m": 16.0,
+      "baseline_water_m": 2.1,
+      "predicted_peak_water_m": 5.301,
+      "temperature_mae_c": 1.49,
+      "avg_inference_latency_us": 38.29,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.3841,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-A86039DC5194": {
+      "station_id": "KT-A86039DC5194",
+      "station_name": "Pag Asa Orani",
+      "microclimate_type": "COASTAL_PLAIN",
+      "coordinates": {
+        "lat": 14.8,
+        "lon": 120.5333
+      },
+      "elevation_m": 12.0,
+      "baseline_water_m": 2.3,
+      "predicted_peak_water_m": 5.887,
+      "temperature_mae_c": 1.73,
+      "avg_inference_latency_us": 48.07,
+      "calibrated_tau": [
+        0.4,
+        0.5,
+        3.0,
+        3.5,
+        4.0,
+        12.0,
+        12.42,
+        24.0
+      ],
+      "calibrated_b_temp": 28.4081,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-8CEE47DC5194": {
+      "station_id": "KT-8CEE47DC5194",
+      "station_name": "1Bataan Command Center",
+      "microclimate_type": "REGIONAL_HUB",
+      "coordinates": {
+        "lat": 14.6812,
+        "lon": 120.5414
+      },
+      "elevation_m": 22.0,
+      "baseline_water_m": 2.0,
+      "predicted_peak_water_m": 5.105,
+      "temperature_mae_c": 1.45,
+      "avg_inference_latency_us": 38.24,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.3454,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-E0B89EF7A608": {
+      "station_id": "KT-E0B89EF7A608",
+      "station_name": "General Natividad",
+      "microclimate_type": "OROGRAPHIC_FOOTHILL",
+      "coordinates": {
+        "lat": 15.6022,
+        "lon": 121.0544
+      },
+      "elevation_m": 75.0,
+      "baseline_water_m": 3.1,
+      "predicted_peak_water_m": 8.334,
+      "temperature_mae_c": 1.5,
+      "avg_inference_latency_us": 34.32,
+      "calibrated_tau": [
+        0.15,
+        0.2,
+        1.5,
+        2.0,
+        2.5,
+        6.0,
+        8.0,
+        12.0
+      ],
+      "calibrated_b_temp": 28.0005,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-4049D3215788": {
+      "station_id": "KT-4049D3215788",
+      "station_name": "Calumpit WLMS",
+      "microclimate_type": "RIVER_CONFLUENCE",
+      "coordinates": {
+        "lat": 14.9167,
+        "lon": 120.7667
+      },
+      "elevation_m": 6.0,
+      "baseline_water_m": 3.44,
+      "predicted_peak_water_m": 6.562,
+      "temperature_mae_c": 1.58,
+      "avg_inference_latency_us": 43.48,
+      "calibrated_tau": [
+        0.25,
+        0.3,
+        2.5,
+        3.0,
+        3.5,
+        8.0,
+        10.0,
+        14.0
+      ],
+      "calibrated_b_temp": 28.4483,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-4C31325C7BCC": {
+      "station_id": "KT-4C31325C7BCC",
+      "station_name": "Calumpit AWS",
+      "microclimate_type": "RIVER_BASIN",
+      "coordinates": {
+        "lat": 14.918,
+        "lon": 120.765
+      },
+      "elevation_m": 7.0,
+      "baseline_water_m": 3.42,
+      "predicted_peak_water_m": 7.068,
+      "temperature_mae_c": 1.6,
+      "avg_inference_latency_us": 34.77,
+      "calibrated_tau": [
+        0.25,
+        0.3,
+        2.5,
+        3.0,
+        3.5,
+        8.0,
+        10.0,
+        14.0
+      ],
+      "calibrated_b_temp": 28.4417,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-245EAD182EC8": {
+      "station_id": "KT-245EAD182EC8",
+      "station_name": "Bongabon",
+      "microclimate_type": "OROGRAPHIC_FOOTHILL",
+      "coordinates": {
+        "lat": 15.6311,
+        "lon": 121.1447
+      },
+      "elevation_m": 92.0,
+      "baseline_water_m": 2.8,
+      "predicted_peak_water_m": 8.391,
+      "temperature_mae_c": 1.88,
+      "avg_inference_latency_us": 37.71,
+      "calibrated_tau": [
+        0.15,
+        0.2,
+        1.5,
+        2.0,
+        2.5,
+        6.0,
+        8.0,
+        12.0
+      ],
+      "calibrated_b_temp": 27.887,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-3CCCAC182EC8": {
+      "station_id": "KT-3CCCAC182EC8",
+      "station_name": "Pag-Asa Bagac",
+      "microclimate_type": "COASTAL_MARINE",
+      "coordinates": {
+        "lat": 14.5989,
+        "lon": 120.3933
+      },
+      "elevation_m": 15.0,
+      "baseline_water_m": 1.95,
+      "predicted_peak_water_m": 5.283,
+      "temperature_mae_c": 1.73,
+      "avg_inference_latency_us": 32.31,
+      "calibrated_tau": [
+        0.4,
+        0.5,
+        3.0,
+        3.5,
+        4.0,
+        12.0,
+        12.42,
+        24.0
+      ],
+      "calibrated_b_temp": 28.3887,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-D032325C7BCC": {
+      "station_id": "KT-D032325C7BCC",
+      "station_name": "Poblaci\u00f3n Mariveles",
+      "microclimate_type": "DEEP_HARBOR_COAST",
+      "coordinates": {
+        "lat": 14.4333,
+        "lon": 120.4833
+      },
+      "elevation_m": 8.0,
+      "baseline_water_m": 1.7,
+      "predicted_peak_water_m": 4.89,
+      "temperature_mae_c": 1.57,
+      "avg_inference_latency_us": 31.02,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.4354,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-D831325C7BCC": {
+      "station_id": "KT-D831325C7BCC",
+      "station_name": "Abucay AWS",
+      "microclimate_type": "COASTAL_PLAIN",
+      "coordinates": {
+        "lat": 14.7333,
+        "lon": 120.5333
+      },
+      "elevation_m": 14.0,
+      "baseline_water_m": 2.2,
+      "predicted_peak_water_m": 5.362,
+      "temperature_mae_c": 1.37,
+      "avg_inference_latency_us": 33.1,
+      "calibrated_tau": [
+        0.4,
+        0.5,
+        3.0,
+        3.5,
+        4.0,
+        12.0,
+        12.42,
+        24.0
+      ],
+      "calibrated_b_temp": 28.398,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-A80A1B29E748": {
+      "station_id": "KT-A80A1B29E748",
+      "station_name": "Avida Asten AWS",
+      "microclimate_type": "URBAN_MICROCLIMATE",
+      "coordinates": {
+        "lat": 14.5583,
+        "lon": 121.0111
+      },
+      "elevation_m": 18.0,
+      "baseline_water_m": 1.5,
+      "predicted_peak_water_m": 4.468,
+      "temperature_mae_c": 0.97,
+      "avg_inference_latency_us": 38.25,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.3753,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-B82DB21C0610": {
+      "station_id": "KT-B82DB21C0610",
+      "station_name": "San Jose City",
+      "microclimate_type": "CENTRAL_PLAIN",
+      "coordinates": {
+        "lat": 15.7911,
+        "lon": 120.9922
+      },
+      "elevation_m": 85.0,
+      "baseline_water_m": 2.9,
+      "predicted_peak_water_m": 7.704,
+      "temperature_mae_c": 2.14,
+      "avg_inference_latency_us": 31.5,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 27.9304,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-5C74AC182EC8": {
+      "station_id": "KT-5C74AC182EC8",
+      "station_name": "San Luis AWS",
+      "microclimate_type": "WETLAND_BASIN",
+      "coordinates": {
+        "lat": 15.0411,
+        "lon": 120.7389
+      },
+      "elevation_m": 10.0,
+      "baseline_water_m": 3.25,
+      "predicted_peak_water_m": 6.478,
+      "temperature_mae_c": 1.73,
+      "avg_inference_latency_us": 30.33,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.4212,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-20FCA4182EC8": {
+      "station_id": "KT-20FCA4182EC8",
+      "station_name": "Lazatin AWS",
+      "microclimate_type": "CENTRAL_PLAIN",
+      "coordinates": {
+        "lat": 15.05,
+        "lon": 120.65
+      },
+      "elevation_m": 20.0,
+      "baseline_water_m": 2.5,
+      "predicted_peak_water_m": 6.281,
+      "temperature_mae_c": 1.24,
+      "avg_inference_latency_us": 36.79,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.3601,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-184AAD182EC8": {
+      "station_id": "KT-184AAD182EC8",
+      "station_name": "Baretto AWS",
+      "microclimate_type": "COASTAL_BAY",
+      "coordinates": {
+        "lat": 14.85,
+        "lon": 120.2667
+      },
+      "elevation_m": 5.0,
+      "baseline_water_m": 1.8,
+      "predicted_peak_water_m": 5.031,
+      "temperature_mae_c": 1.58,
+      "avg_inference_latency_us": 31.99,
+      "calibrated_tau": [
+        0.4,
+        0.5,
+        3.0,
+        3.5,
+        4.0,
+        12.0,
+        12.42,
+        24.0
+      ],
+      "calibrated_b_temp": 28.4548,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-EC4FAD182EC8": {
+      "station_id": "KT-EC4FAD182EC8",
+      "station_name": "Old Cabalan AWS",
+      "microclimate_type": "MOUNTAIN_PASS",
+      "coordinates": {
+        "lat": 14.8667,
+        "lon": 120.3167
+      },
+      "elevation_m": 110.0,
+      "baseline_water_m": 2.2,
+      "predicted_peak_water_m": 8.277,
+      "temperature_mae_c": 2.08,
+      "avg_inference_latency_us": 30.93,
+      "calibrated_tau": [
+        0.15,
+        0.2,
+        1.5,
+        2.0,
+        2.5,
+        6.0,
+        8.0,
+        12.0
+      ],
+      "calibrated_b_temp": 27.7683,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-183017F7A608": {
+      "station_id": "KT-183017F7A608",
+      "station_name": "Sabang Morong AWS",
+      "microclimate_type": "COASTAL_MARINE",
+      "coordinates": {
+        "lat": 14.6833,
+        "lon": 120.2667
+      },
+      "elevation_m": 6.0,
+      "baseline_water_m": 1.9,
+      "predicted_peak_water_m": 5.024,
+      "temperature_mae_c": 1.79,
+      "avg_inference_latency_us": 37.2,
+      "calibrated_tau": [
+        0.4,
+        0.5,
+        3.0,
+        3.5,
+        4.0,
+        12.0,
+        12.42,
+        24.0
+      ],
+      "calibrated_b_temp": 28.4467,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-94AD8332A7B0": {
+      "station_id": "KT-94AD8332A7B0",
+      "station_name": "Wawa Limay AWS",
+      "microclimate_type": "COASTAL_ESTUARY",
+      "coordinates": {
+        "lat": 14.5667,
+        "lon": 120.5833
+      },
+      "elevation_m": 4.0,
+      "baseline_water_m": 2.05,
+      "predicted_peak_water_m": 6.514,
+      "temperature_mae_c": 1.88,
+      "avg_inference_latency_us": 40.64,
+      "calibrated_tau": [
+        0.4,
+        0.5,
+        3.0,
+        3.5,
+        4.0,
+        12.0,
+        12.42,
+        24.0
+      ],
+      "calibrated_b_temp": 28.459,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-BC25B61815AC": {
+      "station_id": "KT-BC25B61815AC",
+      "station_name": "Alasas AWS",
+      "microclimate_type": "CENTRAL_PLAIN",
+      "coordinates": {
+        "lat": 15.0333,
+        "lon": 120.6833
+      },
+      "elevation_m": 15.0,
+      "baseline_water_m": 2.6,
+      "predicted_peak_water_m": 5.916,
+      "temperature_mae_c": 1.48,
+      "avg_inference_latency_us": 34.17,
+      "calibrated_tau": [
+        0.3,
+        0.35,
+        2.8,
+        3.2,
+        3.8,
+        10.0,
+        12.0,
+        18.0
+      ],
+      "calibrated_b_temp": 28.3906,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-3C50AD182EC8": {
+      "station_id": "KT-3C50AD182EC8",
+      "station_name": "Sapang Buho AWS",
+      "microclimate_type": "RIVER_WATERSHED",
+      "coordinates": {
+        "lat": 15.55,
+        "lon": 121.0833
+      },
+      "elevation_m": 60.0,
+      "baseline_water_m": 3.0,
+      "predicted_peak_water_m": 6.727,
+      "temperature_mae_c": 1.49,
+      "avg_inference_latency_us": 31.62,
+      "calibrated_tau": [
+        0.25,
+        0.3,
+        2.5,
+        3.0,
+        3.5,
+        8.0,
+        10.0,
+        14.0
+      ],
+      "calibrated_b_temp": 28.0981,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    },
+    "KT-8050AD182EC8": {
+      "station_id": "KT-8050AD182EC8",
+      "station_name": "Popolon AWS",
+      "microclimate_type": "RIVER_WATERSHED",
+      "coordinates": {
+        "lat": 15.5833,
+        "lon": 121.1167
+      },
+      "elevation_m": 68.0,
+      "baseline_water_m": 3.05,
+      "predicted_peak_water_m": 7.663,
+      "temperature_mae_c": 1.93,
+      "avg_inference_latency_us": 31.91,
+      "calibrated_tau": [
+        0.25,
+        0.3,
+        2.5,
+        3.0,
+        3.5,
+        8.0,
+        10.0,
+        14.0
+      ],
+      "calibrated_b_temp": 28.0425,
+      "status": "CALIBRATED & ACTIVE \u2705"
+    }
+  }
+}

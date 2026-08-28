@@ -1,0 +1,159 @@
+{
+  "executed_at": "2026-08-28T16:20:45.745366",
+  "framework": "Physics-Informed Liquid Neural Network (PINN-LNN)",
+  "total_generations_evaluated": 3,
+  "total_inferences": 900,
+  "ground_truth_target": {
+    "temperature_c": 25.9,
+    "heat_index_c": 30.2,
+    "pressure_hpa": 1005.7,
+    "precipitation_mm": 0.4,
+    "river_stage_m": 3.44
+  },
+  "generations": [
+    {
+      "generation": 1,
+      "champion_name": "Agent-5 (PINN-AdaptiveBayesian)",
+      "composite_score": 45.93,
+      "temperature_mae_c": 1.28,
+      "heat_index_mae_c": 1.38,
+      "river_stage_mae_cm": 20.1,
+      "latency_us": 24.73,
+      "leaderboard": [
+        {
+          "rank": 1,
+          "agent_name": "Agent-5 (PINN-AdaptiveBayesian)",
+          "score": 45.93,
+          "temp_mae": 1.28,
+          "latency_us": 24.73
+        },
+        {
+          "rank": 2,
+          "agent_name": "Agent-3 (PINN-CrossAttn)",
+          "score": 45.53,
+          "temp_mae": 1.29,
+          "latency_us": 25.12
+        },
+        {
+          "rank": 3,
+          "agent_name": "Agent-1 (PINN-Canonical)",
+          "score": 45.2,
+          "temp_mae": 1.29,
+          "latency_us": 30.84
+        },
+        {
+          "rank": 4,
+          "agent_name": "Agent-4 (PINN-EnergyConserving)",
+          "score": 45.17,
+          "temp_mae": 1.29,
+          "latency_us": 31.2
+        },
+        {
+          "rank": 5,
+          "agent_name": "Agent-2 (PINN-MultiScale)",
+          "score": 44.62,
+          "temp_mae": 1.29,
+          "latency_us": 40.84
+        }
+      ]
+    },
+    {
+      "generation": 2,
+      "champion_name": "Gen-2 Champ-Elite (Agent-5 (PINN-AdaptiveBayesian))",
+      "composite_score": 45.74,
+      "temperature_mae_c": 1.29,
+      "heat_index_mae_c": 1.39,
+      "river_stage_mae_cm": 19.6,
+      "latency_us": 26.14,
+      "leaderboard": [
+        {
+          "rank": 1,
+          "agent_name": "Gen-2 Champ-Elite (Agent-5 (PINN-AdaptiveBayesian))",
+          "score": 45.74,
+          "temp_mae": 1.29,
+          "latency_us": 26.14
+        },
+        {
+          "rank": 2,
+          "agent_name": "Gen-2 Diurnal-Stabilized",
+          "score": 45.73,
+          "temp_mae": 1.28,
+          "latency_us": 26.47
+        },
+        {
+          "rank": 3,
+          "agent_name": "Gen-2 Stochastic-Explorer",
+          "score": 45.66,
+          "temp_mae": 1.29,
+          "latency_us": 25.87
+        },
+        {
+          "rank": 4,
+          "agent_name": "Gen-2 Fast-LCL-Mutant",
+          "score": 45.24,
+          "temp_mae": 1.28,
+          "latency_us": 31.17
+        },
+        {
+          "rank": 5,
+          "agent_name": "Gen-2 Hydro-Coupled",
+          "score": 45.21,
+          "temp_mae": 1.29,
+          "latency_us": 30.11
+        }
+      ]
+    },
+    {
+      "generation": 3,
+      "champion_name": "Gen-3 Stochastic-Explorer",
+      "composite_score": 46.0,
+      "temperature_mae_c": 1.28,
+      "heat_index_mae_c": 1.38,
+      "river_stage_mae_cm": 19.9,
+      "latency_us": 25.12,
+      "leaderboard": [
+        {
+          "rank": 1,
+          "agent_name": "Gen-3 Stochastic-Explorer",
+          "score": 46.0,
+          "temp_mae": 1.28,
+          "latency_us": 25.12
+        },
+        {
+          "rank": 2,
+          "agent_name": "Gen-3 Fast-LCL-Mutant",
+          "score": 45.75,
+          "temp_mae": 1.28,
+          "latency_us": 25.65
+        },
+        {
+          "rank": 3,
+          "agent_name": "Gen-3 Champ-Elite (Gen-2 Champ-Elite (Agent-5 (PINN-AdaptiveBayesian)))",
+          "score": 45.47,
+          "temp_mae": 1.29,
+          "latency_us": 26.42
+        },
+        {
+          "rank": 4,
+          "agent_name": "Gen-3 Diurnal-Stabilized",
+          "score": 45.12,
+          "temp_mae": 1.29,
+          "latency_us": 31.8
+        },
+        {
+          "rank": 5,
+          "agent_name": "Gen-3 Hydro-Coupled",
+          "score": 44.89,
+          "temp_mae": 1.29,
+          "latency_us": 34.6
+        }
+      ]
+    }
+  ],
+  "final_champion": {
+    "name": "Gen-3 Stochastic-Explorer",
+    "score": 46.0,
+    "temperature_mae_c": 1.28,
+    "latency_us": 25.12
+  }
+}

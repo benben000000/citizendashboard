@@ -270,8 +270,8 @@ export default function PredictionPeakSummary({
                 style={{ backgroundColor: burstBadgeColor }}
               >
                 {burst.detected
-                  ? t(`burstTypes.${burst.burstType}`)
-                  : t("burstTypes.none")}
+                  ? t(`burstBadges.${burst.burstType}`)
+                  : t("burstBadges.none")}
               </div>
             </div>
 

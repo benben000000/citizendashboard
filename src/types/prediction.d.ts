@@ -47,7 +47,9 @@ export interface HourlyWeatherForecast {
   rainProbability: number;
   precipitationMm: number;
   windSpeedKmH: number;
+  windDirection?: string;
   humidity: number;
+  pressure?: number;
 }
 
 export interface DailyWeatherForecast {
@@ -69,6 +71,8 @@ export interface PredictionWeatherOverview {
   conditionText: string;
   humidity: number;
   windSpeed: number;
+  windDirection?: string;
+  pressure?: number;
   precipitationChance: number;
   summaryMessage: string;
   hourly: HourlyWeatherForecast[];
