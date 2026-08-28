@@ -1,0 +1,341 @@
+.rainy-day-overlay--droplets {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at top, rgba(255, 255, 255, 0.08), transparent 40%),
+    linear-gradient(180deg, rgba(138, 163, 194, 0.24), rgba(65, 85, 112, 0.52));
+}
+
+.rainy-day-overlay--droplets .rainy-day-overlay__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(255, 255, 255),
+      rgba(65, 79, 93, 0.045)
+    );
+  opacity: 0.14;
+}
+
+.rainy-day-overlay--steady .rainy-day-overlay__veil {
+  opacity: 0.36;
+}
+
+/* ─── Group wrapper: owns position + fall animation ─── */
+
+.rainy-day-overlay__drop-group {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border: 0;
+  left: var(--drop-left);
+  top: var(--drop-top);
+  width: var(--drop-width);
+  height: var(--drop-height);
+  will-change: transform, opacity;
+  animation: rainDropFall var(--drop-duration) linear var(--drop-delay) infinite;
+}
+
+.rainy-day-overlay__drop-group--desktop {
+  display: none;
+}
+
+/* ─── Trail: dark but slightly less noticeable ─── */
+
+.rainy-day-overlay__trail {
+  position: absolute;
+  left: 50%;
+  bottom: -5%;
+  border: 0;
+  transform: translateX(-50%);
+  width: max(2px, calc(var(--drop-width) * 0.35));
+  height: var(--drop-trail-length);
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(90, 120, 145, 0.18) 10%,
+    rgba(105, 135, 160, 0.3) 30%,
+    rgba(120, 150, 175, 0.42) 50%,
+    rgba(130, 160, 185, 0.38) 70%,
+    rgba(145, 175, 200, 0.24) 85%,
+    rgba(160, 190, 215, 0.1) 100%
+  );
+  animation: rainTrailReveal var(--drop-duration) linear var(--drop-delay) infinite;
+}
+
+/* ─── Drop: lighter and more visible ─── */
+
+.rainy-day-overlay__drop {
+  position: absolute;
+  display: block;
+  border: 0;
+  width: var(--drop-width);
+  height: var(--drop-height);
+  border-radius: 999px;
+  opacity: var(--drop-opacity);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 1) 0 14%, transparent 24%),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.88), rgba(210, 235, 250, 0.62) 56%, rgba(50, 80, 105, 0.28));
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.7),
+    0 1px 3px rgba(5, 18, 28, 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translate(-50%, -50%);
+}
+
+.rainy-day-overlay__drop--desktop {
+  display: none;
+}
+
+.rainy-day-overlay__drop::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 1px 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Static drop (lighter) ─── */
+
+.rainy-day-overlay__drop--static {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  left: var(--drop-left);
+  top: var(--drop-top);
+  width: var(--drop-width);
+  height: var(--drop-width);
+  border-radius: 50%;
+  opacity: var(--drop-opacity);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 1) 0 14%, transparent 24%),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.88), rgba(210, 235, 250, 0.62) 56%, rgba(50, 80, 105, 0.28));
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.7),
+    0 1px 3px rgba(5, 18, 28, 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+  animation: rainDropIdle var(--drop-duration) ease-in-out var(--drop-delay) infinite;
+}
+
+.rainy-day-overlay__drop--static::before {
+  display: none;
+}
+
+.rainy-day-overlay__drop--static::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 1px 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Falling drop: shape + highlight only (lighter) ─── */
+
+.rainy-day-overlay__drop--falling {
+  top: 0;
+  left: 0;
+  transform: none;
+  width: 100%;
+  height: 100%;
+  border-radius: 44% 44% 72% 72% / 28% 28% 92% 92%;
+  clip-path: polygon(50% 0, 68% 14%, 84% 48%, 100% 76%, 82% 100%, 18% 100%, 0 76%, 16% 48%, 32% 14%);
+  background:
+    radial-gradient(circle at 38% 18%, rgba(255, 255, 255, 1) 0 13%, transparent 24%),
+    radial-gradient(ellipse at 50% 72%, rgba(255, 255, 255, 0.82), rgba(210, 235, 250, 0.58) 54%, rgba(50, 80, 105, 0.24));
+  animation: none;
+}
+
+.rainy-day-overlay__drop--falling::before {
+  display: none;
+}
+
+.rainy-day-overlay__drop--falling::after {
+  inset: 1px;
+  border-radius: inherit;
+  clip-path: inherit;
+  background:
+    radial-gradient(ellipse at 38% 22%, rgba(255, 255, 255, 0.55), transparent 34%),
+    radial-gradient(ellipse at 50% 84%, rgba(255, 255, 255, 0.4), rgba(30, 55, 75, 0.12) 70%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 1px 2px rgba(5, 18, 28, 0.1);
+}
+
+.rainy-day-overlay--steady .rainy-day-overlay__drop-group {
+  box-shadow:
+    none;
+}
+
+.rainy-day-overlay--reduced-motion .rainy-day-overlay__drop,
+.rainy-day-overlay--reduced-motion .rainy-day-overlay__drop-group {
+  display: none;
+}
+
+/* ─── Keyframes ─── */
+
+@keyframes rainDropIdle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.82);
+  }
+  8%,
+  72% {
+    opacity: var(--drop-opacity);
+  }
+  44% {
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+}
+
+@keyframes rainDropFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  4%,
+  16% {
+    opacity: var(--drop-opacity);
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  70% {
+    opacity: calc(var(--drop-opacity) * 0.92);
+  }
+  96% {
+    opacity: calc(var(--drop-opacity) * 0.75);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drop-drift), var(--drop-travel), 0) scaleY(1.22);
+  }
+}
+
+@keyframes rainTrailReveal {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0.72);
+    transform-origin: top;
+  }
+  4%,
+  16% {
+    opacity: var(--drop-trail-opacity);
+    transform: translateX(-50%) scaleY(0.72);
+  }
+  82% {
+    opacity: var(--drop-trail-opacity);
+    transform: translateX(-50%) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0.72);
+    transform-origin: top;
+  }
+}
+
+/* ─── Responsive ─── */
+
+@media (min-width: 768px) {
+  .rainy-day-overlay__drop--desktop {
+    display: block;
+  }
+
+  .rainy-day-overlay__drop-group--desktop {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .rainy-day-overlay--droplets .rainy-day-overlay__veil {
+    background: rgba(255, 255, 255, 0.08);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainy-day-overlay--droplets .rainy-day-overlay__veil {
+    opacity: 0.2;
+  }
+
+  .rainy-day-overlay__drop,
+  .rainy-day-overlay__drop-group {
+    display: none;
+  }
+}
+
+/* ─── Dark mode ─── */
+
+.dark .rainy-day-overlay--droplets {
+  background:
+    radial-gradient(ellipse at top, rgba(255, 255, 255, 0.04), transparent 40%),
+    linear-gradient(180deg, rgba(4, 8, 13, 0.3), rgba(4, 8, 13, 0.6));
+}
+
+.dark .rainy-day-overlay--droplets .rainy-day-overlay__veil {
+  opacity: 0.18;
+}
+
+.dark .rainy-day-overlay--steady .rainy-day-overlay__veil {
+  opacity: 0.42;
+}
+
+.dark .rainy-day-overlay__drop-group {
+  filter: brightness(1.14) contrast(1.06);
+}
+
+.dark .rainy-day-overlay__drop,
+.dark .rainy-day-overlay__drop--static {
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 1) 0 14%, transparent 24%),
+    radial-gradient(circle at 50% 42%, rgba(245, 250, 255, 0.94), rgba(165, 208, 232, 0.68) 56%, rgba(40, 78, 108, 0.44));
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.72),
+    0 1px 3px rgba(0, 0, 0, 0.24),
+    0 0 8px rgba(190, 225, 245, 0.12);
+}
+
+.dark .rainy-day-overlay__drop--falling {
+  background:
+    radial-gradient(circle at 38% 18%, rgba(255, 255, 255, 1) 0 13%, transparent 24%),
+    radial-gradient(ellipse at 50% 72%, rgba(245, 250, 255, 0.94), rgba(165, 208, 232, 0.68) 54%, rgba(40, 78, 108, 0.44));
+}
+
+.dark .rainy-day-overlay__drop::after,
+.dark .rainy-day-overlay__drop--static::after,
+.dark .rainy-day-overlay__drop--falling::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 1px 2px rgba(5, 18, 28, 0.16);
+}
+
+/* Dark mode trail - still dark but slightly reduced opacity */
+.dark .rainy-day-overlay__trail {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(78, 116, 142, 0.56) 10%,
+    rgba(96, 138, 166, 0.82) 30%,
+    rgba(116, 158, 188, 0.92) 50%,
+    rgba(126, 170, 198, 0.84) 70%,
+    rgba(138, 184, 212, 0.62) 85%,
+    rgba(152, 200, 226, 0.3) 100%
+  );
+}

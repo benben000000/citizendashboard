@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-08-27T11:56:24.662763",
+  "geographic_scope": "Central Luzon, Region III (Pampanga River Basin)",
+  "radar_feed": {
+    "source": "RainViewer Doppler Radar API",
+    "host": "https://tilecache.rainviewer.com",
+    "latest_timestamp": 1787802600,
+    "path": "/v2/radar/bb63dffc73f8",
+    "nowcast_depth_frames": 0,
+    "region_reflectivity_dbz": 18.5,
+    "rain_echo_active": false
+  },
+  "satellite_feed": {
+    "satellite": "Himawari-9 (JMA / NOAA Open Data)",
+    "instrument": "Advanced Himawari Imager (AHI)",
+    "bands_analyzed": [
+      "Band 13 (Clean IR 10.4 \u03bcm)",
+      "Band 8 (Water Vapor 6.2 \u03bcm)"
+    ],
+    "target_bounding_box": {
+      "lat_min": 14.2,
+      "lat_max": 15.8,
+      "lon_min": 120.0,
+      "lon_max": 121.5,
+      "center_lat": 15.0,
+      "center_lon": 120.6
+    },
+    "observation_time_utc": "2026-08-27T03:50:00Z",
+    "cloud_top_temperature_k": 288.0,
+    "cloud_top_temperature_c": 14.9,
+    "convective_cloud_index": 0.0,
+    "cloud_cover_fraction_pct": 20.0
+  }
+}

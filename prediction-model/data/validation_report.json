@@ -1,0 +1,64 @@
+{
+  "evaluation_samples": 75616,
+  "rain_classification": {
+    "accuracy": "91.37%",
+    "precision": "0.00%",
+    "recall": "0.00%",
+    "f1_score": "0.00%",
+    "false_alarm_rate": "0.00%"
+  },
+  "water_level_regression": {
+    "mae_meters": 0.168,
+    "rmse_meters": 0.1804,
+    "r2_score": -218.8826
+  },
+  "latency": {
+    "per_sample_microseconds": 3.47,
+    "throughput_per_sec": 288236
+  },
+  "multi_horizon_stability": [
+    {
+      "horizon": "1h",
+      "decay_factor": 0.961,
+      "uncertainty_band_m": "\u00b10.08m",
+      "stability": "PASS (Bounded)"
+    },
+    {
+      "horizon": "3h",
+      "decay_factor": 0.887,
+      "uncertainty_band_m": "\u00b10.139m",
+      "stability": "PASS (Bounded)"
+    },
+    {
+      "horizon": "6h",
+      "decay_factor": 0.787,
+      "uncertainty_band_m": "\u00b10.196m",
+      "stability": "PASS (Bounded)"
+    },
+    {
+      "horizon": "12h",
+      "decay_factor": 0.619,
+      "uncertainty_band_m": "\u00b10.277m",
+      "stability": "PASS (Bounded)"
+    },
+    {
+      "horizon": "24h",
+      "decay_factor": 0.383,
+      "uncertainty_band_m": "\u00b10.392m",
+      "stability": "PASS (Bounded)"
+    },
+    {
+      "horizon": "48h",
+      "decay_factor": 0.147,
+      "uncertainty_band_m": "\u00b10.554m",
+      "stability": "PASS (Bounded)"
+    },
+    {
+      "horizon": "72h",
+      "decay_factor": 0.056,
+      "uncertainty_band_m": "\u00b10.679m",
+      "stability": "PASS (Bounded)"
+    }
+  ],
+  "overall_status": "READY_FOR_PRODUCTION"
+}

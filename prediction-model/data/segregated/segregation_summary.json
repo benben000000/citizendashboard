@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-08-27T11:55:49.739274",
+  "total_raw_records_processed": 800039,
+  "clean_records_retained": 716527,
+  "dirty_outliers_dropped": 83512,
+  "diurnal_nighttime_anomalies_corrected": 47836,
+  "clean_data_quality_pct": 89.56,
+  "yearly_distribution": {
+    "2024": 0,
+    "2025": 0,
+    "2026": 716527,
+    "other": 0
+  },
+  "stations_processed": 17,
+  "station_breakdown": {
+    "Rjz2dbXW": {
+      "name": "Popolon AWS - Palayan City",
+      "type": "weather",
+      "clean_count": 50000,
+      "dirty_dropped": 0
+    },
+    "3nzr8bGo": {
+      "name": "Alasas AWS - San Fernando City",
+      "type": "weather",
+      "clean_count": 49454,
+      "dirty_dropped": 546
+    },
+    "2Dpo5DAK": {
+      "name": "1Bataan Command Center - Bataan",
+      "type": "weather",
+      "clean_count": 15155,
+      "dirty_dropped": 12945
+    },
+    "4VAl2p9k": {
+      "name": "Sapang Buho AWS - Palayan City",
+      "type": "weather",
+      "clean_count": 50000,
+      "dirty_dropped": 0
+    },
+    "lMAZe9b3": {
+      "name": "Abucay AWS - Bataan",
+      "type": "weather",
+      "clean_count": 50000,
+      "dirty_dropped": 0
+    },
+    "1Zb102pg": {
+      "name": "San Jose City AWS",
+      "type": "weather",
+      "clean_count": 50000,
+      "dirty_dropped": 0
+    },
+    "nDby4YpR": {
+      "name": "General Natividad AWS - Nueva Ecija",
+      "type": "weather",
+      "clean_count": 49162,
+      "dirty_dropped": 838
+    },
+    "3nzr48bG": {
+      "name": "Calumpit AWS - Bulacan",
+      "type": "weather",
+      "clean_count": 49999,
+      "dirty_dropped": 1
+    },
+    "O3z0j5bG": {
+      "name": "Calumpit WLMS- Bulacan",
+      "type": "water_level",
+      "clean_count": 43871,
+      "dirty_dropped": 12
+    },
+    "03pqkGAj": {
+      "name": "Bongabon Water District AWS - Nueva Ecija",
+      "type": "weather",
+      "clean_count": 50000,
+      "dirty_dropped": 0
+    },
+    "95pM7BAV": {
+      "name": "Do\u00f1a Maria AWS - Balanga City",
+      "type": "weather",
+      "clean_count": 28056,
+      "dirty_dropped": 0
+    },
+    "VEpdDpBK": {
+      "name": "San Luis AWS - Aurora [Under Maintenance]",
+      "type": "weather",
+      "clean_count": 7253,
+      "dirty_dropped": 42747
+    },
+    "rqAkmpKG": {
+      "name": "Barretto AWS - Olongapo City",
+      "type": "weather",
+      "clean_count": 42271,
+      "dirty_dropped": 7729
+    },
+    "wkAWLzlm": {
+      "name": "Lazatin AWS - San Fernando City",
+      "type": "weather",
+      "clean_count": 49998,
+      "dirty_dropped": 2
+    },
+    "QgbGldAY": {
+      "name": "Pag-asa Bagac AWS - Bataan",
+      "type": "weather",
+      "clean_count": 50000,
+      "dirty_dropped": 0
+    },
+    "nDbyYbR1": {
+      "name": "Sabang Morong AWS - Bataan",
+      "type": "weather",
+      "clean_count": 35810,
+      "dirty_dropped": 14190
+    },
+    "Bkpj1zRO": {
+      "name": "Old Cabalan AWS - Olongapo City",
+      "type": "weather",
+      "clean_count": 45498,
+      "dirty_dropped": 4502
+    }
+  }
+}

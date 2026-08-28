@@ -1,0 +1,110 @@
+{
+  "total_weather_records": 756156,
+  "total_water_records": 43883,
+  "total_records": 800039,
+  "stations": {
+    "lMAZe9b3": {
+      "name": "Abucay AWS - Bataan",
+      "location": "abucay",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "95pM7BAV": {
+      "name": "Do\u00f1a Maria AWS - Balanga City",
+      "location": "balanga",
+      "type": "WEATHERSTATION",
+      "count": 28056
+    },
+    "2Dpo5DAK": {
+      "name": "1Bataan Command Center - Bataan",
+      "location": "orani",
+      "type": "WEATHERSTATION",
+      "count": 28100
+    },
+    "QgbGldAY": {
+      "name": "Pag-asa Bagac AWS - Bataan",
+      "location": "bagac",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "Rjz2dbXW": {
+      "name": "Popolon AWS - Palayan City",
+      "location": "popolon",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "4VAl2p9k": {
+      "name": "Sapang Buho AWS - Palayan City",
+      "location": "sapang-buho",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "nDby4YpR": {
+      "name": "General Natividad AWS - Nueva Ecija",
+      "location": "general-natividad",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "03pqkGAj": {
+      "name": "Bongabon Water District AWS - Nueva Ecija",
+      "location": "bongabon",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "3nzr8bGo": {
+      "name": "Alasas AWS - San Fernando City",
+      "location": "alasas",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "nDbyYbR1": {
+      "name": "Sabang Morong AWS - Bataan",
+      "location": "morong",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "rqAkmpKG": {
+      "name": "Barretto AWS - Olongapo City",
+      "location": "barreto",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "Bkpj1zRO": {
+      "name": "Old Cabalan AWS - Olongapo City",
+      "location": "old-cabalan",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "wkAWLzlm": {
+      "name": "Lazatin AWS - San Fernando City",
+      "location": "lazatin",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "1Zb102pg": {
+      "name": "San Jose City AWS",
+      "location": "san-jose",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "3nzr48bG": {
+      "name": "Calumpit AWS - Bulacan",
+      "location": "calumpit",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "VEpdDpBK": {
+      "name": "San Luis AWS - Aurora [Under Maintenance]",
+      "location": "san-luis",
+      "type": "WEATHERSTATION",
+      "count": 50000
+    },
+    "O3z0j5bG": {
+      "name": "Calumpit WLMS- Bulacan",
+      "location": "calumpit",
+      "type": "RIVERLEVEL",
+      "count": 43883
+    }
+  },
+  "generated_at": "2026-08-26 02:07:00 UTC"
+}

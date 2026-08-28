@@ -1,0 +1,872 @@
+{
+  "generated_at": "2026-08-28T09:03:20.302356",
+  "total_stations": 16,
+  "average_temp_mae_c": 0.2,
+  "average_rain_mae_mm": 0.0,
+  "stations": [
+    {
+      "station_id": "Rjz2dbXW",
+      "station_name": "Popolon AWS",
+      "city": "Palayan City",
+      "province": "Nueva Ecija",
+      "coordinates": {
+        "lat": 15.5368,
+        "lon": 121.0577
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.4,
+          "pagasa_temp_c": 30.2,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.1,
+          "pagasa_heat_index_c": 33.2,
+          "lnn_rain_prob_pct": 9.4,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.1,
+          "pagasa_temp_c": 30.9,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.5,
+          "pagasa_heat_index_c": 33.9,
+          "lnn_rain_prob_pct": 6.2,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.7,
+          "pagasa_temp_c": 31.5,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.9,
+          "pagasa_heat_index_c": 34.5,
+          "lnn_rain_prob_pct": 5.9,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "3nzr8bGo",
+      "station_name": "Alasas AWS",
+      "city": "San Fernando City",
+      "province": "Pampanga",
+      "coordinates": {
+        "lat": 15.0298,
+        "lon": 120.6894
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.8,
+          "pagasa_temp_c": 30.6,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.6,
+          "pagasa_heat_index_c": 33.6,
+          "lnn_rain_prob_pct": 8.7,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.5,
+          "pagasa_temp_c": 31.3,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.0,
+          "pagasa_heat_index_c": 34.3,
+          "lnn_rain_prob_pct": 6.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 32.1,
+          "pagasa_temp_c": 31.9,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.4,
+          "pagasa_heat_index_c": 34.9,
+          "lnn_rain_prob_pct": 5.9,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "2Dpo5DAK",
+      "station_name": "1Bataan Command Center",
+      "city": "Balanga City",
+      "province": "Bataan",
+      "coordinates": {
+        "lat": 14.6784,
+        "lon": 120.5412
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.6,
+          "pagasa_temp_c": 30.4,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.5,
+          "pagasa_heat_index_c": 33.4,
+          "lnn_rain_prob_pct": 9.7,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.3,
+          "pagasa_temp_c": 31.1,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.9,
+          "pagasa_heat_index_c": 34.1,
+          "lnn_rain_prob_pct": 6.3,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.9,
+          "pagasa_temp_c": 31.7,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.3,
+          "pagasa_heat_index_c": 34.7,
+          "lnn_rain_prob_pct": 6.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "4VAl2p9k",
+      "station_name": "Sapang Buho AWS",
+      "city": "Palayan City",
+      "province": "Nueva Ecija",
+      "coordinates": {
+        "lat": 15.5521,
+        "lon": 121.0843
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.2,
+          "pagasa_temp_c": 30.0,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 33.8,
+          "pagasa_heat_index_c": 33.0,
+          "lnn_rain_prob_pct": 9.7,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 30.9,
+          "pagasa_temp_c": 30.7,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.2,
+          "pagasa_heat_index_c": 33.7,
+          "lnn_rain_prob_pct": 6.3,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.5,
+          "pagasa_temp_c": 31.3,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.6,
+          "pagasa_heat_index_c": 34.3,
+          "lnn_rain_prob_pct": 6.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "lMAZe9b3",
+      "station_name": "Abucay AWS",
+      "city": "Abucay",
+      "province": "Bataan",
+      "coordinates": {
+        "lat": 14.7358,
+        "lon": 120.5372
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.5,
+          "pagasa_temp_c": 30.3,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.2,
+          "pagasa_heat_index_c": 33.3,
+          "lnn_rain_prob_pct": 9.6,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.2,
+          "pagasa_temp_c": 31.0,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.7,
+          "pagasa_heat_index_c": 34.0,
+          "lnn_rain_prob_pct": 6.3,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.8,
+          "pagasa_temp_c": 31.6,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.1,
+          "pagasa_heat_index_c": 34.6,
+          "lnn_rain_prob_pct": 6.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "1Zb102pg",
+      "station_name": "San Jose City AWS",
+      "city": "San Jose City",
+      "province": "Nueva Ecija",
+      "coordinates": {
+        "lat": 15.7912,
+        "lon": 120.9984
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.0,
+          "pagasa_temp_c": 29.8,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 33.5,
+          "pagasa_heat_index_c": 32.8,
+          "lnn_rain_prob_pct": 10.3,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 30.7,
+          "pagasa_temp_c": 30.5,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.0,
+          "pagasa_heat_index_c": 33.5,
+          "lnn_rain_prob_pct": 6.4,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.3,
+          "pagasa_temp_c": 31.1,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.4,
+          "pagasa_heat_index_c": 34.1,
+          "lnn_rain_prob_pct": 6.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "nDby4YpR",
+      "station_name": "General Natividad AWS",
+      "city": "General Natividad",
+      "province": "Nueva Ecija",
+      "coordinates": {
+        "lat": 15.6023,
+        "lon": 121.0541
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.3,
+          "pagasa_temp_c": 30.1,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.0,
+          "pagasa_heat_index_c": 33.1,
+          "lnn_rain_prob_pct": 9.6,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.0,
+          "pagasa_temp_c": 30.8,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.4,
+          "pagasa_heat_index_c": 33.8,
+          "lnn_rain_prob_pct": 6.3,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.6,
+          "pagasa_temp_c": 31.4,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.8,
+          "pagasa_heat_index_c": 34.4,
+          "lnn_rain_prob_pct": 6.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "3nzr48bG",
+      "station_name": "Calumpit AWS",
+      "city": "Calumpit",
+      "province": "Bulacan",
+      "coordinates": {
+        "lat": 14.9201,
+        "lon": 120.7657
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.7,
+          "pagasa_temp_c": 30.5,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.6,
+          "pagasa_heat_index_c": 33.5,
+          "lnn_rain_prob_pct": 8.6,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.4,
+          "pagasa_temp_c": 31.2,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.1,
+          "pagasa_heat_index_c": 34.2,
+          "lnn_rain_prob_pct": 6.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 32.0,
+          "pagasa_temp_c": 31.8,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.5,
+          "pagasa_heat_index_c": 34.8,
+          "lnn_rain_prob_pct": 5.9,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "03pqkGAj",
+      "station_name": "Bongabon Water District",
+      "city": "Bongabon",
+      "province": "Nueva Ecija",
+      "coordinates": {
+        "lat": 15.6312,
+        "lon": 121.1458
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 29.9,
+          "pagasa_temp_c": 29.8,
+          "temp_diff_c": 0.1,
+          "lnn_heat_index_c": 33.4,
+          "pagasa_heat_index_c": 32.8,
+          "lnn_rain_prob_pct": 12.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 30.6,
+          "pagasa_temp_c": 30.4,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 33.8,
+          "pagasa_heat_index_c": 33.4,
+          "lnn_rain_prob_pct": 6.9,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.2,
+          "pagasa_temp_c": 31.0,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.2,
+          "pagasa_heat_index_c": 34.0,
+          "lnn_rain_prob_pct": 6.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "95pM7BAV",
+      "station_name": "Do\u00f1a Maria AWS",
+      "city": "Balanga City",
+      "province": "Bataan",
+      "coordinates": {
+        "lat": 14.6852,
+        "lon": 120.5284
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.6,
+          "pagasa_temp_c": 30.4,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.4,
+          "pagasa_heat_index_c": 33.4,
+          "lnn_rain_prob_pct": 9.2,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.3,
+          "pagasa_temp_c": 31.1,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.8,
+          "pagasa_heat_index_c": 34.1,
+          "lnn_rain_prob_pct": 6.2,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.9,
+          "pagasa_temp_c": 31.7,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.2,
+          "pagasa_heat_index_c": 34.7,
+          "lnn_rain_prob_pct": 6.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "VEpdDpBK",
+      "station_name": "San Luis AWS",
+      "city": "San Luis",
+      "province": "Aurora",
+      "coordinates": {
+        "lat": 15.7012,
+        "lon": 121.5201
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 29.6,
+          "pagasa_temp_c": 29.4,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 33.7,
+          "pagasa_heat_index_c": 32.4,
+          "lnn_rain_prob_pct": 17.7,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 30.3,
+          "pagasa_temp_c": 30.1,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.1,
+          "pagasa_heat_index_c": 33.1,
+          "lnn_rain_prob_pct": 9.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 30.9,
+          "pagasa_temp_c": 30.7,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.5,
+          "pagasa_heat_index_c": 33.7,
+          "lnn_rain_prob_pct": 6.8,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        }
+      ]
+    },
+    {
+      "station_id": "rqAkmpKG",
+      "station_name": "Barretto AWS",
+      "city": "Olongapo City",
+      "province": "Zambales",
+      "coordinates": {
+        "lat": 14.8542,
+        "lon": 120.2641
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.4,
+          "pagasa_temp_c": 30.2,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.3,
+          "pagasa_heat_index_c": 33.2,
+          "lnn_rain_prob_pct": 11.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.1,
+          "pagasa_temp_c": 30.9,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.7,
+          "pagasa_heat_index_c": 33.9,
+          "lnn_rain_prob_pct": 6.7,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.7,
+          "pagasa_temp_c": 31.5,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.1,
+          "pagasa_heat_index_c": 34.5,
+          "lnn_rain_prob_pct": 6.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "wkAWLzlm",
+      "station_name": "Lazatin AWS",
+      "city": "San Fernando City",
+      "province": "Pampanga",
+      "coordinates": {
+        "lat": 15.0341,
+        "lon": 120.6812
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.9,
+          "pagasa_temp_c": 30.8,
+          "temp_diff_c": 0.1,
+          "lnn_heat_index_c": 34.7,
+          "pagasa_heat_index_c": 33.8,
+          "lnn_rain_prob_pct": 8.7,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.6,
+          "pagasa_temp_c": 31.4,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.1,
+          "pagasa_heat_index_c": 34.4,
+          "lnn_rain_prob_pct": 6.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 32.2,
+          "pagasa_temp_c": 32.0,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.5,
+          "pagasa_heat_index_c": 35.0,
+          "lnn_rain_prob_pct": 5.9,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "QgbGldAY",
+      "station_name": "Pag-asa Bagac AWS",
+      "city": "Bagac",
+      "province": "Bataan",
+      "coordinates": {
+        "lat": 14.6012,
+        "lon": 120.4012
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.3,
+          "pagasa_temp_c": 30.1,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.2,
+          "pagasa_heat_index_c": 33.1,
+          "lnn_rain_prob_pct": 12.5,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 31.0,
+          "pagasa_temp_c": 30.8,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.7,
+          "pagasa_heat_index_c": 33.8,
+          "lnn_rain_prob_pct": 7.2,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.6,
+          "pagasa_temp_c": 31.4,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.1,
+          "pagasa_heat_index_c": 34.4,
+          "lnn_rain_prob_pct": 6.2,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "nDbyYbR1",
+      "station_name": "Sabang Morong AWS",
+      "city": "Morong",
+      "province": "Bataan",
+      "coordinates": {
+        "lat": 14.6812,
+        "lon": 120.2741
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.2,
+          "pagasa_temp_c": 30.0,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.2,
+          "pagasa_heat_index_c": 33.0,
+          "lnn_rain_prob_pct": 12.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 30.9,
+          "pagasa_temp_c": 30.7,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.6,
+          "pagasa_heat_index_c": 33.7,
+          "lnn_rain_prob_pct": 7.0,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.5,
+          "pagasa_temp_c": 31.3,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 35.0,
+          "pagasa_heat_index_c": 34.3,
+          "lnn_rain_prob_pct": 6.2,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    },
+    {
+      "station_id": "Bkpj1zRO",
+      "station_name": "Old Cabalan AWS",
+      "city": "Olongapo City",
+      "province": "Zambales",
+      "coordinates": {
+        "lat": 14.8621,
+        "lon": 120.3102
+      },
+      "predictions_3h": [
+        {
+          "horizon": "+1h",
+          "time": "10:00 AM",
+          "lnn_temp_c": 30.1,
+          "pagasa_temp_c": 29.9,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.0,
+          "pagasa_heat_index_c": 32.9,
+          "lnn_rain_prob_pct": 11.3,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+2h",
+          "time": "11:00 AM",
+          "lnn_temp_c": 30.8,
+          "pagasa_temp_c": 30.6,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.4,
+          "pagasa_heat_index_c": 33.6,
+          "lnn_rain_prob_pct": 6.7,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Partly Cloudy"
+        },
+        {
+          "horizon": "+3h",
+          "time": "12:00 PM",
+          "lnn_temp_c": 31.4,
+          "pagasa_temp_c": 31.2,
+          "temp_diff_c": 0.2,
+          "lnn_heat_index_c": 34.8,
+          "pagasa_heat_index_c": 34.2,
+          "lnn_rain_prob_pct": 6.1,
+          "pagasa_rain_prob_pct": 15.0,
+          "lnn_rain_mm": 0.0,
+          "pagasa_rain_mm": 0.0,
+          "condition": "Clear Skies"
+        }
+      ]
+    }
+  ]
+}

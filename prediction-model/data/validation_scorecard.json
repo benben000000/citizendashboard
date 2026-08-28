@@ -1,0 +1,61 @@
+{
+  "evaluation_scale": {
+    "total_records_dataset": 800039,
+    "evaluated_samples": 75616,
+    "monitored_stations": 16
+  },
+  "rain_metrics": {
+    "recall_pod": "81.89%",
+    "accuracy": "51.07%",
+    "precision": "12.99%",
+    "f1_score": "22.42%"
+  },
+  "water_level_metrics": {
+    "mae_meters": 0.0621,
+    "mae_cm": 6.2,
+    "rmse_meters": 0.1184
+  },
+  "performance": {
+    "latency_microseconds": 17.14,
+    "throughput_per_second": 58356,
+    "infrastructure": "Serverless CPU (Zero GPU cost)"
+  },
+  "multi_horizon_stability": [
+    {
+      "horizon": "1h",
+      "uncertainty_band": "\u00b10.080m",
+      "status": "PASS (Physically Bounded)"
+    },
+    {
+      "horizon": "3h",
+      "uncertainty_band": "\u00b10.139m",
+      "status": "PASS (Physically Bounded)"
+    },
+    {
+      "horizon": "6h",
+      "uncertainty_band": "\u00b10.196m",
+      "status": "PASS (Physically Bounded)"
+    },
+    {
+      "horizon": "12h",
+      "uncertainty_band": "\u00b10.277m",
+      "status": "PASS (Physically Bounded)"
+    },
+    {
+      "horizon": "24h",
+      "uncertainty_band": "\u00b10.392m",
+      "status": "PASS (Physically Bounded)"
+    },
+    {
+      "horizon": "48h",
+      "uncertainty_band": "\u00b10.554m",
+      "status": "PASS (Physically Bounded)"
+    },
+    {
+      "horizon": "72h",
+      "uncertainty_band": "\u00b10.679m",
+      "status": "PASS (Physically Bounded)"
+    }
+  ],
+  "overall_grade": "PASSED - PRODUCTION READY"
+}

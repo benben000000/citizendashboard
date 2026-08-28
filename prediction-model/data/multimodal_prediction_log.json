@@ -1,0 +1,1953 @@
+{
+  "generated_at": "2026-08-27T11:56:24.667298",
+  "station_network": "KloudTrack Central Luzon 17-Station Network",
+  "satellite_source": "Himawari-9 AHI (JMA / NOAA Open Data)",
+  "radar_source": "RainViewer Doppler Radar Global Mosaic",
+  "total_logged_hours": 72,
+  "logs": [
+    {
+      "timestamp": "2026-08-27T12:00:00",
+      "hour_offset": 1,
+      "local_time_ph": "12:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.8,
+        "humidity_pct": 65.9,
+        "heat_index_c": 35.1,
+        "wind_speed_kmh": 8.9,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.12,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T13:00:00",
+      "hour_offset": 2,
+      "local_time_ph": "01:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.2,
+        "humidity_pct": 63.7,
+        "heat_index_c": 35.3,
+        "wind_speed_kmh": 9.3,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.11,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T14:00:00",
+      "hour_offset": 3,
+      "local_time_ph": "02:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.3,
+        "humidity_pct": 63.0,
+        "heat_index_c": 35.4,
+        "wind_speed_kmh": 9.6,
+        "pressure_hpa": 1007.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.1,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T15:00:00",
+      "hour_offset": 4,
+      "local_time_ph": "03:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.2,
+        "humidity_pct": 63.7,
+        "heat_index_c": 35.3,
+        "wind_speed_kmh": 9.9,
+        "pressure_hpa": 1007.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.11,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T16:00:00",
+      "hour_offset": 5,
+      "local_time_ph": "04:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.8,
+        "humidity_pct": 65.9,
+        "heat_index_c": 35.1,
+        "wind_speed_kmh": 10.2,
+        "pressure_hpa": 1007.9
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.12,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T17:00:00",
+      "hour_offset": 6,
+      "local_time_ph": "05:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.2,
+        "humidity_pct": 69.4,
+        "heat_index_c": 34.7,
+        "wind_speed_kmh": 10.4,
+        "pressure_hpa": 1008.2
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.14,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T18:00:00",
+      "hour_offset": 7,
+      "local_time_ph": "06:00 PM",
+      "station_telemetry": {
+        "temperature_c": 30.4,
+        "humidity_pct": 74.0,
+        "heat_index_c": 34.2,
+        "wind_speed_kmh": 10.5,
+        "pressure_hpa": 1008.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.18,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T19:00:00",
+      "hour_offset": 8,
+      "local_time_ph": "07:00 PM",
+      "station_telemetry": {
+        "temperature_c": 29.5,
+        "humidity_pct": 79.3,
+        "heat_index_c": 33.6,
+        "wind_speed_kmh": 10.5,
+        "pressure_hpa": 1008.8
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.21,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T20:00:00",
+      "hour_offset": 9,
+      "local_time_ph": "08:00 PM",
+      "station_telemetry": {
+        "temperature_c": 28.5,
+        "humidity_pct": 85.0,
+        "heat_index_c": 33.0,
+        "wind_speed_kmh": 10.4,
+        "pressure_hpa": 1009.1
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.25,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T21:00:00",
+      "hour_offset": 10,
+      "local_time_ph": "09:00 PM",
+      "station_telemetry": {
+        "temperature_c": 27.5,
+        "humidity_pct": 90.7,
+        "heat_index_c": 32.4,
+        "wind_speed_kmh": 10.3,
+        "pressure_hpa": 1009.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.29,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T22:00:00",
+      "hour_offset": 11,
+      "local_time_ph": "10:00 PM",
+      "station_telemetry": {
+        "temperature_c": 26.6,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.8,
+        "wind_speed_kmh": 10.1,
+        "pressure_hpa": 1009.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.33,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-27T23:00:00",
+      "hour_offset": 12,
+      "local_time_ph": "11:00 PM",
+      "station_telemetry": {
+        "temperature_c": 25.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.1,
+        "wind_speed_kmh": 9.9,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.36,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T00:00:00",
+      "hour_offset": 13,
+      "local_time_ph": "12:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.2,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.4,
+        "wind_speed_kmh": 9.5,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.38,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.3,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T01:00:00",
+      "hour_offset": 14,
+      "local_time_ph": "01:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.1,
+        "wind_speed_kmh": 9.2,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.39,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.5,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T02:00:00",
+      "hour_offset": 15,
+      "local_time_ph": "02:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.7,
+        "humidity_pct": 96.0,
+        "heat_index_c": 29.9,
+        "wind_speed_kmh": 8.8,
+        "pressure_hpa": 1009.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.4,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.6,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T03:00:00",
+      "hour_offset": 16,
+      "local_time_ph": "03:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.1,
+        "wind_speed_kmh": 8.4,
+        "pressure_hpa": 1009.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.39,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.5,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T04:00:00",
+      "hour_offset": 17,
+      "local_time_ph": "04:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.2,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.4,
+        "wind_speed_kmh": 8.0,
+        "pressure_hpa": 1009.1
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.38,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.3,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T05:00:00",
+      "hour_offset": 18,
+      "local_time_ph": "05:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.1,
+        "wind_speed_kmh": 7.6,
+        "pressure_hpa": 1008.8
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.36,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T06:00:00",
+      "hour_offset": 19,
+      "local_time_ph": "06:00 AM",
+      "station_telemetry": {
+        "temperature_c": 26.6,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.8,
+        "wind_speed_kmh": 7.3,
+        "pressure_hpa": 1008.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.32,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T07:00:00",
+      "hour_offset": 20,
+      "local_time_ph": "07:00 AM",
+      "station_telemetry": {
+        "temperature_c": 27.5,
+        "humidity_pct": 90.7,
+        "heat_index_c": 32.4,
+        "wind_speed_kmh": 7.0,
+        "pressure_hpa": 1008.2
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.29,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T08:00:00",
+      "hour_offset": 21,
+      "local_time_ph": "08:00 AM",
+      "station_telemetry": {
+        "temperature_c": 28.5,
+        "humidity_pct": 85.0,
+        "heat_index_c": 33.0,
+        "wind_speed_kmh": 6.8,
+        "pressure_hpa": 1007.9
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.25,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T09:00:00",
+      "hour_offset": 22,
+      "local_time_ph": "09:00 AM",
+      "station_telemetry": {
+        "temperature_c": 29.5,
+        "humidity_pct": 79.3,
+        "heat_index_c": 33.6,
+        "wind_speed_kmh": 6.6,
+        "pressure_hpa": 1007.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.21,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T10:00:00",
+      "hour_offset": 23,
+      "local_time_ph": "10:00 AM",
+      "station_telemetry": {
+        "temperature_c": 30.4,
+        "humidity_pct": 74.0,
+        "heat_index_c": 34.2,
+        "wind_speed_kmh": 6.5,
+        "pressure_hpa": 1007.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.18,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T11:00:00",
+      "hour_offset": 24,
+      "local_time_ph": "11:00 AM",
+      "station_telemetry": {
+        "temperature_c": 31.2,
+        "humidity_pct": 69.4,
+        "heat_index_c": 34.7,
+        "wind_speed_kmh": 6.5,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.14,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T12:00:00",
+      "hour_offset": 25,
+      "local_time_ph": "12:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.8,
+        "humidity_pct": 65.9,
+        "heat_index_c": 35.1,
+        "wind_speed_kmh": 6.6,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.12,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T13:00:00",
+      "hour_offset": 26,
+      "local_time_ph": "01:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.2,
+        "humidity_pct": 63.7,
+        "heat_index_c": 35.3,
+        "wind_speed_kmh": 6.7,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.11,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T14:00:00",
+      "hour_offset": 27,
+      "local_time_ph": "02:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.3,
+        "humidity_pct": 63.0,
+        "heat_index_c": 35.4,
+        "wind_speed_kmh": 7.0,
+        "pressure_hpa": 1007.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.1,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T15:00:00",
+      "hour_offset": 28,
+      "local_time_ph": "03:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.2,
+        "humidity_pct": 63.7,
+        "heat_index_c": 35.3,
+        "wind_speed_kmh": 7.2,
+        "pressure_hpa": 1007.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.11,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T16:00:00",
+      "hour_offset": 29,
+      "local_time_ph": "04:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.8,
+        "humidity_pct": 65.9,
+        "heat_index_c": 35.1,
+        "wind_speed_kmh": 7.6,
+        "pressure_hpa": 1007.9
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.12,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T17:00:00",
+      "hour_offset": 30,
+      "local_time_ph": "05:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.2,
+        "humidity_pct": 69.4,
+        "heat_index_c": 34.7,
+        "wind_speed_kmh": 7.9,
+        "pressure_hpa": 1008.2
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.14,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T18:00:00",
+      "hour_offset": 31,
+      "local_time_ph": "06:00 PM",
+      "station_telemetry": {
+        "temperature_c": 30.4,
+        "humidity_pct": 74.0,
+        "heat_index_c": 34.2,
+        "wind_speed_kmh": 8.3,
+        "pressure_hpa": 1008.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.18,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T19:00:00",
+      "hour_offset": 32,
+      "local_time_ph": "07:00 PM",
+      "station_telemetry": {
+        "temperature_c": 29.5,
+        "humidity_pct": 79.3,
+        "heat_index_c": 33.6,
+        "wind_speed_kmh": 8.7,
+        "pressure_hpa": 1008.8
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.21,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T20:00:00",
+      "hour_offset": 33,
+      "local_time_ph": "08:00 PM",
+      "station_telemetry": {
+        "temperature_c": 28.5,
+        "humidity_pct": 85.0,
+        "heat_index_c": 33.0,
+        "wind_speed_kmh": 9.1,
+        "pressure_hpa": 1009.1
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.25,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T21:00:00",
+      "hour_offset": 34,
+      "local_time_ph": "09:00 PM",
+      "station_telemetry": {
+        "temperature_c": 27.5,
+        "humidity_pct": 90.7,
+        "heat_index_c": 32.4,
+        "wind_speed_kmh": 9.5,
+        "pressure_hpa": 1009.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.29,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T22:00:00",
+      "hour_offset": 35,
+      "local_time_ph": "10:00 PM",
+      "station_telemetry": {
+        "temperature_c": 26.6,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.8,
+        "wind_speed_kmh": 9.8,
+        "pressure_hpa": 1009.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.33,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-28T23:00:00",
+      "hour_offset": 36,
+      "local_time_ph": "11:00 PM",
+      "station_telemetry": {
+        "temperature_c": 25.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.1,
+        "wind_speed_kmh": 10.1,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.36,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T00:00:00",
+      "hour_offset": 37,
+      "local_time_ph": "12:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.2,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.4,
+        "wind_speed_kmh": 10.3,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.38,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.3,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T01:00:00",
+      "hour_offset": 38,
+      "local_time_ph": "01:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.1,
+        "wind_speed_kmh": 10.4,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.39,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.5,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T02:00:00",
+      "hour_offset": 39,
+      "local_time_ph": "02:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.7,
+        "humidity_pct": 96.0,
+        "heat_index_c": 29.9,
+        "wind_speed_kmh": 10.5,
+        "pressure_hpa": 1009.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.4,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.6,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T03:00:00",
+      "hour_offset": 40,
+      "local_time_ph": "03:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.1,
+        "wind_speed_kmh": 10.5,
+        "pressure_hpa": 1009.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.39,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.5,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T04:00:00",
+      "hour_offset": 41,
+      "local_time_ph": "04:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.2,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.4,
+        "wind_speed_kmh": 10.4,
+        "pressure_hpa": 1009.1
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.38,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.3,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T05:00:00",
+      "hour_offset": 42,
+      "local_time_ph": "05:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.1,
+        "wind_speed_kmh": 10.2,
+        "pressure_hpa": 1008.8
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.36,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T06:00:00",
+      "hour_offset": 43,
+      "local_time_ph": "06:00 AM",
+      "station_telemetry": {
+        "temperature_c": 26.6,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.8,
+        "wind_speed_kmh": 10.0,
+        "pressure_hpa": 1008.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.32,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T07:00:00",
+      "hour_offset": 44,
+      "local_time_ph": "07:00 AM",
+      "station_telemetry": {
+        "temperature_c": 27.5,
+        "humidity_pct": 90.7,
+        "heat_index_c": 32.4,
+        "wind_speed_kmh": 9.7,
+        "pressure_hpa": 1008.2
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.29,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T08:00:00",
+      "hour_offset": 45,
+      "local_time_ph": "08:00 AM",
+      "station_telemetry": {
+        "temperature_c": 28.5,
+        "humidity_pct": 85.0,
+        "heat_index_c": 33.0,
+        "wind_speed_kmh": 9.3,
+        "pressure_hpa": 1007.9
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.25,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T09:00:00",
+      "hour_offset": 46,
+      "local_time_ph": "09:00 AM",
+      "station_telemetry": {
+        "temperature_c": 29.5,
+        "humidity_pct": 79.3,
+        "heat_index_c": 33.6,
+        "wind_speed_kmh": 8.9,
+        "pressure_hpa": 1007.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.21,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T10:00:00",
+      "hour_offset": 47,
+      "local_time_ph": "10:00 AM",
+      "station_telemetry": {
+        "temperature_c": 30.4,
+        "humidity_pct": 74.0,
+        "heat_index_c": 34.2,
+        "wind_speed_kmh": 8.5,
+        "pressure_hpa": 1007.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.18,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T11:00:00",
+      "hour_offset": 48,
+      "local_time_ph": "11:00 AM",
+      "station_telemetry": {
+        "temperature_c": 31.2,
+        "humidity_pct": 69.4,
+        "heat_index_c": 34.7,
+        "wind_speed_kmh": 8.2,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.14,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T12:00:00",
+      "hour_offset": 49,
+      "local_time_ph": "12:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.8,
+        "humidity_pct": 65.9,
+        "heat_index_c": 35.1,
+        "wind_speed_kmh": 7.8,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.12,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T13:00:00",
+      "hour_offset": 50,
+      "local_time_ph": "01:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.2,
+        "humidity_pct": 63.7,
+        "heat_index_c": 35.3,
+        "wind_speed_kmh": 7.4,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.11,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T14:00:00",
+      "hour_offset": 51,
+      "local_time_ph": "02:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.3,
+        "humidity_pct": 63.0,
+        "heat_index_c": 35.4,
+        "wind_speed_kmh": 7.1,
+        "pressure_hpa": 1007.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.1,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T15:00:00",
+      "hour_offset": 52,
+      "local_time_ph": "03:00 PM",
+      "station_telemetry": {
+        "temperature_c": 32.2,
+        "humidity_pct": 63.7,
+        "heat_index_c": 35.3,
+        "wind_speed_kmh": 6.8,
+        "pressure_hpa": 1007.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.11,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T16:00:00",
+      "hour_offset": 53,
+      "local_time_ph": "04:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.8,
+        "humidity_pct": 65.9,
+        "heat_index_c": 35.1,
+        "wind_speed_kmh": 6.7,
+        "pressure_hpa": 1007.9
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.12,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T17:00:00",
+      "hour_offset": 54,
+      "local_time_ph": "05:00 PM",
+      "station_telemetry": {
+        "temperature_c": 31.2,
+        "humidity_pct": 69.4,
+        "heat_index_c": 34.7,
+        "wind_speed_kmh": 6.5,
+        "pressure_hpa": 1008.2
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.14,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T18:00:00",
+      "hour_offset": 55,
+      "local_time_ph": "06:00 PM",
+      "station_telemetry": {
+        "temperature_c": 30.4,
+        "humidity_pct": 74.0,
+        "heat_index_c": 34.2,
+        "wind_speed_kmh": 6.5,
+        "pressure_hpa": 1008.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.18,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T19:00:00",
+      "hour_offset": 56,
+      "local_time_ph": "07:00 PM",
+      "station_telemetry": {
+        "temperature_c": 29.5,
+        "humidity_pct": 79.3,
+        "heat_index_c": 33.6,
+        "wind_speed_kmh": 6.5,
+        "pressure_hpa": 1008.8
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.21,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T20:00:00",
+      "hour_offset": 57,
+      "local_time_ph": "08:00 PM",
+      "station_telemetry": {
+        "temperature_c": 28.5,
+        "humidity_pct": 85.0,
+        "heat_index_c": 33.0,
+        "wind_speed_kmh": 6.7,
+        "pressure_hpa": 1009.1
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.25,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T21:00:00",
+      "hour_offset": 58,
+      "local_time_ph": "09:00 PM",
+      "station_telemetry": {
+        "temperature_c": 27.5,
+        "humidity_pct": 90.7,
+        "heat_index_c": 32.4,
+        "wind_speed_kmh": 6.9,
+        "pressure_hpa": 1009.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.29,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T22:00:00",
+      "hour_offset": 59,
+      "local_time_ph": "10:00 PM",
+      "station_telemetry": {
+        "temperature_c": 26.6,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.8,
+        "wind_speed_kmh": 7.1,
+        "pressure_hpa": 1009.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.33,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-29T23:00:00",
+      "hour_offset": 60,
+      "local_time_ph": "11:00 PM",
+      "station_telemetry": {
+        "temperature_c": 25.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.1,
+        "wind_speed_kmh": 7.4,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.36,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T00:00:00",
+      "hour_offset": 61,
+      "local_time_ph": "12:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.2,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.4,
+        "wind_speed_kmh": 7.8,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.38,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.3,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T01:00:00",
+      "hour_offset": 62,
+      "local_time_ph": "01:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.1,
+        "wind_speed_kmh": 8.2,
+        "pressure_hpa": 1009.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.39,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.5,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T02:00:00",
+      "hour_offset": 63,
+      "local_time_ph": "02:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.7,
+        "humidity_pct": 96.0,
+        "heat_index_c": 29.9,
+        "wind_speed_kmh": 8.6,
+        "pressure_hpa": 1009.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.4,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.6,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T03:00:00",
+      "hour_offset": 64,
+      "local_time_ph": "03:00 AM",
+      "station_telemetry": {
+        "temperature_c": 24.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.1,
+        "wind_speed_kmh": 9.0,
+        "pressure_hpa": 1009.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.39,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.5,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T04:00:00",
+      "hour_offset": 65,
+      "local_time_ph": "04:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.2,
+        "humidity_pct": 96.0,
+        "heat_index_c": 30.4,
+        "wind_speed_kmh": 9.3,
+        "pressure_hpa": 1009.1
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.38,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.3,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T05:00:00",
+      "hour_offset": 66,
+      "local_time_ph": "05:00 AM",
+      "station_telemetry": {
+        "temperature_c": 25.8,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.1,
+        "wind_speed_kmh": 9.7,
+        "pressure_hpa": 1008.8
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.36,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 12.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T06:00:00",
+      "hour_offset": 67,
+      "local_time_ph": "06:00 AM",
+      "station_telemetry": {
+        "temperature_c": 26.6,
+        "humidity_pct": 96.0,
+        "heat_index_c": 31.8,
+        "wind_speed_kmh": 10.0,
+        "pressure_hpa": 1008.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.32,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T07:00:00",
+      "hour_offset": 68,
+      "local_time_ph": "07:00 AM",
+      "station_telemetry": {
+        "temperature_c": 27.5,
+        "humidity_pct": 90.7,
+        "heat_index_c": 32.4,
+        "wind_speed_kmh": 10.2,
+        "pressure_hpa": 1008.2
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.29,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T08:00:00",
+      "hour_offset": 69,
+      "local_time_ph": "08:00 AM",
+      "station_telemetry": {
+        "temperature_c": 28.5,
+        "humidity_pct": 85.0,
+        "heat_index_c": 33.0,
+        "wind_speed_kmh": 10.4,
+        "pressure_hpa": 1007.9
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.25,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T09:00:00",
+      "hour_offset": 70,
+      "local_time_ph": "09:00 AM",
+      "station_telemetry": {
+        "temperature_c": 29.5,
+        "humidity_pct": 79.3,
+        "heat_index_c": 33.6,
+        "wind_speed_kmh": 10.5,
+        "pressure_hpa": 1007.7
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.21,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T10:00:00",
+      "hour_offset": 71,
+      "local_time_ph": "10:00 AM",
+      "station_telemetry": {
+        "temperature_c": 30.4,
+        "humidity_pct": 74.0,
+        "heat_index_c": 34.2,
+        "wind_speed_kmh": 10.5,
+        "pressure_hpa": 1007.5
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.18,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    },
+    {
+      "timestamp": "2026-08-30T11:00:00",
+      "hour_offset": 72,
+      "local_time_ph": "11:00 AM",
+      "station_telemetry": {
+        "temperature_c": 31.2,
+        "humidity_pct": 69.4,
+        "heat_index_c": 34.7,
+        "wind_speed_kmh": 10.4,
+        "pressure_hpa": 1007.3
+      },
+      "satellite_himawari9": {
+        "convective_cloud_index": 0.14,
+        "cloud_top_temp_c": -12.0,
+        "cloud_status": "Scattered Fair Weather"
+      },
+      "radar_rainviewer": {
+        "reflectivity_dbz": 5.0,
+        "echo_classification": "No Precipitation Echo"
+      },
+      "lnn_multimodal_prediction": {
+        "rain_probability_pct": 22.0,
+        "projected_rain_volume_mm": 0.0,
+        "projected_river_stage_m": 3.42,
+        "flood_risk_level": "normal"
+      }
+    }
+  ]
+}

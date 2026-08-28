@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "KT-Project-RND",
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}

@@ -1,0 +1,31 @@
+{
+  "weather": {
+    "stationIdToFetch": [
+      { "stationId": "lMAZe9b3", "contactNumber": "", "email": "", "location": "abucay" },
+      { "stationId": "95pM7BAV", "contactNumber": "", "email": "", "location": "balanga" },
+      { "stationId": "2Dpo5DAK", "contactNumber": "", "email": "", "location": "orani" },
+      { "stationId": "QgbGldAY", "contactNumber": "", "email": "", "location": "bagac" },
+      { "stationId": "Rjz2dbXW", "contactNumber": "", "email": "", "location": "popolon" },
+      { "stationId": "4VAl2p9k", "contactNumber": "", "email": "", "location": "sapang-buho" },
+      { "stationId": "nDby4YpR", "contactNumber": "", "email": "", "location": "general-natividad" },
+      { "stationId": "03pqkGAj", "contactNumber": "", "email": "", "location": "bongabon" },
+      { "stationId": "3nzr8bGo", "contactNumber": "", "email": "", "location": "alasas" },
+      { "stationId": "nDbyYbR1", "contactNumber": "", "email": "", "location": "morong" },
+      { "stationId": "rqAkmpKG", "contactNumber": "", "email": "", "location": "barreto" },
+      { "stationId": "Bkpj1zRO", "contactNumber": "", "email": "", "location": "old-cabalan" },
+      { "stationId": "wkAWLzlm", "contactNumber": "", "email": "", "location": "lazatin" },
+      { "stationId": "1Zb102pg", "contactNumber": "", "email": "", "location": "san-jose" },
+      { "stationId": "3nzr48bG", "contactNumber": "", "email": "", "location": "calumpit" }
+    ]
+  },
+  "waterLevel": {
+    "stationIdToFetch": [
+      { "stationId": "O3z0j5bG", "contactNumber": "", "email": "", "location": "calumpit", "referenceThreshold": 780 }
+    ]
+  },
+  "maintenance": {
+    "stationIdToFetch": [
+      { "stationId": "VEpdDpBK", "contactNumber": "", "email": "", "location": "san-luis" }
+    ]
+  }
+}

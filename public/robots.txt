@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://citizen.kloudtechsea.com/sitemap.xml
+
+# If you have a staging environment, disallow it explicitly
+# Disallow: /staging
