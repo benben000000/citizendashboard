@@ -9,18 +9,9 @@ import {
   WaterLevelHistoryMetricRaw,
 } from "@/types/water-level-raw";
 
-const KLOUDTRACK_API_BASE_URL = process.env.KLOUDTRACK_API_BASE_URL || "https://api.kloudtechsea.com/api/v1";
+const KLOUDTRACK_API_BASE_URL = process.env.KLOUDTRACK_API_BASE_URL || "http://citizen.kloudtechsea.com/api";
 
-// Token must come from the environment; do not keep production secrets in source.
 const KLOUDTRACK_API_TOKEN = process.env.KLOUDTRACK_API_TOKEN;
-
-if (!KLOUDTRACK_API_BASE_URL) {
-  console.warn("Warning: KLOUDTRACK_API_BASE_URL is not set. API calls will fail.");
-}
-
-if (!KLOUDTRACK_API_TOKEN) {
-  console.warn("Warning: KLOUDTRACK_API_TOKEN is not set. API calls may fail.");
-}
 
 interface KloudtrackApiResponse<T> {
   success: boolean;

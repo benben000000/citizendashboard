@@ -184,7 +184,14 @@ export class WaterLevelService {
   }
 
   private transformDashboard(rawData: WaterLevelDashboardRaw): WaterLevelPublicDTO[] {
-    const dashboardStations = rawData
+    const rawAny = rawData as unknown as Record<string, unknown>;
+    const list = Array.isArray(rawData)
+      ? (rawData as unknown as Array<{ station: StationRaw; waterLevel: unknown }>)
+      : Array.isArray(rawAny?.data)
+      ? (rawAny.data as Array<{ station: StationRaw; waterLevel: unknown }>)
+      : [];
+
+    const dashboardStations = list
       .filter((item) => Boolean(item?.station))
       .map((item) => ({
         station: this.transformStation(item.station),
@@ -224,10 +231,11 @@ export class WaterLevelService {
     const location = Array.isArray(station.location)
       ? station.location
       : [station.location?.lng ?? 0, station.location?.lat ?? 0];
-    const stationConfig = WATER_LEVEL_STATION_CONFIG_BY_ID.get(station.id);
+    const sid = station.id || (station as unknown as Record<string, string>).stationPublicId || "unknown";
+    const stationConfig = WATER_LEVEL_STATION_CONFIG_BY_ID.get(sid);
 
     return {
-      stationPublicId: station.id,
+      stationPublicId: sid,
       stationName: station.stationName ?? "Unknown Station",
       stationType: station.stationType ?? "unknown",
       address: station.address ?? "",

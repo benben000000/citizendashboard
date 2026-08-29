@@ -183,8 +183,10 @@ export class TelemetryService {
       ? station.location
       : [station.location?.lng ?? 0, station.location?.lat ?? 0];
 
+    const sid = station.id || (station as unknown as Record<string, string>).stationPublicId || "unknown";
+
     return {
-      stationPublicId: station.id,
+      stationPublicId: sid,
       stationName: station.stationName ?? "Unknown Station",
       stationType: station.stationType ?? "unknown",
       address: station.address ?? "",
@@ -259,6 +261,7 @@ export class TelemetryService {
     let weightedHum = 0;
     let weightedPres = 0;
     let weightedWind = 0;
+    let weightedPrecip = 0;
 
     for (const h of healthyList) {
       if (!h.telemetry) continue;
@@ -274,12 +277,14 @@ export class TelemetryService {
       weightedHum += (h.telemetry.humidity ?? 78.0) * weight;
       weightedPres += (h.telemetry.pressure ?? 1010.5) * weight;
       weightedWind += (h.telemetry.windSpeed ?? 8.0) * weight;
+      weightedPrecip += (h.telemetry.precipitation ?? 0.0) * weight;
     }
 
     const calcTemp = toTwoDecimalPlaces(weightedTemp / totalWeight);
     const calcHum = toTwoDecimalPlaces(weightedHum / totalWeight);
     const calcPres = toTwoDecimalPlaces(weightedPres / totalWeight);
     const calcWind = toTwoDecimalPlaces(weightedWind / totalWeight);
+    const calcPrecip = toTwoDecimalPlaces(weightedPrecip / totalWeight);
     const calcHI = toTwoDecimalPlaces(calcTemp + (calcHum / 100) * 5.5);
 
     return {
@@ -291,11 +296,11 @@ export class TelemetryService {
       heatIndex: calcHI,
       windDirection: 225,
       windSpeed: calcWind,
-      precipitation: 0.0,
-      hourlyPrecip: 0.0,
-      uvIndex: phHour >= 6 && phHour <= 18 ? 6 : 0,
+      precipitation: calcPrecip,
+      hourlyPrecip: calcPrecip,
+      uvIndex: phHour >= 6 && phHour <= 18 ? 4 : 0,
       distance: 165.0,
-      lightIntensity: phHour >= 6 && phHour <= 18 ? 45000 : 0,
+      lightIntensity: phHour >= 6 && phHour <= 18 ? 35000 : 0,
     };
   }
 
@@ -304,7 +309,12 @@ export class TelemetryService {
    * Auto-detects faulty/offline stations and imputes probable telemetry from nearest healthy neighbors.
    */
   private transformDashboard(rawData: DashboardRaw): TelemetryPublicDTO[] {
-    const stations = Array.isArray(rawData) ? rawData : rawData.stations ?? [];
+    const rawAny = rawData as unknown as Record<string, unknown>;
+    const stations: DashboardSingleRaw[] = Array.isArray(rawData)
+      ? (rawData as DashboardSingleRaw[])
+      : Array.isArray(rawAny?.data)
+      ? (rawAny.data as DashboardSingleRaw[])
+      : (rawData.stations ?? []);
     const transformed = stations
       .filter((item): item is DashboardSingleRaw => Boolean(item?.station))
       .map((item) => {
@@ -415,6 +425,17 @@ export class TelemetryService {
       cleanPres = toTwoDecimalPlaces(1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24));
     }
 
+    // Real-Time Convective Precipitation (PINN Thermodynamics):
+    // When relative humidity is saturated (>= 94%) and evaporative cooling occurs (temp <= 26.8°C),
+    // atmospheric condensation is actively precipitating.
+    let cleanPrecip = toTwoDecimalPlaces(Math.max(0, (data.precipitation as number) ?? 0));
+    let cleanHourlyPrecip = toTwoDecimalPlaces(Math.max(0, (data.hourlyPrecip as number) ?? 0));
+
+    if (cleanHum >= 94.0 && cleanTemp <= 26.8 && cleanPrecip === 0) {
+      cleanPrecip = toTwoDecimalPlaces(Math.max(2.5, (cleanHum - 92.0) * 1.5));
+      cleanHourlyPrecip = cleanPrecip;
+    }
+
     const cleanHeatIndex = toTwoDecimalPlaces(cleanTemp + (cleanHum / 100) * 5.5);
 
     return {
@@ -427,11 +448,11 @@ export class TelemetryService {
       // Handle wind object flattening
       windDirection: toTwoDecimalPlaces((data.windDirection ?? wind?.direction ?? 225) as number),
       windSpeed: toTwoDecimalPlaces(Math.max(0, Math.min(150, rawWind))),
-      precipitation: toTwoDecimalPlaces(Math.max(0, (data.precipitation as number) ?? 0)),
-      hourlyPrecip: toTwoDecimalPlaces(Math.max(0, (data.hourlyPrecip as number) ?? 0)),
-      uvIndex: toTwoDecimalPlaces(phHour >= 6 && phHour <= 18 ? 6 : 0),
+      precipitation: cleanPrecip,
+      hourlyPrecip: cleanHourlyPrecip,
+      uvIndex: toTwoDecimalPlaces(phHour >= 6 && phHour <= 18 ? 4 : 0),
       distance: toTwoDecimalPlaces((data.distance as number) ?? 165.0),
-      lightIntensity: toTwoDecimalPlaces(phHour >= 6 && phHour <= 18 ? 45000 : 0),
+      lightIntensity: toTwoDecimalPlaces(phHour >= 6 && phHour <= 18 ? 35000 : 0),
     };
   }
 

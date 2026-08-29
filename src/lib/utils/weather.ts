@@ -85,19 +85,24 @@ export function getWeatherCondition(telemetry: TelemetryMetrics): WeatherConditi
   const { temperature, humidity, precipitation, windSpeed, uvIndex, hourlyPrecip } = telemetry;
 
   // 1. Precipitation logic
-  if (precipitation || hourlyPrecip) {
+  if ((precipitation && precipitation > 0) || (hourlyPrecip && hourlyPrecip > 0)) {
     if (windSpeed && windSpeed > 20) return "storm";
     return "rain";
   }
 
+  // 2. Thermodynamic Convective Rain (Saturated air mass with cooled ambient temperature)
+  if (humidity != null && humidity >= 94 && temperature != null && temperature <= 26.8) {
+    if (windSpeed && windSpeed > 20) return "storm";
+    return "rain";
+  }
 
-  // 2. Temperature-based
+  // 3. Temperature-based
   if (temperature != null) {
     if (temperature >= 35) return "hot"; // typical PH heat
     if (temperature <= 20) return "cold";
   }
 
-  // 3. Humidity cloud logic
+  // 4. Humidity cloud logic
   if (humidity != null) {
     if (humidity > 85) return "cloudy";
     if (humidity > 60) return "partly-cloudy";
