@@ -12,13 +12,11 @@ export const revalidate = CACHE_CONFIG.apiRoutes.waterLevelParameter;
  */
 export async function GET(
   request: Request,
-  context: { params: { stationId: string; parameter: string } | Promise<{ stationId: string; parameter: string }> }
+  { params }: { params: { stationId: string; parameter: string } }
 ) {
   try {
-    const rawParams = context.params;
-    const { stationId, parameter } = rawParams && typeof (rawParams as Promise<unknown>).then === "function" 
-      ? await rawParams 
-      : (rawParams as { stationId: string; parameter: string });
+    const stationId = params?.stationId;
+    const parameter = params?.parameter;
     const { searchParams } = new URL(request.url);
     const skipParam = searchParams.get("skip");
     const takeParam = searchParams.get("take");

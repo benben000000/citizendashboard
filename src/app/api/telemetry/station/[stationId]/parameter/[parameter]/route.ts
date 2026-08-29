@@ -13,13 +13,11 @@ export const revalidate = CACHE_CONFIG.apiRoutes.telemetryParameter;
  */
 export async function GET(
   request: Request,
-  context: { params: { stationId: string; parameter: string } | Promise<{ stationId: string; parameter: string }> }
+  { params }: { params: { stationId: string; parameter: string } }
 ) {
   try {
-    const rawParams = context.params;
-    const { stationId, parameter } = rawParams && typeof (rawParams as Promise<unknown>).then === "function" 
-      ? await rawParams 
-      : (rawParams as { stationId: string; parameter: string });
+    const stationId = params?.stationId;
+    const parameter = params?.parameter;
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate") || undefined;
     const endDate = searchParams.get("endDate") || undefined;
@@ -89,6 +87,7 @@ export async function GET(
       {
         success: false,
         message: errorResponse.message,
+        error: error instanceof Error ? error.stack || error.message : String(error),
       },
       { status: errorResponse.statusCode }
     );
