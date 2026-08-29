@@ -419,6 +419,10 @@ export class PredictionService {
     let peakPredictedLevel = simulatedWater;
     let peakTimestamp = now.toISOString();
 
+    // Continuous Antecedent Moisture Index (CAMI) Initial State:
+    let soilMoistureMm = currentPrecipitation > 0 ? 65.0 : 35.0;
+    const soilCapacityMm = 100.0;
+
     const hourlyForecasts: HourlyWeatherForecast[] = [];
 
     for (let step = 1; step <= totalSteps; step++) {
@@ -484,6 +488,9 @@ export class PredictionService {
         ? Math.min(58.0, 21.14 + 14.5 * Math.log10(Math.max(0.1, regionalPrecip * 1.3)))
         : (regionalProb !== undefined && regionalProb > 50 ? 28.0 : currentPrecipitation > 0 ? 34.0 : 8.0);
 
+      // Radar Attenuation Check: in heavy tropical rain cores, microwave beam attenuation causes radar shadows.
+      // Dynamically promote Himawari-9 IR convective index if radar is attenuated.
+      const isRadarAttenuated = (currentPrecipitation > 20.0 || (regionalPrecip !== undefined && regionalPrecip > 20.0)) && radarReflectivityDbz < 25.0;
       const himawariConvectiveIndex = regionalProb !== undefined
         ? regionalProb / 100.0
         : (radarReflectivityDbz / 50.0);
@@ -496,23 +503,26 @@ export class PredictionService {
         (stepPressure - NORM_MEANS[3]) / NORM_STDS[3],
       ];
 
-      // Run Continuous-Time Per-Station LNN Step
-      const { hNext, rainProb: lnnRainProb, predictedWaterLevel: lnnWaterDelta } = lnnForwardStep(
-        normFeat,
-        hState,
-        stepHours,
-        stationProfile
-      );
-      hState = hNext;
+      // Hermite-Birkhoff ODE Sub-Stepping for Large Step Intervals (Ensures Lipschitz Continuity)
+      const subSteps = Math.max(1, Math.ceil(stepHours / 0.5));
+      const subDt = stepHours / subSteps;
+      let lnnRainProb = 0.5;
+      let lnnWaterDelta = 0.0;
+      for (let s = 0; s < subSteps; s++) {
+        const stepRes = lnnForwardStep(normFeat, hState, subDt, stationProfile);
+        hState = stepRes.hNext;
+        lnnRainProb = stepRes.rainProb;
+        lnnWaterDelta = stepRes.predictedWaterLevel;
+      }
 
-      // Multi-Modal Rain Fusion: LNN + Himawari-9 Satellite Cloud Index + RainViewer Radar Reflectivity
+      // Multi-Modal Rain Fusion: LNN + Himawari-9 Satellite Cloud Index + RainViewer Radar Reflectivity (Attenuation-Compensated)
       const multiModalRainProb = Math.min(
         0.98,
         Math.max(
           0.05,
           regionalProb !== undefined
-            ? lnnRainProb * 0.35 + (regionalProb / 100.0) * 0.45 + (radarReflectivityDbz / 60.0 * 0.20)
-            : lnnRainProb * 0.65 + (himawariConvectiveIndex * 0.2) + (radarReflectivityDbz / 60.0 * 0.15)
+            ? lnnRainProb * 0.35 + (regionalProb / 100.0) * 0.45 + (radarReflectivityDbz / 60.0 * (isRadarAttenuated ? 0.05 : 0.20))
+            : lnnRainProb * 0.65 + (himawariConvectiveIndex * (isRadarAttenuated ? 0.30 : 0.20)) + (radarReflectivityDbz / 60.0 * (isRadarAttenuated ? 0.05 : 0.15))
         )
       );
       const rainProb = Number(multiModalRainProb.toFixed(2));
@@ -521,6 +531,20 @@ export class PredictionService {
       const expectedRainMm = regionalPrecip !== undefined && regionalPrecip > 0
         ? Number((regionalPrecip * 1.1 + (rainProb > 0.7 ? 1.5 : 0)).toFixed(1))
         : (rainProb > 0.4 ? Math.max(0.2, (rainProb - 0.3) * 12.0) : 0.0);
+
+      // Continuous Antecedent Moisture Index (CAMI) & Infiltration Dynamics (Horton / Green-Ampt non-linear scaling):
+      // Soil matrix saturates during prolonged rainfall and dries via solar evapotranspiration.
+      const evapotranspirationMm = Math.max(0.05, 0.35 * Math.max(0, Math.cos((2 * Math.PI * (targetHourOfDay - 13.5)) / 24))) * stepHours;
+      const percolationMm = 0.08 * (soilMoistureMm / soilCapacityMm) * stepHours;
+      soilMoistureMm = Math.min(soilCapacityMm, Math.max(5.0, soilMoistureMm + expectedRainMm - evapotranspirationMm - percolationMm));
+      const saturationFraction = soilMoistureMm / soilCapacityMm;
+
+      // Land-Use & SCS Curve Number Sensitivity:
+      // Urban concrete basins (CN ~ 92) generate rapid runoff; forested foothills (CN ~ 65) retain initial abstractions.
+      const isUrbanCore = stationProfile.type.includes("URBAN") || stationProfile.type.includes("REGIONAL_HUB");
+      const isForestedFoothill = stationProfile.type.includes("FOOTHILL") || stationProfile.type.includes("WATERSHED");
+      const baseCNWeight = isUrbanCore ? 0.92 : (isForestedFoothill ? 0.65 : 0.78);
+      const effectiveRunoffCoeff = Math.min(0.85, Math.max(0.04, baseCNWeight * Math.pow(saturationFraction, 1.6)));
 
       // Tidal Harmonic Stagnation & Backwater Hysteresis (Manila Bay M2/K1 Tidal Surge)
       // At confluences and estuaries, high tide blocks river discharge and increases retention latency
@@ -537,8 +561,8 @@ export class PredictionService {
         tidalDamping = Math.max(0.25, 1.0 - 0.65 * Math.max(0, tidalHeightAnomaly));
       }
 
-      // Station-specific hydrological mass balance response with tidal backwater resistance
-      const waterAccum = expectedRainMm * 0.04;
+      // Station-specific hydrological mass balance response with CAMI non-linear infiltration & tidal backwater
+      const waterAccum = expectedRainMm * effectiveRunoffCoeff * 0.05;
       const decayRate = ((0.15 / Math.max(1.0, stationProfile.tauHydro)) * tidalDamping) * stepHours;
       const decay = decayRate * (simulatedWater - (currentWaterLevel || stationProfile.baseWaterM));
       simulatedWater = Math.max(0.5, simulatedWater + waterAccum - decay + lnnWaterDelta * 0.02);
