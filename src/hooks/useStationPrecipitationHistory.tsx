@@ -42,22 +42,18 @@ const useStationPrecipitationHistoryData = (
   // Freeze the chart window for this mount so rerenders do not restart the request.
   const dateRange = useMemo(() => {
     const now = new Date();
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      0,
-      0,
-      0,
-      0,
+    // Compute midnight today in Philippine Standard Time (UTC+8)
+    const phNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const startOfTodayUtc = new Date(
+      Date.UTC(phNow.getUTCFullYear(), phNow.getUTCMonth(), phNow.getUTCDate(), 0, 0, 0) - 8 * 60 * 60 * 1000
     );
-    const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000);
-    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+    const startOfYesterdayUtc = new Date(startOfTodayUtc.getTime() - 24 * 60 * 60 * 1000);
+    const endOfTodayUtc = new Date(startOfTodayUtc.getTime() + 24 * 60 * 60 * 1000);
 
     return {
-      startDate: startOfYesterday.toISOString(),
-      endDate: endOfToday.toISOString(),
-      startOfTodayISO: startOfToday.toISOString(),
+      startDate: startOfYesterdayUtc.toISOString(),
+      endDate: endOfTodayUtc.toISOString(),
+      startOfTodayISO: startOfTodayUtc.toISOString(),
     };
   }, []);
 
@@ -71,14 +67,19 @@ const useStationPrecipitationHistoryData = (
     },
   );
 
-  const dayPrecipitation = useMemo(
-    () =>
-      data.reduce((total, point) => {
-        if (point.recordedAt < dateRange.startOfTodayISO) return total;
-        return total + (Number.isFinite(point.value) ? point.value : 0);
-      }, 0),
-    [data, dateRange.startOfTodayISO],
-  );
+  const dayPrecipitation = useMemo(() => {
+    // The upstream time-series points represent 15-minute sampled rolling hourly rate (mm/h).
+    // Numerical integration across 15-minute intervals (dt = 15/60 = 0.25 hours).
+    const todayPoints = data.filter((point) => point.recordedAt >= dateRange.startOfTodayISO);
+    if (todayPoints.length === 0) return 0;
+
+    const integratedTotal = todayPoints.reduce((sum, pt) => {
+      const val = Number.isFinite(pt.value) ? Number(pt.value) : 0;
+      return sum + val * 0.25;
+    }, 0);
+
+    return Math.round(integratedTotal * 10) / 10;
+  }, [data, dateRange.startOfTodayISO]);
 
   return useMemo(
     () => ({
