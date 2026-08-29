@@ -30,6 +30,13 @@ def capture_paper_screenshots():
         page.screenshot(path=shot2_path, full_page=False)
         print(f"📸 Page 2 Screenshot: {shot2_path}")
 
+        # Page 3 (Tables & References)
+        shot3_path = os.path.abspath(r"C:\Users\Kloudtech Software\.gemini\antigravity-ide\brain\b7cac2c6-c55a-493c-aab8-ef053f53d863\working_paper_page3_preview.png")
+        page.evaluate("window.scrollTo(0, 3200)")
+        page.wait_for_timeout(1000)
+        page.screenshot(path=shot3_path, full_page=False)
+        print(f"📸 Page 3 Screenshot: {shot3_path}")
+
         browser.close()
 
 if __name__ == "__main__":

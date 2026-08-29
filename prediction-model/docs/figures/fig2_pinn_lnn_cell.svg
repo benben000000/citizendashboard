@@ -1,95 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="100%" height="100%" style="background:#0b1120; font-family:'Inter', -apple-system, sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 460" width="100%" height="100%" style="background:#ffffff; font-family:'Times New Roman', Times, Georgia, serif;">
   <defs>
-    <linearGradient id="cellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e293b"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-    <linearGradient id="glowBlue" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#0284c7"/>
-    </linearGradient>
-    <linearGradient id="glowPurple" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#c084fc"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
-    </linearGradient>
-    <filter id="boxShadow" x="-5%" y="-5%" width="110%" height="115%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.5"/>
-    </filter>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#000000"/>
+    </marker>
   </defs>
 
-  <!-- Title -->
-  <text x="450" y="36" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">FIGURE 2: PHYSICS-INFORMED LIQUID NEURAL ODE (PINN-LNN) CELL STRUCTURE</text>
-  <text x="450" y="56" text-anchor="middle" fill="#94a3b8" font-size="11.5">Continuous-Time Closed-Form Liquid Neural ODE with Embedded Magnus-Tetens &amp; Rating Dynamics</text>
+  <!-- Title / Label -->
+  <text x="460" y="28" text-anchor="middle" fill="#000000" font-size="13" font-weight="bold">Fig. 2. Mathematical architecture of the Garcia Physics-Informed Liquid Neural ODE (PINN-LNN) cell.</text>
 
-  <!-- Main Cell Boundary -->
-  <rect x="230" y="80" width="440" height="360" rx="16" fill="url(#cellGrad)" stroke="#38bdf8" stroke-width="2" filter="url(#boxShadow)"/>
-  <rect x="230" y="80" width="440" height="32" rx="16" fill="#1e293b"/>
-  <text x="450" y="102" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">GARCIA PINN-LNN CONTINUOUS TIME CELL</text>
+  <!-- Main Outer Cell Box -->
+  <rect x="220" y="55" width="480" height="380" rx="3" fill="#fafafa" stroke="#000000" stroke-width="1.5"/>
+  <line x1="220" y1="85" x2="700" y2="85" stroke="#000000" stroke-width="1"/>
+  <text x="460" y="75" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">GARCIA PINN-LNN CONTINUOUS TIME CELL</text>
 
   <!-- Input Vector on Left -->
-  <g transform="translate(40, 160)">
-    <rect width="140" height="200" rx="10" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
-    <text x="70" y="26" text-anchor="middle" fill="#f8fafc" font-size="12" font-weight="700">Input Vector x(t)</text>
-    <text x="20" y="60" fill="#cbd5e1" font-size="10">• Temp T(t)</text>
-    <text x="20" y="85" fill="#cbd5e1" font-size="10">• Heat Index HI(t)</text>
-    <text x="20" y="110" fill="#cbd5e1" font-size="10">• Wind Speed W(t)</text>
-    <text x="20" y="135" fill="#cbd5e1" font-size="10">• Surface Pres. P(t)</text>
-    <text x="20" y="160" fill="#cbd5e1" font-size="10">• Micro-Lead Δt</text>
-    <text x="20" y="185" fill="#94a3b8" font-size="8.5">4D Standardized Feat.</text>
+  <g transform="translate(30, 140)">
+    <rect width="140" height="210" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+    <text x="70" y="24" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">Input Vector x(t)</text>
+    <line x1="15" y1="34" x2="125" y2="34" stroke="#cccccc" stroke-width="0.8"/>
+    <text x="18" y="58" fill="#000000" font-size="10">• Temp T(t)</text>
+    <text x="18" y="82" fill="#000000" font-size="10">• Heat Index HI(t)</text>
+    <text x="18" y="106" fill="#000000" font-size="10">• Wind Speed W(t)</text>
+    <text x="18" y="130" fill="#000000" font-size="10">• Baro. Pres. P(t)</text>
+    <text x="18" y="154" fill="#000000" font-size="10">• Forward Lead Δt</text>
+    <text x="18" y="184" fill="#555555" font-size="8.5">4D Standardized</text>
+    <text x="18" y="196" fill="#555555" font-size="8.5">Boundary Vector</text>
   </g>
 
   <!-- Connection: Input -> Cell -->
-  <path d="M 180 260 L 230 260" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <text x="205" y="250" text-anchor="middle" fill="#38bdf8" font-size="9" font-weight="600">x(t)</text>
+  <line x1="170" y1="245" x2="220" y2="245" stroke="#000000" stroke-width="1.2" marker-end="url(#arrow2)"/>
+  <text x="195" y="238" text-anchor="middle" fill="#000000" font-size="9.5" font-style="italic">x(t)</text>
 
-  <!-- Inside Cell: Dynamic Time Constant -->
-  <g transform="translate(255, 125)">
-    <rect width="180" height="85" rx="8" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.2"/>
-    <text x="12" y="20" fill="#c084fc" font-size="10" font-weight="700">Adaptive Liquid Decay: τ</text>
-    <text x="12" y="42" fill="#f8fafc" font-size="9">Decay Weight: e^(-Δt / τ_i)</text>
-    <text x="12" y="60" fill="#94a3b8" font-size="8.5">Station Hydro-Tau: τ_hydro</text>
-    <text x="12" y="76" fill="#38bdf8" font-size="8">Station-Calibrated Memory</text>
+  <!-- Inside Cell: Dynamic Time Constant Box -->
+  <g transform="translate(240, 100)">
+    <rect width="210" height="75" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+    <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Liquid Decay Operator</text>
+    <text x="10" y="36" fill="#000000" font-size="8.5" font-family="monospace">Decay: exp(-Δt / τ_station)</text>
+    <text x="10" y="52" fill="#444444" font-size="8.5">Dynamic station time constant</text>
+    <text x="10" y="66" fill="#555555" font-size="8">Station Hydro-Tau τ_hydro</text>
   </g>
 
-  <!-- Inside Cell: Physics Loss / Thermodynamic Constraints -->
-  <g transform="translate(465, 125)">
-    <rect width="185" height="85" rx="8" fill="#0f172a" stroke="#f59e0b" stroke-width="1.2"/>
-    <text x="10" y="20" fill="#fbbf24" font-size="10" font-weight="700">Thermodynamic Physics</text>
-    <text x="10" y="38" fill="#e2e8f0" font-size="8.5">Magnus Sat: es = 6.112 exp(...)</text>
-    <text x="10" y="54" fill="#e2e8f0" font-size="8.5">LCL Saturation: z_LCL ≈ 125 ΔTd</text>
-    <text x="10" y="72" fill="#94a3b8" font-size="8">L_phys = || dE/dt - Q ||^2</text>
+  <!-- Inside Cell: Physics Constraints Box -->
+  <g transform="translate(470, 100)">
+    <rect width="210" height="75" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+    <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Thermodynamic Constraints</text>
+    <text x="10" y="34" fill="#000000" font-size="8">Magnus: es = 6.1121 exp(...)</text>
+    <text x="10" y="48" fill="#000000" font-size="8">LCL Depth: z_LCL ≈ 125 ΔTd</text>
+    <text x="10" y="64" fill="#555555" font-size="8">L_phys = || dE/dt - Q ||^2</text>
   </g>
 
-  <!-- Inside Cell: Continuous State Update -->
-  <g transform="translate(255, 230)">
-    <rect width="395" height="95" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1.5"/>
-    <text x="15" y="22" fill="#38bdf8" font-size="11" font-weight="700">Closed-Form Continuous-Time Solution (ODE)</text>
-    <text x="15" y="46" fill="#ffffff" font-size="10.5" font-family="monospace">h(t+Δt) = e^(-Δt/τ) ⊙ h(t) + (1 - e^(-Δt/τ)) ⊙ tanh(Win·x + Wrec·h + bh)</text>
-    <text x="15" y="68" fill="#94a3b8" font-size="9">Continuous evaluation across arbitrary lead times Δt ∈ [0, 72h] with zero step-drift</text>
-    <text x="15" y="85" fill="#34d399" font-size="9">Inference Time: 53.99 - 74.94 microseconds per step</text>
+  <!-- Inside Cell: Closed Form Solution Box -->
+  <g transform="translate(240, 190)">
+    <rect width="440" height="110" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+    <text x="12" y="20" fill="#000000" font-size="10.5" font-weight="bold">Closed-Form Continuous-Time Solution (Neural ODE)</text>
+    <text x="12" y="44" fill="#000000" font-size="9.5" font-family="monospace">h(t+Δt) = exp(-Δt/τ) ⊙ h(t) + [1 - exp(-Δt/τ)] ⊙ tanh(Win·x + Wrec·h + bh)</text>
+    <line x1="12" y1="58" x2="428" y2="58" stroke="#eeeeee" stroke-width="0.8"/>
+    <text x="12" y="74" fill="#333333" font-size="8.5">• Analytical trajectory evaluation across arbitrary lead intervals Δt ∈ [0, 72h]</text>
+    <text x="12" y="88" fill="#333333" font-size="8.5">• Zero discrete step accumulation error; continuous hidden state manifold</text>
+    <text x="12" y="102" fill="#000000" font-size="8.5" font-weight="bold">• Mean Step Latency: 53.99 μs (Gen-2 Evolved)</text>
   </g>
 
-  <!-- Inside Cell: Hydrodynamic Stage Coupling -->
-  <g transform="translate(255, 345)">
-    <rect width="395" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
-    <text x="15" y="20" fill="#34d399" font-size="10.5" font-weight="700">Hydrodynamic Mass Continuity</text>
-    <text x="15" y="42" fill="#f8fafc" font-size="9">d(WL)/dt = Qin(t) - Qout(t) - (0.15 / τ_hydro)·(WL - WL_base) + ΔWL_PINN</text>
-    <text x="15" y="62" fill="#94a3b8" font-size="8.5">Yields precise river crest forecast (Pampanga River stage error: 18.2 cm)</text>
+  <!-- Inside Cell: Hydrodynamic Mass Continuity Box -->
+  <g transform="translate(240, 315)">
+    <rect width="440" height="100" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+    <text x="12" y="20" fill="#000000" font-size="10" font-weight="bold">Catchment Hydrodynamic Continuity &amp; Rating Decay</text>
+    <text x="12" y="40" fill="#000000" font-size="9" font-family="monospace">d(WL)/dt = Qin(t) - Qout(t) + ΔWLPINN - (0.15 / τ_hydro)·(WL - WLbase)</text>
+    <text x="12" y="60" fill="#444444" font-size="8.5">Continuously updates river stage, rating curve hysteresis, and flood surge travel time.</text>
+    <text x="12" y="76" fill="#000000" font-size="8.5" font-weight="bold">Pampanga River Confluence Error: 18.2 cm</text>
   </g>
 
   <!-- Output Vector on Right -->
-  <g transform="translate(720, 160)">
-    <rect width="140" height="200" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
-    <text x="70" y="26" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Outputs y(t+Δt)</text>
-    <text x="15" y="60" fill="#f8fafc" font-size="10">• Water Level WL(t)</text>
-    <text x="15" y="85" fill="#f8fafc" font-size="10">• Rain Prob P(Rain)</text>
-    <text x="15" y="110" fill="#f8fafc" font-size="10">• Burst mm/hr</text>
-    <text x="15" y="135" fill="#f8fafc" font-size="10">• Temp / Heat Index</text>
-    <text x="15" y="160" fill="#f8fafc" font-size="10">• Upper/Lower Bounds</text>
-    <text x="15" y="185" fill="#34d399" font-size="8.5">Derived Intelligence</text>
+  <g transform="translate(750, 140)">
+    <rect width="140" height="210" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+    <text x="70" y="24" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">Outputs y(t+Δt)</text>
+    <line x1="15" y1="34" x2="125" y2="34" stroke="#cccccc" stroke-width="0.8"/>
+    <text x="18" y="58" fill="#000000" font-size="10">• Water Level WL(t)</text>
+    <text x="18" y="82" fill="#000000" font-size="10">• Rain Prob P(Rain)</text>
+    <text x="18" y="106" fill="#000000" font-size="10">• Burst mm/hr</text>
+    <text x="18" y="130" fill="#000000" font-size="10">• Temp &amp; Heat Index</text>
+    <text x="18" y="154" fill="#000000" font-size="10">• Dynamic Confidence</text>
+    <text x="18" y="184" fill="#000000" font-size="8.5" font-weight="bold">Original Computed</text>
+    <text x="18" y="196" fill="#000000" font-size="8.5" font-weight="bold">Derived Prediction</text>
   </g>
 
   <!-- Connection: Cell -> Output -->
-  <path d="M 670 260 L 720 260" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <text x="695" y="250" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">y(t+Δt)</text>
+  <line x1="700" y1="245" x2="750" y2="245" stroke="#000000" stroke-width="1.2" marker-end="url(#arrow2)"/>
+  <text x="725" y="238" text-anchor="middle" fill="#000000" font-size="9.5" font-style="italic">y(t)</text>
 </svg>

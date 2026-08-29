@@ -1,178 +1,167 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="100%" height="100%" style="background:#0f172a; font-family:'Inter', -apple-system, sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="100%" height="100%" style="background:#ffffff; font-family:'Times New Roman', Times, Georgia, serif;">
   <defs>
-    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0284c7"/>
-      <stop offset="100%" stop-color="#0369a1"/>
-    </linearGradient>
-    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b5cf6"/>
-      <stop offset="100%" stop-color="#6d28d9"/>
-    </linearGradient>
-    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#047857"/>
-    </linearGradient>
-    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f59e0b"/>
-      <stop offset="100%" stop-color="#b45309"/>
-    </linearGradient>
-    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.4"/>
-    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#000000"/>
+    </marker>
   </defs>
 
-  <!-- Title -->
-  <text x="500" y="38" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="700" letter-spacing="0.5">FIGURE 1: END-TO-END PINN-LNN ARCHITECTURE &amp; EPHEMERAL INGESTION PIPELINE</text>
-  <text x="500" y="58" text-anchor="middle" fill="#94a3b8" font-size="12">Garcia Physics-Informed Liquid Neural Network (PINN-LNN) Operational Telemetry Flow</text>
+  <!-- Title / Label -->
+  <text x="480" y="30" text-anchor="middle" fill="#000000" font-size="14" font-weight="bold" letter-spacing="0.5">Fig. 1. End-to-end data flow and continuous-time inference pipeline.</text>
 
-  <!-- Section 1: Multi-Modal Raw Boundary Telemetry -->
-  <g transform="translate(30, 85)">
-    <rect width="210" height="390" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <rect width="210" height="36" rx="12" fill="#334155"/>
-    <text x="105" y="23" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">1. RAW DATA SOURCES</text>
-    <text x="105" y="55" text-anchor="middle" fill="#94a3b8" font-size="10">Ephemeral Boundary Conditions</text>
+  <!-- 1. Raw Telemetry Ingestion (Left Box) -->
+  <g transform="translate(40, 60)">
+    <rect width="200" height="380" rx="2" fill="#fafafa" stroke="#000000" stroke-width="1.2"/>
+    <line x1="0" y1="32" x2="200" y2="32" stroke="#000000" stroke-width="1"/>
+    <text x="100" y="21" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">1. BOUNDARY TELEMETRY</text>
 
-    <!-- Source Box 1 -->
-    <g transform="translate(15, 70)">
-      <rect width="180" height="75" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1.2"/>
-      <text x="15" y="24" fill="#38bdf8" font-size="11" font-weight="700">Kloudtech AWS IoT</text>
-      <text x="15" y="42" fill="#cbd5e1" font-size="9.5">23 Telemetry Stations</text>
-      <text x="15" y="58" fill="#64748b" font-size="8.5">mTLS Sub-Second MQTT</text>
+    <!-- Sub-box A -->
+    <g transform="translate(15, 48)">
+      <rect width="170" height="70" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="12" y="20" fill="#000000" font-size="10.5" font-weight="bold">Kloudtech AWS IoT</text>
+      <text x="12" y="38" fill="#333333" font-size="9.5">23 Physical Stations</text>
+      <text x="12" y="54" fill="#555555" font-size="8.5">mTLS Sub-Second MQTT</text>
     </g>
 
-    <!-- Source Box 2 -->
-    <g transform="translate(15, 160)">
-      <rect width="180" height="75" rx="8" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.2"/>
-      <text x="15" y="24" fill="#c084fc" font-size="11" font-weight="700">JMA Himawari-9</text>
-      <text x="15" y="42" fill="#cbd5e1" font-size="9.5">Satellite Convective Band</text>
-      <text x="15" y="58" fill="#64748b" font-size="8.5">IR Brightness Index</text>
+    <!-- Sub-box B -->
+    <g transform="translate(15, 130)">
+      <rect width="170" height="70" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="12" y="20" fill="#000000" font-size="10.5" font-weight="bold">JMA Himawari-9</text>
+      <text x="12" y="38" fill="#333333" font-size="9.5">Geostationary Satellite</text>
+      <text x="12" y="54" fill="#555555" font-size="8.5">IR Convective Cloud Index</text>
     </g>
 
-    <!-- Source Box 3 -->
-    <g transform="translate(15, 250)">
-      <rect width="180" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
-      <text x="15" y="24" fill="#34d399" font-size="11" font-weight="700">RainViewer Radar</text>
-      <text x="15" y="42" fill="#cbd5e1" font-size="9.5">Doppler Reflectivity</text>
-      <text x="15" y="58" fill="#64748b" font-size="8.5">dBZ Column Composite</text>
+    <!-- Sub-box C -->
+    <g transform="translate(15, 212)">
+      <rect width="170" height="70" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="12" y="20" fill="#000000" font-size="10.5" font-weight="bold">Doppler Radar</text>
+      <text x="12" y="38" fill="#333333" font-size="9.5">Column Reflectivity</text>
+      <text x="12" y="54" fill="#555555" font-size="8.5">dBZ Composite Grid</text>
     </g>
 
-    <text x="105" y="365" text-anchor="middle" fill="#ef4444" font-size="9" font-weight="600">⚠️ Zero Raw Data Redistribution</text>
+    <!-- Ephemeral Notice -->
+    <rect x="15" y="300" width="170" height="60" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8" stroke-dasharray="3 2"/>
+    <text x="100" y="322" text-anchor="middle" fill="#000000" font-size="9" font-weight="bold">Ephemeral Ingestion</text>
+    <text x="100" y="340" text-anchor="middle" fill="#444444" font-size="8">Volatile memory buffer only;</text>
+    <text x="100" y="352" text-anchor="middle" fill="#444444" font-size="8">zero raw redistribution.</text>
   </g>
 
   <!-- Arrow 1 -> 2 -->
-  <path d="M 240 280 L 285 280" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
-  <text x="262" y="270" text-anchor="middle" fill="#38bdf8" font-size="9" font-weight="600">mTLS</text>
+  <line x1="240" y1="240" x2="275" y2="240" stroke="#000000" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- Section 2: Ephemeral Ingestion & Feature Normalization -->
-  <g transform="translate(290, 85)">
-    <rect width="180" height="390" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <rect width="180" height="36" rx="12" fill="#334155"/>
-    <text x="90" y="23" text-anchor="middle" fill="#c084fc" font-size="12" font-weight="700">2. INGESTION &amp; ODE</text>
-    
-    <g transform="translate(12, 55)">
-      <rect width="156" height="50" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-      <text x="10" y="22" fill="#f8fafc" font-size="10" font-weight="600">Feature Normalization</text>
-      <text x="10" y="38" fill="#94a3b8" font-size="8.5">T, HI, Wind, Pressure</text>
+  <!-- 2. Feature Standardization & Physics (Middle Left) -->
+  <g transform="translate(280, 60)">
+    <rect width="180" height="380" rx="2" fill="#fafafa" stroke="#000000" stroke-width="1.2"/>
+    <line x1="0" y1="32" x2="180" y2="32" stroke="#000000" stroke-width="1"/>
+    <text x="90" y="21" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">2. PHYSICS CONSTRAINTS</text>
+
+    <g transform="translate(12, 48)">
+      <rect width="156" height="52" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="20" fill="#000000" font-size="10" font-weight="bold">Input Normalization</text>
+      <text x="10" y="36" fill="#333333" font-size="9">x(t) = [T, HI, W, P]^T</text>
     </g>
 
-    <g transform="translate(12, 120)">
-      <rect width="156" height="65" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-      <text x="10" y="20" fill="#f8fafc" font-size="10" font-weight="600">Magnus-Tetens Sat.</text>
-      <text x="10" y="36" fill="#38bdf8" font-size="8.5">es(T) = 6.1121 exp(...)</text>
-      <text x="10" y="52" fill="#94a3b8" font-size="8.5">Dew Point &amp; LCL Depth</text>
+    <g transform="translate(12, 112)">
+      <rect width="156" height="70" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="18" fill="#000000" font-size="10" font-weight="bold">Magnus-Tetens Sat.</text>
+      <text x="10" y="34" fill="#333333" font-size="8.5">es(T) = 6.1121 exp(...)</text>
+      <text x="10" y="48" fill="#333333" font-size="8.5">Dew point Td calculation</text>
+      <text x="10" y="62" fill="#555555" font-size="8.5">LCL depth: z_LCL ≈ 125 ΔTd</text>
     </g>
 
-    <g transform="translate(12, 200)">
-      <rect width="156" height="65" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-      <text x="10" y="20" fill="#f8fafc" font-size="10" font-weight="600">Diurnal Solar Cycle</text>
-      <text x="10" y="36" fill="#f59e0b" font-size="8.5">Φ(t) = 2π(t-14)/24</text>
-      <text x="10" y="52" fill="#94a3b8" font-size="8.5">Hypsometric Lapse ΔT</text>
+    <g transform="translate(12, 194)">
+      <rect width="156" height="70" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="18" fill="#000000" font-size="10" font-weight="bold">Solar Diurnal Cycle</text>
+      <text x="10" y="34" fill="#333333" font-size="8.5">Φ(t) = 2π(t - 14)/24</text>
+      <text x="10" y="48" fill="#333333" font-size="8.5">Harmonic ΔT adjustment</text>
+      <text x="10" y="62" fill="#555555" font-size="8.5">Hypsometric lapse rate</text>
     </g>
 
-    <g transform="translate(12, 280)">
-      <rect width="156" height="85" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1"/>
-      <text x="10" y="20" fill="#f8fafc" font-size="10" font-weight="600">Hydraulic Mass Bal.</text>
-      <text x="10" y="36" fill="#34d399" font-size="8.5">d(WL)/dt = Qin - Qout</text>
-      <text x="10" y="52" fill="#94a3b8" font-size="8.5">Tau Hydro Decay</text>
-      <text x="10" y="68" fill="#cbd5e1" font-size="8.5">23 Station Profiles</text>
+    <g transform="translate(12, 276)">
+      <rect width="156" height="84" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="18" fill="#000000" font-size="10" font-weight="bold">Catchment Hydrodynamics</text>
+      <text x="10" y="34" fill="#333333" font-size="8.5">d(WL)/dt = Qin - Qout</text>
+      <text x="10" y="48" fill="#333333" font-size="8.5">- (0.15/τ_hydro)(WL - WLbase)</text>
+      <text x="10" y="62" fill="#555555" font-size="8.5">Stage rating continuity</text>
+      <text x="10" y="76" fill="#555555" font-size="8.5">23 station profiles</text>
     </g>
   </g>
 
   <!-- Arrow 2 -> 3 -->
-  <path d="M 470 280 L 515 280" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="5 3"/>
+  <line x1="460" y1="240" x2="495" y2="240" stroke="#000000" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- Section 3: Garcia PINN-LNN Continuous Engine -->
-  <g transform="translate(520, 85)">
-    <rect width="210" height="390" rx="12" fill="#1e293b" stroke="#0284c7" stroke-width="2" filter="url(#shadow)"/>
-    <rect width="210" height="36" rx="12" fill="url(#blueGrad)"/>
-    <text x="105" y="23" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">3. GARCIA PINN-LNN</text>
+  <!-- 3. Garcia PINN-LNN Engine (Middle Right) -->
+  <g transform="translate(500, 60)">
+    <rect width="210" height="380" rx="2" fill="#fafafa" stroke="#000000" stroke-width="1.5"/>
+    <line x1="0" y1="32" x2="210" y2="32" stroke="#000000" stroke-width="1"/>
+    <text x="105" y="21" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">3. GARCIA PINN-LNN</text>
 
-    <g transform="translate(15, 55)">
-      <rect width="180" height="75" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1.2"/>
-      <text x="12" y="20" fill="#38bdf8" font-size="10" font-weight="700">Liquid Neural ODE Cell</text>
-      <text x="12" y="38" fill="#f8fafc" font-size="8.5">h(t+Δt) = e^(-Δt/τ) ⊙ h(t)</text>
-      <text x="12" y="52" fill="#f8fafc" font-size="8.5">+ (1-e^(-Δt/τ)) ⊙ tanh(...)</text>
-      <text x="12" y="66" fill="#38bdf8" font-size="8">Latency: 53.99 - 74.94 μs</text>
+    <g transform="translate(15, 48)">
+      <rect width="180" height="80" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+      <text x="12" y="20" fill="#000000" font-size="10" font-weight="bold">Continuous-Time ODE Cell</text>
+      <text x="12" y="36" fill="#000000" font-size="8.5" font-family="monospace">h(t+Δt) = e^(-Δt/τ) ⊙ h(t)</text>
+      <text x="12" y="50" fill="#000000" font-size="8.5" font-family="monospace">+ (1 - e^(-Δt/τ)) ⊙ tanh(...)</text>
+      <text x="12" y="68" fill="#444444" font-size="8">Inference: 53.99 - 74.94 μs</text>
     </g>
 
-    <g transform="translate(15, 145)">
-      <rect width="180" height="75" rx="8" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.2"/>
-      <text x="12" y="20" fill="#c084fc" font-size="10" font-weight="700">Multi-Modal Rain Fusion</text>
-      <text x="12" y="38" fill="#f8fafc" font-size="8.5">P(Rain) = 0.35 P_LNN</text>
-      <text x="12" y="52" fill="#f8fafc" font-size="8.5">+ 0.45 P_Synoptic</text>
-      <text x="12" y="66" fill="#f8fafc" font-size="8.5">+ 0.20 (dBZ / 60)</text>
+    <g transform="translate(15, 140)">
+      <rect width="180" height="74" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="12" y="18" fill="#000000" font-size="10" font-weight="bold">Multi-Modal Rain Fusion</text>
+      <text x="12" y="34" fill="#333333" font-size="8.5">P(Rain) = 0.35 P_LNN</text>
+      <text x="12" y="48" fill="#333333" font-size="8.5">+ 0.45 P_Synoptic</text>
+      <text x="12" y="62" fill="#333333" font-size="8.5">+ 0.20 (dBZ / 60)</text>
     </g>
 
-    <g transform="translate(15, 235)">
-      <rect width="180" height="65" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
-      <text x="12" y="20" fill="#34d399" font-size="10" font-weight="700">Sudden Burst Classifier</text>
-      <text x="12" y="38" fill="#cbd5e1" font-size="8.5">Convective Cloud Thresholding</text>
-      <text x="12" y="52" fill="#cbd5e1" font-size="8.5">Downpour Rate [mm/hr]</text>
+    <g transform="translate(15, 226)">
+      <rect width="180" height="64" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="12" y="18" fill="#000000" font-size="10" font-weight="bold">Convective Burst Detector</text>
+      <text x="12" y="34" fill="#333333" font-size="8.5">Micro-burst intensity (mm/hr)</text>
+      <text x="12" y="48" fill="#333333" font-size="8.5">Onset window identification</text>
     </g>
 
-    <g transform="translate(15, 315)">
-      <rect width="180" height="55" rx="8" fill="#0369a1" stroke="#38bdf8" stroke-width="1"/>
-      <text x="90" y="22" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="700">PROPRIETARY DERIVATIVE</text>
-      <text x="90" y="40" text-anchor="middle" fill="#e0f2fe" font-size="8.5">100% Commercial Freedom</text>
+    <!-- Proprietary Derivative Block -->
+    <g transform="translate(15, 302)">
+      <rect width="180" height="58" rx="2" fill="#f0f0f0" stroke="#000000" stroke-width="1"/>
+      <text x="90" y="24" text-anchor="middle" fill="#000000" font-size="9.5" font-weight="bold">PROPRIETARY DERIVATIVE</text>
+      <text x="90" y="42" text-anchor="middle" fill="#333333" font-size="8.5">100% Commercial Independence</text>
     </g>
   </g>
 
   <!-- Arrow 3 -> 4 -->
-  <path d="M 730 280 L 775 280" stroke="#10b981" stroke-width="2.5" stroke-dasharray="5 3"/>
+  <line x1="710" y1="240" x2="745" y2="240" stroke="#000000" stroke-width="1.2" marker-end="url(#arrow)"/>
 
-  <!-- Section 4: Citizen Prediction Dashboard & API -->
-  <g transform="translate(780, 85)">
-    <rect width="190" height="390" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <rect width="190" height="36" rx="12" fill="url(#greenGrad)"/>
-    <text x="95" y="23" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">4. DERIVED OUTPUTS</text>
+  <!-- 4. Outputs (Right Box) -->
+  <g transform="translate(750, 60)">
+    <rect width="170" height="380" rx="2" fill="#fafafa" stroke="#000000" stroke-width="1.2"/>
+    <line x1="0" y1="32" x2="170" y2="32" stroke="#000000" stroke-width="1"/>
+    <text x="85" y="21" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">4. OUTPUT PRODUCTS</text>
 
-    <g transform="translate(12, 55)">
-      <rect width="166" height="65" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
-      <text x="10" y="20" fill="#34d399" font-size="9.5" font-weight="700">Continuous Horizons</text>
-      <text x="10" y="36" fill="#cbd5e1" font-size="8.5">1h, 3h, 6h, 12h, 24h, 72h</text>
-      <text x="10" y="52" fill="#94a3b8" font-size="8">Real Continuous ODE States</text>
+    <g transform="translate(12, 48)">
+      <rect width="146" height="66" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Continuous Horizons</text>
+      <text x="10" y="34" fill="#333333" font-size="8.5">1h, 3h, 6h, 12h, 24h, 72h</text>
+      <text x="10" y="50" fill="#555555" font-size="8">Analytical state trajectory</text>
     </g>
 
-    <g transform="translate(12, 130)">
-      <rect width="166" height="65" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
-      <text x="10" y="20" fill="#34d399" font-size="9.5" font-weight="700">Flash Flood Nowcast</text>
-      <text x="10" y="36" fill="#cbd5e1" font-size="8.5">Peak Water Stage &amp; Time</text>
-      <text x="10" y="52" fill="#94a3b8" font-size="8">Lead Time to Critical Crest</text>
+    <g transform="translate(12, 124)">
+      <rect width="146" height="66" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Flood Crest Forecasting</text>
+      <text x="10" y="34" fill="#333333" font-size="8.5">Peak stage magnitude (m)</text>
+      <text x="10" y="50" fill="#555555" font-size="8">Lead time to peak crest</text>
     </g>
 
-    <g transform="translate(12, 205)">
-      <rect width="166" height="65" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
-      <text x="10" y="20" fill="#34d399" font-size="9.5" font-weight="700">Sudden Rain Alerts</text>
-      <text x="10" y="36" fill="#cbd5e1" font-size="8.5">Micro-Burst Window</text>
-      <text x="10" y="52" fill="#94a3b8" font-size="8">Convective Cloud Intensity</text>
+    <g transform="translate(12, 200)">
+      <rect width="146" height="66" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Rain Burst Nowcast</text>
+      <text x="10" y="34" fill="#333333" font-size="8.5">Onset window &amp; duration</text>
+      <text x="10" y="50" fill="#555555" font-size="8">Downpour rate alerts</text>
     </g>
 
-    <g transform="translate(12, 280)">
-      <rect width="166" height="85" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
-      <text x="10" y="20" fill="#34d399" font-size="9.5" font-weight="700">Citizen Web Interface</text>
-      <text x="10" y="36" fill="#cbd5e1" font-size="8.5">Nearest Station GPS</text>
-      <text x="10" y="52" fill="#cbd5e1" font-size="8.5">Glassmorphic UI Cards</text>
-      <text x="10" y="68" fill="#38bdf8" font-size="8">English &amp; Tagalog i18n</text>
+    <g transform="translate(12, 276)">
+      <rect width="146" height="84" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
+      <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Citizen Edge Interface</text>
+      <text x="10" y="34" fill="#333333" font-size="8.5">Nearest GPS geolocation</text>
+      <text x="10" y="50" fill="#333333" font-size="8.5">Multi-language (EN/FIL)</text>
+      <text x="10" y="66" fill="#555555" font-size="8">Edge REST &amp; WebSocket API</text>
     </g>
   </g>
 </svg>

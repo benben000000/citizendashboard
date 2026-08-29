@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Physics-Informed Liquid Neural Networks for Continuous-Time Hydrometeorological Forecasting — Benedict M. Garcia</title>
+  <title>Physics-Informed Liquid Neural Networks for Continuous-Time Hydrometeorological Forecasting and Flash Flood Nowcasting in Tropical River Basins — Benedict M. Garcia</title>
   
-  <!-- KaTeX for mathematical typography -->
+  <!-- KaTeX for rigorous LaTeX math rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
@@ -23,26 +23,26 @@
     });
   </script>
 
-  <!-- Google Fonts: Latin Modern / Newsreader / Inter -->
+  <!-- Classic Academic Serif Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
     @page {
       size: A4 portrait;
-      margin: 20mm 18mm 20mm 18mm;
+      margin: 22mm 20mm 22mm 20mm;
       @bottom-center {
-        content: "Page " counter(page);
-        font-family: 'Inter', sans-serif;
-        font-size: 8pt;
-        color: #64748b;
+        content: counter(page);
+        font-family: 'Newsreader', 'Times New Roman', serif;
+        font-size: 9pt;
+        color: #000000;
       }
       @top-right {
-        content: "Garcia PINN-LNN Working Paper (2026)";
-        font-family: 'Inter', sans-serif;
-        font-size: 7.5pt;
-        color: #94a3b8;
+        content: "Garcia: Physics-Informed Liquid Neural Networks for Continuous Nowcasting";
+        font-family: 'Newsreader', 'Times New Roman', serif;
+        font-size: 8pt;
+        color: #444444;
         font-style: italic;
       }
     }
@@ -52,324 +52,265 @@
     }
 
     body {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 10.5pt;
-      line-height: 1.55;
-      color: #1e293b;
+      font-family: 'Newsreader', 'Times New Roman', Times, Georgia, serif;
+      font-size: 10pt;
+      line-height: 1.5;
+      color: #000000;
       background-color: #ffffff;
       margin: 0 auto;
       padding: 0;
-      max-width: 900px;
+      max-width: 860px;
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Header & Title Section */
+    /* ── ACADEMIC PAPER HEADER ── */
     .paper-header {
       text-align: center;
-      margin-bottom: 24pt;
-      padding-bottom: 16pt;
-      border-bottom: 1.5pt solid #0f172a;
+      margin-bottom: 20pt;
+      padding-bottom: 14pt;
     }
 
-    .paper-pretitle {
-      font-family: 'Inter', sans-serif;
-      font-size: 8.5pt;
-      font-weight: 700;
+    .paper-type {
+      font-size: 9pt;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: #0284c7;
-      margin-bottom: 8pt;
+      letter-spacing: 1.2px;
+      color: #000000;
+      margin-bottom: 12pt;
     }
 
     .paper-title {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 20pt;
-      font-weight: 600;
+      font-size: 19pt;
+      font-weight: 700;
       line-height: 1.25;
-      color: #0f172a;
-      margin: 0 0 12pt 0;
-      letter-spacing: -0.2px;
-    }
-
-    .author-block {
-      margin-top: 14pt;
-      margin-bottom: 8pt;
+      color: #000000;
+      margin: 0 0 16pt 0;
+      letter-spacing: -0.1px;
     }
 
     .author-name {
-      font-family: 'Inter', sans-serif;
       font-size: 12pt;
       font-weight: 700;
-      color: #0f172a;
+      color: #000000;
+      margin-bottom: 2pt;
     }
 
-    .author-role {
-      font-family: 'Inter', sans-serif;
+    .author-affiliation {
       font-size: 9.5pt;
-      font-weight: 500;
-      color: #475569;
-      margin-top: 2pt;
+      color: #222222;
+      font-style: italic;
+      margin-bottom: 4pt;
     }
 
-    .partner-block {
-      font-family: 'Inter', sans-serif;
-      font-size: 8.5pt;
-      color: #64748b;
-      margin-top: 6pt;
+    .author-partner {
+      font-size: 9pt;
+      color: #444444;
+      margin-top: 4pt;
     }
 
-    .meta-badges {
-      display: flex;
-      justify-content: center;
-      gap: 12pt;
-      margin-top: 12pt;
-      font-family: 'Inter', sans-serif;
-      font-size: 8pt;
-      font-weight: 600;
-    }
-
-    .badge {
-      background: #f1f5f9;
-      color: #334155;
-      padding: 3pt 8pt;
-      border-radius: 4px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .badge.highlight {
-      background: #e0f2fe;
-      color: #0369a1;
-      border-color: #bae6fd;
-    }
-
-    /* Abstract Box */
-    .abstract-container {
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-left: 4pt solid #0284c7;
-      padding: 12pt 16pt;
-      margin: 16pt 0 24pt 0;
-      border-radius: 2px;
-    }
-
-    .abstract-title {
-      font-family: 'Inter', sans-serif;
-      font-size: 9.5pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #0369a1;
-      margin-bottom: 6pt;
+    /* ── ABSTRACT & KEYWORDS (IEEE / arXiv Style) ── */
+    .abstract-wrapper {
+      margin: 16pt 20pt 22pt 20pt;
+      padding: 0;
+      text-align: justify;
+      text-justify: inter-word;
     }
 
     .abstract-text {
-      font-size: 9.5pt;
-      line-height: 1.5;
-      color: #334155;
+      font-size: 9pt;
+      line-height: 1.45;
       margin: 0;
-      text-align: justify;
+    }
+
+    .abstract-text strong.first-word {
+      font-weight: 700;
+      font-style: italic;
     }
 
     .keywords-line {
-      font-family: 'Inter', sans-serif;
-      font-size: 8.5pt;
-      color: #475569;
+      font-size: 9pt;
       margin-top: 8pt;
-      padding-top: 6pt;
-      border-top: 1px solid #e2e8f0;
+      font-style: normal;
     }
 
     .keywords-line strong {
-      color: #0f172a;
+      font-weight: 700;
+      font-style: italic;
     }
 
-    /* Typography & Section Headings */
+    /* ── SECTION HEADINGS ── */
     h2 {
-      font-family: 'Inter', sans-serif;
-      font-size: 13pt;
+      font-size: 11pt;
       font-weight: 700;
-      color: #0f172a;
-      border-bottom: 1pt solid #e2e8f0;
-      padding-bottom: 4pt;
-      margin-top: 22pt;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #000000;
+      text-align: center;
+      margin-top: 24pt;
       margin-bottom: 10pt;
       page-break-after: avoid;
     }
 
     h3 {
-      font-family: 'Inter', sans-serif;
-      font-size: 10.5pt;
-      font-weight: 600;
-      color: #1e293b;
+      font-size: 10pt;
+      font-weight: 700;
+      font-style: italic;
+      color: #000000;
       margin-top: 14pt;
       margin-bottom: 6pt;
       page-break-after: avoid;
     }
 
     p {
-      margin: 0 0 10pt 0;
+      margin: 0 0 8pt 0;
       text-align: justify;
       text-justify: inter-word;
+      text-indent: 1.5em;
     }
 
-    /* Formulas & Callout Boxes */
-    .math-block {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      padding: 10pt 14pt;
-      margin: 12pt 0;
-      text-align: center;
+    p.no-indent {
+      text-indent: 0;
+    }
+
+    ul, ol {
+      margin: 4pt 0 10pt 0;
+      padding-left: 24pt;
+      font-size: 9.5pt;
+    }
+
+    li {
+      margin-bottom: 4pt;
+      text-align: justify;
+    }
+
+    /* ── FORMULAS & NUMBERED EQUATIONS ── */
+    .equation-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10pt 0;
+      padding: 0 8pt;
       page-break-inside: avoid;
     }
 
-    .math-formula {
-      font-size: 11pt;
-      margin: 4pt 0;
-    }
-
-    .formula-desc {
-      font-family: 'Inter', sans-serif;
-      font-size: 8pt;
-      color: #64748b;
-      margin-top: 4pt;
+    .equation-math {
+      flex: 1;
       text-align: center;
+      font-size: 10.5pt;
     }
 
-    /* Academic Tables (Booktabs style) */
+    .equation-num {
+      font-size: 9.5pt;
+      font-style: normal;
+      margin-left: 12pt;
+    }
+
+    /* ── ACADEMIC TABLES (Strict Booktabs Standard) ── */
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 14pt 0;
-      font-family: 'Inter', sans-serif;
       font-size: 8.5pt;
       line-height: 1.35;
       page-break-inside: avoid;
     }
 
     table thead tr:first-child {
-      border-top: 1.5pt solid #0f172a;
-      border-bottom: 1pt solid #0f172a;
+      border-top: 1.2pt solid #000000;
+      border-bottom: 0.8pt solid #000000;
     }
 
     table thead th {
       font-weight: 700;
-      color: #0f172a;
-      padding: 6pt 4pt;
+      color: #000000;
+      padding: 5pt 3pt;
       text-align: left;
-      background: #f8fafc;
     }
 
     table tbody tr {
-      border-bottom: 0.5pt solid #e2e8f0;
+      border-bottom: 0.4pt solid #e0e0e0;
     }
 
     table tbody tr:last-child {
-      border-bottom: 1.5pt solid #0f172a;
+      border-bottom: 1.2pt solid #000000;
     }
 
     table tbody td {
-      padding: 4.5pt 4pt;
-      color: #334155;
+      padding: 4pt 3pt;
+      color: #000000;
     }
 
     table tbody td.bold {
       font-weight: 700;
-      color: #0f172a;
-    }
-
-    table tbody td.success {
-      color: #047857;
-      font-weight: 600;
     }
 
     .table-caption {
-      font-family: 'Inter', sans-serif;
-      font-size: 8pt;
-      font-weight: 600;
-      color: #475569;
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #000000;
       margin-bottom: 4pt;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      text-align: center;
+      letter-spacing: 0.3px;
     }
 
-    /* Figures & Diagram Embeds */
-    .figure-container {
-      margin: 16pt 0;
+    /* ── FIGURES & DIAGRAMS (Clean Monochrome) ── */
+    .figure-wrapper {
+      margin: 18pt 0;
       text-align: center;
       page-break-inside: avoid;
     }
 
-    .figure-container svg, .figure-container img {
+    .figure-wrapper img, .figure-wrapper svg {
       max-width: 100%;
       height: auto;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border: 0.8pt solid #333333;
+      padding: 4pt;
+      background: #ffffff;
     }
 
     .figure-caption {
-      font-family: 'Inter', sans-serif;
       font-size: 8.5pt;
-      color: #475569;
+      color: #000000;
       margin-top: 6pt;
-      text-align: center;
-      line-height: 1.4;
+      text-align: justify;
+      line-height: 1.35;
+      padding: 0 10pt;
     }
 
     .figure-caption strong {
-      color: #0f172a;
+      font-weight: 700;
     }
 
-    /* Code Blocks & Verification Boxes */
-    pre, code {
-      font-family: 'JetBrains Mono', monospace;
+    /* ── CODE & MONOSPACE ── */
+    code, pre {
+      font-family: 'JetBrains Mono', Courier, monospace;
       font-size: 8pt;
     }
 
     pre {
-      background: #0f172a;
-      color: #f8fafc;
-      padding: 10pt 14pt;
-      border-radius: 4px;
-      overflow-x: auto;
-      margin: 12pt 0;
-      line-height: 1.4;
+      background: #fdfdfd;
+      border: 0.8pt solid #000000;
+      padding: 8pt 10pt;
+      margin: 10pt 0;
+      line-height: 1.35;
       page-break-inside: avoid;
+      color: #000000;
     }
 
-    .highlight-box {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      border-left: 3.5pt solid #16a34a;
-      padding: 10pt 14pt;
-      border-radius: 3px;
-      margin: 12pt 0;
-      font-family: 'Inter', sans-serif;
-      font-size: 9pt;
-      color: #166534;
-      page-break-inside: avoid;
-    }
-
-    .highlight-box strong {
-      color: #14532d;
-    }
-
-    /* References List */
+    /* ── REFERENCES ── */
     .references-list {
       padding-left: 18pt;
       margin: 12pt 0;
-      font-size: 9pt;
-      line-height: 1.45;
+      font-size: 8.5pt;
+      line-height: 1.4;
     }
 
     .references-list li {
-      margin-bottom: 6pt;
+      margin-bottom: 5pt;
       text-align: justify;
     }
 
-    /* Page Breaks for PDF Printing */
     .page-break {
       page-break-before: always;
     }
@@ -378,161 +319,158 @@
       body {
         max-width: 100%;
       }
-      .no-print {
-        display: none;
-      }
     }
   </style>
 </head>
 <body>
 
-  <!-- PAPER HEADER -->
+  <!-- HEADER -->
   <header class="paper-header">
-    <div class="paper-pretitle">Academic Working Paper &bull; Proof-of-Concept Technical Preprint</div>
+    <div class="paper-type">Academic Working Paper &bull; Proof-of-Concept Technical Preprint</div>
     <h1 class="paper-title">Physics-Informed Liquid Neural Networks for Continuous-Time Hydrometeorological Forecasting and Flash Flood Nowcasting in Tropical River Basins</h1>
     
-    <div class="author-block">
-      <div class="author-name">Benedict M. Garcia</div>
-      <div class="author-role">Individual Researcher &bull; Principal Investigator & Lead Model Architect</div>
-      <div class="partner-block">
-        <strong>Data &amp; Telemetry Infrastructure Partner:</strong> Kloudtech Inc. (Automatic Weather Stations &amp; Water Level Sensors)
-      </div>
-    </div>
-
-    <div class="meta-badges">
-      <span class="badge highlight">Peer-Ready Working Paper</span>
-      <span class="badge">Framework: Continuous PINN-LNN</span>
-      <span class="badge">Resolution: Sub-Millisecond (< 80 μs)</span>
-      <span class="badge">Coverage: 23 Central Luzon Stations</span>
-    </div>
+    <div class="author-name">Benedict M. Garcia</div>
+    <div class="author-affiliation">Individual Researcher &bull; Principal Investigator &amp; Lead Model Architect</div>
+    <div class="author-partner">Data &amp; Infrastructure Partner: Kloudtech Inc. (Automatic Weather &amp; Water Level Monitoring Network)</div>
   </header>
 
-  <!-- ABSTRACT CONTAINER -->
-  <div class="abstract-container">
-    <div class="abstract-title">Abstract</div>
-    <p class="abstract-text">
-      Tropical river catchments in island archipelagoes are subject to intense localized convective rain bursts, rapid orographic runoff, and sudden flash flooding. Traditional discrete Numerical Weather Prediction (NWP) models and recurrent deep learning architectures (e.g., LSTMs, GRUs) operate on fixed discrete-time step intervals (e.g., 1-hour or 3-hour slices), introducing discretization error, severe inference latency, and computational bottlenecks when deployed for real-time edge nowcasting.
-      In this work, we propose the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong> framework—a continuous-time Neural Ordinary Differential Equation (Neural ODE) architecture explicitly coupled with atmospheric thermodynamics and catchment hydrodynamic continuity. The model embeds the <strong>Magnus-Tetens saturation vapor pressure relation</strong>, <strong>Lifted Condensation Level (LCL) convective depth thresholds</strong>, <strong>diurnal solar radiation harmonics</strong>, and <strong>stage-discharge decay dynamics</strong> directly into the liquid time-constant ODE formulation.
-      The system ingests real-time sub-second telemetry across <strong>23 physical weather and water level monitoring stations in Central Luzon and the Bataan Peninsula</strong> via an AWS IoT Core mutual-TLS (mTLS) MQTT pipeline, fused with Japan Meteorological Agency (JMA) Himawari-9 infrared brightness indices and RainViewer Doppler radar column reflectivity.
-      In multi-agent tournament evaluations comprising 1,680 continuous micro-step inferences against official World Meteorological Organization (WMO) and PAGASA ground-truth observations, the evolved champion architecture achieved a <strong>0.3 °C Temperature MAE</strong>, <strong>1.56 °C Heat Index MAE</strong>, <strong>18.2 cm River Stage Crest Accuracy</strong>, and an ultra-low inference latency of <strong>53.99 microseconds (&mu;s) per step</strong>.
-      Furthermore, we establish an ephemeral data rights and commercialization architecture wherein upstream raw telemetry functions strictly as transient boundary conditions and training constraints. All end-user interfaces and downstream application programming interfaces (APIs) receive exclusively original, derived continuous latent trajectories, guaranteeing full commercial deployment freedom and intellectual property ownership.
+  <!-- ABSTRACT -->
+  <div class="abstract-wrapper">
+    <p class="abstract-text no-indent">
+      <strong class="first-word">Abstract</strong>—Tropical river catchments in island archipelagoes are subject to intense localized convective rain bursts, rapid orographic runoff, and sudden flash flooding. Traditional discrete Numerical Weather Prediction (NWP) models and recurrent deep learning architectures (e.g., LSTMs, GRUs) operate on fixed discrete-time step intervals (e.g., 1-hour or 3-hour slices), introducing discretization error, severe inference latency, and computational bottlenecks when deployed for real-time edge nowcasting. In this work, we propose the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong> framework—a continuous-time Neural Ordinary Differential Equation (Neural ODE) architecture explicitly coupled with atmospheric thermodynamics and catchment hydrodynamic continuity. The model embeds the <strong>Magnus-Tetens saturation vapor pressure relation</strong>, <strong>Lifted Condensation Level (LCL) convective depth thresholds</strong>, <strong>diurnal solar radiation harmonics</strong>, and <strong>stage-discharge decay dynamics</strong> directly into the liquid time-constant ODE formulation. The system ingests real-time sub-second telemetry across <strong>23 physical weather and water level monitoring stations in Central Luzon and the Bataan Peninsula</strong> via an AWS IoT Core mutual-TLS (mTLS) MQTT pipeline, fused with Japan Meteorological Agency (JMA) Himawari-9 infrared brightness indices and RainViewer Doppler radar column reflectivity. In multi-agent tournament evaluations comprising 1,680 continuous micro-step inferences against official World Meteorological Organization (WMO) and PAGASA ground-truth observations, the evolved champion architecture achieved a <strong>0.3 °C Temperature MAE</strong>, <strong>1.56 °C Heat Index MAE</strong>, <strong>18.2 cm River Stage Crest Accuracy</strong>, and an ultra-low inference latency of <strong>53.99 microseconds (&mu;s) per step</strong>. Furthermore, we establish an ephemeral data rights and commercialization architecture wherein upstream raw telemetry functions strictly as transient boundary conditions and training constraints. All end-user interfaces and downstream application programming interfaces (APIs) receive exclusively original, derived continuous latent trajectories, guaranteeing full commercial deployment freedom and intellectual property ownership.
     </p>
     <div class="keywords-line">
-      <strong>Keywords:</strong> Physics-Informed Neural Networks (PINN), Liquid Time-Constant Networks (LTC), Closed-Form Continuous-Time Networks (CfC), Neural ODEs, Hydrometeorological Nowcasting, Tropical Flash Flooding, Magnus-Tetens Relation, Commercial Data Rights.
+      <strong>Keywords</strong>—Physics-Informed Neural Networks (PINN), Liquid Time-Constant Networks (LTC), Closed-Form Continuous-Time Networks (CfC), Neural ODEs, Hydrometeorological Nowcasting, Tropical Flash Flooding, Magnus-Tetens Relation, Commercial Data Rights.
     </div>
   </div>
 
-  <!-- SECTION 1: INTRODUCTION -->
-  <h2>1. Introduction &amp; Problem Formulation</h2>
+  <!-- SECTION 1 -->
+  <h2>I. Introduction &amp; Problem Formulation</h2>
   <p>
-    Tropical river basins in the Philippines—most notably the Pampanga River Basin and the coastal watersheds of Central Luzon—are among the most hydrologically dynamic and flood-vulnerable ecosystems in Southeast Asia. Characterized by steep volcanic topography, intense monsoonal surges (<em>Habagat</em>), and rapid convective storm cell development, localized rainfall can exceed 50 mm/hr within a 30-minute window, causing watercourses to breach safety thresholds before regional synoptic advisories are issued.
+    Tropical river basins in the Philippines—most notably the Pampanga River Basin and the coastal watersheds of Central Luzon—are among the most hydrologically dynamic and flood-vulnerable ecosystems in Southeast Asia. Characterized by steep volcanic topography, intense monsoonal surges (<em>Habagat</em>), and rapid convective storm cell development, localized rainfall can exceed 50 mm/hr within a 30-minute window, causing watercourses to breach critical safety thresholds before regional synoptic advisories are issued.
   </p>
-  
-  <h3>1.1 Limitations of Conventional Forecasting Paradigms</h3>
+
+  <h3>A. Limitations of Conventional Forecasting Paradigms</h3>
   <p>
     Operational weather and flood forecasting systems have historically relied on two paradigms:
   </p>
   <ul>
-    <li><strong>Numerical Weather Prediction (NWP) Models</strong> (e.g., WRF, ECMWF-IFS, GFS): While physically grounded in Navier-Stokes fluid dynamics and radiative transfer equations, NWP models require immense supercomputing clusters, ingest data on multi-hour assimilation cycles, and output gridded projections at 3-hour to 6-hour temporal resolutions. They cannot resolve sub-kilometer microclimates or provide sub-second nowcasting updates to edge devices.</li>
+    <li><strong>Numerical Weather Prediction (NWP) Models</strong> (e.g., WRF, ECMWF-IFS, GFS): While physically grounded in Navier-Stokes fluid dynamics and radiative transfer equations, NWP models require supercomputing clusters, ingest data on multi-hour assimilation cycles, and output gridded projections at 3-hour to 6-hour temporal resolutions. They cannot resolve sub-kilometer microclimates or provide sub-second nowcasting updates to edge devices.</li>
     <li><strong>Discrete Recurrent Neural Networks</strong> (e.g., LSTM, GRU, Temporal Transformers): While computationally faster than NWP models, standard deep learning models treat time as a discrete index sequence ($t \in \{1, 2, 3, \dots, N\}$). When sensor packets arrive irregularly or when forecasting across non-uniform lead times (e.g., $+17\text{ mins}$, $+45\text{ mins}$, $+3\text{h}$), discrete models suffer from step-drift, vanishing gradients, and an inability to enforce physical conservation laws.</li>
   </ul>
 
   <!-- FIGURE 1 -->
-  <div class="figure-container">
-    <!-- Embedded Fig 1 SVG -->
-    <img src="figures/fig1_system_architecture.svg" alt="System Architecture & Ingestion Pipeline">
+  <div class="figure-wrapper">
+    <img src="figures/fig1_system_architecture.svg" alt="System Architecture">
     <div class="figure-caption">
-      <strong>Figure 1:</strong> End-to-end PINN-LNN operational pipeline. Raw telemetry is ingested ephemerally into volatile memory as boundary conditions; the Garcia PINN-LNN continuous engine computes latent ODE states; only original derived predictive intelligence is exposed to the citizen dashboard.
+      <strong>Fig. 1.</strong> End-to-end data flow and continuous-time inference pipeline. Boundary telemetry is ingested ephemerally into volatile memory as initial conditions; the Garcia PINN-LNN continuous engine computes latent ODE trajectories; only original computed derivatives are exposed to user interfaces.
     </div>
   </div>
 
-  <!-- SECTION 2: RELATED WORK -->
-  <h2>2. Related Work &amp; Theoretical Foundations</h2>
+  <!-- SECTION 2 -->
+  <h2>II. Related Work &amp; Theoretical Foundations</h2>
   <p>
-    Neural Ordinary Differential Equations (Chen et al., 2018) established that continuous-depth neural networks parameterize hidden state derivatives $\frac{d\mathbf{h}(t)}{dt} = f(\mathbf{h}(t), \mathbf{x}(t), t, \theta)$. However, numerical ODE solvers (e.g., Runge-Kutta) incur computational overhead during backpropagation.
-    Liquid Time-Constant Networks (Hasani et al., 2021) and their Closed-Form Continuous-Time (CfC) variants (Hasani et al., 2022) solved this bottleneck by introducing input-dependent, non-linear decaying time constants $\boldsymbol{\tau}(\mathbf{x})$, enabling exact analytical state computation across arbitrary time intervals without numerical discretization.
-    Concurrently, Physics-Informed Neural Networks (Raissi et al., 2019) demonstrated that embedding conservation laws $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda_{\text{phys}}\mathcal{L}_{\text{physics}}$ constrains machine learning models to physically admissible solution manifolds.
+    Neural Ordinary Differential Equations (Chen et al., 2018) established that continuous-depth neural networks parameterize hidden state derivatives $\frac{d\mathbf{h}(t)}{dt} = f(\mathbf{h}(t), \mathbf{x}(t), t, \theta)$. However, numerical ODE solvers incur computational overhead during backpropagation.
+  </p>
+  <p>
+    Liquid Time-Constant Networks (Hasani et al., 2021) and their Closed-Form Continuous-Time (CfC) variants (Hasani et al., 2022) resolved this bottleneck by introducing input-dependent, non-linear decaying time constants $\boldsymbol{\tau}(\mathbf{x})$, enabling exact analytical state computation across arbitrary time intervals without numerical discretization.
+  </p>
+  <p>
+    Physics-Informed Neural Networks (Raissi et al., 2019) demonstrated that embedding conservation laws $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda_{\text{phys}}\mathcal{L}_{\text{physics}}$ constrains machine learning models to physically admissible solution manifolds.
   </p>
 
-  <!-- SECTION 3: MODEL ARCHITECTURE -->
+  <!-- SECTION 3 -->
   <div class="page-break"></div>
-  <h2>3. The Garcia PINN-LNN Model Architecture</h2>
-  <p>
+  <h2>III. Model Architecture &amp; Mathematical Formulation</h2>
+  <p class="no-indent">
     The Garcia PINN-LNN framework maps a 4-dimensional normalized atmospheric input vector $\mathbf{x}(t) = [\tilde{T}(t), \widetilde{\text{HI}}(t), \tilde{W}(t), \tilde{P}(t)]^T \in \mathbb{R}^4$ to continuous latent trajectories $\mathbf{h}(t + \Delta t) \in \mathbb{R}^{16}$.
   </p>
 
-  <!-- FORMULA 1: ODE UPDATE -->
-  <div class="math-block">
-    <div class="math-formula">
+  <!-- EQUATION 1 -->
+  <div class="equation-row">
+    <div class="equation-math">
       $$\mathbf{h}(t + \Delta t) = \exp\left(-\frac{\Delta t}{\boldsymbol{\tau}_{\text{station}}}\right) \odot \mathbf{h}(t) + \left[1 - \exp\left(-\frac{\Delta t}{\boldsymbol{\tau}_{\text{station}}}\right)\right] \odot \tanh\left(\mathbf{W}_{\text{in}} \mathbf{x}(t) + \mathbf{W}_{\text{rec}} \mathbf{h}(t) + \mathbf{b}_h\right)$$
     </div>
-    <div class="formula-desc">Equation 1: Closed-Form Continuous-Time Liquid Neural ODE State Evolution</div>
+    <div class="equation-num">(1)</div>
   </div>
 
   <!-- FIGURE 2 -->
-  <div class="figure-container">
-    <img src="figures/fig2_pinn_lnn_cell.svg" alt="PINN-LNN Neural Cell">
+  <div class="figure-wrapper">
+    <img src="figures/fig2_pinn_lnn_cell.svg" alt="PINN-LNN Cell Architecture">
     <div class="figure-caption">
-      <strong>Figure 2:</strong> Internal architecture of the Garcia PINN-LNN Cell. Combines closed-form liquid exponential decay, Magnus-Tetens saturation bounds, Lifted Condensation Level (LCL) convective depth activation, and catchment hydrodynamic continuity.
+      <strong>Fig. 2.</strong> Internal mathematical architecture of the Garcia PINN-LNN Cell. Combines closed-form liquid exponential decay, Magnus-Tetens saturation bounds, Lifted Condensation Level (LCL) convective depth activation, and catchment hydrodynamic continuity.
     </div>
   </div>
 
-  <h3>3.1 Atmospheric Thermodynamics &amp; Magnus-Tetens Relation</h3>
+  <h3>A. Atmospheric Thermodynamics &amp; Magnus-Tetens Saturation</h3>
   <p>
     To preserve physical moisture conservation, saturation vapor pressure $e_s(T)$ and dew point $T_d$ are derived via the Magnus-Tetens formulations:
   </p>
 
-  <div class="math-block">
-    <div class="math-formula">
+  <div class="equation-row">
+    <div class="equation-math">
       $$e_s(T) = 6.1121 \cdot \exp\left(\frac{17.67 \cdot T}{T + 243.5}\right)\text{ [hPa]}, \quad e = e_s(T) \cdot \left(\frac{\text{RH}}{100}\right)$$
+    </div>
+    <div class="equation-num">(2)</div>
+  </div>
+
+  <div class="equation-row">
+    <div class="equation-math">
       $$T_d = \frac{243.5 \cdot \ln(e / 6.1121)}{17.67 - \ln(e / 6.1121)}\text{ [}^\circ\text{C]}, \quad z_{\text{LCL}} \approx 125 \cdot (T - T_d)\text{ [m]}$$
     </div>
-    <div class="formula-desc">Equations 2-4: Magnus-Tetens Saturation Vapor Pressure &amp; Lifted Condensation Level (LCL) Depth</div>
+    <div class="equation-num">(3)</div>
   </div>
 
   <p>
     When the Lifted Condensation Level drops below $450\text{ meters}$, boundary layer moisture reaches saturation upon minimal thermal updraft, activating non-linear convective burst probabilities.
   </p>
 
-  <h3>3.2 Diurnal Solar Harmonic Cycle &amp; Hydrological Continuity</h3>
+  <h3>B. Diurnal Solar Harmonic Cycle &amp; Hydrodynamic Continuity</h3>
   <p>
     Thermal states dynamically evolve according to solar diurnal harmonics:
   </p>
-  <div class="math-block">
-    <div class="math-formula">
+
+  <div class="equation-row">
+    <div class="equation-math">
       $$\Phi(t) = 2\pi \cdot \left(\frac{t_{\text{hour}} - 14.0}{24.0}\right), \quad \Delta T_{\text{diurnal}} = \left[\cos\Phi(t_1) - \cos\Phi(t_0)\right] \cdot A_{\text{microclimate}}$$
-      $$\frac{d(WL)}{dt} = Q_{\text{in}}(t) - Q_{\text{out}}(t) + \Delta WL_{\text{PINN-LNN}} - \left(\frac{0.15}{\max(1.0, \tau_{\text{hydro}})}\right) \cdot \left(WL(t) - WL_{\text{base}}\right)$$
     </div>
-    <div class="formula-desc">Equations 5-6: Solar Diurnal Radiation Harmonic &amp; Hydrodynamic Mass Continuity</div>
+    <div class="equation-num">(4)</div>
   </div>
 
-  <!-- SECTION 4: INGESTION -->
-  <h2>4. Multi-Modal Ingestion &amp; Ephemeral Pipeline</h2>
+  <div class="equation-row">
+    <div class="equation-math">
+      $$\frac{d(WL)}{dt} = Q_{\text{in}}(t) - Q_{\text{out}}(t) + \Delta WL_{\text{PINN-LNN}} - \left(\frac{0.15}{\max(1.0, \tau_{\text{hydro}})}\right) \cdot \left(WL(t) - WL_{\text{base}}\right)$$
+    </div>
+    <div class="equation-num">(5)</div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <h2>IV. Multi-Modal Ingestion &amp; Ephemeral Pipeline</h2>
   <p>
     The system interfaces with an AWS IoT Core mutual-TLS subscriber daemon listening to telemetry streams from 23 field stations. Multi-modal rain probability is computed through tri-factor fusion:
   </p>
-  <div class="math-block">
-    <div class="math-formula">
+
+  <div class="equation-row">
+    <div class="equation-math">
       $$P(\text{Rain}) = \text{clip}\left(0.35 \cdot P_{\text{LNN}} + 0.45 \cdot \left(\frac{P_{\text{Synoptic}}}{100}\right) + 0.20 \cdot \left(\frac{\text{Radar}_{\text{dBZ}}}{60.0}\right), 0.05, 0.98\right)$$
     </div>
-    <div class="formula-desc">Equation 7: Multi-Modal Tri-Factor Precipitation Fusion</div>
+    <div class="equation-num">(6)</div>
   </div>
 
-  <!-- SECTION 5: DATA RIGHTS -->
-  <h2>5. Data Rights, Intellectual Property &amp; Commercial Privacy Architecture</h2>
-  <div class="highlight-box">
-    <strong>Commercial Rights &amp; Ephemeral Ingestion Guarantee:</strong><br>
-    Upstream raw telemetry feeds (Kloudtech IoT stations, JMA Himawari-9 satellite, RainViewer Doppler radar) are ingested exclusively into transient volatile memory buffers as initial boundary conditions ($\mathbf{x}_0, t_0$). Zero raw third-party telemetry is stored, redistributed, or republished. The output values rendered across the client dashboard and edge APIs represent 100% newly computed continuous-time ODE trajectories derived by the Garcia PINN-LNN model, providing full commercial independence and royalty-free deployment rights.
-  </div>
+  <!-- SECTION 5 -->
+  <h2>V. Data Rights, Intellectual Property &amp; Commercial Independence</h2>
+  <p>
+    A critical architectural foundation of this system is full commercial independence and data rights integrity. Upstream raw telemetry feeds (Kloudtech IoT stations, JMA Himawari-9 satellite, RainViewer Doppler radar) are ingested exclusively into transient volatile memory buffers as initial boundary conditions ($\mathbf{x}_0, t_0$). Zero raw third-party telemetry is stored, redistributed, or republished. The output values rendered across the client dashboard and edge APIs represent 100% newly computed continuous-time ODE trajectories derived by the Garcia PINN-LNN model, providing complete commercial independence and royalty-free deployment rights.
+  </p>
 
-  <!-- SECTION 6: TOURNAMENT -->
+  <!-- SECTION 6 -->
   <div class="page-break"></div>
-  <h2>6. Experimental Validation &amp; Tournament Results</h2>
+  <h2>VI. Experimental Results &amp; Tournament Benchmarks</h2>
   <p>
     A 5-agent competitive tournament was executed across 60-minute continuous forecasting horizons in the Pampanga River Basin:
   </p>
 
-  <div class="table-caption">Table 1: PINN-LNN Multi-Agent Tournament Benchmark Scorecard</div>
+  <div class="table-caption">TABLE I: PINN-LNN Multi-Agent Tournament Benchmark Scorecard</div>
   <table>
     <thead>
       <tr>
@@ -543,29 +481,29 @@
         <th>River Stage Error</th>
         <th>Inference Latency</th>
         <th>Score</th>
-        <th>Result</th>
+        <th>Outcome</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td class="bold">🥇 1</td>
+        <td class="bold">1</td>
         <td class="bold">PINN-LNN-EnergyConserving</td>
         <td class="bold">0.3 °C</td>
         <td>1.56 °C</td>
         <td class="bold">17.1 cm</td>
         <td>74.94 μs</td>
-        <td class="bold">63.0 pts</td>
-        <td class="success">CHAMPION ✅</td>
+        <td class="bold">63.00 pts</td>
+        <td>Champion (Best)</td>
       </tr>
       <tr>
-        <td>🥈 2</td>
+        <td>2</td>
         <td>PINN-LNN-AdaptiveBayesian</td>
         <td>0.3 °C</td>
         <td>1.56 °C</td>
         <td>18.6 cm</td>
         <td>66.77 μs</td>
         <td>62.94 pts</td>
-        <td class="success">Runner-Up ✅</td>
+        <td>Runner-Up</td>
       </tr>
       <tr>
         <td>3</td>
@@ -575,7 +513,7 @@
         <td>17.5 cm</td>
         <td>94.39 μs</td>
         <td>61.18 pts</td>
-        <td class="success">Passed WMO ✅</td>
+        <td>Passed Baseline</td>
       </tr>
       <tr>
         <td>4</td>
@@ -585,7 +523,7 @@
         <td>21.2 cm</td>
         <td>79.38 μs</td>
         <td>60.58 pts</td>
-        <td class="success">Passed WMO ✅</td>
+        <td>Passed Baseline</td>
       </tr>
       <tr>
         <td>5</td>
@@ -595,26 +533,26 @@
         <td>27.1 cm</td>
         <td>51.67 μs</td>
         <td>59.94 pts</td>
-        <td class="success">Passed WMO ✅</td>
+        <td>Passed Baseline</td>
       </tr>
     </tbody>
   </table>
 
   <!-- FIGURE 3 -->
-  <div class="figure-container">
-    <img src="figures/fig3_tournament_benchmark.svg" alt="Tournament Comparison Chart">
+  <div class="figure-wrapper">
+    <img src="figures/fig3_tournament_benchmark.svg" alt="Tournament Chart">
     <div class="figure-caption">
-      <strong>Figure 3:</strong> Multi-Agent Tournament Benchmark. Generation-2 evolutionary adaptation achieved a 64.2 composite score with an ultra-fast 53.99 &mu;s per-step inference latency.
+      <strong>Fig. 3.</strong> Multi-Agent Tournament Benchmark. Generation-2 evolutionary adaptation achieved a 64.20 composite score with an ultra-fast 53.99 &mu;s per-step inference latency.
     </div>
   </div>
 
-  <!-- SECTION 7: 23-STATION SCORECARD -->
-  <h2>7. Complete 23-Station Hydrometeorological Scorecard</h2>
+  <!-- SECTION 7 -->
+  <h2>VII. Complete 23-Station Calibration Scorecard</h2>
   <p>
-    Table 2 details the unmanipulated calibration performance across all 23 physical stations in Central Luzon:
+    Table II summarizes the unmanipulated calibration performance across all 23 physical stations in Central Luzon:
   </p>
 
-  <div class="table-caption">Table 2: Complete 23-Station Calibration Scorecard across Central Luzon &amp; Bataan</div>
+  <div class="table-caption">TABLE II: Complete 23-Station Scorecard across Central Luzon &amp; Bataan</div>
   <table>
     <thead>
       <tr>
@@ -655,15 +593,15 @@
     </tbody>
   </table>
 
-  <!-- SECTION 8: CONCLUSION & REFERENCES -->
+  <!-- SECTION 8 -->
   <div class="page-break"></div>
-  <h2>8. Conclusion &amp; Acknowledgments</h2>
+  <h2>VIII. Conclusion &amp; Acknowledgments</h2>
   <p>
     This research formulated, calibrated, and deployed the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong>. Enforcing Magnus-Tetens moisture dynamics and hydrodynamic continuity in continuous time eliminated step discretization drift while achieving <strong>53.99 &mu;s step latency</strong> and <strong>18.2 cm river stage accuracy</strong>.
   </p>
 
-  <p><strong>Principal Author &amp; Model Architect:</strong> Benedict M. Garcia (Individual Researcher).</p>
-  <p><strong>Infrastructure Credits:</strong> Kloudtech Inc. (AWS IoT Core telemetry data and physical station network), Japan Meteorological Agency (Himawari-9 satellite), and RainViewer (Doppler radar).</p>
+  <p class="no-indent"><strong>Principal Author &amp; Model Architect:</strong> Benedict M. Garcia (Individual Researcher).</p>
+  <p class="no-indent"><strong>Infrastructure Credits:</strong> Kloudtech Inc. (AWS IoT Core telemetry data and physical station network), Japan Meteorological Agency (Himawari-9 satellite), and RainViewer (Doppler radar).</p>
 
   <h2>References</h2>
   <ol class="references-list">
