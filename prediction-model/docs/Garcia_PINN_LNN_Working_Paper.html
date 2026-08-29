@@ -249,9 +249,9 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 2.5pt 0;
-      font-size: 6.5pt;
-      line-height: 1.1;
+      margin: 2pt 0;
+      font-size: 6.2pt;
+      line-height: 1.08;
       page-break-inside: auto;
       break-inside: auto;
     }
@@ -273,7 +273,7 @@
     table thead th {
       font-weight: 700;
       color: #000000;
-      padding: 1.5pt 1pt;
+      padding: 1.2pt 0.8pt;
       text-align: left;
     }
 
@@ -286,7 +286,7 @@
     }
 
     table tbody td {
-      padding: 1pt 1pt;
+      padding: 0.7pt 0.8pt;
       color: #000000;
     }
 
@@ -295,10 +295,10 @@
     }
 
     .table-caption {
-      font-size: 7.2pt;
+      font-size: 7pt;
       font-weight: 700;
       color: #000000;
-      margin-bottom: 1.5pt;
+      margin-bottom: 1pt;
       text-align: center;
       letter-spacing: 0.2px;
       page-break-after: avoid;
@@ -697,6 +697,116 @@
       </table>
     </div>
 
+    <!-- TABLE IV: CROSS-PARADIGM COMPARISON (Spanned) -->
+    <div class="span-all">
+      <div class="table-caption">TABLE IV: Cross-Paradigm Architectural Comparison: Garcia PINN-LNN vs. Global AI &amp; Physical Forecasting Frameworks</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Model / System</th>
+            <th>Origin &amp; Organization</th>
+            <th>Mathematical Paradigm</th>
+            <th>Spatial Scale</th>
+            <th>Temporal Step</th>
+            <th>Inference Latency</th>
+            <th>Compute Hardware</th>
+            <th>0–3h Nowcast</th>
+            <th>Physical Coupling</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="font-weight:bold; background-color:#f0f7ff;">
+            <td>Garcia PINN-LNN (Gen-2)</td>
+            <td>B. M. Garcia / Kloudtech</td>
+            <td>Continuous Neural ODE + CfC</td>
+            <td>Point Sensor (&lt;10m)</td>
+            <td>Continuous $\Delta t \in (0, \infty)$</td>
+            <td>53.99 μs / step</td>
+            <td>Single Edge CPU (&lt;5W)</td>
+            <td>Real-Time (&lt;1ms)</td>
+            <td>Magnus-Tetens, CAMI, M2/K1 Tide</td>
+          </tr>
+          <tr>
+            <td>Google GraphCast</td>
+            <td>Google DeepMind (Science 2023)</td>
+            <td>Autoregressive Graph Neural Net</td>
+            <td>0.25° Global (~28km)</td>
+            <td>6-Hour Discrete Slices</td>
+            <td>~60.0 seconds</td>
+            <td>32x Cloud TPU v4 (&gt;8kW)</td>
+            <td>Poor (&gt;6h Blindspot)</td>
+            <td>Statistical Mass Conservation</td>
+          </tr>
+          <tr>
+            <td>Huawei Pangu-Weather</td>
+            <td>Huawei Cloud (Nature 2023)</td>
+            <td>3D Earth Specific Vision Transf.</td>
+            <td>0.25° Global (~28km)</td>
+            <td>1h / 3h / 6h Slices</td>
+            <td>~1.4 seconds</td>
+            <td>192x NVIDIA V100 (&gt;50kW)</td>
+            <td>Moderate (Synoptic)</td>
+            <td>Data-Driven (ERA5 Reanalysis)</td>
+          </tr>
+          <tr>
+            <td>Microsoft ClimaX</td>
+            <td>Microsoft Research (ICML 2023)</td>
+            <td>Cross-Scale Foundation Transf.</td>
+            <td>1.40° Global (~150km)</td>
+            <td>6-Hour Discrete Slices</td>
+            <td>~5.2 seconds</td>
+            <td>8x NVIDIA A100 (&gt;3kW)</td>
+            <td>Poor (Climate Scale)</td>
+            <td>Data-Driven Masked Autoencoder</td>
+          </tr>
+          <tr>
+            <td>NCAR WRF / WRF-Hydro</td>
+            <td>NCAR / NOAA / PAGASA</td>
+            <td>Finite-Diff. Navier-Stokes PDE</td>
+            <td>1.0 – 9.0km Regional</td>
+            <td>CFL Numerical Steps</td>
+            <td>15 – 45 mins / run</td>
+            <td>HPC Cluster (Linux HPC)</td>
+            <td>Lagged (3-6h Assim.)</td>
+            <td>Full Atmospheric Thermodynamics</td>
+          </tr>
+          <tr>
+            <td>ECMWF-IFS (HRES)</td>
+            <td>European Centre Med.-Range</td>
+            <td>Spectral Transform Dynamical</td>
+            <td>9.0km Global Grid</td>
+            <td>3h / 6h Windows</td>
+            <td>45 – 90 mins / run</td>
+            <td>Atos Supercomputer (&gt;2MW)</td>
+            <td>Lagged (Batch Run)</td>
+            <td>4D-Var Data Assimilation PDEs</td>
+          </tr>
+          <tr>
+            <td>USACE HEC-HMS / SWMM</td>
+            <td>US Army Corps of Engineers</td>
+            <td>1D Lumped / Semi-Distributed</td>
+            <td>Sub-Catchment Reach</td>
+            <td>Fixed 1-Hour Steps</td>
+            <td>2.5 – 10.0 seconds</td>
+            <td>Desktop Workstation</td>
+            <td>Manual Input Required</td>
+            <td>SCS Hydrograph &amp; Manning Eq.</td>
+          </tr>
+          <tr>
+            <td>Discrete Recurrent LSTM</td>
+            <td>Standard Deep Learning</td>
+            <td>Recurrent Gated Cell ($O(N)$)</td>
+            <td>Point Sensor Level</td>
+            <td>Fixed Discrete Steps</td>
+            <td>1,450.0 μs / step</td>
+            <td>GPU / High-End CPU</td>
+            <td>Step-Drift Prone</td>
+            <td>None (Black-Box Regression)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- SECTION 7 (Spanned) -->
     <div class="span-all">
       <h2>VII. Sensor Modality Isolation &amp; Complete 23-Station Scorecard</h2>
@@ -809,22 +919,24 @@
       <strong>Solution:</strong> Applied an <strong>Orographic Barrier Penalty ($d_{\text{eff}} = 3.5 \cdot d_{\text{geodetic}}$)</strong> for spatial rays crossing the Mount Natib/Mariveles divide ($120.42^\circ\text{E} - 120.48^\circ\text{E}$), decoupling windward western coasts from leeward eastern plains.
     </p>
 
-    <h3>F. Dynamic Soil Moisture &amp; Continuous Antecedent Moisture (CAMI)</h3>
-    <p>
-      <strong>Vulnerability:</strong> Static linear runoff ($R \cdot 0.04$) fails to capture dry soil absorption (AMC-I) versus saturated monsoon flooding (AMC-III).<br>
-      <strong>Solution:</strong> Embedded a continuous soil moisture storage ODE:
-    </p>
-    <div class="equation-row">
-      <div class="equation-math">
-        $$\frac{d S_{\text{soil}}}{dt} = P_{\text{rain}}(t) - ET(t) - k_{\text{perc}} S_{\text{soil}}(t)$$
+    <div style="page-break-inside: avoid; break-inside: avoid;">
+      <h3>F. Dynamic Soil Moisture &amp; Continuous Antecedent Moisture (CAMI)</h3>
+      <p>
+        <strong>Vulnerability:</strong> Static linear runoff ($R \cdot 0.04$) fails to capture dry soil absorption (AMC-I) versus saturated monsoon flooding (AMC-III).<br>
+        <strong>Solution:</strong> Embedded a continuous soil moisture storage ODE:
+      </p>
+      <div class="equation-row">
+        <div class="equation-math">
+          $$\frac{d S_{\text{soil}}}{dt} = P_{\text{rain}}(t) - ET(t) - k_{\text{perc}} S_{\text{soil}}(t)$$
+        </div>
+        <div class="equation-num">(10a)</div>
       </div>
-      <div class="equation-num">(10a)</div>
-    </div>
-    <div class="equation-row">
-      <div class="equation-math">
-        $$C_{\text{runoff}}(t) = \min\left(0.85, \max\left(0.04, \text{CN} \cdot \left[\frac{S_{\text{soil}}(t)}{S_{\text{cap}}}\right]^{1.6}\right)\right)$$
+      <div class="equation-row">
+        <div class="equation-math">
+          $$C_{\text{runoff}}(t) = \min\left(0.85, \max\left(0.04, \text{CN} \cdot \left[\frac{S_{\text{soil}}(t)}{S_{\text{cap}}}\right]^{1.6}\right)\right)$$
+        </div>
+        <div class="equation-num">(10b)</div>
       </div>
-      <div class="equation-num">(10b)</div>
     </div>
 
     <h3>G. Thermal Inertia Autoregressive Decoupling</h3>
