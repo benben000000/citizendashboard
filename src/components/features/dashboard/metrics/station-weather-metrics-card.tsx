@@ -241,11 +241,17 @@ const StationWeatherMetricsCard = ({
   return (
     <div className="mt-8">
       <div className="flex justify-between items-start mb-3 sm:mb-4">
-      <div className="flex border-l-4 border-l-main pl-2 mb-2 sm:mb-4 gap-2 sm:gap-4 items-end">
+      <div className="flex flex-wrap border-l-4 border-l-main pl-2 mb-2 sm:mb-4 gap-2 sm:gap-4 items-center">
         <h2 className="text-base sm:text-lg md:text-xl font-semibold text-light">
           {t("dashboard.metrics.title")}
         </h2>
         <p className="text-xs sm:text-sm leading-4 text-light pb-1">{recordDate.formatted}</p>
+        {telemetryMetrics?.isSpatialEstimate && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-200 text-xs font-mono backdrop-blur-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            Spatial Estimate ({telemetryMetrics.estimateSource || "Nearby AWS"})
+          </span>
+        )}
       </div>
       <Link
         href="/terminologies"

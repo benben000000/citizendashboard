@@ -25,6 +25,9 @@ export interface TelemetryMetrics {
   uvIndex?: number | null;
   distance?: number | null;
   lightIntensity?: number | null;
+  isSpatialEstimate?: boolean;
+  estimateSource?: string;
+  confidencePct?: number;
 }
 
 export interface TelemetryPublicDTO {
