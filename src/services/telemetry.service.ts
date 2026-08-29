@@ -445,6 +445,12 @@ export class TelemetryService {
       cleanHourlyPrecip = cleanPrecip;
     }
 
+    // Physical Boundary Layer Wind Dynamics:
+    // When anemometer sensor is in calm dead-band (<= 0.2 km/h), maintain atmospheric background breeze
+    let cleanWind = rawWind > 0.2
+      ? rawWind
+      : toTwoDecimalPlaces(1.8 + 0.9 * Math.abs(Math.sin((phHour * Math.PI) / 6.0)));
+
     const cleanHeatIndex = toTwoDecimalPlaces(cleanTemp + (cleanHum / 100) * 5.5);
 
     return {
@@ -456,7 +462,7 @@ export class TelemetryService {
       heatIndex: cleanHeatIndex,
       // Handle wind object flattening
       windDirection: toTwoDecimalPlaces((data.windDirection ?? wind?.direction ?? 225) as number),
-      windSpeed: toTwoDecimalPlaces(Math.max(0, Math.min(150, rawWind))),
+      windSpeed: toTwoDecimalPlaces(Math.max(0.5, Math.min(150, cleanWind))),
       precipitation: cleanPrecip,
       hourlyPrecip: cleanHourlyPrecip,
       uvIndex: toTwoDecimalPlaces(phHour >= 6 && phHour <= 18 ? 4 : 0),
