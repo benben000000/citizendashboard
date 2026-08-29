@@ -35,7 +35,8 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 MQTT_DIR = os.path.join(os.path.dirname(BASE_DIR), "mqtt")
 CHAMPION_WEIGHTS_PATH = os.path.join(DATA_DIR, "pinn_lnn_champion_weights.json")
 LIVE_PREDICTIONS_JSON = os.path.join(DATA_DIR, "mqtt_live_predictions.json")
-LIVE_STREAM_CSV = os.path.join(DATA_DIR, "mqtt_live_stream.csv")
+RAW_STREAM_CSV = os.path.join(DATA_DIR, "raw_mqtt_telemetry.csv")
+DENOISED_STREAM_CSV = os.path.join(DATA_DIR, "denoised_pinn_telemetry.csv")
 STATION_NEEDS_PATH = os.path.join(MQTT_DIR, "mqtt-needs.txt")
 
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -206,24 +207,37 @@ class AWSKloudTrackStreamer:
         self.init_csv()
 
     def init_csv(self):
-        if not os.path.exists(LIVE_STREAM_CSV):
-            with open(LIVE_STREAM_CSV, "w", newline="", encoding="utf-8") as f:
+        if not os.path.exists(RAW_STREAM_CSV):
+            with open(RAW_STREAM_CSV, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow([
                     "Timestamp",
-                    "Topic",
                     "Station ID",
                     "Station Name",
-                    "Raw Water Level (m)",
                     "Raw Temp (°C)",
                     "Raw Humidity (%)",
                     "Raw Pressure (hPa)",
+                    "Raw Wind (km/h)",
+                    "Raw Water Level (m)",
                     "Raw Rain (mm)",
-                    "PINN Pred Temp (°C)",
-                    "PINN Pred HI (°C)",
+                    "QC Flag",
+                ])
+
+        if not os.path.exists(DENOISED_STREAM_CSV):
+            with open(DENOISED_STREAM_CSV, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    "Timestamp",
+                    "Station ID",
+                    "Station Name",
+                    "Denoised Temp (°C)",
+                    "Denoised Humidity (%)",
+                    "Denoised Pressure (hPa)",
+                    "Denoised Wind (km/h)",
+                    "Denoised Water Level (m)",
+                    "Denoised Heat Index (°C)",
                     "PINN Rain Prob (%)",
-                    "PINN Pred Water (m)",
-                    "LCL Cloud Base (m)",
+                    "PINN Rain Volume (mm)",
                     "Inference Latency (μs)",
                 ])
 
@@ -239,12 +253,31 @@ class AWSKloudTrackStreamer:
         station_id = parts[1] if len(parts) > 1 else "KT-UNKNOWN"
         station_name = self.stations.get(station_id, self.stations.get(f"KT-{station_id}", station_id))
 
-        temp_c = float(data.get("temperature", data.get("temp", data.get("temp_c", 28.5))))
-        humidity_pct = float(data.get("humidity", data.get("hum", data.get("rh", 80.0))))
-        pressure_hpa = float(data.get("pressure", data.get("pres", data.get("baro", 1008.0))))
-        wind_kmh = float(data.get("wind_speed", data.get("wind", data.get("wind_kmh", 10.0))))
-        water_level_m = float(data.get("water_level", data.get("water", data.get("level_m", 3.42))))
-        rain_mm = float(data.get("rain", data.get("rainfall", data.get("rain_mm", 0.0))))
+        raw_temp = float(data.get("temperature", data.get("temp", data.get("temp_c", 28.5))))
+        raw_hum = float(data.get("humidity", data.get("hum", data.get("rh", 80.0))))
+        raw_pres = float(data.get("pressure", data.get("pres", data.get("baro", 1008.0))))
+        raw_wind = float(data.get("wind_speed", data.get("wind", data.get("wind_kmh", 10.0))))
+        raw_water = float(data.get("water_level", data.get("water", data.get("level_m", 3.42))))
+        raw_rain = float(data.get("rain", data.get("rainfall", data.get("rain_mm", 0.0))))
+
+        # QC Check
+        qc_flag = "VALID"
+        if raw_temp < 15.0 or raw_temp > 45.0:
+            qc_flag = "TEMP_OUT_OF_BOUNDS"
+            temp_c = 31.5
+        else:
+            temp_c = raw_temp
+
+        if raw_hum < 20.0 or raw_hum > 100.0:
+            qc_flag = "HUM_OUT_OF_BOUNDS"
+            humidity_pct = 75.0
+        else:
+            humidity_pct = raw_hum
+
+        pressure_hpa = max(975.0, min(1025.0, raw_pres))
+        wind_kmh = max(0.0, min(150.0, raw_wind))
+        water_level_m = max(0.1, min(12.0, raw_water))
+        rain_mm = max(0.0, raw_rain)
         heat_idx_c = temp_c + (humidity_pct / 100.0) * 5.5
 
         pinn_out = self.pinn_engine.forward_step(
@@ -258,20 +291,31 @@ class AWSKloudTrackStreamer:
         latency_us = round((time.perf_counter() - t0) * 1_000_000, 2)
         ts_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S PST")
 
-        print(f"📥 [{ts_now}] MQTT Msg on '{topic}' ({station_name}): Temp={temp_c}°C | Water={water_level_m}m | PINN Rain Prob={pinn_out['predicted_rain_prob_pct']}% | Latency={latency_us}μs")
+        print(f"📥 [{ts_now}] MQTT Msg on '{topic}' ({station_name}): Raw Temp={raw_temp}°C -> Denoised={pinn_out['predicted_temperature_c']}°C | QC={qc_flag}")
 
         record = {
             "timestamp": ts_now,
             "station_id": station_id,
             "station_name": station_name,
             "topic": topic,
+            "qc_status": qc_flag,
             "raw_telemetry": {
-                "temperature_c": temp_c,
-                "humidity_pct": humidity_pct,
-                "pressure_hpa": pressure_hpa,
-                "wind_speed_kmh": wind_kmh,
-                "water_level_m": water_level_m,
-                "rain_mm": rain_mm,
+                "temperature_c": raw_temp,
+                "humidity_pct": raw_hum,
+                "pressure_hpa": raw_pres,
+                "wind_speed_kmh": raw_wind,
+                "water_level_m": raw_water,
+                "rain_mm": raw_rain,
+            },
+            "processed_denoised_telemetry": {
+                "temperature_c": pinn_out["predicted_temperature_c"],
+                "humidity_pct": round(humidity_pct, 1),
+                "pressure_hpa": round(pressure_hpa, 2),
+                "wind_speed_kmh": round(wind_kmh, 1),
+                "water_level_m": pinn_out["predicted_water_level_m"],
+                "heat_index_c": pinn_out["predicted_heat_index_c"],
+                "rain_prob_pct": pinn_out["predicted_rain_prob_pct"],
+                "rain_volume_mm": pinn_out["predicted_rain_volume_mm"],
             },
             "pinn_predictions": pinn_out,
             "inference_latency_us": latency_us,
@@ -289,63 +333,57 @@ class AWSKloudTrackStreamer:
             pass
 
         with self.csv_lock:
-            with open(LIVE_STREAM_CSV, "a", newline="", encoding="utf-8") as f:
+            with open(RAW_STREAM_CSV, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([ts_now, station_id, station_name, raw_temp, raw_hum, raw_pres, raw_wind, raw_water, raw_rain, qc_flag])
+
+            with open(DENOISED_STREAM_CSV, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow([
                     ts_now,
-                    topic,
                     station_id,
                     station_name,
-                    water_level_m,
-                    temp_c,
-                    humidity_pct,
-                    pressure_hpa,
-                    rain_mm,
                     pinn_out["predicted_temperature_c"],
+                    round(humidity_pct, 1),
+                    round(pressure_hpa, 2),
+                    round(wind_kmh, 1),
+                    pinn_out["predicted_water_level_m"],
                     pinn_out["predicted_heat_index_c"],
                     pinn_out["predicted_rain_prob_pct"],
-                    pinn_out["predicted_water_level_m"],
-                    pinn_out["lifted_condensation_level_m"],
+                    pinn_out["predicted_rain_volume_mm"],
                     latency_us,
                 ])
 
-    def connect_and_listen(self):
-        print("=" * 105)
-        print("🚀 KLOUDTRACK PASSIVE READ-ONLY MQTT STREAM INGESTION & PINN-LNN ENGINE")
-        print(f"🌐 AWS IoT Core Endpoint: {self.endpoint}:{self.port}")
-        print(f"🔒 mTLS Auth: AmazonRootCA1.pem + X.509 Client Cert + Private Key")
-        print(f"📡 Subscribing to: kloudtrack/+/data & kloudtrack/# (23 Stations)")
-        print(f"💾 Live JSON Stream -> {LIVE_PREDICTIONS_JSON}")
-        print(f"💾 Live CSV Stream -> {LIVE_STREAM_CSV}")
     def seed_initial_telemetry(self):
-        """Generates physics-aligned 15-minute telemetry packets for all 23 stations."""
+        """Generates physics-aligned 15-minute telemetry packets for all 23 stations with segregated raw vs denoised states."""
         now = datetime.now()
         ts_str = now.strftime("%Y-%m-%d %H:%M:%S PST")
         ph_hour = (now.hour + 8) % 24 + now.minute / 60.0
 
         for sid, name in self.stations.items():
-            if sid.startswith("KT-") or len(sid) > 8:
-                # Use standard station IDs
-                clean_id = sid
-            else:
-                clean_id = sid
+            clean_id = sid
 
-            # Diurnal calculation
+            # Physical Diurnal Calculation
             solar_phase = math.cos((2 * math.pi * (ph_hour - 13.5)) / 24)
-            temp = round(28.5 + 3.8 * solar_phase, 2)
-            hum = round(max(50.0, min(95.0, 78.0 - 16.0 * solar_phase)), 1)
-            pres = round(1010.5 + 1.2 * math.cos((4 * math.pi * (ph_hour - 9)) / 24), 2)
-            wind = round(8.0 + 4.0 * math.sin((2 * math.pi * (ph_hour - 14)) / 24), 1)
-            rain = 0.0
+            true_temp = round(29.0 + 3.5 * solar_phase, 2)
+            true_hum = round(max(52.0, min(92.0, 76.0 - 15.0 * solar_phase)), 1)
+            true_pres = round(1010.5 + 1.2 * math.cos((4 * math.pi * (ph_hour - 9)) / 24), 2)
+            true_wind = round(8.5 + 3.5 * math.sin((2 * math.pi * (ph_hour - 14)) / 24), 1)
+            true_rain = 0.0
             water_m = 4.31 if "Calumpit" in name else 1.90 if "Cabcaben" in name else 2.85
 
-            heat_idx = round(temp + (hum / 100.0) * 5.5, 2)
+            # Simulate raw sensor ADC micro-jitter / raw reading
+            raw_temp = round(true_temp + ((hash(sid) % 7) - 3) * 0.1, 2)
+            raw_hum = round(true_hum + ((hash(sid) % 5) - 2) * 0.5, 1)
+            raw_pres = round(true_pres + ((hash(sid) % 3) - 1) * 0.2, 2)
+
+            heat_idx = round(true_temp + (true_hum / 100.0) * 5.5, 2)
             pinn_out = self.pinn_engine.forward_step(
                 station_id=clean_id,
-                temp_c=temp,
+                temp_c=true_temp,
                 heat_idx_c=heat_idx,
-                wind_kmh=wind,
-                pres_hpa=pres,
+                wind_kmh=true_wind,
+                pres_hpa=true_pres,
                 dt=1.0 / 3600.0,
             )
 
@@ -354,13 +392,24 @@ class AWSKloudTrackStreamer:
                 "station_id": clean_id,
                 "station_name": name,
                 "topic": f"kloudtrack/{clean_id}/data",
+                "qc_status": "VALID",
                 "raw_telemetry": {
-                    "temperature_c": temp,
-                    "humidity_pct": hum,
-                    "pressure_hpa": pres,
-                    "wind_speed_kmh": wind,
+                    "temperature_c": raw_temp,
+                    "humidity_pct": raw_hum,
+                    "pressure_hpa": raw_pres,
+                    "wind_speed_kmh": true_wind,
                     "water_level_m": water_m,
-                    "rain_mm": rain,
+                    "rain_mm": true_rain,
+                },
+                "processed_denoised_telemetry": {
+                    "temperature_c": pinn_out["predicted_temperature_c"],
+                    "humidity_pct": true_hum,
+                    "pressure_hpa": true_pres,
+                    "wind_speed_kmh": true_wind,
+                    "water_level_m": pinn_out["predicted_water_level_m"],
+                    "heat_index_c": pinn_out["predicted_heat_index_c"],
+                    "rain_prob_pct": pinn_out["predicted_rain_prob_pct"],
+                    "rain_volume_mm": pinn_out["predicted_rain_volume_mm"],
                 },
                 "pinn_predictions": pinn_out,
                 "inference_latency_us": 24.5,
@@ -376,6 +425,19 @@ class AWSKloudTrackStreamer:
         except Exception:
             pass
 
+        with self.csv_lock:
+            with open(RAW_STREAM_CSV, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                for sid, rec in self.live_cache.items():
+                    r = rec["raw_telemetry"]
+                    writer.writerow([ts_str, sid, rec["station_name"], r["temperature_c"], r["humidity_pct"], r["pressure_hpa"], r["wind_speed_kmh"], r["water_level_m"], r["rain_mm"], "VALID"])
+
+            with open(DENOISED_STREAM_CSV, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                for sid, rec in self.live_cache.items():
+                    d = rec["processed_denoised_telemetry"]
+                    writer.writerow([ts_str, sid, rec["station_name"], d["temperature_c"], d["humidity_pct"], d["pressure_hpa"], d["wind_speed_kmh"], d["water_level_m"], d["heat_index_c"], d["rain_prob_pct"], d["rain_volume_mm"], 24.5])
+
     def run_stream_broadcaster(self):
         """Continuously broadcasts 15-minute telemetry cycles."""
         while self.running:
@@ -389,7 +451,8 @@ class AWSKloudTrackStreamer:
         print(f"🔒 mTLS Auth: AmazonRootCA1.pem + X.509 Client Cert + Private Key")
         print(f"📡 Subscribing to: kloudtrack/+/data & kloudtrack/# (23 Stations)")
         print(f"💾 Live JSON Stream -> {LIVE_PREDICTIONS_JSON}")
-        print(f"💾 Live CSV Stream -> {LIVE_STREAM_CSV}")
+        print(f"💾 Raw CSV Stream -> {RAW_STREAM_CSV}")
+        print(f"💾 Denoised CSV Stream -> {DENOISED_STREAM_CSV}")
         print("=" * 105)
 
         # Start 15-minute telemetry broadcaster thread
