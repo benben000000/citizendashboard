@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -24,11 +25,18 @@ export default function CustomFooter() {
           </div>
 
           <div className="flex items-center gap-4">
+            <Link
+              href="/portal"
+              className="text-primary/90 hover:text-primary hover:underline font-medium transition-colors cursor-pointer"
+            >
+              Data Vault Export
+            </Link>
+            <span className="text-border">•</span>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <button
                   type="button"
-                  className="text-primary hover:underline font-medium transition-colors cursor-pointer"
+                  className="text-primary/90 hover:text-primary hover:underline font-medium transition-colors cursor-pointer"
                 >
                   Data Sources & Attributions
                 </button>

@@ -38,7 +38,8 @@
     "shadcn": "^3.6.2",
     "tailwind-merge": "^2.5.2",
     "tailwindcss": "^4.1.18",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^20",
