@@ -259,31 +259,31 @@ Model Prediction Performance:
 
 The Garcia PINN-LNN model was deployed and calibrated across all 23 telemetry stations in Central Luzon and Bataan. Results reflect unmanipulated model execution logs across 1,380 continuous micro-steps:
 
-| Station ID | Station Name & Municipality | Microclimate Classification | Elevation | Base Stage | Peak Forecast | Temp MAE | Step Latency | Status |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `KT-6CBD47DC5194` | **Old Cabcaben Pier, Mariveles** | `COASTAL_MARINE` | 4.0 m | 1.85 m | **5.16 m** | **1.57 °C** | **34.39 μs** | Calibrated & Active |
-| `KT-CC380371FE68` | **Dinalupihan Poblacion** | `LOWLAND_VALLEY` | 28.0 m | 2.40 m | **5.68 m** | **1.48 °C** | **37.59 μs** | Calibrated & Active |
-| `KT-B850AD182EC8` | **Dona Maria, Balanga** | `URBAN_PLAIN` | 16.0 m | 2.10 m | **5.30 m** | **1.49 °C** | **38.29 μs** | Calibrated & Active |
-| `KT-A86039DC5194` | **Pag-Asa Orani** | `COASTAL_PLAIN` | 12.0 m | 2.30 m | **5.89 m** | **1.73 °C** | **48.07 μs** | Calibrated & Active |
-| `KT-8CEE47DC5194` | **1Bataan Command Center** | `REGIONAL_HUB` | 22.0 m | 2.00 m | **5.11 m** | **1.45 °C** | **38.24 μs** | Calibrated & Active |
-| `KT-E0B89EF7A608` | **General Natividad** | `OROGRAPHIC_FOOTHILL` | 75.0 m | 3.10 m | **8.33 m** | **1.50 °C** | **34.32 μs** | Calibrated & Active |
-| `KT-4049D3215788` | **Calumpit WLMS (Pampanga)** | `RIVER_CONFLUENCE` | 6.0 m | 3.44 m | **6.56 m** | **1.58 °C** | **43.48 μs** | Calibrated & Active |
-| `KT-4C31325C7BCC` | **Calumpit AWS (Bulacan)** | `RIVER_BASIN` | 7.0 m | 3.42 m | **7.07 m** | **1.60 °C** | **34.77 μs** | Calibrated & Active |
-| `KT-245EAD182EC8` | **Bongabon Foothill** | `OROGRAPHIC_FOOTHILL` | 92.0 m | 2.80 m | **8.39 m** | **1.88 °C** | **37.71 μs** | Calibrated & Active |
-| `KT-3CCCAC182EC8` | **Pag-Asa Bagac** | `COASTAL_MARINE` | 15.0 m | 1.95 m | **5.28 m** | **1.73 °C** | **32.31 μs** | Calibrated & Active |
-| `KT-D032325C7BCC` | **Población Mariveles** | `DEEP_HARBOR_COAST` | 8.0 m | 1.70 m | **4.89 m** | **1.57 °C** | **31.02 μs** | Calibrated & Active |
-| `KT-D831325C7BCC` | **Abucay AWS** | `COASTAL_PLAIN` | 14.0 m | 2.20 m | **5.36 m** | **1.37 °C** | **33.10 μs** | Calibrated & Active |
-| `KT-A80A1B29E748` | **Avida Asten Station** | `URBAN_MICROCLIMATE` | 18.0 m | 1.50 m | **4.47 m** | **0.97 °C** | **38.25 μs** | Calibrated & Active |
-| `KT-B82DB21C0610` | **San Jose City Hub** | `CENTRAL_PLAIN` | 85.0 m | 2.90 m | **7.70 m** | **2.14 °C** | **31.50 μs** | Calibrated & Active |
-| `KT-5C74AC182EC8` | **San Luis AWS (Pampanga)** | `WETLAND_BASIN` | 10.0 m | 3.25 m | **6.48 m** | **1.73 °C** | **30.33 μs** | Calibrated & Active |
-| `KT-20FCA4182EC8` | **Lazatin AWS, San Fernando**| `CENTRAL_PLAIN` | 20.0 m | 2.50 m | **6.28 m** | **1.24 °C** | **36.79 μs** | Calibrated & Active |
-| `KT-184AAD182EC8` | **Baretto AWS, Subic Bay** | `COASTAL_BAY` | 5.0 m | 1.80 m | **5.03 m** | **1.58 °C** | **31.99 μs** | Calibrated & Active |
-| `KT-EC4FAD182EC8` | **Old Cabalan Mountain Pass**| `MOUNTAIN_PASS` | 110.0 m | 2.20 m | **8.28 m** | **2.08 °C** | **30.93 μs** | Calibrated & Active |
-| `KT-183017F7A608` | **Sabang Morong AWS** | `COASTAL_MARINE` | 6.0 m | 1.90 m | **5.02 m** | **1.79 °C** | **37.20 μs** | Calibrated & Active |
-| `KT-94AD8332A7B0` | **Wawa Limay AWS** | `COASTAL_ESTUARY` | 4.0 m | 2.05 m | **6.51 m** | **1.88 °C** | **40.64 μs** | Calibrated & Active |
-| `KT-BC25B61815AC` | **Alasas AWS, Pampanga** | `CENTRAL_PLAIN` | 15.0 m | 2.60 m | **5.92 m** | **1.48 °C** | **34.17 μs** | Calibrated & Active |
-| `KT-3C50AD182EC8` | **Sapang Buho Catchment** | `RIVER_WATERSHED` | 60.0 m | 3.00 m | **6.73 m** | **1.49 °C** | **31.62 μs** | Calibrated & Active |
-| `KT-8050AD182EC8` | **Popolon AWS Watershed** | `RIVER_WATERSHED` | 68.0 m | 3.05 m | **7.66 m** | **1.93 °C** | **31.91 μs** | Calibrated & Active |
+| Index | Station Name & Municipality | Microclimate Classification | Elevation | Base Stage | Peak Forecast | Temp MAE | Step Latency | Status |
+| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| STN-01 | **Old Cabcaben Pier, Mariveles** | `COASTAL_MARINE` | 4.0 m | 1.85 m | **5.16 m** | **1.57 °C** | **34.39 μs** | Calibrated & Active |
+| STN-02 | **Dinalupihan Poblacion** | `LOWLAND_VALLEY` | 28.0 m | 2.40 m | **5.68 m** | **1.48 °C** | **37.59 μs** | Calibrated & Active |
+| STN-03 | **Dona Maria, Balanga** | `URBAN_PLAIN` | 16.0 m | 2.10 m | **5.30 m** | **1.49 °C** | **38.29 μs** | Calibrated & Active |
+| STN-04 | **Pag-Asa Orani** | `COASTAL_PLAIN` | 12.0 m | 2.30 m | **5.89 m** | **1.73 °C** | **48.07 μs** | Calibrated & Active |
+| STN-05 | **1Bataan Command Center** | `REGIONAL_HUB` | 22.0 m | 2.00 m | **5.11 m** | **1.45 °C** | **38.24 μs** | Calibrated & Active |
+| STN-06 | **General Natividad** | `OROGRAPHIC_FOOTHILL` | 75.0 m | 3.10 m | **8.33 m** | **1.50 °C** | **34.32 μs** | Calibrated & Active |
+| STN-07 | **Calumpit WLMS (Pampanga)** | `RIVER_CONFLUENCE` | 6.0 m | 3.44 m | **6.56 m** | **1.58 °C** | **43.48 μs** | Calibrated & Active |
+| STN-08 | **Calumpit AWS (Bulacan)** | `RIVER_BASIN` | 7.0 m | 3.42 m | **7.07 m** | **1.60 °C** | **34.77 μs** | Calibrated & Active |
+| STN-09 | **Bongabon Foothill** | `OROGRAPHIC_FOOTHILL` | 92.0 m | 2.80 m | **8.39 m** | **1.88 °C** | **37.71 μs** | Calibrated & Active |
+| STN-10 | **Pag-Asa Bagac** | `COASTAL_MARINE` | 15.0 m | 1.95 m | **5.28 m** | **1.73 °C** | **32.31 μs** | Calibrated & Active |
+| STN-11 | **Población Mariveles** | `DEEP_HARBOR_COAST` | 8.0 m | 1.70 m | **4.89 m** | **1.57 °C** | **31.02 μs** | Calibrated & Active |
+| STN-12 | **Abucay AWS** | `COASTAL_PLAIN` | 14.0 m | 2.20 m | **5.36 m** | **1.37 °C** | **33.10 μs** | Calibrated & Active |
+| STN-13 | **Avida Asten Station** | `URBAN_MICROCLIMATE` | 18.0 m | 1.50 m | **4.47 m** | **0.97 °C** | **38.25 μs** | Calibrated & Active |
+| STN-14 | **San Jose City Hub** | `CENTRAL_PLAIN` | 85.0 m | 2.90 m | **7.70 m** | **2.14 °C** | **31.50 μs** | Calibrated & Active |
+| STN-15 | **San Luis AWS (Pampanga)** | `WETLAND_BASIN` | 10.0 m | 3.25 m | **6.48 m** | **1.73 °C** | **30.33 μs** | Calibrated & Active |
+| STN-16 | **Lazatin AWS, San Fernando**| `CENTRAL_PLAIN` | 20.0 m | 2.50 m | **6.28 m** | **1.24 °C** | **36.79 μs** | Calibrated & Active |
+| STN-17 | **Baretto AWS, Subic Bay** | `COASTAL_BAY` | 5.0 m | 1.80 m | **5.03 m** | **1.58 °C** | **31.99 μs** | Calibrated & Active |
+| STN-18 | **Old Cabalan Mountain Pass**| `MOUNTAIN_PASS` | 110.0 m | 2.20 m | **8.28 m** | **2.08 °C** | **30.93 μs** | Calibrated & Active |
+| STN-19 | **Sabang Morong AWS** | `COASTAL_MARINE` | 6.0 m | 1.90 m | **5.02 m** | **1.79 °C** | **37.20 μs** | Calibrated & Active |
+| STN-20 | **Wawa Limay AWS** | `COASTAL_ESTUARY` | 4.0 m | 2.05 m | **6.51 m** | **1.88 °C** | **40.64 μs** | Calibrated & Active |
+| STN-21 | **Alasas AWS, Pampanga** | `CENTRAL_PLAIN` | 15.0 m | 2.60 m | **5.92 m** | **1.48 °C** | **34.17 μs** | Calibrated & Active |
+| STN-22 | **Sapang Buho Catchment** | `RIVER_WATERSHED` | 60.0 m | 3.00 m | **6.73 m** | **1.49 °C** | **31.62 μs** | Calibrated & Active |
+| STN-23 | **Popolon AWS Watershed** | `RIVER_WATERSHED` | 68.0 m | 3.05 m | **7.66 m** | **1.93 °C** | **31.91 μs** | Calibrated & Active |
 
 ---
 
