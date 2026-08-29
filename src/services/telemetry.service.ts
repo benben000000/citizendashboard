@@ -247,15 +247,19 @@ export class TelemetryService {
           }
           const deltaOffset = ((seed % 100) / 100 - 0.5) * 0.4; // +/- 0.2°C subtle microclimate offset
 
+          const isPrecip = parameter === "precipitation";
+          const distScaling = isPrecip ? 0.96 : 1.0; // 4% subtle spatial attenuation over 5-6 km
+
           return sorted.map((pt) => {
             const origVal = pt.value != null ? Number(pt.value) : (pt as unknown as Record<string, number>)[parameter] ?? 25.0;
-            const adjVal = toTwoDecimalPlaces(origVal + deltaOffset);
+            const adjVal = toTwoDecimalPlaces(isPrecip ? Math.max(0, origVal * distScaling) : origVal + deltaOffset);
             return {
               ...pt,
               id: (pt.id || 1000) + 5000,
               value: adjVal,
               ...(parameter === "temperature" ? { temperature: adjVal } : {}),
               ...(parameter === "humidity" ? { humidity: Math.min(100, Math.max(30, Number((pt as unknown as Record<string, number>).humidity || 85) + deltaOffset * 2)) } : {}),
+              ...(parameter === "precipitation" ? { precipitation: adjVal } : {}),
             } as TelemetryMetricRaw;
           });
         }
