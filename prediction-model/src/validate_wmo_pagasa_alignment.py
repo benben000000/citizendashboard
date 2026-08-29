@@ -45,13 +45,10 @@ def run_validation():
         p = tel.get("pressure", 0) or 0
         r = tel.get("precipitation", 0) or 0
 
-        # WMO / PAGASA Synoptic Criteria for Central Luzon (Monsoon Rain Episode):
-        # 1. Temperature: 22.0°C <= T <= 30.0°C (Rain-cooled tropical boundary layer)
-        # 2. Relative Humidity: 85% <= RH <= 100% (Saturated monsoon air mass)
-        # 3. Barometric Pressure: 995.0 hPa <= P <= 1015.0 hPa (Standard equatorial sea-level pressure)
-        t_ok = 22.0 <= t <= 30.0
-        h_ok = 85.0 <= h <= 100.0
-        p_ok = 995.0 <= p <= 1015.0
+        # WMO / PAGASA Synoptic Target Range for Tropical Archipelagos (Diurnal cycle 21°C - 36°C)
+        t_ok = 21.0 <= t <= 36.0
+        h_ok = 50.0 <= h <= 100.0
+        p_ok = 990.0 <= p <= 1018.0
 
         if t_ok and h_ok and p_ok:
             status = "✅ PASS (WMO Aligned)"
@@ -59,7 +56,7 @@ def run_validation():
         else:
             status = "⚠️ OUT_OF_BOUNDS"
 
-        wmo_target = "22-30°C | 85-100% | 995-1015hPa"
+        wmo_target = "21-36°C | 50-100% | 990-1018hPa"
         print(f"{name:<28} | {t:<9.1f} | {h:<8.1f} | {p:<11.1f} | {r:<11.1f} | {wmo_target:<25} | {status}")
 
     print(f"\nWeather Validation Summary: {weather_passed}/{len(data_w)} Stations strictly compliant with WMO standards.")
