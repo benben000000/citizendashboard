@@ -187,9 +187,9 @@ export class WaterLevelService {
   private transformDashboard(rawData: WaterLevelDashboardRaw): WaterLevelPublicDTO[] {
     const rawAny = rawData as unknown as Record<string, unknown>;
     const list = Array.isArray(rawData)
-      ? (rawData as unknown as Array<{ station: StationRaw; waterLevel: unknown }>)
+      ? (rawData as unknown as Array<{ station: StationRaw; waterLevel: WaterLevelMetricRaw | null | undefined }>)
       : Array.isArray(rawAny?.data)
-      ? (rawAny.data as Array<{ station: StationRaw; waterLevel: unknown }>)
+      ? (rawAny.data as Array<{ station: StationRaw; waterLevel: WaterLevelMetricRaw | null | undefined }>)
       : [];
 
     const dashboardStations = list
@@ -386,7 +386,8 @@ export class WaterLevelService {
         baseCm: 250.0,
       };
 
-      const currentLevel = raw.water_level_m ? toTwoDecimalPlaces(raw.water_level_m * 100) : toTwoDecimalPlaces(config.baseCm + 6.5 * tidalPhase + (index % 3) * 1.5);
+      const rawCurrentLevel = raw.water_level_m ? raw.water_level_m * 100 : (config.baseCm + 6.5 * tidalPhase + (index % 3) * 1.5);
+      const currentLevel = toTwoDecimalPlaces(rawCurrentLevel);
       const minLevel = toTwoDecimalPlaces(config.baseCm - 12.0);
       const maxLevel = toTwoDecimalPlaces(config.baseCm + 18.0);
 
@@ -409,8 +410,8 @@ export class WaterLevelService {
           rawMode: currentLevel,
           calculatedWaterLevel: currentLevel,
           median: currentLevel,
-          frequentRangeLow: toTwoDecimalPlaces(currentLevel - 3.5),
-          frequentRangeHigh: toTwoDecimalPlaces(currentLevel + 3.5),
+          frequentRangeLow: toTwoDecimalPlaces(rawCurrentLevel - 3.5),
+          frequentRangeHigh: toTwoDecimalPlaces(rawCurrentLevel + 3.5),
           estimatedMovAvg: currentLevel,
         },
       };

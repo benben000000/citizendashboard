@@ -77,10 +77,10 @@ export class InMemoryCache<T> {
 
   cleanup(): void {
     const now = Date.now();
-    for (const [key, value] of this.cache.entries()) {
+    this.cache.forEach((value, key) => {
       if (now > value.expiresAt) {
         this.cache.delete(key);
       }
-    }
+    });
   }
 }

@@ -1,37 +1,28 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+
+export const dynamic = "force-dynamic";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <div className="mx-auto max-w-md text-center px-6">
-        <div className="mb-8">
-          <h1 className="text-9xl font-bold text-light mb-4">404</h1>
-          <h2 className="text-3xl font-bold text-light mb-2">
-            Page not found
-          </h2>
-          <p className="text-light/60 mb-6">
-            Sorry, we couldn&apos;t find the page you&apos;re looking for.
-          </p>
-        </div>
-
+    <div className="flex min-h-svh items-center justify-center p-6 text-white text-center">
+      <div className="max-w-md mx-auto">
+        <h1 className="text-8xl font-black mb-4">404</h1>
+        <h2 className="text-2xl font-bold mb-2">Page Not Found</h2>
+        <p className="text-white/70 mb-6 text-sm">
+          Sorry, the page you are looking for does not exist or has been moved.
+        </p>
         <div className="flex flex-col gap-3">
-          <Link href="/weather">
-            <Button
-              className="w-full"
-              size="lg"
-            >
-              Go to homepage
-            </Button>
+          <Link
+            href="/weather"
+            className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-lg text-center text-sm"
+          >
+            Go to Weather Dashboard
           </Link>
-          <Link href="/terminologies">
-            <Button
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              View terminologies
-            </Button>
+          <Link
+            href="/prediction"
+            className="w-full py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold border border-white/20 transition-all text-center text-sm"
+          >
+            Go to PINN-LNN Nowcast
           </Link>
         </div>
       </div>

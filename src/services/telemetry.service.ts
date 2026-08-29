@@ -271,8 +271,10 @@ export class TelemetryService {
     const solarPhase = Math.cos((2 * Math.PI * (phHour - 13.5)) / 24);
 
     if (healthyList.length === 0) {
-      const baseTemp = toTwoDecimalPlaces(28.8 + 3.4 * solarPhase);
-      const baseHum = toTwoDecimalPlaces(Math.max(50, Math.min(95, 76.0 - 15.0 * solarPhase)));
+      const rawBaseTemp = 28.8 + 3.4 * solarPhase;
+      const rawBaseHum = Math.max(50, Math.min(95, 76.0 - 15.0 * solarPhase));
+      const baseTemp = toTwoDecimalPlaces(rawBaseTemp);
+      const baseHum = toTwoDecimalPlaces(rawBaseHum);
       const basePres = toTwoDecimalPlaces(1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24));
       return {
         telemetryId: 9999,
@@ -280,7 +282,7 @@ export class TelemetryService {
         temperature: baseTemp,
         humidity: baseHum,
         pressure: basePres,
-        heatIndex: toTwoDecimalPlaces(baseTemp + (baseHum / 100) * 5.5),
+        heatIndex: toTwoDecimalPlaces(rawBaseTemp + (rawBaseHum / 100) * 5.5),
         windDirection: 225,
         windSpeed: 8.0,
         precipitation: 0.0,
@@ -306,7 +308,7 @@ export class TelemetryService {
         h.station.location
       );
       // Gaussian spatial kernel weight: w = exp(-d_eff^2 / (2 * L^2))
-      const weight = Math.exp(-(effDistKm * effDistKm) / (2 * 25 * 25)) + 0.0001;
+      const weight = Math.exp(-Math.pow(effDistKm / 25.0, 2));
 
       totalWeight += weight;
       weightedTemp += (h.telemetry.temperature ?? 28.5) * weight;
@@ -316,12 +318,14 @@ export class TelemetryService {
       weightedPrecip += (h.telemetry.precipitation ?? 0.0) * weight;
     }
 
-    const calcTemp = toTwoDecimalPlaces(weightedTemp / totalWeight);
-    const calcHum = toTwoDecimalPlaces(weightedHum / totalWeight);
-    const calcPres = toTwoDecimalPlaces(weightedPres / totalWeight);
-    const calcWind = toTwoDecimalPlaces(weightedWind / totalWeight);
-    const calcPrecip = toTwoDecimalPlaces(weightedPrecip / totalWeight);
-    const calcHI = toTwoDecimalPlaces(calcTemp + (calcHum / 100) * 5.5);
+    const rawCalcTemp = totalWeight > 0 ? weightedTemp / totalWeight : 28.5;
+    const rawCalcHum = totalWeight > 0 ? weightedHum / totalWeight : 78.0;
+    const calcTemp = toTwoDecimalPlaces(rawCalcTemp);
+    const calcHum = toTwoDecimalPlaces(rawCalcHum);
+    const calcPres = toTwoDecimalPlaces(totalWeight > 0 ? weightedPres / totalWeight : 1010.5);
+    const calcWind = toTwoDecimalPlaces(totalWeight > 0 ? weightedWind / totalWeight : 8.0);
+    const calcPrecip = toTwoDecimalPlaces(totalWeight > 0 ? weightedPrecip / totalWeight : 0.0);
+    const calcHI = toTwoDecimalPlaces(rawCalcTemp + (rawCalcHum / 100) * 5.5);
 
     return {
       telemetryId: 8888,
@@ -355,7 +359,7 @@ export class TelemetryService {
       .filter((item): item is DashboardSingleRaw => Boolean(item?.station))
       .map((item) => {
         const st = this.transformStation(item.station);
-        const tel = item.telemetry as Record<string, unknown> | undefined;
+        const tel = item.telemetry as unknown as Record<string, unknown> | undefined;
         const temp = (tel?.temperature as number) ?? 0;
         const hum = (tel?.humidity as number) ?? 0;
         const pres = (tel?.pressure as number) ?? 0;
@@ -452,13 +456,13 @@ export class TelemetryService {
 
     // Filter broken / absurd spikes like Barretto (108°C) or Dead Sensor Dropout (0°C)
     if (rawTemp < 16.0 || rawTemp > 43.0) {
-      cleanTemp = toTwoDecimalPlaces(28.8 + 3.4 * solarPhase);
+      cleanTemp = Math.round((28.8 + 3.4 * solarPhase) * 100) / 100;
     }
     if (rawHum < 20.0 || rawHum > 100.0) {
-      cleanHum = toTwoDecimalPlaces(Math.max(50, Math.min(95, 76.0 - 15.0 * solarPhase)));
+      cleanHum = Math.round(Math.max(50, Math.min(95, 76.0 - 15.0 * solarPhase)) * 100) / 100;
     }
     if (rawPres < 970.0 || rawPres > 1030.0) {
-      cleanPres = toTwoDecimalPlaces(1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24));
+      cleanPres = Math.round((1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24)) * 100) / 100;
     }
 
     // Real Sensor Precipitation
@@ -509,17 +513,17 @@ export class TelemetryService {
 
     const now = new Date();
     const phHour = (now.getUTCHours() + 8) % 24 + now.getUTCMinutes() / 60;
+    const solarPhase = Math.cos((2 * Math.PI * (phHour - 13.5)) / 24);
 
     return DEFAULT_CENTRAL_LUZON_STATIONS.map((station, index) => {
       const sid = station.stationPublicId;
       const mqttEntry = (mqttData[sid] || mqttData[`KT-${sid}`] || mqttData[sid.replace("KT-", "")]) as Record<string, unknown> | undefined;
       const raw = (mqttEntry?.raw_telemetry || {}) as Record<string, number>;
 
-      const solarPhase = Math.cos((2 * Math.PI * (phHour - 13.5)) / 24);
-      const temp = raw.temperature_c ?? toTwoDecimalPlaces(28.5 + 3.8 * solarPhase + (index % 5) * 0.15);
-      const hum = raw.humidity_pct ?? toTwoDecimalPlaces(Math.max(50, Math.min(95, 78.0 - 16.0 * solarPhase)));
-      const pres = raw.pressure_hpa ?? toTwoDecimalPlaces(1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24));
-      const wind = raw.wind_speed_kmh ?? toTwoDecimalPlaces(8.0 + 4.0 * Math.sin((2 * Math.PI * (phHour - 14)) / 24));
+      const temp = raw.temperature_c ?? (Math.round((28.5 + 3.8 * solarPhase + (index % 5) * 0.15) * 100) / 100);
+      const hum = raw.humidity_pct ?? (Math.round(Math.max(50, Math.min(95, 78.0 - 16.0 * solarPhase)) * 100) / 100);
+      const pres = raw.pressure_hpa ?? (Math.round((1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24)) * 100) / 100);
+      const wind = raw.wind_speed_kmh ?? (Math.round((8.0 + 4.0 * Math.sin((2 * Math.PI * (phHour - 14)) / 24)) * 100) / 100);
       const rain = raw.rain_mm ?? 0.0;
       const heatIdx = toTwoDecimalPlaces(temp + (hum / 100) * 5.5);
 
