@@ -549,7 +549,8 @@ export class TelemetryService {
   }
 
   /**
-   * Generates continuous-time 15-minute telemetry intervals for station parameters.
+   * Generates continuous-time 15-minute telemetry intervals for station parameters
+   * with realistic diurnal physics, day-over-day meteorological variance, and zero duplication.
    */
   private getMqtt15MinuteHistory(
     stationId: string,
@@ -559,9 +560,17 @@ export class TelemetryService {
     endDateStr?: string
   ): TelemetryMetricRaw[] {
     const end = endDateStr ? new Date(endDateStr) : new Date();
-    const start = startDateStr ? new Date(startDateStr) : new Date(end.getTime() - 24 * 60 * 60 * 1000);
+    const start = startDateStr ? new Date(startDateStr) : new Date(end.getTime() - 48 * 60 * 60 * 1000);
     const intervalMs = Math.max(15, interval) * 60 * 1000;
     const points: TelemetryMetricRaw[] = [];
+
+    // Derive deterministic station hash offset so different stations have unique microclimates
+    let stationSeed = 0;
+    for (let i = 0; i < stationId.length; i++) {
+      stationSeed = (stationSeed * 31 + stationId.charCodeAt(i)) & 0xfffff;
+    }
+    const stationTempOffset = ((stationSeed % 100) / 100 - 0.5) * 1.8; // +/- 0.9°C
+    const stationHumOffset = (((stationSeed >> 4) % 100) / 100 - 0.5) * 6.0; // +/- 3.0%
 
     let current = start.getTime();
     let pointId = 1;
@@ -569,53 +578,118 @@ export class TelemetryService {
     while (current <= end.getTime()) {
       const dt = new Date(current);
       const phHour = (dt.getUTCHours() + 8) % 24 + dt.getUTCMinutes() / 60;
-      const solarPhase = Math.cos((2 * Math.PI * (phHour - 13.5)) / 24);
+      const hoursAgo = (end.getTime() - current) / (1000 * 3600);
+      const isYesterday = hoursAgo >= 24;
 
-      let val = 0;
+      // Day-over-day synoptic weather variance (Yesterday vs Today)
+      // Yesterday had higher cloud cover in the afternoon, lowering peak solar insolation
+      const dayTempDelta = isYesterday ? -0.7 : 0.3;
+      const dayHumDelta = isYesterday ? 4.0 : -2.5;
+      const daySolarPeak = isYesterday ? 0.88 : 1.0;
+
+      // Diurnal solar insolation curve (0 at night, peaks at 13:30 PST)
+      const solarAngle = (2 * Math.PI * (phHour - 13.5)) / 24;
+      const solarInsolation = Math.max(0, Math.sin((Math.PI * (phHour - 6)) / 12)); // 6am to 6pm
+      const diurnalPhase = Math.cos(solarAngle);
+
+      // Micro-turbulence perturbation (deterministic sensor noise)
+      const microNoise = Math.sin((current / (1000 * 900)) + stationSeed) * 0.15;
+
+      // 1. Temperature (°C)
+      const temp = 24.5 + stationTempOffset + dayTempDelta + (7.2 * diurnalPhase * daySolarPeak) + microNoise;
+
+      // 2. Humidity (%) - psychrometrically coupled inversely with temperature
+      const hum = Math.min(100, Math.max(45, 84.0 + stationHumOffset + dayHumDelta - (22.0 * diurnalPhase * daySolarPeak) - (microNoise * 3)));
+
+      // 3. Pressure (hPa) - semi-diurnal atmospheric tide with 12-hour harmonic
+      const tide12h = 1.2 * Math.cos((4 * Math.PI * (phHour - 9.0)) / 24);
+      const synopticTrend = isYesterday ? 0.5 : -0.3;
+      const pres = 1008.5 + tide12h + synopticTrend + (microNoise * 0.2);
+
+      // 4. Heat Index (°C) via NOAA Steadman/Rothfusz approximation
+      const c1 = -8.78469475556, c2 = 1.61139411, c3 = 2.33854883889, c4 = -0.14611605;
+      const c5 = -0.012308094, c6 = -0.0164248277778, c7 = 0.002211732, c8 = 0.00072546;
+      const c9 = -0.000003582;
+      const hiRothfusz = c1 + c2 * temp + c3 * hum + c4 * temp * hum + c5 * (temp * temp) + c6 * (hum * hum) + c7 * (temp * temp) * hum + c8 * temp * (hum * hum) + c9 * (temp * temp) * (hum * hum);
+      const heatIndexVal = temp >= 27.0 && hum >= 40 ? Math.max(temp, hiRothfusz) : temp;
+
+      // 5. Wind Speed (km/h) - sea breeze convection peaking at 14:00-16:00
+      const windSpeedVal = Math.max(0, 3.5 + 6.0 * Math.max(0, Math.sin((Math.PI * (phHour - 9)) / 10)) + microNoise * 2);
+
+      // 6. Precipitation (mm) - localized afternoon convective cell
+      let rainVal = 0.0;
+      if (isYesterday && phHour >= 14.5 && phHour <= 16.0) {
+        rainVal = 1.8 + Math.sin((phHour - 14.5) * Math.PI) * 2.4;
+      } else if (!isYesterday && phHour >= 16.5 && phHour <= 17.5) {
+        rainVal = 0.4 + Math.sin((phHour - 16.5) * Math.PI) * 0.8;
+      }
+
+      // 7. UV Index (0 to 11+) - strictly 0 at night, peaks at 12:00-13:00
+      let uvVal = 0.0;
+      if (phHour >= 6.5 && phHour <= 17.5) {
+        uvVal = Math.max(0, 9.5 * daySolarPeak * Math.sin((Math.PI * (phHour - 6.5)) / 11) + microNoise * 0.5);
+      }
+
+      // 8. Light Intensity (lx) - 0 at night, peaks up to 75,000 lx at midday
+      let lightVal = 0.0;
+      if (phHour >= 6.0 && phHour <= 18.0) {
+        lightVal = Math.max(0, 68000 * daySolarPeak * Math.pow(Math.sin((Math.PI * (phHour - 6.0)) / 12), 1.5) + (microNoise * 500));
+      }
+
+      // Select requested parameter value
+      let selectedVal = temp;
       switch (parameter) {
         case "temperature":
         case "temp":
-          val = 28.5 + 3.8 * solarPhase;
+          selectedVal = temp;
           break;
         case "humidity":
         case "hum":
-          val = 78.0 - 16.0 * solarPhase;
+          selectedVal = hum;
           break;
         case "heatIndex":
         case "heat_index":
-          val = 33.0 + 4.2 * solarPhase;
+          selectedVal = heatIndexVal;
           break;
         case "pressure":
         case "pres":
-          val = 1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24);
+          selectedVal = pres;
           break;
         case "windSpeed":
         case "wind":
-          val = 8.0 + 4.0 * Math.sin((2 * Math.PI * (phHour - 14)) / 24);
+          selectedVal = windSpeedVal;
           break;
         case "precipitation":
         case "rain":
-          val = phHour >= 14 && phHour <= 15 ? 1.2 : 0.0;
+          selectedVal = rainVal;
+          break;
+        case "uvIndex":
+        case "uv":
+          selectedVal = uvVal;
+          break;
+        case "lightIntensity":
+        case "light":
+          selectedVal = lightVal;
           break;
         default:
-          val = 25.0;
+          selectedVal = temp;
       }
 
       points.push({
         id: pointId++,
         recordedAt: dt.toISOString(),
-        temperature: toTwoDecimalPlaces(28.5 + 3.8 * solarPhase),
-        humidity: toTwoDecimalPlaces(78.0 - 16.0 * solarPhase),
-        pressure: toTwoDecimalPlaces(1010.5),
-        heatIndex: toTwoDecimalPlaces(33.0 + 4.2 * solarPhase),
-        windSpeed: toTwoDecimalPlaces(8.0),
+        temperature: toTwoDecimalPlaces(temp),
+        humidity: toTwoDecimalPlaces(hum),
+        pressure: toTwoDecimalPlaces(pres),
+        heatIndex: toTwoDecimalPlaces(heatIndexVal),
+        windSpeed: toTwoDecimalPlaces(windSpeedVal),
         windDirection: 225,
-        precipitation: 0.0,
-        hourlyPrecip: 0.0,
-        uvIndex: 5,
+        precipitation: toTwoDecimalPlaces(rainVal),
+        hourlyPrecip: toTwoDecimalPlaces(rainVal),
+        uvIndex: toTwoDecimalPlaces(uvVal),
         distance: 165.0,
-        lightIntensity: 45000,
-        value: toTwoDecimalPlaces(val),
+        lightIntensity: toTwoDecimalPlaces(lightVal),
+        value: toTwoDecimalPlaces(selectedVal),
       } as unknown as TelemetryMetricRaw);
 
       current += intervalMs;
