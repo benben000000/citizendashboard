@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { Info, ShieldCheck, Cpu, Satellite, Radio, Award } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,66 +28,60 @@ export default function CustomFooter() {
               <DialogTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 text-primary hover:underline font-medium transition-colors cursor-pointer"
+                  className="text-primary hover:underline font-medium transition-colors cursor-pointer"
                 >
-                  <Info className="w-3.5 h-3.5" />
-                  <span>Data Sources & Attributions</span>
+                  Data Sources & Attributions
                 </button>
               </DialogTrigger>
               <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-base font-bold">
-                    <ShieldCheck className="w-5 h-5 text-primary" />
+                  <DialogTitle className="text-base font-semibold">
                     Data Sources, Scientific Attributions & Fair Use
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground pt-1">
-                    Complete disclosure of technological provenance, academic attributions, and commercial licensing.
+                    Disclosure of technological provenance, academic attributions, and commercial licensing.
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 text-xs text-foreground/90 pt-2">
-                  <div className="p-3 rounded-lg border border-border bg-card/50 space-y-1.5">
-                    <div className="flex items-center gap-2 font-semibold text-foreground">
-                      <Cpu className="w-4 h-4 text-primary" />
-                      <span>Liquid Neural Network (LNN) AI Architecture</span>
-                    </div>
+                <div className="space-y-3.5 text-xs text-foreground/90 pt-2">
+                  <div className="p-3 rounded-lg border border-border bg-card/40 space-y-1">
+                    <p className="font-semibold text-foreground">
+                      Liquid Neural Network (LNN) AI Architecture
+                    </p>
                     <p className="text-muted-foreground leading-relaxed">
                       Continuous-time Liquid Neural Network (LNN) and Closed-form Continuous-time (CfC) differential equation principles are based on research by <strong>Hasani et al. (MIT CSAIL, 2021/2022)</strong>. All neural weight matrices and ODE kernels are proprietary Kloudtech assets.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-lg border border-border bg-card/50 space-y-1.5">
-                    <div className="flex items-center gap-2 font-semibold text-foreground">
-                      <Satellite className="w-4 h-4 text-sky-500" />
-                      <span>Satellite Infrared Convective Indices</span>
-                    </div>
+                  <div className="p-3 rounded-lg border border-border bg-card/40 space-y-1">
+                    <p className="font-semibold text-foreground">
+                      Satellite Infrared Convective Indices
+                    </p>
                     <p className="text-muted-foreground leading-relaxed">
                       Meteorological cloud brightness indices are derived from Himawari-9 open public datasets provided by the <strong>Japan Meteorological Agency (JMA)</strong> and <strong>NOAA Open Data Dissemination (NODD)</strong> under international open meteorological data policies.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-lg border border-border bg-card/50 space-y-1.5">
-                    <div className="flex items-center gap-2 font-semibold text-foreground">
-                      <Radio className="w-4 h-4 text-emerald-500" />
-                      <span>Doppler Radar & Reflectivity Calibration</span>
-                    </div>
+                  <div className="p-3 rounded-lg border border-border bg-card/40 space-y-1">
+                    <p className="font-semibold text-foreground">
+                      Doppler Radar & Reflectivity Calibration
+                    </p>
                     <p className="text-muted-foreground leading-relaxed">
                       Radar reflectivity validation references Doppler weather radar data provided by <strong>RainViewer</strong> (https://www.rainviewer.com) under statutory non-consumptive model training and validation fair use.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-lg border border-border bg-card/50 space-y-1.5">
-                    <div className="flex items-center gap-2 font-semibold text-foreground">
-                      <Award className="w-4 h-4 text-amber-500" />
-                      <span>Physical Ground Telemetry & IoT Hardware</span>
-                    </div>
+                  <div className="p-3 rounded-lg border border-border bg-card/40 space-y-1">
+                    <p className="font-semibold text-foreground">
+                      Physical Ground Telemetry & IoT Hardware
+                    </p>
                     <p className="text-muted-foreground leading-relaxed">
                       Sub-second telemetry streams are produced by 23 physical Automated Weather Stations (AWS) and Water Level Monitoring Stations (WLMS) owned and operated by <strong>Kloudtech Inc.</strong> across Central Luzon and Bataan.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-muted/50 text-[11px] text-muted-foreground border border-border/50">
-                    <p className="font-semibold text-foreground mb-1">⚖️ Commercial Freedom-to-Operate & Fair Use Declaration</p>
+                  <div className="p-3 rounded-lg bg-muted/40 text-[11px] text-muted-foreground border border-border/50 space-y-1">
+                    <p className="font-semibold text-foreground">Commercial Freedom-to-Operate & Fair Use Declaration</p>
                     <p className="leading-relaxed">
                       All forecasts and intelligence delivered by this application constitute original, autonomous derivative works computed by KloudTrack&apos;s continuous-time neural ODE physics engine. Zero third-party raw copyrighted data is republished. Cleared for 100% royalty-free commercial deployment.
                     </p>
