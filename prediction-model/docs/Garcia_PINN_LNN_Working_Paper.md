@@ -333,8 +333,7 @@ The Garcia PINN-LNN engine is deployed in a production-ready Next.js 14 / TypeSc
 |  [ UI Component Presentation Layer ]                                          |
 |         ├── Hero Weather & Hydrological Forecast Card                         |
 |         ├── 4 Dynamic Glass Cards (Heat Index, Wind/Pressure, Rain, WL)      |
-|         ├── 3 Comprehensive Analytics Cards (Peak Level, Bursts, Watershed)   |
-|         └── Multi-Horizon Interactive Selector (1h, 3h, 6h, 12h, 24h, 48h, 72h)|
+|         └── 3 Comprehensive Analytics Cards (Peak Level, Bursts, Watershed)   |
 +-------------------------------------------------------------------------------+
 ```
 
@@ -345,6 +344,25 @@ Every value rendered on the prediction dashboard—including barometric pressure
 On initial page load, `findNearestStation(lat, lon)` computes the spherical distance across all 23 stations using the Haversine equation:
 $$d = 2 R \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta \phi}{2}\right) + \cos\phi_1 \cos\phi_2 \sin^2\left(\frac{\Delta \lambda}{2}\right)}\right)$$
 This automatically localizes predictions to the nearest municipal sensor without requiring manual station lookup.
+
+### 8.3 Critical Limitations, Adversarial Vulnerabilities & Failure Modes
+
+A rigorous scientific peer-review mandates an explicit adversarial examination of where the proposed Garcia PINN-LNN framework can be challenged, where its simplified physics assumptions fail, and how edge cases impact nowcast reliability:
+
+1. **Hydrodynamic Backwater Stagnation & Tidal Inundation at River Confluences:**
+   The lumped 1D decay formulation ($\frac{0.15}{\tau_{\text{hydro}}}(WL - WL_{\text{base}})$) assumes steady gravitational drainage. At complex tidal confluences such as the Calumpit / Gatbuca junction (Pampanga and Angat Rivers), spring high tides from Manila Bay concurrently interact with upstream reservoir spills. This creates hydrodynamic backwater loops, hydraulic hysteresis, and reverse channel gradients that violate linear exponential decay. While the model achieves $18.2\text{ cm}$ crest accuracy during free-draining monsoonal floods, uncoupled point models under-predict stage recession latency during high-tide river choking events.
+
+2. **Boundary Layer Psychrometric Saturation vs. Non-Precipitating Coastal Advection:**
+   The model couples the Magnus-Tetens equation ($e_s(T)$) to cloud-base condensation ($z_{\text{LCL}} < 450\text{m}$). However, ground-level relative humidity saturation ($\text{RH} \ge 95\%$) in tropical maritime zones (e.g. Subic Bay, Mariveles) frequently occurs during nocturnal radiation cooling or marine fog advection without vertical convective updrafts ($w < 0.1\text{ m/s}$). In the absence of upper-air Doppler vertical velocity ($\text{VIL}$) or sounding profiles, ground psychrometric saturation risks false-positive drizzle predictions if local wind shear is neglected.
+
+3. **Tropical Maritime "Warm-Rain" Droplet Size Distributions vs. Marshall-Palmer $Z-R$:**
+   The empirical radar reflectivity conversion $Z = 200 R^{1.6}$ originates from mid-latitude stratiform precipitation. Tropical monsoonal cloudbursts in Central Luzon are dominated by collision-coalescence warm-rain microphysics, characterized by high concentrations of small-to-medium diameter droplets. Consequently, a $39\text{ mm/hr}$ torrential event may produce a lower radar reflectivity ($35 - 40\text{ dBZ}$) than mid-latitude convective hail storms ($> 55\text{ dBZ}$), requiring continuous localized ground rain-gauge bias correction to prevent underestimating tropical rainfall volume.
+
+4. **Out-of-Distribution Dynamics During Extreme Category-5 Tropical Cyclones:**
+   The neural ODE weights ($\mathbf{W}_{\text{in}}, \mathbf{W}_{\text{rec}}, \boldsymbol{\tau}$) were calibrated across the 2024–2026 synoptic dataset (minimum observed central pressure $988\text{ hPa}$). In the event of a catastrophic Category 5 Super Typhoon ($P_{\text{core}} < 915\text{ hPa}$, gust velocity $> 260\text{ km/h}$), extreme baroclinic pressure gradients force the neural $\tanh(\cdot)$ activations into saturation regimes, causing non-linear wind-pressure predictions to revert to asymptotes unless actively constrained by hydrostatic gradient wind balance equations.
+
+5. **Orographic Mountain Dividers & Geostatistical IDW Interpolation Bounds:**
+   Spatial neighbor infilling via Inverse Distance Weighting (IDW) operates on Euclidean geodetic distance. The Bataan peninsula is bisected by the $1,388\text{ m}$ Mount Natib and Mount Mariveles volcanic ridges. Interpolating telemetry across the windward western coast (Morong/Bagac) and the leeward eastern plain (Balanga/Abucay) ignores orographic rain shadows. Spatial infilling must therefore incorporate hypsometric ridge barrier penalties rather than isotropic 2D distances.
 
 ---
 

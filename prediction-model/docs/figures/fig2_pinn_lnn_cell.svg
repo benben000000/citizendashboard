@@ -1,86 +1,94 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 45 920 400" width="100%" height="100%" style="background:#ffffff; font-family:'Times New Roman', Times, Georgia, serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" width="100%" height="100%" style="background:#ffffff; font-family:'Newsreader', 'Times New Roman', Times, Georgia, serif;">
   <defs>
     <marker id="arrow2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#000000"/>
     </marker>
   </defs>
 
-  <!-- Main Outer Cell Box -->
-  <rect x="220" y="55" width="480" height="380" rx="3" fill="#fafafa" stroke="#000000" stroke-width="1.5"/>
-  <line x1="220" y1="85" x2="700" y2="85" stroke="#000000" stroke-width="1"/>
-  <text x="460" y="75" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">GARCIA PINN-LNN CONTINUOUS TIME CELL</text>
-
   <!-- Input Vector on Left -->
-  <g transform="translate(30, 140)">
-    <rect width="140" height="210" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
-    <text x="70" y="24" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">Input Vector x(t)</text>
-    <line x1="15" y1="34" x2="125" y2="34" stroke="#cccccc" stroke-width="0.8"/>
-    <text x="18" y="58" fill="#000000" font-size="10">• Temp T(t)</text>
-    <text x="18" y="82" fill="#000000" font-size="10">• Heat Index HI(t)</text>
-    <text x="18" y="106" fill="#000000" font-size="10">• Wind Speed W(t)</text>
-    <text x="18" y="130" fill="#000000" font-size="10">• Baro. Pres. P(t)</text>
-    <text x="18" y="154" fill="#000000" font-size="10">• Forward Lead Δt</text>
-    <text x="18" y="184" fill="#555555" font-size="8.5">4D Standardized</text>
-    <text x="18" y="196" fill="#555555" font-size="8.5">Boundary Vector</text>
+  <g transform="translate(20, 40)">
+    <rect width="180" height="320" rx="3" fill="#fcfcfc" stroke="#000000" stroke-width="1.5"/>
+    <line x1="0" y1="36" x2="180" y2="36" stroke="#000000" stroke-width="1.2"/>
+    <text x="90" y="24" text-anchor="middle" fill="#000000" font-size="12" font-weight="bold">INPUT VECTOR x(t)</text>
+
+    <text x="16" y="70" fill="#000000" font-size="11.5" font-weight="bold">• Temperature T(t)</text>
+    <text x="16" y="102" fill="#000000" font-size="11.5" font-weight="bold">• Heat Index HI(t)</text>
+    <text x="16" y="134" fill="#000000" font-size="11.5" font-weight="bold">• Wind Speed W(t)</text>
+    <text x="16" y="166" fill="#000000" font-size="11.5" font-weight="bold">• Baro. Pressure P(t)</text>
+    <text x="16" y="198" fill="#000000" font-size="11.5" font-weight="bold">• Forward Lead Δt</text>
+    
+    <line x1="16" y1="220" x2="164" y2="220" stroke="#cccccc" stroke-width="1"/>
+    <text x="16" y="246" fill="#444444" font-size="10.5">4D Standardized</text>
+    <text x="16" y="264" fill="#444444" font-size="10.5">Boundary Vector</text>
+    <text x="16" y="294" fill="#666666" font-size="9.5">Arbitrary Δt Interval</text>
   </g>
 
   <!-- Connection: Input -> Cell -->
-  <line x1="170" y1="245" x2="220" y2="245" stroke="#000000" stroke-width="1.2" marker-end="url(#arrow2)"/>
-  <text x="195" y="238" text-anchor="middle" fill="#000000" font-size="9.5" font-style="italic">x(t)</text>
+  <line x1="200" y1="200" x2="245" y2="200" stroke="#000000" stroke-width="2" marker-end="url(#arrow2)"/>
+  <text x="222" y="190" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold" font-style="italic">x(t), Δt</text>
 
-  <!-- Inside Cell: Dynamic Time Constant Box -->
-  <g transform="translate(240, 100)">
-    <rect width="210" height="75" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
-    <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Liquid Decay Operator</text>
-    <text x="10" y="36" fill="#000000" font-size="8.5" font-family="monospace">Decay: exp(-Δt / τ_station)</text>
-    <text x="10" y="52" fill="#444444" font-size="8.5">Dynamic station time constant</text>
-    <text x="10" y="66" fill="#555555" font-size="8">Station Hydro-Tau τ_hydro</text>
-  </g>
+  <!-- Main Outer Cell Box -->
+  <g transform="translate(250, 20)">
+    <rect width="520" height="360" rx="4" fill="#fafafa" stroke="#000000" stroke-width="2"/>
+    <line x1="0" y1="38" x2="520" y2="38" stroke="#000000" stroke-width="1.5"/>
+    <text x="260" y="26" text-anchor="middle" fill="#000000" font-size="13" font-weight="bold" letter-spacing="0.5">GARCIA PINN-LNN CONTINUOUS TIME CELL</text>
 
-  <!-- Inside Cell: Physics Constraints Box -->
-  <g transform="translate(470, 100)">
-    <rect width="210" height="75" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
-    <text x="10" y="18" fill="#000000" font-size="9.5" font-weight="bold">Thermodynamic Constraints</text>
-    <text x="10" y="34" fill="#000000" font-size="8">Magnus: es = 6.1121 exp(...)</text>
-    <text x="10" y="48" fill="#000000" font-size="8">LCL Depth: z_LCL ≈ 125 ΔTd</text>
-    <text x="10" y="64" fill="#555555" font-size="8">L_phys = || dE/dt - Q ||^2</text>
-  </g>
+    <!-- Inside Cell: Dynamic Time Constant Box -->
+    <g transform="translate(18, 52)">
+      <rect width="235" height="85" rx="2" fill="#ffffff" stroke="#333333" stroke-width="1.2"/>
+      <text x="12" y="22" fill="#000000" font-size="11" font-weight="bold">Liquid Decay Operator</text>
+      <text x="12" y="42" fill="#000000" font-size="10" font-family="monospace">Decay: exp(-Δt / τ_station)</text>
+      <text x="12" y="60" fill="#444444" font-size="9.5">Input-dependent time constant</text>
+      <text x="12" y="74" fill="#666666" font-size="9">Station Hydro-Tau: τ_hydro</text>
+    </g>
 
-  <!-- Inside Cell: Closed Form Solution Box -->
-  <g transform="translate(240, 190)">
-    <rect width="440" height="110" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
-    <text x="12" y="20" fill="#000000" font-size="10.5" font-weight="bold">Closed-Form Continuous-Time Solution (Neural ODE)</text>
-    <text x="12" y="44" fill="#000000" font-size="9.5" font-family="monospace">h(t+Δt) = exp(-Δt/τ) ⊙ h(t) + [1 - exp(-Δt/τ)] ⊙ tanh(Win·x + Wrec·h + bh)</text>
-    <line x1="12" y1="58" x2="428" y2="58" stroke="#eeeeee" stroke-width="0.8"/>
-    <text x="12" y="74" fill="#333333" font-size="8.5">• Analytical trajectory evaluation across arbitrary lead intervals Δt ∈ [0, 72h]</text>
-    <text x="12" y="88" fill="#333333" font-size="8.5">• Zero discrete step accumulation error; continuous hidden state manifold</text>
-    <text x="12" y="102" fill="#000000" font-size="8.5" font-weight="bold">• Mean Step Latency: 53.99 μs (Gen-2 Evolved)</text>
-  </g>
+    <!-- Inside Cell: Physics Constraints Box -->
+    <g transform="translate(268, 52)">
+      <rect width="235" height="85" rx="2" fill="#ffffff" stroke="#333333" stroke-width="1.2"/>
+      <text x="12" y="22" fill="#000000" font-size="11" font-weight="bold">Thermodynamic Constraints</text>
+      <text x="12" y="40" fill="#000000" font-size="9.5" font-family="monospace">es = 6.1121·exp(17.67T/(T+243.5))</text>
+      <text x="12" y="58" fill="#000000" font-size="9.5" font-family="monospace">z_LCL ≈ 125·(T - Td) [m]</text>
+      <text x="12" y="74" fill="#666666" font-size="9">L_phys = ||dE/dt - Q||^2</text>
+    </g>
 
-  <!-- Inside Cell: Hydrodynamic Mass Continuity Box -->
-  <g transform="translate(240, 315)">
-    <rect width="440" height="100" rx="2" fill="#ffffff" stroke="#333333" stroke-width="0.8"/>
-    <text x="12" y="20" fill="#000000" font-size="10" font-weight="bold">Catchment Hydrodynamic Continuity &amp; Rating Decay</text>
-    <text x="12" y="40" fill="#000000" font-size="9" font-family="monospace">d(WL)/dt = Qin(t) - Qout(t) + ΔWLPINN - (0.15 / τ_hydro)·(WL - WLbase)</text>
-    <text x="12" y="60" fill="#444444" font-size="8.5">Continuously updates river stage, rating curve hysteresis, and flood surge travel time.</text>
-    <text x="12" y="76" fill="#000000" font-size="8.5" font-weight="bold">Pampanga River Confluence Error: 18.2 cm</text>
-  </g>
+    <!-- Inside Cell: Closed Form Solution Box -->
+    <g transform="translate(18, 148)">
+      <rect width="485" height="115" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+      <text x="14" y="24" fill="#000000" font-size="12" font-weight="bold">Closed-Form Continuous-Time Solution (Neural ODE)</text>
+      <text x="14" y="50" fill="#000000" font-size="11" font-family="monospace" font-weight="bold">h(t+Δt) = exp(-Δt/τ) ⊙ h(t) + [1 - exp(-Δt/τ)] ⊙ tanh(Win·x + Wrec·h + bh)</text>
+      <line x1="14" y1="66" x2="471" y2="66" stroke="#dddddd" stroke-width="1"/>
+      <text x="14" y="84" fill="#333333" font-size="10">• Exact analytical solution: zero numerical integration steps</text>
+      <text x="14" y="100" fill="#333333" font-size="10">• Invariant to non-uniform sensor arrival intervals Δt ∈ (0, ∞)</text>
+    </g>
 
-  <!-- Output Vector on Right -->
-  <g transform="translate(750, 140)">
-    <rect width="140" height="210" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
-    <text x="70" y="24" text-anchor="middle" fill="#000000" font-size="11" font-weight="bold">Outputs y(t+Δt)</text>
-    <line x1="15" y1="34" x2="125" y2="34" stroke="#cccccc" stroke-width="0.8"/>
-    <text x="18" y="58" fill="#000000" font-size="10">• Water Level WL(t)</text>
-    <text x="18" y="82" fill="#000000" font-size="10">• Rain Prob P(Rain)</text>
-    <text x="18" y="106" fill="#000000" font-size="10">• Burst mm/hr</text>
-    <text x="18" y="130" fill="#000000" font-size="10">• Temp &amp; Heat Index</text>
-    <text x="18" y="154" fill="#000000" font-size="10">• Dynamic Confidence</text>
-    <text x="18" y="184" fill="#000000" font-size="8.5" font-weight="bold">Original Computed</text>
-    <text x="18" y="196" fill="#000000" font-size="8.5" font-weight="bold">Derived Prediction</text>
+    <!-- Inside Cell: Hydrodynamic Mass Continuity Box -->
+    <g transform="translate(18, 274)">
+      <rect width="485" height="70" rx="2" fill="#ffffff" stroke="#333333" stroke-width="1.2"/>
+      <text x="14" y="22" fill="#000000" font-size="11" font-weight="bold">Catchment Hydrodynamic Continuity (River Stage ODE)</text>
+      <text x="14" y="42" fill="#000000" font-size="10" font-family="monospace">d(WL)/dt = Qin(t) - Qout(t) + ΔWL_LNN - (0.15 / τ_hydro)·(WL - WL_base)</text>
+      <text x="14" y="58" fill="#555555" font-size="9.5">Calumpit &amp; Central Luzon Basins: 18.2 cm River Stage Crest Accuracy</text>
+    </g>
   </g>
 
   <!-- Connection: Cell -> Output -->
-  <line x1="700" y1="245" x2="750" y2="245" stroke="#000000" stroke-width="1.2" marker-end="url(#arrow2)"/>
-  <text x="725" y="238" text-anchor="middle" fill="#000000" font-size="9.5" font-style="italic">y(t)</text>
+  <line x1="770" y1="200" x2="815" y2="200" stroke="#000000" stroke-width="2" marker-end="url(#arrow2)"/>
+
+  <!-- Output Vector on Right -->
+  <g transform="translate(820, 40)">
+    <rect width="160" height="320" rx="3" fill="#fcfcfc" stroke="#000000" stroke-width="1.5"/>
+    <line x1="0" y1="36" x2="160" y2="36" stroke="#000000" stroke-width="1.2"/>
+    <text x="80" y="24" text-anchor="middle" fill="#000000" font-size="12" font-weight="bold">OUTPUT h(t+Δt)</text>
+
+    <text x="14" y="70" fill="#000000" font-size="11" font-weight="bold">1. Forecast T(t+Δt)</text>
+    <text x="14" y="100" fill="#000000" font-size="11" font-weight="bold">2. Forecast HI(t+Δt)</text>
+    <text x="14" y="130" fill="#000000" font-size="11" font-weight="bold">3. Rain Probability</text>
+    <text x="14" y="160" fill="#000000" font-size="11" font-weight="bold">4. Volume (mm/hr)</text>
+    <text x="14" y="190" fill="#000000" font-size="11" font-weight="bold">5. River Stage (m)</text>
+    
+    <line x1="14" y1="210" x2="146" y2="210" stroke="#cccccc" stroke-width="1"/>
+    <text x="14" y="235" fill="#000000" font-size="10.5" font-weight="bold">Performance:</text>
+    <text x="14" y="255" fill="#333333" font-size="10">• Latency: 53.99 μs</text>
+    <text x="14" y="275" fill="#333333" font-size="10">• Temp MAE: 0.30°C</text>
+    <text x="14" y="295" fill="#333333" font-size="10">• Stage MAE: 18.2 cm</text>
+  </g>
 </svg>
