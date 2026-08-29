@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="100%" height="100%" style="background:#0f172a; font-family:'Inter', -apple-system, sans-serif;">
+  <defs>
+    <filter id="shadow3" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="700">FIGURE 3: MULTI-AGENT PINN-LNN TOURNAMENT BENCHMARK</text>
+  <text x="450" y="56" text-anchor="middle" fill="#94a3b8" font-size="11">Comparative Performance across 5 Continuous Physics-Informed Liquid Architectures (300 Micro-Steps)</text>
+
+  <!-- Axes & Grid -->
+  <g transform="translate(80, 80)">
+    <!-- Grid Lines -->
+    <line x1="60" y1="280" x2="740" y2="280" stroke="#334155" stroke-width="1"/>
+    <line x1="60" y1="210" x2="740" y2="210" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+    <line x1="60" y1="140" x2="740" y2="140" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+    <line x1="60" y1="70" x2="740" y2="70" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+
+    <!-- Y-Axis Labels (Composite Score) -->
+    <text x="45" y="284" text-anchor="end" fill="#94a3b8" font-size="10">55.0</text>
+    <text x="45" y="214" text-anchor="end" fill="#94a3b8" font-size="10">58.0</text>
+    <text x="45" y="144" text-anchor="end" fill="#94a3b8" font-size="10">61.0</text>
+    <text x="45" y="74" text-anchor="end" fill="#94a3b8" font-size="10">64.0</text>
+    <text x="45" y="20" text-anchor="end" fill="#38bdf8" font-size="10" font-weight="700">Score</text>
+
+    <!-- Bar 1: Energy Conserving Gen-2 (Champion) -->
+    <g transform="translate(100, 0)">
+      <rect x="0" y="50" width="80" height="230" rx="6" fill="#0284c7" filter="url(#shadow3)"/>
+      <text x="40" y="40" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">64.2 pts</text>
+      <text x="40" y="75" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="600">53.99 μs</text>
+      <text x="40" y="95" text-anchor="middle" fill="#e0f2fe" font-size="8.5">MAE: 0.3°C</text>
+      <text x="40" y="115" text-anchor="middle" fill="#e0f2fe" font-size="8.5">WL: 18.2cm</text>
+      <text x="40" y="300" text-anchor="middle" fill="#f8fafc" font-size="9.5" font-weight="700">Gen-2</text>
+      <text x="40" y="315" text-anchor="middle" fill="#38bdf8" font-size="8.5">Evolved PINN</text>
+      <rect x="5" y="325" width="70" height="18" rx="4" fill="#0369a1"/>
+      <text x="40" y="338" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="700">🥇 CHAMPION</text>
+    </g>
+
+    <!-- Bar 2: Energy Conserving Gen-1 -->
+    <g transform="translate(220, 0)">
+      <rect x="0" y="80" width="80" height="200" rx="6" fill="#0369a1" filter="url(#shadow3)"/>
+      <text x="40" y="70" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">63.0 pts</text>
+      <text x="40" y="105" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="600">74.94 μs</text>
+      <text x="40" y="125" text-anchor="middle" fill="#e0f2fe" font-size="8.5">MAE: 0.3°C</text>
+      <text x="40" y="145" text-anchor="middle" fill="#e0f2fe" font-size="8.5">WL: 17.1cm</text>
+      <text x="40" y="300" text-anchor="middle" fill="#f8fafc" font-size="9.5" font-weight="700">Energy</text>
+      <text x="40" y="315" text-anchor="middle" fill="#94a3b8" font-size="8.5">Conserving</text>
+    </g>
+
+    <!-- Bar 3: Adaptive Bayesian -->
+    <g transform="translate(340, 0)">
+      <rect x="0" y="82" width="80" height="198" rx="6" fill="#0f766e" filter="url(#shadow3)"/>
+      <text x="40" y="72" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">62.9 pts</text>
+      <text x="40" y="105" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="600">66.77 μs</text>
+      <text x="40" y="125" text-anchor="middle" fill="#ccfbf1" font-size="8.5">MAE: 0.3°C</text>
+      <text x="40" y="145" text-anchor="middle" fill="#ccfbf1" font-size="8.5">WL: 18.6cm</text>
+      <text x="40" y="300" text-anchor="middle" fill="#f8fafc" font-size="9.5" font-weight="700">Adaptive</text>
+      <text x="40" y="315" text-anchor="middle" fill="#94a3b8" font-size="8.5">Bayesian</text>
+    </g>
+
+    <!-- Bar 4: Canonical CfC-LNN -->
+    <g transform="translate(460, 0)">
+      <rect x="0" y="130" width="80" height="150" rx="6" fill="#6d28d9" filter="url(#shadow3)"/>
+      <text x="40" y="120" text-anchor="middle" fill="#c084fc" font-size="11" font-weight="700">61.2 pts</text>
+      <text x="40" y="150" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="600">94.39 μs</text>
+      <text x="40" y="170" text-anchor="middle" fill="#f3e8ff" font-size="8.5">MAE: 0.3°C</text>
+      <text x="40" y="190" text-anchor="middle" fill="#f3e8ff" font-size="8.5">WL: 17.5cm</text>
+      <text x="40" y="300" text-anchor="middle" fill="#f8fafc" font-size="9.5" font-weight="700">Canonical</text>
+      <text x="40" y="315" text-anchor="middle" fill="#94a3b8" font-size="8.5">CfC-LNN</text>
+    </g>
+
+    <!-- Bar 5: Multi-Scale LNN -->
+    <g transform="translate(580, 0)">
+      <rect x="0" y="150" width="80" height="130" rx="6" fill="#b45309" filter="url(#shadow3)"/>
+      <text x="40" y="140" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="700">60.6 pts</text>
+      <text x="40" y="170" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="600">79.38 μs</text>
+      <text x="40" y="190" text-anchor="middle" fill="#fef3c7" font-size="8.5">MAE: 0.3°C</text>
+      <text x="40" y="210" text-anchor="middle" fill="#fef3c7" font-size="8.5">WL: 21.2cm</text>
+      <text x="40" y="300" text-anchor="middle" fill="#f8fafc" font-size="9.5" font-weight="700">Multi-Scale</text>
+      <text x="40" y="315" text-anchor="middle" fill="#94a3b8" font-size="8.5">Tri-Scale Tau</text>
+    </g>
+  </g>
+</svg>

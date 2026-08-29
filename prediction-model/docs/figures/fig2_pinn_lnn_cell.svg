@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="100%" height="100%" style="background:#0b1120; font-family:'Inter', -apple-system, sans-serif;">
+  <defs>
+    <linearGradient id="cellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="glowBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="glowPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="boxShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">FIGURE 2: PHYSICS-INFORMED LIQUID NEURAL ODE (PINN-LNN) CELL STRUCTURE</text>
+  <text x="450" y="56" text-anchor="middle" fill="#94a3b8" font-size="11.5">Continuous-Time Closed-Form Liquid Neural ODE with Embedded Magnus-Tetens &amp; Rating Dynamics</text>
+
+  <!-- Main Cell Boundary -->
+  <rect x="230" y="80" width="440" height="360" rx="16" fill="url(#cellGrad)" stroke="#38bdf8" stroke-width="2" filter="url(#boxShadow)"/>
+  <rect x="230" y="80" width="440" height="32" rx="16" fill="#1e293b"/>
+  <text x="450" y="102" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">GARCIA PINN-LNN CONTINUOUS TIME CELL</text>
+
+  <!-- Input Vector on Left -->
+  <g transform="translate(40, 160)">
+    <rect width="140" height="200" rx="10" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+    <text x="70" y="26" text-anchor="middle" fill="#f8fafc" font-size="12" font-weight="700">Input Vector x(t)</text>
+    <text x="20" y="60" fill="#cbd5e1" font-size="10">• Temp T(t)</text>
+    <text x="20" y="85" fill="#cbd5e1" font-size="10">• Heat Index HI(t)</text>
+    <text x="20" y="110" fill="#cbd5e1" font-size="10">• Wind Speed W(t)</text>
+    <text x="20" y="135" fill="#cbd5e1" font-size="10">• Surface Pres. P(t)</text>
+    <text x="20" y="160" fill="#cbd5e1" font-size="10">• Micro-Lead Δt</text>
+    <text x="20" y="185" fill="#94a3b8" font-size="8.5">4D Standardized Feat.</text>
+  </g>
+
+  <!-- Connection: Input -> Cell -->
+  <path d="M 180 260 L 230 260" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="205" y="250" text-anchor="middle" fill="#38bdf8" font-size="9" font-weight="600">x(t)</text>
+
+  <!-- Inside Cell: Dynamic Time Constant -->
+  <g transform="translate(255, 125)">
+    <rect width="180" height="85" rx="8" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.2"/>
+    <text x="12" y="20" fill="#c084fc" font-size="10" font-weight="700">Adaptive Liquid Decay: τ</text>
+    <text x="12" y="42" fill="#f8fafc" font-size="9">Decay Weight: e^(-Δt / τ_i)</text>
+    <text x="12" y="60" fill="#94a3b8" font-size="8.5">Station Hydro-Tau: τ_hydro</text>
+    <text x="12" y="76" fill="#38bdf8" font-size="8">Station-Calibrated Memory</text>
+  </g>
+
+  <!-- Inside Cell: Physics Loss / Thermodynamic Constraints -->
+  <g transform="translate(465, 125)">
+    <rect width="185" height="85" rx="8" fill="#0f172a" stroke="#f59e0b" stroke-width="1.2"/>
+    <text x="10" y="20" fill="#fbbf24" font-size="10" font-weight="700">Thermodynamic Physics</text>
+    <text x="10" y="38" fill="#e2e8f0" font-size="8.5">Magnus Sat: es = 6.112 exp(...)</text>
+    <text x="10" y="54" fill="#e2e8f0" font-size="8.5">LCL Saturation: z_LCL ≈ 125 ΔTd</text>
+    <text x="10" y="72" fill="#94a3b8" font-size="8">L_phys = || dE/dt - Q ||^2</text>
+  </g>
+
+  <!-- Inside Cell: Continuous State Update -->
+  <g transform="translate(255, 230)">
+    <rect width="395" height="95" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="15" y="22" fill="#38bdf8" font-size="11" font-weight="700">Closed-Form Continuous-Time Solution (ODE)</text>
+    <text x="15" y="46" fill="#ffffff" font-size="10.5" font-family="monospace">h(t+Δt) = e^(-Δt/τ) ⊙ h(t) + (1 - e^(-Δt/τ)) ⊙ tanh(Win·x + Wrec·h + bh)</text>
+    <text x="15" y="68" fill="#94a3b8" font-size="9">Continuous evaluation across arbitrary lead times Δt ∈ [0, 72h] with zero step-drift</text>
+    <text x="15" y="85" fill="#34d399" font-size="9">Inference Time: 53.99 - 74.94 microseconds per step</text>
+  </g>
+
+  <!-- Inside Cell: Hydrodynamic Stage Coupling -->
+  <g transform="translate(255, 345)">
+    <rect width="395" height="75" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
+    <text x="15" y="20" fill="#34d399" font-size="10.5" font-weight="700">Hydrodynamic Mass Continuity</text>
+    <text x="15" y="42" fill="#f8fafc" font-size="9">d(WL)/dt = Qin(t) - Qout(t) - (0.15 / τ_hydro)·(WL - WL_base) + ΔWL_PINN</text>
+    <text x="15" y="62" fill="#94a3b8" font-size="8.5">Yields precise river crest forecast (Pampanga River stage error: 18.2 cm)</text>
+  </g>
+
+  <!-- Output Vector on Right -->
+  <g transform="translate(720, 160)">
+    <rect width="140" height="200" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+    <text x="70" y="26" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Outputs y(t+Δt)</text>
+    <text x="15" y="60" fill="#f8fafc" font-size="10">• Water Level WL(t)</text>
+    <text x="15" y="85" fill="#f8fafc" font-size="10">• Rain Prob P(Rain)</text>
+    <text x="15" y="110" fill="#f8fafc" font-size="10">• Burst mm/hr</text>
+    <text x="15" y="135" fill="#f8fafc" font-size="10">• Temp / Heat Index</text>
+    <text x="15" y="160" fill="#f8fafc" font-size="10">• Upper/Lower Bounds</text>
+    <text x="15" y="185" fill="#34d399" font-size="8.5">Derived Intelligence</text>
+  </g>
+
+  <!-- Connection: Cell -> Output -->
+  <path d="M 670 260 L 720 260" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="695" y="250" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">y(t+Δt)</text>
+</svg>
