@@ -2,7 +2,7 @@
  * Server-side client for communicating with Kloudtrack API
  * This runs ONLY on the server and includes the secret API token
  */
-import { DashboardRaw, TelemetryHistoryMetricRaw, TelemetryHistoryTakeRaw } from "@/types/telemetry-raw";
+import { DashboardRaw, TelemetryHistoryMetricRaw, TelemetryHistoryTakeRaw, TelemetryMetricRaw } from "@/types/telemetry-raw";
 import {
   WaterLevelDashboardRaw,
   WaterLevelHistoryRaw,
@@ -111,9 +111,16 @@ export async function getLatestTelemetryFromKloudtrackApi(stationId: string): Pr
   return kloudtrackApi.get<TelemetryHistoryTakeRaw>(`/telemetry/station/${stationId}/history?take=1`);
 }
 
-export async function getTelemetryMetricHistoryFromKloudtrackApi(stationId: string, parameter: string, params: Record<string, string>): Promise<TelemetryHistoryMetricRaw> {
+export async function getTelemetryMetricHistoryFromKloudtrackApi(
+  stationId: string,
+  parameter: string,
+  params: Record<string, string>
+): Promise<TelemetryMetricRaw[]> {
   const queryString = new URLSearchParams(params).toString();
-  return kloudtrackApi.get<TelemetryHistoryMetricRaw>(`/telemetry/station/${stationId}/history/${parameter}?${queryString}`);
+  const suffix = queryString ? `?${queryString}` : "";
+  return kloudtrackApi.get<TelemetryMetricRaw[]>(
+    `/telemetry/station/${stationId}/parameter/${parameter}${suffix}`
+  );
 }
 
 

@@ -149,8 +149,14 @@ export class TelemetryService {
           Object.fromEntries(params)
         );
 
+        const rawList = Array.isArray(rawData)
+          ? rawData
+          : Array.isArray((rawData as unknown as { data: TelemetryMetricRaw[] }).data)
+          ? (rawData as unknown as { data: TelemetryMetricRaw[] }).data
+          : (rawData as unknown as { telemetry: TelemetryMetricRaw[] }).telemetry || [];
+
         // Charts expect oldest-to-newest points so the latest reading renders on the right.
-        const result = (rawData.telemetry || []).slice().sort((a, b) => {
+        const result = rawList.slice().sort((a: TelemetryMetricRaw, b: TelemetryMetricRaw) => {
           const aTime = new Date(a.recordedAt).getTime();
           const bTime = new Date(b.recordedAt).getTime();
           return aTime - bTime;
@@ -158,7 +164,7 @@ export class TelemetryService {
 
         this.parameterCache.set(cacheKey, result, CACHE_CONFIG.telemetry.parameterHistory);
 
-        console.log(`Successfully fetched ${result.length} data points for ${parameter}`);
+        console.log(`Successfully fetched ${result.length} real data points for ${parameter}`);
         return result;
       } catch (error) {
         console.warn(`[getStationParameterHistory] Upstream failed for ${parameter} at ${stationId}, reading 15-minute MQTT stream history:`, error);
