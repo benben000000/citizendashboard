@@ -164,12 +164,6 @@ const HeroMetric = ({
               <span className="font-light">{todayAtLabel}</span>{" "}
               <span className="font-medium">{recordedAt}</span>
             </p>
-            {isSpatialEstimate && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-200 text-xs font-mono backdrop-blur-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                Spatial Estimate ({estimateSource || "Nearby AWS"})
-              </span>
-            )}
           </div>
 
           <div className="flex items-center gap-2">

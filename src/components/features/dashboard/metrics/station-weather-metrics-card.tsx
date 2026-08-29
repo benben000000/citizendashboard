@@ -246,12 +246,6 @@ const StationWeatherMetricsCard = ({
           {t("dashboard.metrics.title")}
         </h2>
         <p className="text-xs sm:text-sm leading-4 text-light pb-1">{recordDate.formatted}</p>
-        {telemetryMetrics?.isSpatialEstimate && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-blue-200 text-xs font-mono backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            Spatial Estimate ({telemetryMetrics.estimateSource || "Nearby AWS"})
-          </span>
-        )}
       </div>
       <Link
         href="/terminologies"
