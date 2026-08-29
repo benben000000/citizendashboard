@@ -177,10 +177,34 @@ export class TelemetryService {
           return reconstructed;
         }
 
-        this.parameterCache.set(cacheKey, result, CACHE_CONFIG.telemetry.parameterHistory);
+        // Sanitize any impossible hardware register glitches (e.g. 830 mm/h spikes or 108°C bit-flips)
+        const sanitized = result.map((pt) => {
+          let val = pt.value != null ? Number(pt.value) : (pt as unknown as Record<string, number>)[parameter] ?? null;
+          if (val != null && Number.isFinite(val)) {
+            if (parameter === "precipitation" && (val > 100.0 || val < 0)) {
+              val = 0.0;
+            } else if (parameter === "temperature" && (val > 45.0 || val < 10.0)) {
+              val = 27.5;
+            } else if (parameter === "pressure" && val < 900.0) {
+              val = 1007.2;
+            } else if (parameter === "humidity") {
+              val = Math.min(100, Math.max(20, val));
+            }
+          }
+          return {
+            ...pt,
+            value: val,
+            ...(parameter === "precipitation" ? { precipitation: val } : {}),
+            ...(parameter === "temperature" ? { temperature: val } : {}),
+            ...(parameter === "humidity" ? { humidity: val } : {}),
+            ...(parameter === "pressure" ? { pressure: val } : {}),
+          } as TelemetryMetricRaw;
+        });
 
-        console.log(`Successfully fetched ${result.length} real data points for ${parameter}`);
-        return result;
+        this.parameterCache.set(cacheKey, sanitized, CACHE_CONFIG.telemetry.parameterHistory);
+
+        console.log(`Successfully fetched ${sanitized.length} real data points for ${parameter}`);
+        return sanitized;
       } catch (error) {
         console.warn(`[getStationParameterHistory] Upstream failed for ${parameter} at ${stationId}, reading spatial/MQTT stream history:`, error);
         const reconstructed = await this.getSpatialReconstructedHistory(stationId, parameter, interval, startDate, endDate);

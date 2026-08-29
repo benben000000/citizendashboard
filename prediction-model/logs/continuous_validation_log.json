@@ -1,0 +1,237 @@
+[
+  {
+    "cycle": 1,
+    "timestamp_pht": "2026-08-29 19:05:40 PHT",
+    "stations": [
+      {
+        "stationPublicId": "lMAZe9b3",
+        "stationName": "Abucay AWS - Bataan",
+        "raw": {
+          "temperature": 25.78,
+          "humidity": 94.12,
+          "pressure": 997.31,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 0.0,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "95pM7BAV",
+        "stationName": "Do\u00f1a Maria AWS - Balanga City",
+        "raw": {
+          "temperature": 25.12,
+          "humidity": 100,
+          "pressure": 1007.42,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 78.9,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "2Dpo5DAK",
+        "stationName": "1Bataan Command Center - Bataan",
+        "raw": {
+          "temperature": null,
+          "humidity": null,
+          "pressure": null,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 36.5,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "QgbGldAY",
+        "stationName": "Pag-asa Bagac AWS - Bataan",
+        "raw": {
+          "temperature": 27.83,
+          "humidity": 97.8,
+          "pressure": 1009.64,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 0.4,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "Rjz2dbXW",
+        "stationName": "Popolon AWS - Palayan City",
+        "raw": {
+          "temperature": 24.3,
+          "humidity": 100,
+          "pressure": 1003.12,
+          "hourly_rain": 0.11
+        },
+        "processed": {
+          "clean_daily_rain_mm": 12.7,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "4VAl2p9k",
+        "stationName": "Sapang Buho AWS - Palayan City",
+        "raw": {
+          "temperature": 23.77,
+          "humidity": 99.67,
+          "pressure": 1001.36,
+          "hourly_rain": 0.11
+        },
+        "processed": {
+          "clean_daily_rain_mm": 7.9,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "nDby4YpR",
+        "stationName": "General Natividad AWS - Nueva Ecija",
+        "raw": {
+          "temperature": 24.14,
+          "humidity": 100,
+          "pressure": 1001.83,
+          "hourly_rain": 0.11
+        },
+        "processed": {
+          "clean_daily_rain_mm": 6.3,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "03pqkGAj",
+        "stationName": "Bongabon Water District AWS - Nueva Ecija",
+        "raw": {
+          "temperature": 22.55,
+          "humidity": 83.09,
+          "pressure": 844.85,
+          "hourly_rain": 0.11
+        },
+        "processed": {
+          "clean_daily_rain_mm": 8.0,
+          "is_clean": false,
+          "anomalies": [
+            "Pressure outlier (844.85 hPa < 950 MSLP)"
+          ]
+        }
+      },
+      {
+        "stationPublicId": "3nzr8bGo",
+        "stationName": "Alasas AWS - San Fernando City",
+        "raw": {
+          "temperature": 23.91,
+          "humidity": 99.39,
+          "pressure": 1007.02,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 29.6,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "nDbyYbR1",
+        "stationName": "Sabang Morong AWS - Bataan",
+        "raw": {
+          "temperature": null,
+          "humidity": null,
+          "pressure": null,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 0.0,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "rqAkmpKG",
+        "stationName": "Barretto AWS - Olongapo City",
+        "raw": {
+          "temperature": 27.92,
+          "humidity": 92.2,
+          "pressure": 1007.43,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 8.1,
+          "is_clean": false,
+          "anomalies": [
+            "Contained 1 hardware ADC overflow spikes (e.g. 830.5 mm/h)"
+          ]
+        }
+      },
+      {
+        "stationPublicId": "Bkpj1zRO",
+        "stationName": "Old Cabalan AWS - Olongapo City",
+        "raw": {
+          "temperature": null,
+          "humidity": null,
+          "pressure": 1007.28,
+          "hourly_rain": 0.0
+        },
+        "processed": {
+          "clean_daily_rain_mm": 0.0,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "wkAWLzlm",
+        "stationName": "Lazatin AWS - San Fernando City",
+        "raw": {
+          "temperature": 25.93,
+          "humidity": 99.8,
+          "pressure": 1005.37,
+          "hourly_rain": 0.11
+        },
+        "processed": {
+          "clean_daily_rain_mm": 60.6,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "1Zb102pg",
+        "stationName": "San Jose City AWS",
+        "raw": {
+          "temperature": 25.58,
+          "humidity": 90.11,
+          "pressure": 998.02,
+          "hourly_rain": 0.11
+        },
+        "processed": {
+          "clean_daily_rain_mm": 8.8,
+          "is_clean": true,
+          "anomalies": []
+        }
+      },
+      {
+        "stationPublicId": "3nzr48bG",
+        "stationName": "Calumpit AWS - Bulacan",
+        "raw": {
+          "temperature": 24.51,
+          "humidity": 98.97,
+          "pressure": 1007.85,
+          "hourly_rain": 0.11
+        },
+        "processed": {
+          "clean_daily_rain_mm": 40.0,
+          "is_clean": true,
+          "anomalies": []
+        }
+      }
+    ]
+  }
+]

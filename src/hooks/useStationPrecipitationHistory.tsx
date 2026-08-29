@@ -69,13 +69,16 @@ const useStationPrecipitationHistoryData = (
 
   const dayPrecipitation = useMemo(() => {
     // The upstream time-series points represent 15-minute sampled rolling hourly rate (mm/h).
-    // Numerical integration across 15-minute intervals (dt = 15/60 = 0.25 hours).
     const todayPoints = data.filter((point) => point.recordedAt >= dateRange.startOfTodayISO);
     if (todayPoints.length === 0) return 0;
 
+    // Filter out impossible hardware register glitches (e.g. 830 mm/h spikes from reboot ADC overflow)
+    const MAX_PHYSICAL_HOURLY_RAIN = 100.0; // mm/h tropical physical ceiling
+
     const integratedTotal = todayPoints.reduce((sum, pt) => {
       const val = Number.isFinite(pt.value) ? Number(pt.value) : 0;
-      return sum + val * 0.25;
+      const cleanVal = val <= MAX_PHYSICAL_HOURLY_RAIN && val >= 0 ? val : 0;
+      return sum + cleanVal * 0.25;
     }, 0);
 
     return Math.round(integratedTotal * 10) / 10;
