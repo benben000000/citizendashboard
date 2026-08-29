@@ -13,10 +13,13 @@ export const revalidate = CACHE_CONFIG.apiRoutes.telemetryParameter;
  */
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ stationId: string; parameter: string }> }
+  context: { params: { stationId: string; parameter: string } | Promise<{ stationId: string; parameter: string }> }
 ) {
   try {
-    const { stationId, parameter } = await params;
+    const rawParams = context.params;
+    const { stationId, parameter } = rawParams && typeof (rawParams as Promise<unknown>).then === "function" 
+      ? await rawParams 
+      : (rawParams as { stationId: string; parameter: string });
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate") || undefined;
     const endDate = searchParams.get("endDate") || undefined;
