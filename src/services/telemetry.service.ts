@@ -59,43 +59,44 @@ export class TelemetryService {
     return (await this.getDashboardStations()).map((item) => item.station);
   }
 
+  private async fetchAndCacheDashboard(cacheKey: string): Promise<TelemetryPublicDTO[]> {
+    try {
+      const rawData = await getDashboardData();
+      const dashboardStations = this.transformDashboard(rawData);
+      this.dashboardCache.set(cacheKey, dashboardStations, CACHE_CONFIG.telemetry.stationDashboard);
+      return dashboardStations;
+    } catch (error) {
+      console.warn("[getDashboardStations] Upstream API unavailable, connecting to live MQTT stream:", error);
+      const mqttStations = this.getMqttLiveDashboardStations();
+      this.dashboardCache.set(cacheKey, mqttStations, CACHE_CONFIG.telemetry.stationDashboard);
+      return mqttStations;
+    }
+  }
+
   /**
-   * Get dashboard telemetry for every station in one upstream request.
+   * Get dashboard telemetry for every station in one request with instant SWR memory cache.
    */
   async getDashboardStations(): Promise<TelemetryPublicDTO[]> {
     const cacheKey = "telemetry-dashboard";
     const cached = this.dashboardCache.get(cacheKey);
-    if (cached) return cached;
+
+    if (cached) {
+      if (this.dashboardCache.isStale(cacheKey) && !this.ongoingDashboardRequest) {
+        // Non-blocking background revalidation for maximum UI fluidity
+        this.ongoingDashboardRequest = this.fetchAndCacheDashboard(cacheKey).finally(() => {
+          this.ongoingDashboardRequest = undefined;
+        });
+      }
+      return cached;
+    }
 
     if (this.ongoingDashboardRequest) {
       return this.ongoingDashboardRequest;
     }
 
-    this.ongoingDashboardRequest = (async () => {
-      try {
-        const rawData = await getDashboardData();
-        const dashboardStations = this.transformDashboard(rawData);
-
-        this.dashboardCache.set(
-          cacheKey,
-          dashboardStations,
-          CACHE_CONFIG.telemetry.stationDashboard
-        );
-
-        return dashboardStations;
-      } catch (error) {
-        console.warn("[getDashboardStations] Upstream API unavailable, connecting to live MQTT stream:", error);
-        const mqttStations = this.getMqttLiveDashboardStations();
-        this.dashboardCache.set(
-          cacheKey,
-          mqttStations,
-          CACHE_CONFIG.telemetry.stationDashboard
-        );
-        return mqttStations;
-      } finally {
-        this.ongoingDashboardRequest = undefined;
-      }
-    })();
+    this.ongoingDashboardRequest = this.fetchAndCacheDashboard(cacheKey).finally(() => {
+      this.ongoingDashboardRequest = undefined;
+    });
 
     return this.ongoingDashboardRequest;
   }
@@ -198,13 +199,19 @@ export class TelemetryService {
     };
   }
 
+  private static distanceCache = new Map<string, number>();
+
   /**
-   * Great-Circle Haversine distance calculation between two coordinates in kilometers
+   * Great-Circle Haversine distance calculation between two coordinates in kilometers (Memoized)
    */
   private static haversineDistanceKm(
     loc1: [number, number],
     loc2: [number, number]
   ): number {
+    const key = `${loc1[0].toFixed(3)},${loc1[1].toFixed(3)}_${loc2[0].toFixed(3)},${loc2[1].toFixed(3)}`;
+    const cached = TelemetryService.distanceCache.get(key);
+    if (cached !== undefined) return cached;
+
     const toRad = (deg: number) => (deg * Math.PI) / 180;
     const [lon1, lat1] = loc1;
     const [lon2, lat2] = loc2;
@@ -219,7 +226,9 @@ export class TelemetryService {
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    const dist = R * c;
+    TelemetryService.distanceCache.set(key, dist);
+    return dist;
   }
 
   /**

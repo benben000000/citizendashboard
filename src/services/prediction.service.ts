@@ -15,6 +15,9 @@ import type {
 import type { StationPublicInfo } from "@/types/telemetry";
 import type { WeatherCondition } from "@/lib/utils/weather";
 import { DEFAULT_CENTRAL_LUZON_STATIONS } from "@/lib/constants/default-stations";
+import { InMemoryCache } from "@/lib/utils/cache";
+
+const predictionCache = new InMemoryCache<PredictionPublicDTO>(30, 200);
 
 const HORIZON_HOURS_MAP: Record<PredictionHorizon, number> = {
   "1h": 1,
@@ -300,6 +303,10 @@ export class PredictionService {
     stationId: string,
     horizon: PredictionHorizon = "24h"
   ): Promise<PredictionPublicDTO> {
+    const cacheKey = `prediction-${stationId}-${horizon}`;
+    const cached = predictionCache.get(cacheKey);
+    if (cached) return cached;
+
     const horizonHours = HORIZON_HOURS_MAP[horizon] ?? 24;
 
     // 1. Resolve Target Station Metadata
@@ -690,7 +697,7 @@ export class PredictionService {
       daily: dailyForecasts,
     };
 
-    return {
+    const result: PredictionPublicDTO = {
       station,
       summary,
       forecast: points,
@@ -698,6 +705,9 @@ export class PredictionService {
       weatherForecast,
       suddenRainBurst,
     };
+
+    predictionCache.set(cacheKey, result);
+    return result;
   }
 }
 

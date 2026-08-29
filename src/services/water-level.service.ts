@@ -74,40 +74,41 @@ export class WaterLevelService {
     Promise<WaterLevelHistoryMetricDTO>
   >();
 
+  private async fetchAndCacheDashboard(cacheKey: string): Promise<WaterLevelPublicDTO[]> {
+    try {
+      const rawData = await getWaterLevelDashboardFromKloudtrackApi();
+      const dashboardStations = this.transformDashboard(rawData);
+      this.dashboardCache.set(cacheKey, dashboardStations, CACHE_CONFIG.waterLevel.stationDashboard);
+      return dashboardStations;
+    } catch (error) {
+      console.warn("[getWaterLevelDashboardStations] Upstream API unavailable, connecting to live MQTT stream:", error);
+      const mqttStations = this.getMqttLiveWaterLevelDashboard();
+      this.dashboardCache.set(cacheKey, mqttStations, CACHE_CONFIG.waterLevel.stationDashboard);
+      return mqttStations;
+    }
+  }
+
   async getDashboardStations(): Promise<WaterLevelPublicDTO[]> {
     const cacheKey = "water-level-dashboard";
     const cached = this.dashboardCache.get(cacheKey);
-    if (cached) return cached;
+
+    if (cached) {
+      if (this.dashboardCache.isStale(cacheKey) && !this.ongoingDashboardRequest) {
+        // Non-blocking background revalidation
+        this.ongoingDashboardRequest = this.fetchAndCacheDashboard(cacheKey).finally(() => {
+          this.ongoingDashboardRequest = undefined;
+        });
+      }
+      return cached;
+    }
 
     if (this.ongoingDashboardRequest) {
       return this.ongoingDashboardRequest;
     }
 
-    this.ongoingDashboardRequest = (async () => {
-      try {
-        const rawData = await getWaterLevelDashboardFromKloudtrackApi();
-        const dashboardStations = this.transformDashboard(rawData);
-
-        this.dashboardCache.set(
-          cacheKey,
-          dashboardStations,
-          CACHE_CONFIG.waterLevel.stationDashboard
-        );
-
-        return dashboardStations;
-      } catch (error) {
-        console.warn("[getWaterLevelDashboardStations] Upstream API unavailable, connecting to live MQTT stream:", error);
-        const mqttStations = this.getMqttLiveWaterLevelDashboard();
-        this.dashboardCache.set(
-          cacheKey,
-          mqttStations,
-          CACHE_CONFIG.waterLevel.stationDashboard
-        );
-        return mqttStations;
-      } finally {
-        this.ongoingDashboardRequest = undefined;
-      }
-    })();
+    this.ongoingDashboardRequest = this.fetchAndCacheDashboard(cacheKey).finally(() => {
+      this.ongoingDashboardRequest = undefined;
+    });
 
     return this.ongoingDashboardRequest;
   }
