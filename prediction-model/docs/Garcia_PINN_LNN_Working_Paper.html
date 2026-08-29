@@ -32,19 +32,6 @@
     @page {
       size: A4 portrait;
       margin: 14mm 16mm 14mm 16mm;
-      @bottom-center {
-        content: counter(page);
-        font-family: 'Newsreader', 'Times New Roman', serif;
-        font-size: 8.5pt;
-        color: #000000;
-      }
-      @top-right {
-        content: "Garcia: Physics-Informed Liquid Neural Networks for Continuous Nowcasting";
-        font-family: 'Newsreader', 'Times New Roman', serif;
-        font-size: 7.5pt;
-        color: #444444;
-        font-style: italic;
-      }
     }
 
     *, *::before, *::after {
@@ -53,8 +40,8 @@
 
     body {
       font-family: 'Newsreader', 'Times New Roman', Times, Georgia, serif;
-      font-size: 9.5pt;
-      line-height: 1.38;
+      font-size: 8.8pt;
+      line-height: 1.28;
       color: #000000;
       background-color: #ffffff;
       margin: 0 auto;
@@ -67,59 +54,59 @@
     /* ── ACADEMIC PAPER HEADER ── */
     .paper-header {
       text-align: center;
-      margin-bottom: 8pt;
-      padding-bottom: 4pt;
+      margin-bottom: 6pt;
+      padding-bottom: 2pt;
     }
 
     .paper-type {
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       color: #000000;
-      margin-bottom: 4pt;
+      margin-bottom: 3pt;
     }
 
     .paper-title {
-      font-size: 15pt;
+      font-size: 13.5pt;
       font-weight: 700;
-      line-height: 1.2;
+      line-height: 1.18;
       color: #000000;
-      margin: 0 0 6pt 0;
+      margin: 0 0 4pt 0;
       letter-spacing: -0.1px;
     }
 
     .author-name {
-      font-size: 10.5pt;
+      font-size: 9.5pt;
       font-weight: 700;
       color: #000000;
       margin-bottom: 1pt;
     }
 
     .author-affiliation {
-      font-size: 8.5pt;
+      font-size: 8pt;
       color: #222222;
       font-style: italic;
-      margin-bottom: 2pt;
+      margin-bottom: 1pt;
     }
 
     .author-partner {
-      font-size: 8pt;
+      font-size: 7.5pt;
       color: #444444;
-      margin-top: 2pt;
+      margin-top: 1pt;
     }
 
     /* ── ABSTRACT & KEYWORDS (IEEE / arXiv Style) ── */
     .abstract-wrapper {
-      margin: 6pt 10pt 8pt 10pt;
+      margin: 4pt 8pt 6pt 8pt;
       padding: 0;
       text-align: justify;
       text-justify: inter-word;
     }
 
     .abstract-text {
-      font-size: 8.5pt;
-      line-height: 1.32;
+      font-size: 8pt;
+      line-height: 1.24;
       margin: 0;
     }
 
@@ -129,8 +116,8 @@
     }
 
     .keywords-line {
-      font-size: 8pt;
-      margin-top: 4pt;
+      font-size: 7.5pt;
+      margin-top: 3pt;
       font-style: normal;
     }
 
@@ -141,34 +128,34 @@
 
     /* ── SECTION HEADINGS ── */
     h2 {
-      font-size: 10pt;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: #000000;
-      text-align: center;
-      margin-top: 10pt;
-      margin-bottom: 3pt;
-      page-break-after: avoid;
-      break-after: avoid;
-    }
-
-    h3 {
       font-size: 9pt;
       font-weight: 700;
-      font-style: italic;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: #000000;
+      text-align: center;
       margin-top: 6pt;
       margin-bottom: 2pt;
       page-break-after: avoid;
       break-after: avoid;
     }
 
+    h3 {
+      font-size: 8.2pt;
+      font-weight: 700;
+      font-style: italic;
+      color: #000000;
+      margin-top: 4pt;
+      margin-bottom: 1.5pt;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
     p {
-      margin: 0 0 3.5pt 0;
+      margin: 0 0 2.5pt 0;
       text-align: justify;
       text-justify: inter-word;
-      text-indent: 1.2em;
+      text-indent: 1em;
     }
 
     p.no-indent {
@@ -176,14 +163,14 @@
     }
 
     ul, ol {
-      margin: 2pt 0 4pt 0;
-      padding-left: 18pt;
-      font-size: 8.5pt;
-      line-height: 1.3;
+      margin: 1.5pt 0 3pt 0;
+      padding-left: 14pt;
+      font-size: 8pt;
+      line-height: 1.2;
     }
 
     li {
-      margin-bottom: 2pt;
+      margin-bottom: 1.5pt;
       text-align: justify;
     }
 
@@ -192,8 +179,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin: 3pt 0;
-      padding: 0 4pt;
+      margin: 2pt 0;
+      padding: 0 2pt;
       page-break-inside: avoid;
       break-inside: avoid;
     }
@@ -201,35 +188,44 @@
     .equation-math {
       flex: 1;
       text-align: center;
-      font-size: 9.5pt;
+      font-size: 8.8pt;
     }
 
     .equation-num {
-      font-size: 8.5pt;
+      font-size: 7.8pt;
       font-style: normal;
-      margin-left: 8pt;
+      margin-left: 6pt;
     }
 
     /* ── ACADEMIC TABLES (Strict Booktabs Standard) ── */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 6pt 0;
-      font-size: 7.5pt;
-      line-height: 1.25;
+      margin: 3pt 0;
+      font-size: 6.8pt;
+      line-height: 1.12;
+      page-break-inside: auto;
+      break-inside: auto;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tr {
       page-break-inside: avoid;
       break-inside: avoid;
     }
 
     table thead tr:first-child {
-      border-top: 1.2pt solid #000000;
-      border-bottom: 0.8pt solid #000000;
+      border-top: 1pt solid #000000;
+      border-bottom: 0.6pt solid #000000;
     }
 
     table thead th {
       font-weight: 700;
       color: #000000;
-      padding: 3pt 2pt;
+      padding: 1.8pt 1.5pt;
       text-align: left;
     }
 
@@ -238,11 +234,11 @@
     }
 
     table tbody tr:last-child {
-      border-bottom: 1.2pt solid #000000;
+      border-bottom: 1pt solid #000000;
     }
 
     table tbody td {
-      padding: 2.2pt 2pt;
+      padding: 1.2pt 1.5pt;
       color: #000000;
     }
 
@@ -251,10 +247,10 @@
     }
 
     .table-caption {
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 700;
       color: #000000;
-      margin-bottom: 2pt;
+      margin-bottom: 1.5pt;
       text-align: center;
       letter-spacing: 0.2px;
       page-break-after: avoid;
@@ -263,29 +259,29 @@
 
     /* ── FIGURES & DIAGRAMS (Clean Monochrome) ── */
     .figure-wrapper {
-      margin: 6pt 0;
+      margin: 2.5pt 0;
       text-align: center;
       page-break-inside: avoid;
       break-inside: avoid;
     }
 
     .figure-wrapper img, .figure-wrapper svg {
-      max-height: 165px;
+      max-height: 105px;
       width: auto;
-      max-width: 95%;
+      max-width: 90%;
       margin: 0 auto;
       display: block;
-      border: 0.6pt solid #000000;
-      padding: 2pt;
+      border: 0.5pt solid #000000;
+      padding: 1.5pt;
       background: #ffffff;
     }
 
     .figure-caption {
-      font-size: 7.5pt;
+      font-size: 7.2pt;
       color: #000000;
-      margin-top: 3pt;
+      margin-top: 2pt;
       text-align: justify;
-      line-height: 1.25;
+      line-height: 1.18;
       padding: 0 4pt;
     }
 
@@ -296,15 +292,15 @@
     /* ── CODE & MONOSPACE ── */
     code, pre {
       font-family: 'JetBrains Mono', Courier, monospace;
-      font-size: 7.5pt;
+      font-size: 7pt;
     }
 
     pre {
       background: #fdfdfd;
-      border: 0.6pt solid #000000;
-      padding: 4pt 6pt;
-      margin: 5pt 0;
-      line-height: 1.25;
+      border: 0.5pt solid #000000;
+      padding: 3pt 5pt;
+      margin: 4pt 0;
+      line-height: 1.18;
       page-break-inside: avoid;
       break-inside: avoid;
       color: #000000;
@@ -312,14 +308,14 @@
 
     /* ── REFERENCES ── */
     .references-list {
-      padding-left: 14pt;
-      margin: 6pt 0;
-      font-size: 7.5pt;
-      line-height: 1.3;
+      padding-left: 12pt;
+      margin: 4pt 0;
+      font-size: 6.8pt;
+      line-height: 1.2;
     }
 
     .references-list li {
-      margin-bottom: 2.5pt;
+      margin-bottom: 1.5pt;
       text-align: justify;
     }
 
