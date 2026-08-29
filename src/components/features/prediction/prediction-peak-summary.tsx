@@ -74,33 +74,21 @@ export default function PredictionPeakSummary({
   const maxScale = criticalThreshold * 1.15;
   const peakPercent = Math.min(100, Math.max(0, (peakLevel / maxScale) * 100));
 
-  // Risk stage color & badge styles (High-contrast, bold, readable)
-  const getRiskStyles = (level: FloodRiskLevel) => {
+  // Risk stage color
+  const getRiskColor = (level: FloodRiskLevel) => {
     switch (level) {
       case "critical":
-        return {
-          badge: "bg-rose-500 text-white shadow-xs",
-          barColor: "#e11d48",
-        };
+        return "#e11d48";
       case "warning":
-        return {
-          badge: "bg-orange-500 text-white shadow-xs",
-          barColor: "#f97316",
-        };
+        return "#f97316";
       case "advisory":
-        return {
-          badge: "bg-amber-500 text-slate-950 font-extrabold shadow-xs",
-          barColor: "#eab308",
-        };
+        return "#eab308";
       default:
-        return {
-          badge: "bg-emerald-600 text-white shadow-xs",
-          barColor: "#16a34a",
-        };
+        return "#16a34a";
     }
   };
 
-  const riskStyles = getRiskStyles(summary.riskLevel);
+  const riskColor = getRiskColor(summary.riskLevel);
 
   // Upstream mountain rainfall sum from horizon
   const maxRainMm = forecast.reduce(
@@ -124,18 +112,7 @@ export default function PredictionPeakSummary({
 
   const isHeavyBurst = burst.burstType === "sudden_heavy" || burst.burstType === "short_burst_heavy";
   const isLightBurst = burst.burstType === "sudden_light" || burst.burstType === "short_burst_light";
-
-  const burstBadgeClass = isHeavyBurst
-    ? "bg-rose-500 text-white shadow-xs"
-    : isLightBurst
-    ? "bg-sky-600 text-white shadow-xs"
-    : "bg-emerald-600 text-white shadow-xs";
-
-  const burstIconTint = isHeavyBurst
-    ? "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
-    : isLightBurst
-    ? "bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400"
-    : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+  const burstBadgeColor = isHeavyBurst ? "#e11d48" : isLightBurst ? "#0284c7" : "#16a34a";
 
   return (
     <section
@@ -146,19 +123,19 @@ export default function PredictionPeakSummary({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white/85">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-light/80">
               KloudTrack LNN Nowcast Intelligence
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-light tracking-tight mt-1">
             {station.city || "Central Luzon"} — Continuous-Time Analytics
           </h2>
         </div>
 
         {/* Dynamic Horizon Selector on Screen 2 */}
         {onSelectHorizon && (
-          <div className="flex items-center rounded-full border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-slate-900/80 px-3 py-1.5 shadow-sm backdrop-blur-md self-start sm:self-auto">
+          <div className="flex items-center rounded-full border border-slate-950/10 bg-white/70 px-3.5 py-1.5 shadow-2xs backdrop-blur-md self-start sm:self-auto">
             <PredictionHorizonSelector
               selectedHorizon={horizon}
               onSelectHorizon={onSelectHorizon}
@@ -167,29 +144,28 @@ export default function PredictionPeakSummary({
         )}
       </div>
 
-      {/* ── 3-CARD COMPREHENSIVE GRID ── */}
+      {/* ── 3-CARD COMPREHENSIVE GRID (Matching Pure Glassmorphic Theme) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-6 w-full">
         
         {/* ── CARD 1: PEAK WATER LEVEL & THRESHOLD CLEARANCE ── */}
-        <div className="rounded-2xl p-5 md:p-6 flex flex-col justify-between bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-lg shadow-sky-950/5 hover:shadow-xl transition-all">
+        <div className="glass flex flex-col justify-between p-5 md:p-6">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 rounded-xl bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-400">
-                  <Waves className="h-5 w-5" />
-                </div>
+              <div className="flex items-center gap-2">
+                <Waves className="h-5 w-5 text-light shrink-0" />
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                  <h3 className="text-base sm:text-lg font-bold text-light leading-tight">
                     {t("crestTitle")}
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  <p className="text-xs text-light/75 font-medium">
                     {t("crestSubtitle")}
                   </p>
                 </div>
               </div>
 
               <div
-                className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0 ${riskStyles.badge}`}
+                className="px-3 py-1 rounded-full text-[11px] font-bold text-white uppercase tracking-wider shrink-0 shadow-xs"
+                style={{ backgroundColor: riskColor }}
               >
                 {summary.riskLevel}
               </div>
@@ -197,32 +173,32 @@ export default function PredictionPeakSummary({
 
             {/* Peak Metric Large Display */}
             <div className="my-4 flex flex-wrap items-baseline gap-3">
-              <div className="flex items-baseline gap-1 text-slate-950 dark:text-white">
+              <div className="flex items-baseline gap-1 text-light">
                 <span className="text-4xl sm:text-5xl font-black tracking-tight tabular-nums">
                   {peakLevel.toFixed(2)}
                 </span>
-                <span className="text-base font-bold text-slate-600 dark:text-slate-400">m</span>
+                <span className="text-base font-semibold text-light/80">m</span>
               </div>
 
-              <span className="text-xs font-semibold text-slate-800 dark:text-white/90 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-lg shadow-2xs">
+              <span className="text-xs font-semibold text-light/90 bg-white/30 dark:bg-white/10 px-2.5 py-1 rounded-lg border border-white/20">
                 {t("expectedAt", { time: formattedPeakTime })}
               </span>
             </div>
 
             {/* Minimalist Flood Threshold Bar */}
             <div className="space-y-2 my-4">
-              <div className="flex justify-between items-center text-[11px] font-bold text-slate-700 dark:text-slate-300">
+              <div className="flex justify-between items-center text-[11px] font-semibold text-light/80">
                 <span>{t("thresholdLabels.normal")} &lt;{advisoryThreshold.toFixed(1)}m</span>
                 <span>{t("thresholdLabels.critical")} {criticalThreshold.toFixed(1)}m</span>
               </div>
 
-              {/* Clean Segmented Track */}
-              <div className="relative h-2.5 w-full rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden p-0.5 border border-slate-300/60 dark:border-white/10">
+              {/* Clean Adaptive Track */}
+              <div className="relative h-2 w-full rounded-full bg-slate-900/10 dark:bg-white/15 overflow-hidden p-0.5 border border-white/20">
                 <div
-                  className="h-full rounded-full transition-all duration-500 shadow-xs"
+                  className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${peakPercent}%`,
-                    backgroundColor: riskStyles.barColor,
+                    backgroundColor: riskColor,
                   }}
                 />
               </div>
@@ -230,11 +206,11 @@ export default function PredictionPeakSummary({
           </div>
 
           {/* Clearance Notice */}
-          <div className="pt-3.5 border-t border-slate-200 dark:border-white/10 flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
+          <div className="pt-3.5 border-t border-slate-950/10 dark:border-white/10 flex items-center gap-2 text-xs font-medium text-light/90">
             {isExceeded ? (
               <>
-                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-                <span className="text-rose-700 dark:text-rose-400">
+                <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                <span className="text-rose-600 dark:text-rose-400 font-semibold">
                   {t("clearanceExceeded", { clearance: clearance.toFixed(2) })}
                 </span>
               </>
@@ -253,31 +229,30 @@ export default function PredictionPeakSummary({
         </div>
 
         {/* ── CARD 2: SUDDEN RAIN & SHORT BURST DETECTION ── */}
-        <div className="rounded-2xl p-5 md:p-6 flex flex-col justify-between bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-lg shadow-sky-950/5 hover:shadow-xl transition-all">
+        <div className="glass flex flex-col justify-between p-5 md:p-6">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className={`p-2.5 rounded-xl ${burstIconTint}`}>
-                  {isHeavyBurst ? (
-                    <CloudLightning className="h-5 w-5" />
-                  ) : isLightBurst ? (
-                    <CloudDrizzle className="h-5 w-5" />
-                  ) : (
-                    <Sun className="h-5 w-5" />
-                  )}
-                </div>
+              <div className="flex items-center gap-2">
+                {isHeavyBurst ? (
+                  <CloudLightning className="h-5 w-5 text-light shrink-0" />
+                ) : isLightBurst ? (
+                  <CloudDrizzle className="h-5 w-5 text-light shrink-0" />
+                ) : (
+                  <Sun className="h-5 w-5 text-light shrink-0" />
+                )}
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                  <h3 className="text-base sm:text-lg font-bold text-light leading-tight">
                     {t("burstTitle")}
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  <p className="text-xs text-light/75 font-medium">
                     {t("burstSubtitle")}
                   </p>
                 </div>
               </div>
 
               <div
-                className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0 ${burstBadgeClass}`}
+                className="px-3 py-1 rounded-full text-[11px] font-bold text-white uppercase tracking-wider shrink-0 shadow-xs"
+                style={{ backgroundColor: burstBadgeColor }}
               >
                 {burst.detected
                   ? t(`burstBadges.${burst.burstType}`)
@@ -287,57 +262,57 @@ export default function PredictionPeakSummary({
 
             {/* Peak Burst Intensity & Probability */}
             <div className="my-4 flex flex-wrap items-baseline gap-3">
-              <div className="flex items-baseline gap-1 text-slate-950 dark:text-white">
+              <div className="flex items-baseline gap-1 text-light">
                 <span className="text-4xl sm:text-5xl font-black tracking-tight tabular-nums">
                   {burst.intensityMmHr.toFixed(1)}
                 </span>
-                <span className="text-base font-bold text-slate-600 dark:text-slate-400">mm/hr</span>
+                <span className="text-base font-semibold text-light/80">mm/hr</span>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-800 dark:text-white shadow-2xs">
-                <Radio className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 animate-pulse" />
+              <div className="flex items-center gap-1.5 bg-white/30 dark:bg-white/10 border border-white/20 px-2.5 py-1 rounded-lg text-xs font-semibold text-light/90">
+                <Radio className="h-3 w-3 text-light shrink-0" />
                 <span>{burst.probabilityPct}% Confidence</span>
               </div>
             </div>
 
-            {/* Clean Frosted Minimalist Telemetry Grid (No Text Truncation) */}
+            {/* Clean Adaptive Frosted Glass Sub-Cards (No Text Truncation) */}
             <div className="grid grid-cols-2 gap-2.5 my-3">
-              <div className="bg-white dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/80 dark:border-white/10 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="bg-white/35 dark:bg-white/10 rounded-xl p-2.5 sm:p-3 border border-white/30 dark:border-white/10">
+                <span className="text-[10px] font-semibold text-light/75 uppercase tracking-wider block mb-1">
                   {t("burstLabels.onset")}
                 </span>
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
-                  <Timer className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-light">
+                  <Timer className="h-3.5 w-3.5 text-light shrink-0" />
                   <span className="leading-tight">{burst.expectedWindow}</span>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/80 dark:border-white/10 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="bg-white/35 dark:bg-white/10 rounded-xl p-2.5 sm:p-3 border border-white/30 dark:border-white/10">
+                <span className="text-[10px] font-semibold text-light/75 uppercase tracking-wider block mb-1">
                   {t("burstLabels.duration")}
                 </span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight block">
+                <span className="text-xs font-bold text-light leading-tight block">
                   {burst.durationMinutes > 0
                     ? t("burstLabels.minutes", { min: burst.durationMinutes })
                     : "—"}
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/80 dark:border-white/10 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="bg-white/35 dark:bg-white/10 rounded-xl p-2.5 sm:p-3 border border-white/30 dark:border-white/10">
+                <span className="text-[10px] font-semibold text-light/75 uppercase tracking-wider block mb-1">
                   {t("burstLabels.radar")}
                 </span>
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
-                  <Radar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-light">
+                  <Radar className="h-3.5 w-3.5 text-light shrink-0" />
                   <span>{burst.radarReflectivityDbz.toFixed(1)} dBZ</span>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800/80 rounded-xl p-2.5 sm:p-3 border border-slate-200/80 dark:border-white/10 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="bg-white/35 dark:bg-white/10 rounded-xl p-2.5 sm:p-3 border border-white/30 dark:border-white/10">
+                <span className="text-[10px] font-semibold text-light/75 uppercase tracking-wider block mb-1">
                   {t("burstLabels.cloud")}
                 </span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight block">
+                <span className="text-xs font-bold text-light leading-tight block">
                   {burst.convectiveCloudCover.toFixed(0)}% (Himawari-9)
                 </span>
               </div>
@@ -345,43 +320,41 @@ export default function PredictionPeakSummary({
           </div>
 
           {/* Actionable Protective Advisory */}
-          <div className="pt-3.5 border-t border-slate-200 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-slate-200 leading-relaxed flex items-start gap-2">
-            <span className="h-2 w-2 rounded-full bg-sky-500 mt-1 shrink-0" />
+          <div className="pt-3.5 border-t border-slate-950/10 dark:border-white/10 text-xs font-medium text-light/90 leading-relaxed flex items-start gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-light mt-1.5 shrink-0" />
             <span>{burst.advisory}</span>
           </div>
         </div>
 
         {/* ── CARD 3: UPSTREAM WATERSHED & INFLOW DYNAMICS ── */}
-        <div className="rounded-2xl p-5 md:p-6 flex flex-col justify-between bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-lg shadow-sky-950/5 hover:shadow-xl transition-all">
+        <div className="glass flex flex-col justify-between p-5 md:p-6">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                  <Mountain className="h-5 w-5" />
-                </div>
+              <div className="flex items-center gap-2">
+                <Mountain className="h-5 w-5 text-light shrink-0" />
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                  <h3 className="text-base sm:text-lg font-bold text-light leading-tight">
                     {t("watershedTitle")}
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  <p className="text-xs text-light/75 font-medium">
                     {t("watershedSubtitle")}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-white/10 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/10 shrink-0">
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-light/85 bg-white/30 dark:bg-white/10 px-2.5 py-1 rounded-full border border-white/20 shrink-0">
                 <span>{station.city || "Central Luzon"} Basin</span>
-                <ArrowUpRight className="h-3 w-3" />
+                <ArrowUpRight className="h-3 w-3 text-light" />
               </div>
             </div>
 
             {/* Clean Frosted Watershed Status Grid */}
             <div className="grid grid-cols-2 gap-3 my-4">
-              <div className="bg-white dark:bg-slate-800/80 rounded-xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-white/10 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="bg-white/35 dark:bg-white/10 rounded-xl p-3 sm:p-3.5 border border-white/30 dark:border-white/10">
+                <span className="text-[10px] font-semibold text-light/75 uppercase tracking-wider block mb-1">
                   {t("inflowStatus")}
                 </span>
-                <span className="text-sm sm:text-base font-bold text-slate-950 dark:text-white leading-snug block">
+                <span className="text-sm sm:text-base font-bold text-light leading-snug block">
                   {maxRainMm > 15
                     ? t("inflowCritical")
                     : maxRainMm > 5
@@ -390,22 +363,22 @@ export default function PredictionPeakSummary({
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-800/80 rounded-xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-white/10 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="bg-white/35 dark:bg-white/10 rounded-xl p-3 sm:p-3.5 border border-white/30 dark:border-white/10">
+                <span className="text-[10px] font-semibold text-light/75 uppercase tracking-wider block mb-1">
                   {t("mountainRain")}
                 </span>
-                <div className="flex items-baseline gap-1 text-slate-950 dark:text-white">
+                <div className="flex items-baseline gap-1 text-light">
                   <span className="text-base sm:text-lg font-black tabular-nums">
                     {maxRainMm.toFixed(1)}
                   </span>
-                  <span className="text-xs text-slate-600 dark:text-slate-400 font-bold">mm/hr</span>
+                  <span className="text-xs text-light/75 font-semibold">mm/hr</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Hydrological Physical Runoff Summary */}
-          <div className="pt-3.5 border-t border-slate-200 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
+          <div className="pt-3.5 border-t border-slate-950/10 dark:border-white/10 text-xs font-normal text-light/90 leading-relaxed">
             {maxRainMm > 5 ? t("runoffDescriptionElevated") : t("runoffDescriptionNormal")}
           </div>
         </div>
