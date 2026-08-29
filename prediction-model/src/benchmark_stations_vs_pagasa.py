@@ -448,13 +448,21 @@ class GarciaPINNLNNEngine:
         coupled_rain_prob = max(0.05, min(0.98, 0.65 * nn_rain_prob + 0.35 * phys_rain_prob))
         rain_rate_mmhr = relu((coupled_rain_prob - 0.30) * 12.0) if coupled_rain_prob > 0.30 else 0.0
 
-        # Diurnal Solar Dynamic adjustment
+        # Diurnal Solar Dynamic adjustment with Station-Specific Solar Phase Shift phi_solar
+        micro = station_meta.get("microclimate", "CENTRAL_PLAIN")
+        if "COASTAL" in micro or "HARBOR" in micro or "BAY" in micro or "ESTUARY" in micro:
+            phi_solar = 14.5  # Maritime thermal lag from sea-breeze circulation
+        elif "FOOTHILL" in micro or "MOUNTAIN" in micro:
+            phi_solar = 12.5  # Early orographic cloud formation and afternoon shading
+        else:
+            phi_solar = 13.5  # Standard inland plain solar insolation peak
+
         now_dt = datetime.now()
         target_hour = (now_dt.hour + horizon_hours) % 24
-        diurnal_factor = math.cos(2 * math.pi * (target_hour - 14.0) / 24.0)
+        diurnal_factor = math.cos(2 * math.pi * (target_hour - phi_solar) / 24.0)
         temp_delta = sum(h_next[j] * self.weights["W_temp"][j] for j in range(hidden_dim)) * 0.15
-        pred_temp = round(temp_c + temp_delta + diurnal_factor * 1.8, 2)
-        pred_hi = round(pred_temp + (rh_pct / 100.0) * 5.8 - 0.5, 2)
+        pred_temp = round(temp_c + temp_delta + diurnal_factor * 1.6, 2)
+        pred_hi = round(pred_temp + (rh_pct / 100.0) * 5.6 - 0.4, 2)
 
         # Water Level (Only computed if station has water level capability)
         pred_water = None
