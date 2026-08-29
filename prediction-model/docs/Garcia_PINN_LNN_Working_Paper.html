@@ -31,17 +31,17 @@
   <style>
     @page {
       size: A4 portrait;
-      margin: 22mm 20mm 22mm 20mm;
+      margin: 14mm 16mm 14mm 16mm;
       @bottom-center {
         content: counter(page);
         font-family: 'Newsreader', 'Times New Roman', serif;
-        font-size: 9pt;
+        font-size: 8.5pt;
         color: #000000;
       }
       @top-right {
         content: "Garcia: Physics-Informed Liquid Neural Networks for Continuous Nowcasting";
         font-family: 'Newsreader', 'Times New Roman', serif;
-        font-size: 8pt;
+        font-size: 7.5pt;
         color: #444444;
         font-style: italic;
       }
@@ -53,13 +53,13 @@
 
     body {
       font-family: 'Newsreader', 'Times New Roman', Times, Georgia, serif;
-      font-size: 10pt;
-      line-height: 1.5;
+      font-size: 9.5pt;
+      line-height: 1.38;
       color: #000000;
       background-color: #ffffff;
       margin: 0 auto;
       padding: 0;
-      max-width: 860px;
+      max-width: 100%;
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
     }
@@ -67,59 +67,59 @@
     /* ── ACADEMIC PAPER HEADER ── */
     .paper-header {
       text-align: center;
-      margin-bottom: 20pt;
-      padding-bottom: 14pt;
+      margin-bottom: 8pt;
+      padding-bottom: 4pt;
     }
 
     .paper-type {
-      font-size: 9pt;
+      font-size: 8pt;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 1.2px;
+      letter-spacing: 1px;
       color: #000000;
-      margin-bottom: 12pt;
+      margin-bottom: 4pt;
     }
 
     .paper-title {
-      font-size: 19pt;
+      font-size: 15pt;
       font-weight: 700;
-      line-height: 1.25;
+      line-height: 1.2;
       color: #000000;
-      margin: 0 0 16pt 0;
+      margin: 0 0 6pt 0;
       letter-spacing: -0.1px;
     }
 
     .author-name {
-      font-size: 12pt;
+      font-size: 10.5pt;
       font-weight: 700;
       color: #000000;
-      margin-bottom: 2pt;
+      margin-bottom: 1pt;
     }
 
     .author-affiliation {
-      font-size: 9.5pt;
+      font-size: 8.5pt;
       color: #222222;
       font-style: italic;
-      margin-bottom: 4pt;
+      margin-bottom: 2pt;
     }
 
     .author-partner {
-      font-size: 9pt;
+      font-size: 8pt;
       color: #444444;
-      margin-top: 4pt;
+      margin-top: 2pt;
     }
 
     /* ── ABSTRACT & KEYWORDS (IEEE / arXiv Style) ── */
     .abstract-wrapper {
-      margin: 16pt 20pt 22pt 20pt;
+      margin: 6pt 10pt 8pt 10pt;
       padding: 0;
       text-align: justify;
       text-justify: inter-word;
     }
 
     .abstract-text {
-      font-size: 9pt;
-      line-height: 1.45;
+      font-size: 8.5pt;
+      line-height: 1.32;
       margin: 0;
     }
 
@@ -129,8 +129,8 @@
     }
 
     .keywords-line {
-      font-size: 9pt;
-      margin-top: 8pt;
+      font-size: 8pt;
+      margin-top: 4pt;
       font-style: normal;
     }
 
@@ -141,32 +141,34 @@
 
     /* ── SECTION HEADINGS ── */
     h2 {
-      font-size: 11pt;
+      font-size: 10pt;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.6px;
       color: #000000;
       text-align: center;
-      margin-top: 24pt;
-      margin-bottom: 10pt;
+      margin-top: 10pt;
+      margin-bottom: 3pt;
       page-break-after: avoid;
+      break-after: avoid;
     }
 
     h3 {
-      font-size: 10pt;
+      font-size: 9pt;
       font-weight: 700;
       font-style: italic;
       color: #000000;
-      margin-top: 14pt;
-      margin-bottom: 6pt;
+      margin-top: 6pt;
+      margin-bottom: 2pt;
       page-break-after: avoid;
+      break-after: avoid;
     }
 
     p {
-      margin: 0 0 8pt 0;
+      margin: 0 0 3.5pt 0;
       text-align: justify;
       text-justify: inter-word;
-      text-indent: 1.5em;
+      text-indent: 1.2em;
     }
 
     p.no-indent {
@@ -174,13 +176,14 @@
     }
 
     ul, ol {
-      margin: 4pt 0 10pt 0;
-      padding-left: 24pt;
-      font-size: 9.5pt;
+      margin: 2pt 0 4pt 0;
+      padding-left: 18pt;
+      font-size: 8.5pt;
+      line-height: 1.3;
     }
 
     li {
-      margin-bottom: 4pt;
+      margin-bottom: 2pt;
       text-align: justify;
     }
 
@@ -189,31 +192,33 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin: 10pt 0;
-      padding: 0 8pt;
+      margin: 3pt 0;
+      padding: 0 4pt;
       page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .equation-math {
       flex: 1;
       text-align: center;
-      font-size: 10.5pt;
+      font-size: 9.5pt;
     }
 
     .equation-num {
-      font-size: 9.5pt;
+      font-size: 8.5pt;
       font-style: normal;
-      margin-left: 12pt;
+      margin-left: 8pt;
     }
 
     /* ── ACADEMIC TABLES (Strict Booktabs Standard) ── */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 14pt 0;
-      font-size: 8.5pt;
-      line-height: 1.35;
+      margin: 6pt 0;
+      font-size: 7.5pt;
+      line-height: 1.25;
       page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     table thead tr:first-child {
@@ -224,12 +229,12 @@
     table thead th {
       font-weight: 700;
       color: #000000;
-      padding: 5pt 3pt;
+      padding: 3pt 2pt;
       text-align: left;
     }
 
     table tbody tr {
-      border-bottom: 0.4pt solid #e0e0e0;
+      border-bottom: 0.3pt solid #e5e5e5;
     }
 
     table tbody tr:last-child {
@@ -237,7 +242,7 @@
     }
 
     table tbody td {
-      padding: 4pt 3pt;
+      padding: 2.2pt 2pt;
       color: #000000;
     }
 
@@ -246,36 +251,42 @@
     }
 
     .table-caption {
-      font-size: 8.5pt;
+      font-size: 8pt;
       font-weight: 700;
       color: #000000;
-      margin-bottom: 4pt;
+      margin-bottom: 2pt;
       text-align: center;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.2px;
+      page-break-after: avoid;
+      break-after: avoid;
     }
 
     /* ── FIGURES & DIAGRAMS (Clean Monochrome) ── */
     .figure-wrapper {
-      margin: 18pt 0;
+      margin: 6pt 0;
       text-align: center;
       page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .figure-wrapper img, .figure-wrapper svg {
-      max-width: 100%;
-      height: auto;
-      border: 0.8pt solid #333333;
-      padding: 4pt;
+      max-height: 165px;
+      width: auto;
+      max-width: 95%;
+      margin: 0 auto;
+      display: block;
+      border: 0.6pt solid #000000;
+      padding: 2pt;
       background: #ffffff;
     }
 
     .figure-caption {
-      font-size: 8.5pt;
+      font-size: 7.5pt;
       color: #000000;
-      margin-top: 6pt;
+      margin-top: 3pt;
       text-align: justify;
-      line-height: 1.35;
-      padding: 0 10pt;
+      line-height: 1.25;
+      padding: 0 4pt;
     }
 
     .figure-caption strong {
@@ -285,34 +296,31 @@
     /* ── CODE & MONOSPACE ── */
     code, pre {
       font-family: 'JetBrains Mono', Courier, monospace;
-      font-size: 8pt;
+      font-size: 7.5pt;
     }
 
     pre {
       background: #fdfdfd;
-      border: 0.8pt solid #000000;
-      padding: 8pt 10pt;
-      margin: 10pt 0;
-      line-height: 1.35;
+      border: 0.6pt solid #000000;
+      padding: 4pt 6pt;
+      margin: 5pt 0;
+      line-height: 1.25;
       page-break-inside: avoid;
+      break-inside: avoid;
       color: #000000;
     }
 
     /* ── REFERENCES ── */
     .references-list {
-      padding-left: 18pt;
-      margin: 12pt 0;
-      font-size: 8.5pt;
-      line-height: 1.4;
+      padding-left: 14pt;
+      margin: 6pt 0;
+      font-size: 7.5pt;
+      line-height: 1.3;
     }
 
     .references-list li {
-      margin-bottom: 5pt;
+      margin-bottom: 2.5pt;
       text-align: justify;
-    }
-
-    .page-break {
-      page-break-before: always;
     }
 
     @media print {
@@ -380,7 +388,6 @@
   </p>
 
   <!-- SECTION 3 -->
-  <div class="page-break"></div>
   <h2>III. Model Architecture &amp; Mathematical Formulation</h2>
   <p class="no-indent">
     The Garcia PINN-LNN framework maps a 4-dimensional normalized atmospheric input vector $\mathbf{x}(t) = [\tilde{T}(t), \widetilde{\text{HI}}(t), \tilde{W}(t), \tilde{P}(t)]^T \in \mathbb{R}^4$ to continuous latent trajectories $\mathbf{h}(t + \Delta t) \in \mathbb{R}^{16}$.
@@ -449,7 +456,6 @@
   </div>
 
   <!-- SECTION 4 -->
-  <div class="page-break"></div>
   <h2>IV. Multi-Modal Ingestion &amp; Convex Evidence Fusion</h2>
   <p>
     The system interfaces with an AWS IoT Core mutual-TLS subscriber daemon listening to telemetry streams from 23 field stations. Multi-modal rain probability is computed through an MLE-calibrated <strong>Convex Evidence Combination Layer</strong>:
@@ -625,7 +631,6 @@
   </div>
 
   <!-- SECTION 8 -->
-  <div class="page-break"></div>
   <h2>VIII. Conclusion &amp; Acknowledgments</h2>
   <p>
     This research formulated, calibrated, and deployed the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong>. Enforcing Magnus-Tetens moisture dynamics and hydrodynamic continuity in continuous time eliminated step discretization drift while achieving <strong>53.99 &mu;s step latency</strong>, <strong>0.99 °C MAE across 23 stations</strong> relative to WMO/PAGASA synoptic models, and strict sensor modality isolation.

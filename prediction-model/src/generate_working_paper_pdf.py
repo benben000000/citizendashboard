@@ -40,10 +40,10 @@ def compile_pdf():
             format="A4",
             print_background=True,
             margin={
-                "top": "18mm",
-                "bottom": "18mm",
-                "left": "16mm",
-                "right": "16mm"
+                "top": "12mm",
+                "bottom": "12mm",
+                "left": "14mm",
+                "right": "14mm"
             },
             display_header_footer=True,
             header_template='<div style="font-size: 7.5pt; font-family: sans-serif; color: #94a3b8; width: 100%; text-align: right; padding-right: 16mm; font-style: italic;">Garcia PINN-LNN Working Paper (2026)</div>',
