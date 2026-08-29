@@ -434,40 +434,32 @@ export class TelemetryService {
       cleanPres = toTwoDecimalPlaces(1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24));
     }
 
-    // Real-Time Convective Precipitation (PINN Thermodynamics):
-    // When relative humidity is saturated (>= 94%) and evaporative cooling occurs (temp <= 26.8°C),
-    // atmospheric condensation is actively precipitating.
-    let cleanPrecip = toTwoDecimalPlaces(Math.max(0, (data.precipitation as number) ?? 0));
-    let cleanHourlyPrecip = toTwoDecimalPlaces(Math.max(0, (data.hourlyPrecip as number) ?? 0));
+    // Real Sensor Precipitation
+    const rawHourlyPrecip = (data.hourlyPrecip as number) ?? (data.precipitation as number) ?? 0;
+    const cleanHourlyPrecip = toTwoDecimalPlaces(Math.max(0, rawHourlyPrecip));
+    const cleanPrecip = toTwoDecimalPlaces(Math.max(0, (data.precipitation as number) ?? 0));
 
-    if (cleanHum >= 94.0 && cleanTemp <= 26.8 && cleanPrecip === 0) {
-      cleanPrecip = toTwoDecimalPlaces(Math.max(2.5, (cleanHum - 92.0) * 1.5));
-      cleanHourlyPrecip = cleanPrecip;
-    }
-
-    // Physical Boundary Layer Wind Dynamics:
-    // When anemometer sensor is in calm dead-band (<= 0.2 km/h), maintain atmospheric background breeze
-    let cleanWind = rawWind > 0.2
-      ? rawWind
-      : toTwoDecimalPlaces(1.8 + 0.9 * Math.abs(Math.sin((phHour * Math.PI) / 6.0)));
-
-    const cleanHeatIndex = toTwoDecimalPlaces(cleanTemp + (cleanHum / 100) * 5.5);
+    // Real Sensor Heat Index (fallback to formula if not provided by hardware)
+    const rawHI = data.heatIndex as number | undefined;
+    const cleanHeatIndex = typeof rawHI === "number" && rawHI > 0 && rawHI < 60
+      ? toTwoDecimalPlaces(rawHI)
+      : toTwoDecimalPlaces(cleanTemp + (cleanHum / 100) * 5.5);
 
     return {
       telemetryId: (data.id || data.telemetryId || 0) as number,
       recordedAt: (data.recordedAt || now.toISOString()) as string,
-      temperature: cleanTemp,
-      humidity: cleanHum,
-      pressure: cleanPres,
+      temperature: toTwoDecimalPlaces(cleanTemp),
+      humidity: toTwoDecimalPlaces(cleanHum),
+      pressure: toTwoDecimalPlaces(cleanPres),
       heatIndex: cleanHeatIndex,
-      // Handle wind object flattening
-      windDirection: toTwoDecimalPlaces((data.windDirection ?? wind?.direction ?? 225) as number),
-      windSpeed: toTwoDecimalPlaces(Math.max(0.5, Math.min(150, cleanWind))),
+      // Direct raw sensor wind
+      windDirection: toTwoDecimalPlaces((data.windDirection ?? wind?.direction ?? 0) as number),
+      windSpeed: toTwoDecimalPlaces(Math.max(0, Math.min(150, rawWind))),
       precipitation: cleanPrecip,
       hourlyPrecip: cleanHourlyPrecip,
-      uvIndex: toTwoDecimalPlaces(phHour >= 6 && phHour <= 18 ? 4 : 0),
+      uvIndex: toTwoDecimalPlaces((data.uvIndex as number) ?? (phHour >= 6 && phHour <= 18 ? 4 : 0)),
       distance: toTwoDecimalPlaces((data.distance as number) ?? 165.0),
-      lightIntensity: toTwoDecimalPlaces(phHour >= 6 && phHour <= 18 ? 35000 : 0),
+      lightIntensity: toTwoDecimalPlaces((data.lightIntensity as number) ?? 0),
     };
   }
 
