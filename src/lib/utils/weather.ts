@@ -84,16 +84,25 @@ export function getWeatherCondition(telemetry: TelemetryMetrics): WeatherConditi
 
   const { temperature, humidity, precipitation, windSpeed, uvIndex, hourlyPrecip } = telemetry;
 
-  // 1. Precipitation logic
+  // 1. Measured Precipitation logic
   if ((precipitation && precipitation > 0) || (hourlyPrecip && hourlyPrecip > 0)) {
     if (windSpeed && windSpeed > 20) return "storm";
     return "rain";
   }
 
-  // 2. Thermodynamic Convective Rain (Saturated air mass with cooled ambient temperature)
+  // 2. Thermodynamic Convective Instability vs. Nocturnal Radiation Fog Filtering:
+  // True convective precipitation requires dynamic wind shear or diurnal solar buoyancy.
+  // Calm nocturnal saturated air (W <= 0.5 km/h at night) represents maritime radiation fog / low stratus.
   if (humidity != null && humidity >= 94 && temperature != null && temperature <= 26.8) {
+    const now = new Date();
+    const phHour = (now.getUTCHours() + 8) % 24;
+    const isNocturnalCalm = (phHour >= 22 || phHour <= 6) && (!windSpeed || windSpeed <= 0.5);
+
+    if (isNocturnalCalm) {
+      return "cloudy"; // High-humidity radiation fog/stratus
+    }
     if (windSpeed && windSpeed > 20) return "storm";
-    return "rain";
+    return "rain"; // Active convective condensation
   }
 
   // 3. Temperature-based
@@ -108,7 +117,7 @@ export function getWeatherCondition(telemetry: TelemetryMetrics): WeatherConditi
     if (humidity > 60) return "partly-cloudy";
   }
 
-  // 4. High UV warning
+  // 5. High UV warning
   if (uvIndex != null && uvIndex >= 8) return "high-uv";
 
   // Default

@@ -464,17 +464,25 @@ export class PredictionService {
       const stepHumidity = Number(Math.min(98, Math.max(42, baseHumidity)).toFixed(0));
 
       const stepHeatIndex = Math.round(stepTemp + (stepHumidity / 100) * 6.8 - 1.0);
-      const stepWind = Math.max(1.0, currentWindSpeed + Math.sin(hoursFromNow / 4.0) * 2.5);
-      const regionalWindDir = liveRegional.hourlyWindDir[openMeteoIndex];
-      const stepWindDir = regionalWindDir !== undefined ? degreesToCardinal(regionalWindDir) : (liveRegional.currentWindDirection || "NE");
       const stepPressure = regionalPres !== undefined
         ? Number(regionalPres.toFixed(1))
         : currentPressure - (hoursFromNow > 6 && currentWindSpeed > 15 ? 1.5 : 0.0);
 
-      // Radar Reflectivity & Himawari convective dynamics
+      // Physical Category-4/5 Gradient Wind Constraint (Cyclostrophic Balance):
+      // For extreme low pressures (P < 995 hPa down to 900 hPa), wind velocity scales as V = sqrt((1013.25 - P) / 0.022)
+      let minGradientWind = 0;
+      if (stepPressure < 995.0) {
+        minGradientWind = Math.sqrt(Math.max(0, (1013.25 - stepPressure) / 0.022));
+      }
+      const stepWind = Math.max(minGradientWind, Math.max(1.0, currentWindSpeed + Math.sin(hoursFromNow / 4.0) * 2.5));
+      const regionalWindDir = liveRegional.hourlyWindDir[openMeteoIndex];
+      const stepWindDir = regionalWindDir !== undefined ? degreesToCardinal(regionalWindDir) : (liveRegional.currentWindDirection || "NE");
+
+      // Tropical Maritime Archipelago DSD Calibration: Z = 130 * R^1.45
+      // Corrects mid-latitude Marshall-Palmer bias for maritime warm-rain collision-coalescence
       const radarReflectivityDbz = regionalPrecip !== undefined && regionalPrecip > 0
-        ? Math.min(55.0, 20.0 + regionalPrecip * 12.0)
-        : (regionalProb !== undefined && regionalProb > 50 ? 28.0 : currentPrecipitation > 0 ? 32.0 : 8.0);
+        ? Math.min(58.0, 21.14 + 14.5 * Math.log10(Math.max(0.1, regionalPrecip * 1.3)))
+        : (regionalProb !== undefined && regionalProb > 50 ? 28.0 : currentPrecipitation > 0 ? 34.0 : 8.0);
 
       const himawariConvectiveIndex = regionalProb !== undefined
         ? regionalProb / 100.0
@@ -514,9 +522,24 @@ export class PredictionService {
         ? Number((regionalPrecip * 1.1 + (rainProb > 0.7 ? 1.5 : 0)).toFixed(1))
         : (rainProb > 0.4 ? Math.max(0.2, (rainProb - 0.3) * 12.0) : 0.0);
 
-      // Station-specific hydrological mass balance response
+      // Tidal Harmonic Stagnation & Backwater Hysteresis (Manila Bay M2/K1 Tidal Surge)
+      // At confluences and estuaries, high tide blocks river discharge and increases retention latency
+      let tidalDamping = 1.0;
+      const isTidalSensitive = stationProfile.type.includes("CONFLUENCE") || 
+        stationProfile.type.includes("COASTAL") || 
+        stationProfile.type.includes("WETLAND");
+      
+      if (isTidalSensitive) {
+        const m2Phase = (2 * Math.PI * (targetHourOfDay - 4.5)) / 12.42;
+        const k1Phase = (2 * Math.PI * (targetHourOfDay - 6.0)) / 23.93;
+        const tidalHeightAnomaly = 0.45 * Math.cos(m2Phase) + 0.15 * Math.cos(k1Phase);
+        // High tide dampens channel drainage by up to 65%
+        tidalDamping = Math.max(0.25, 1.0 - 0.65 * Math.max(0, tidalHeightAnomaly));
+      }
+
+      // Station-specific hydrological mass balance response with tidal backwater resistance
       const waterAccum = expectedRainMm * 0.04;
-      const decayRate = (0.15 / Math.max(1.0, stationProfile.tauHydro)) * stepHours;
+      const decayRate = ((0.15 / Math.max(1.0, stationProfile.tauHydro)) * tidalDamping) * stepHours;
       const decay = decayRate * (simulatedWater - (currentWaterLevel || stationProfile.baseWaterM));
       simulatedWater = Math.max(0.5, simulatedWater + waterAccum - decay + lnnWaterDelta * 0.02);
 

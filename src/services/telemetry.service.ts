@@ -232,8 +232,35 @@ export class TelemetryService {
   }
 
   /**
+   * Calculates Topographically-Penalized Effective Distance in kilometers.
+   * If the spatial path crosses the 1,388m Mount Natib / Mount Mariveles volcanic divide
+   * (between Western Bataan / Subic Bay < 120.42°E and Eastern Plains > 120.50°E),
+   * applies an orographic barrier penalty (d_eff = d * 3.5) to prevent across-ridge pollution.
+   */
+  private static effectiveSpatialDistanceKm(
+    loc1: [number, number],
+    loc2: [number, number]
+  ): number {
+    const rawDist = TelemetryService.haversineDistanceKm(loc1, loc2);
+    const [lon1, lat1] = loc1;
+    const [lon2, lat2] = loc2;
+
+    // Check if path traverses the Bataan Volcanic Mountain Ridge (14.40°N - 14.90°N)
+    const isTransRidge =
+      (lat1 >= 14.35 && lat1 <= 14.95 && lat2 >= 14.35 && lat2 <= 14.95) &&
+      ((lon1 < 120.42 && lon2 > 120.48) || (lon2 < 120.42 && lon1 > 120.48));
+
+    if (isTransRidge) {
+      // 3.5x penalty reflects rain shadow decoupling and high-elevation ridge barrier
+      return rawDist * 3.5;
+    }
+    return rawDist;
+  }
+
+  /**
    * Reconstructs probable weather telemetry for a down/faulty station by calculating
-   * distance-weighted physical telemetry from the nearest healthy Kloudtrack stations.
+   * distance-weighted physical telemetry from the nearest healthy Kloudtrack stations
+   * with Orographic Ridge Barrier Decoupling.
    */
   private reconstructSpatialTelemetry(
     targetStation: StationPublicInfo,
@@ -264,7 +291,7 @@ export class TelemetryService {
       };
     }
 
-    // Compute spatial Gaussian weights based on physical distance (L = 25 km meso-scale radius)
+    // Compute spatial Gaussian weights based on effective topographic distance (L = 25 km meso-scale radius)
     let totalWeight = 0;
     let weightedTemp = 0;
     let weightedHum = 0;
@@ -274,12 +301,12 @@ export class TelemetryService {
 
     for (const h of healthyList) {
       if (!h.telemetry) continue;
-      const distKm = TelemetryService.haversineDistanceKm(
+      const effDistKm = TelemetryService.effectiveSpatialDistanceKm(
         targetStation.location,
         h.station.location
       );
-      // Gaussian spatial kernel weight: w = exp(-d^2 / (2 * L^2))
-      const weight = Math.exp(-(distKm * distKm) / (2 * 25 * 25)) + 0.001;
+      // Gaussian spatial kernel weight: w = exp(-d_eff^2 / (2 * L^2))
+      const weight = Math.exp(-(effDistKm * effDistKm) / (2 * 25 * 25)) + 0.0001;
 
       totalWeight += weight;
       weightedTemp += (h.telemetry.temperature ?? 28.5) * weight;
