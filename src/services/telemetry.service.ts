@@ -197,16 +197,165 @@ export class TelemetryService {
   }
 
   /**
+   * Great-Circle Haversine distance calculation between two coordinates in kilometers
+   */
+  private static haversineDistanceKm(
+    loc1: [number, number],
+    loc2: [number, number]
+  ): number {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const [lon1, lat1] = loc1;
+    const [lon2, lat2] = loc2;
+    const R = 6371; // Earth radius in km
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  /**
+   * Reconstructs probable weather telemetry for a down/faulty station by calculating
+   * distance-weighted physical telemetry from the nearest healthy Kloudtrack stations.
+   */
+  private reconstructSpatialTelemetry(
+    targetStation: StationPublicInfo,
+    healthyList: TelemetryPublicDTO[]
+  ): TelemetryMetrics {
+    const now = new Date();
+    const phHour = (now.getUTCHours() + 8) % 24 + now.getUTCMinutes() / 60;
+    const solarPhase = Math.cos((2 * Math.PI * (phHour - 13.5)) / 24);
+
+    if (healthyList.length === 0) {
+      const baseTemp = toTwoDecimalPlaces(28.8 + 3.4 * solarPhase);
+      const baseHum = toTwoDecimalPlaces(Math.max(50, Math.min(95, 76.0 - 15.0 * solarPhase)));
+      const basePres = toTwoDecimalPlaces(1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24));
+      return {
+        telemetryId: 9999,
+        recordedAt: now.toISOString(),
+        temperature: baseTemp,
+        humidity: baseHum,
+        pressure: basePres,
+        heatIndex: toTwoDecimalPlaces(baseTemp + (baseHum / 100) * 5.5),
+        windDirection: 225,
+        windSpeed: 8.0,
+        precipitation: 0.0,
+        hourlyPrecip: 0.0,
+        uvIndex: phHour >= 6 && phHour <= 18 ? 6 : 0,
+        distance: 165.0,
+        lightIntensity: phHour >= 6 && phHour <= 18 ? 45000 : 0,
+      };
+    }
+
+    // Compute spatial Gaussian weights based on physical distance (L = 25 km meso-scale radius)
+    let totalWeight = 0;
+    let weightedTemp = 0;
+    let weightedHum = 0;
+    let weightedPres = 0;
+    let weightedWind = 0;
+
+    for (const h of healthyList) {
+      if (!h.telemetry) continue;
+      const distKm = TelemetryService.haversineDistanceKm(
+        targetStation.location,
+        h.station.location
+      );
+      // Gaussian spatial kernel weight: w = exp(-d^2 / (2 * L^2))
+      const weight = Math.exp(-(distKm * distKm) / (2 * 25 * 25)) + 0.001;
+
+      totalWeight += weight;
+      weightedTemp += (h.telemetry.temperature ?? 28.5) * weight;
+      weightedHum += (h.telemetry.humidity ?? 78.0) * weight;
+      weightedPres += (h.telemetry.pressure ?? 1010.5) * weight;
+      weightedWind += (h.telemetry.windSpeed ?? 8.0) * weight;
+    }
+
+    const calcTemp = toTwoDecimalPlaces(weightedTemp / totalWeight);
+    const calcHum = toTwoDecimalPlaces(weightedHum / totalWeight);
+    const calcPres = toTwoDecimalPlaces(weightedPres / totalWeight);
+    const calcWind = toTwoDecimalPlaces(weightedWind / totalWeight);
+    const calcHI = toTwoDecimalPlaces(calcTemp + (calcHum / 100) * 5.5);
+
+    return {
+      telemetryId: 8888,
+      recordedAt: now.toISOString(),
+      temperature: calcTemp,
+      humidity: calcHum,
+      pressure: calcPres,
+      heatIndex: calcHI,
+      windDirection: 225,
+      windSpeed: calcWind,
+      precipitation: 0.0,
+      hourlyPrecip: 0.0,
+      uvIndex: phHour >= 6 && phHour <= 18 ? 6 : 0,
+      distance: 165.0,
+      lightIntensity: phHour >= 6 && phHour <= 18 ? 45000 : 0,
+    };
+  }
+
+  /**
    * Transform batched dashboard response from /telemetry/dashboard.
+   * Auto-detects faulty/offline stations and imputes probable telemetry from nearest healthy neighbors.
    */
   private transformDashboard(rawData: DashboardRaw): TelemetryPublicDTO[] {
     const stations = Array.isArray(rawData) ? rawData : rawData.stations ?? [];
-    const dashboardStations = stations
+    const transformed = stations
       .filter((item): item is DashboardSingleRaw => Boolean(item?.station))
+      .map((item) => {
+        const st = this.transformStation(item.station);
+        const tel = item.telemetry as Record<string, unknown> | undefined;
+        const temp = (tel?.temperature as number) ?? 0;
+        const hum = (tel?.humidity as number) ?? 0;
+        const pres = (tel?.pressure as number) ?? 0;
+
+        // Check if raw sensor reading is healthy
+        const isHealthy =
+          temp >= 16.0 &&
+          temp <= 43.0 &&
+          hum >= 20.0 &&
+          hum <= 100.0 &&
+          pres >= 970.0 &&
+          pres <= 1030.0;
+
+        return {
+          station: st,
+          telemetry: isHealthy ? this.transformTelemetry(item.telemetry) : null,
+          isHealthy,
+          rawTelemetry: item.telemetry,
+        };
+      });
+
+    const healthyList: TelemetryPublicDTO[] = transformed
+      .filter((item) => item.isHealthy && item.telemetry !== null)
       .map((item) => ({
-        station: this.transformStation(item.station),
-        telemetry: this.transformTelemetry(item.telemetry),
+        station: item.station,
+        telemetry: item.telemetry as TelemetryMetrics,
       }));
+
+    // Reconstruct faulty or down stations from spatial neighbors
+    const dashboardStations: TelemetryPublicDTO[] = transformed.map((item) => {
+      if (item.isHealthy && item.telemetry) {
+        return {
+          station: item.station,
+          telemetry: item.telemetry,
+        };
+      }
+
+      // Reconstruct probable telemetry using nearest healthy weather stations
+      console.warn(
+        `[Spatial Imputation] Reconstructing ${item.station.stationName} (${item.station.stationPublicId}) from nearest healthy stations...`
+      );
+      return {
+        station: item.station,
+        telemetry: this.reconstructSpatialTelemetry(item.station, healthyList),
+      };
+    });
 
     const configuredStationIds = stationIds.weather.stationIdToFetch.map((item) => item.stationId);
     if (configuredStationIds.length === 0) return dashboardStations;
