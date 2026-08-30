@@ -1,0 +1,272 @@
+[
+  {
+    "stationPublicId": "lMAZe9b3",
+    "stationName": "Abucay AWS - Bataan",
+    "metrics": {
+      "processed_temp_c": 25.78,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.48,
+      "processed_mslp_hpa": 997.31,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 10.89,
+      "processed_rh_pct": 94.12,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 1.88,
+      "calculated_heat_index_c": 27.58,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 79.2
+    }
+  },
+  {
+    "stationPublicId": "95pM7BAV",
+    "stationName": "Do\u00f1a Maria AWS - Balanga City",
+    "metrics": {
+      "processed_temp_c": 28.37,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 3.07,
+      "processed_mslp_hpa": 1007.94,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 0.26,
+      "processed_rh_pct": 95.35,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 0.65,
+      "calculated_heat_index_c": 36.06,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 91.2
+    }
+  },
+  {
+    "stationPublicId": "2Dpo5DAK",
+    "stationName": "1Bataan Command Center - Bataan",
+    "metrics": {
+      "processed_temp_c": 25.3,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.0,
+      "processed_mslp_hpa": 1008.2,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 0.0,
+      "processed_rh_pct": 96,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 6.0,
+      "calculated_heat_index_c": 26.39,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 98.5
+    }
+  },
+  {
+    "stationPublicId": "QgbGldAY",
+    "stationName": "Pag-asa Bagac AWS - Bataan",
+    "metrics": {
+      "processed_temp_c": 28.43,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 3.13,
+      "processed_mslp_hpa": 1010.53,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 2.33,
+      "processed_rh_pct": 96.05,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 0.05,
+      "calculated_heat_index_c": 36.44,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 87.6
+    }
+  },
+  {
+    "stationPublicId": "Rjz2dbXW",
+    "stationName": "Popolon AWS - Palayan City",
+    "metrics": {
+      "processed_temp_c": 25.24,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.06,
+      "processed_mslp_hpa": 1003.33,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 4.87,
+      "processed_rh_pct": 99.97,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 3.97,
+      "calculated_heat_index_c": 26.43,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 90.3
+    }
+  },
+  {
+    "stationPublicId": "4VAl2p9k",
+    "stationName": "Sapang Buho AWS - Palayan City",
+    "metrics": {
+      "processed_temp_c": 25.05,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.25,
+      "processed_mslp_hpa": 1001.71,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 6.49,
+      "processed_rh_pct": 99.65,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 3.65,
+      "calculated_heat_index_c": 26.21,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 87.1
+    }
+  },
+  {
+    "stationPublicId": "nDby4YpR",
+    "stationName": "General Natividad AWS - Nueva Ecija",
+    "metrics": {
+      "processed_temp_c": 25.29,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.01,
+      "processed_mslp_hpa": 1002.12,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 6.08,
+      "processed_rh_pct": 99.78,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 3.78,
+      "calculated_heat_index_c": 26.48,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 88.4
+    }
+  },
+  {
+    "stationPublicId": "03pqkGAj",
+    "stationName": "Bongabon Water District AWS - Nueva Ecija",
+    "metrics": {
+      "processed_temp_c": 23.24,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 2.06,
+      "processed_mslp_hpa": 1003.5,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 4.7,
+      "processed_rh_pct": 81.97,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 14.03,
+      "calculated_heat_index_c": 23.76,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 82.8
+    }
+  },
+  {
+    "stationPublicId": "3nzr8bGo",
+    "stationName": "Alasas AWS - San Fernando City",
+    "metrics": {
+      "processed_temp_c": 25.66,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.36,
+      "processed_mslp_hpa": 1007.4,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 0.8,
+      "processed_rh_pct": 97.46,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 1.46,
+      "calculated_heat_index_c": 27.3,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 97.3
+    }
+  },
+  {
+    "stationPublicId": "nDbyYbR1",
+    "stationName": "Sabang Morong AWS - Bataan",
+    "metrics": {
+      "processed_temp_c": 25.3,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.0,
+      "processed_mslp_hpa": 1008.2,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 0.0,
+      "processed_rh_pct": 96,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 6.0,
+      "calculated_heat_index_c": 26.39,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 98.5
+    }
+  },
+  {
+    "stationPublicId": "rqAkmpKG",
+    "stationName": "Barretto AWS - Olongapo City",
+    "metrics": {
+      "processed_temp_c": 26.36,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 1.06,
+      "processed_mslp_hpa": 1008.2,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 0.0,
+      "processed_rh_pct": 96.94,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 0.94,
+      "calculated_heat_index_c": 29.41,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 96.9
+    }
+  },
+  {
+    "stationPublicId": "Bkpj1zRO",
+    "stationName": "Old Cabalan AWS - Olongapo City",
+    "metrics": {
+      "processed_temp_c": 25.3,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 0.0,
+      "processed_mslp_hpa": 1008.85,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 0.65,
+      "processed_rh_pct": 96,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 6.0,
+      "calculated_heat_index_c": 26.39,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 97.4
+    }
+  },
+  {
+    "stationPublicId": "wkAWLzlm",
+    "stationName": "Lazatin AWS - San Fernando City",
+    "metrics": {
+      "processed_temp_c": 28.03,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 2.73,
+      "processed_mslp_hpa": 1005.74,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 2.46,
+      "processed_rh_pct": 96.75,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 0.75,
+      "calculated_heat_index_c": 35.09,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 88.2
+    }
+  },
+  {
+    "stationPublicId": "1Zb102pg",
+    "stationName": "San Jose City AWS",
+    "metrics": {
+      "processed_temp_c": 26.44,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 1.14,
+      "processed_mslp_hpa": 1004.67,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 3.53,
+      "processed_rh_pct": 88.29,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 7.71,
+      "calculated_heat_index_c": 29.07,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 88.9
+    }
+  },
+  {
+    "stationPublicId": "3nzr48bG",
+    "stationName": "Calumpit AWS - Bulacan",
+    "metrics": {
+      "processed_temp_c": 28.37,
+      "pagasa_gt_temp_c": 25.3,
+      "temp_mae": 3.07,
+      "processed_mslp_hpa": 1008.16,
+      "pagasa_gt_mslp_hpa": 1008.2,
+      "mslp_mae": 0.04,
+      "processed_rh_pct": 93.62,
+      "pagasa_gt_rh_pct": 96,
+      "rh_mae": 2.38,
+      "calculated_heat_index_c": 35.69,
+      "burst_events_count": 1,
+      "human_experience_fidelity_pct": 91.1
+    }
+  }
+]

@@ -1,0 +1,287 @@
+[
+  {
+    "stationPublicId": "lMAZe9b3",
+    "stationName": "Abucay AWS - Bataan",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 8.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "95pM7BAV",
+    "stationName": "Do\u00f1a Maria AWS - Balanga City",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 6.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "2Dpo5DAK",
+    "stationName": "1Bataan Command Center - Bataan",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 15.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "QgbGldAY",
+    "stationName": "Pag-asa Bagac AWS - Bataan",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 4.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "Rjz2dbXW",
+    "stationName": "Popolon AWS - Palayan City",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 48.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "4VAl2p9k",
+    "stationName": "Sapang Buho AWS - Palayan City",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 62.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "nDby4YpR",
+    "stationName": "General Natividad AWS - Nueva Ecija",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 58.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "03pqkGAj",
+    "stationName": "Bongabon Water District AWS - Nueva Ecija",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 1465.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "3nzr8bGo",
+    "stationName": "Alasas AWS - San Fernando City",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 10.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "nDbyYbR1",
+    "stationName": "Sabang Morong AWS - Bataan",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 5.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "rqAkmpKG",
+    "stationName": "Barretto AWS - Olongapo City",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 6.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "Bkpj1zRO",
+    "stationName": "Old Cabalan AWS - Olongapo City",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 38.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "wkAWLzlm",
+    "stationName": "Lazatin AWS - San Fernando City",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 12.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "1Zb102pg",
+    "stationName": "San Jose City AWS",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 95.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  },
+  {
+    "stationPublicId": "3nzr48bG",
+    "stationName": "Calumpit AWS - Bulacan",
+    "latitude": 14.68,
+    "longitude": 120.54,
+    "elevation_m": 5.0,
+    "sudden_rain_bursts": [
+      {
+        "onset_pht": "2026-08-29T00:00",
+        "duration_hours": 45,
+        "duration_minutes": 2700,
+        "peak_intensity_mm_h": 3.8,
+        "total_burst_volume_mm": 85.5,
+        "classification": "Light-Moderate Showers"
+      }
+    ],
+    "total_48h_groundtruth_rain_mm": 85.5,
+    "max_burst_peak_rate_mm_h": 3.8
+  }
+]

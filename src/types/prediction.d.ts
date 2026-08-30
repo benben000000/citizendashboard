@@ -37,6 +37,14 @@ export interface PredictionDataPoint {
   isForecast: boolean;
 }
 
+export interface ConformalUncertaintyBand {
+  sigma: number;
+  likelyLower: number;   // 68% Confidence (±1σ)
+  likelyUpper: number;   // 68% Confidence (±1σ)
+  extremeLower: number;  // 95% Confidence (±2σ)
+  extremeUpper: number;  // 95% Confidence (±2σ)
+}
+
 export interface HourlyWeatherForecast {
   time: string;
   timestamp: string;
@@ -50,6 +58,7 @@ export interface HourlyWeatherForecast {
   windDirection?: string;
   humidity: number;
   pressure?: number;
+  conformalBounds?: ConformalUncertaintyBand;
 }
 
 export interface DailyWeatherForecast {

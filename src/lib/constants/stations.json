@@ -3,7 +3,7 @@
     "stationIdToFetch": [
       { "stationId": "lMAZe9b3", "contactNumber": "", "email": "", "location": "abucay" },
       { "stationId": "95pM7BAV", "contactNumber": "", "email": "", "location": "balanga" },
-      { "stationId": "2Dpo5DAK", "contactNumber": "", "email": "", "location": "orani" },
+      { "stationId": "2Dpo5DAK", "contactNumber": "", "email": "", "location": "balanga" },
       { "stationId": "QgbGldAY", "contactNumber": "", "email": "", "location": "bagac" },
       { "stationId": "Rjz2dbXW", "contactNumber": "", "email": "", "location": "popolon" },
       { "stationId": "4VAl2p9k", "contactNumber": "", "email": "", "location": "sapang-buho" },
@@ -15,12 +15,20 @@
       { "stationId": "Bkpj1zRO", "contactNumber": "", "email": "", "location": "old-cabalan" },
       { "stationId": "wkAWLzlm", "contactNumber": "", "email": "", "location": "lazatin" },
       { "stationId": "1Zb102pg", "contactNumber": "", "email": "", "location": "san-jose" },
-      { "stationId": "3nzr48bG", "contactNumber": "", "email": "", "location": "calumpit" }
+      { "stationId": "3nzr48bG", "contactNumber": "", "email": "", "location": "calumpit" },
+      { "stationId": "KT-CC380371FE68", "contactNumber": "", "email": "", "location": "dinalupihan" },
+      { "stationId": "KT-A86039DC5194", "contactNumber": "", "email": "", "location": "orani" },
+      { "stationId": "KT-D032325C7BCC", "contactNumber": "", "email": "", "location": "mariveles" },
+      { "stationId": "KT-94AD8332A7B0", "contactNumber": "", "email": "", "location": "limay" },
+      { "stationId": "KT-A80A1B29E748", "contactNumber": "", "email": "", "location": "makati" },
+      { "stationId": "VEpdDpBK", "contactNumber": "", "email": "", "location": "san-luis" }
     ]
   },
   "waterLevel": {
     "stationIdToFetch": [
-      { "stationId": "O3z0j5bG", "contactNumber": "", "email": "", "location": "calumpit", "referenceThreshold": 780 }
+      { "stationId": "O3z0j5bG", "contactNumber": "", "email": "", "location": "calumpit", "referenceThreshold": 780 },
+      { "stationId": "KT-6CBD47DC5194", "contactNumber": "", "email": "", "location": "cabcaben", "referenceThreshold": 500 },
+      { "stationId": "2Dpo5DAK", "contactNumber": "", "email": "", "location": "balanga", "referenceThreshold": 450 }
     ]
   },
   "maintenance": {

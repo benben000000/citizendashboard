@@ -117,6 +117,8 @@ export default function PredictionWeatherForecast({
       riskStatus = "advisory";
     }
 
+    const conformalBounds = hourlyMatch?.conformalBounds;
+
     return {
       timeStr,
       weekdayStr,
@@ -131,6 +133,7 @@ export default function PredictionWeatherForecast({
       pressure,
       predictedWaterLevel,
       riskStatus,
+      conformalBounds,
     };
   }, [forecastPoints, horizon, locale, thresholds, weather]);
 
@@ -313,6 +316,11 @@ export default function PredictionWeatherForecast({
                   {targetData.rainProbability}
                 </span>
                 <span className="text-xs font-medium">%</span>
+                {targetData.conformalBounds && (
+                  <span className="text-[10px] text-light/75 ml-1 font-mono tracking-tight bg-white/10 px-1.5 py-0.5 rounded-full">
+                    ±1σ: {targetData.conformalBounds.likelyLower}–{targetData.conformalBounds.likelyUpper}%
+                  </span>
+                )}
               </div>
 
               <div className="text-[11px] font-semibold text-light/85 truncate">
