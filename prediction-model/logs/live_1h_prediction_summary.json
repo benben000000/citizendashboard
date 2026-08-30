@@ -1,0 +1,9 @@
+{
+  "current_step": 1,
+  "max_steps": 12,
+  "elapsed_minutes": 5,
+  "t0_start_pht": "2026-08-30 21:51:02 PHT",
+  "latest_sample_pht": "2026-08-30 21:51:02 PHT",
+  "network_avg_accuracy_pct": 99.65,
+  "is_complete": false
+}

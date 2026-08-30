@@ -1,0 +1,4614 @@
+{
+  "generated_at": "2026-08-30 21:52:10 PHT",
+  "window_start": "2026-08-30 20:52:10 PHT",
+  "window_end": "2026-08-30 21:52:10 PHT",
+  "total_checkpoints": 12,
+  "network_mean_accuracy_pct": 99.67,
+  "stations": {
+    "lMAZe9b3": {
+      "stationPublicId": "lMAZe9b3",
+      "stationName": "Abucay AWS - Bataan",
+      "mean_1h_accuracy_pct": 99.58,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 25.81,
+            "mslp_hpa": 997.34,
+            "humidity_pct": 94.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.71,
+            "mslp_hpa": 997.33,
+            "humidity_pct": 94.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 25.72,
+            "mslp_hpa": 997.36,
+            "humidity_pct": 95.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.84,
+            "mslp_hpa": 997.35,
+            "humidity_pct": 95.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.12,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 25.83,
+            "mslp_hpa": 997.37,
+            "humidity_pct": 95.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.69,
+            "mslp_hpa": 997.36,
+            "humidity_pct": 95.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.14,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 25.72,
+            "mslp_hpa": 997.36,
+            "humidity_pct": 95.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.79,
+            "mslp_hpa": 997.35,
+            "humidity_pct": 95.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 25.78,
+            "mslp_hpa": 997.34,
+            "humidity_pct": 95.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.73,
+            "mslp_hpa": 997.33,
+            "humidity_pct": 95.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 25.79,
+            "mslp_hpa": 997.31,
+            "humidity_pct": 96.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.67,
+            "mslp_hpa": 997.31,
+            "humidity_pct": 95.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.12,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 25.71,
+            "mslp_hpa": 997.28,
+            "humidity_pct": 96.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.79,
+            "mslp_hpa": 997.28,
+            "humidity_pct": 95.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.08,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 25.82,
+            "mslp_hpa": 997.26,
+            "humidity_pct": 96.3,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.63,
+            "mslp_hpa": 997.27,
+            "humidity_pct": 96.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.19,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.2
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 25.73,
+            "mslp_hpa": 997.25,
+            "humidity_pct": 96.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.72,
+            "mslp_hpa": 997.26,
+            "humidity_pct": 96.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 25.79,
+            "mslp_hpa": 997.26,
+            "humidity_pct": 96.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.71,
+            "mslp_hpa": 997.27,
+            "humidity_pct": 96.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.08,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 25.79,
+            "mslp_hpa": 997.28,
+            "humidity_pct": 96.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.63,
+            "mslp_hpa": 997.28,
+            "humidity_pct": 96.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.16,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 25.73,
+            "mslp_hpa": 997.31,
+            "humidity_pct": 96.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.74,
+            "mslp_hpa": 997.31,
+            "humidity_pct": 96.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        }
+      ]
+    },
+    "95pM7BAV": {
+      "stationPublicId": "95pM7BAV",
+      "stationName": "Do\u00f1a Maria AWS - Balanga City",
+      "mean_1h_accuracy_pct": 99.69,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 28.24,
+            "mslp_hpa": 1008.16,
+            "humidity_pct": 96.3,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.19,
+            "mslp_hpa": 1008.15,
+            "humidity_pct": 96.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 28.26,
+            "mslp_hpa": 1008.18,
+            "humidity_pct": 96.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.32,
+            "mslp_hpa": 1008.17,
+            "humidity_pct": 96.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 28.31,
+            "mslp_hpa": 1008.19,
+            "humidity_pct": 96.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.22,
+            "mslp_hpa": 1008.18,
+            "humidity_pct": 96.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 28.2,
+            "mslp_hpa": 1008.18,
+            "humidity_pct": 97.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.2,
+            "mslp_hpa": 1008.17,
+            "humidity_pct": 96.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.0,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 28.32,
+            "mslp_hpa": 1008.16,
+            "humidity_pct": 97.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.29,
+            "mslp_hpa": 1008.15,
+            "humidity_pct": 97.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 28.22,
+            "mslp_hpa": 1008.13,
+            "humidity_pct": 97.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.13,
+            "mslp_hpa": 1008.13,
+            "humidity_pct": 97.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 28.25,
+            "mslp_hpa": 1008.1,
+            "humidity_pct": 97.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.25,
+            "mslp_hpa": 1008.11,
+            "humidity_pct": 97.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.0,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 28.29,
+            "mslp_hpa": 1008.08,
+            "humidity_pct": 97.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.2,
+            "mslp_hpa": 1008.09,
+            "humidity_pct": 97.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 28.19,
+            "mslp_hpa": 1008.07,
+            "humidity_pct": 97.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.16,
+            "mslp_hpa": 1008.08,
+            "humidity_pct": 97.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 28.31,
+            "mslp_hpa": 1008.08,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.24,
+            "mslp_hpa": 1008.09,
+            "humidity_pct": 97.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 28.25,
+            "mslp_hpa": 1008.1,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.08,
+            "mslp_hpa": 1008.11,
+            "humidity_pct": 97.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.17,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 28.28,
+            "mslp_hpa": 1008.13,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.2,
+            "mslp_hpa": 1008.13,
+            "humidity_pct": 97.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.08,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        }
+      ]
+    },
+    "2Dpo5DAK": {
+      "stationPublicId": "2Dpo5DAK",
+      "stationName": "1Bataan Command Center - Bataan",
+      "mean_1h_accuracy_pct": 99.72,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1007.53,
+            "humidity_pct": 85.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.91,
+            "mslp_hpa": 1007.52,
+            "humidity_pct": 85.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 28.01,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 86.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.02,
+            "mslp_hpa": 1007.54,
+            "humidity_pct": 85.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 28.02,
+            "mslp_hpa": 1007.56,
+            "humidity_pct": 86.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.98,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 86.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 27.94,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 86.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.9,
+            "mslp_hpa": 1007.54,
+            "humidity_pct": 86.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 28.04,
+            "mslp_hpa": 1007.53,
+            "humidity_pct": 86.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.03,
+            "mslp_hpa": 1007.52,
+            "humidity_pct": 86.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 86.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.88,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 86.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 28.01,
+            "mslp_hpa": 1007.47,
+            "humidity_pct": 87.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.98,
+            "mslp_hpa": 1007.48,
+            "humidity_pct": 86.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 28.0,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 87.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.92,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 86.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.08,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 27.93,
+            "mslp_hpa": 1007.44,
+            "humidity_pct": 87.3,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.86,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 87.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 28.05,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 87.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.98,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 87.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1007.47,
+            "humidity_pct": 87.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.82,
+            "mslp_hpa": 1007.48,
+            "humidity_pct": 87.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.13,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 28.0,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 87.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.91,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 87.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        }
+      ]
+    },
+    "QgbGldAY": {
+      "stationPublicId": "QgbGldAY",
+      "stationName": "Pag-asa Bagac AWS - Bataan",
+      "mean_1h_accuracy_pct": 99.67,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 28.06,
+            "mslp_hpa": 1010.83,
+            "humidity_pct": 96.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.97,
+            "mslp_hpa": 1010.82,
+            "humidity_pct": 96.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 28.05,
+            "mslp_hpa": 1010.85,
+            "humidity_pct": 96.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.11,
+            "mslp_hpa": 1010.84,
+            "humidity_pct": 96.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 28.1,
+            "mslp_hpa": 1010.86,
+            "humidity_pct": 97.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.01,
+            "mslp_hpa": 1010.85,
+            "humidity_pct": 96.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 27.99,
+            "mslp_hpa": 1010.85,
+            "humidity_pct": 97.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.99,
+            "mslp_hpa": 1010.84,
+            "humidity_pct": 97.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.0,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 100.0
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 28.09,
+            "mslp_hpa": 1010.83,
+            "humidity_pct": 97.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.08,
+            "mslp_hpa": 1010.82,
+            "humidity_pct": 97.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 28.04,
+            "mslp_hpa": 1010.8,
+            "humidity_pct": 97.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.92,
+            "mslp_hpa": 1010.8,
+            "humidity_pct": 97.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.12,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 28.01,
+            "mslp_hpa": 1010.77,
+            "humidity_pct": 97.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.06,
+            "mslp_hpa": 1010.77,
+            "humidity_pct": 97.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 28.08,
+            "mslp_hpa": 1010.75,
+            "humidity_pct": 97.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1010.76,
+            "humidity_pct": 97.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.13,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 27.98,
+            "mslp_hpa": 1010.74,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1010.75,
+            "humidity_pct": 97.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 28.1,
+            "mslp_hpa": 1010.75,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.03,
+            "mslp_hpa": 1010.76,
+            "humidity_pct": 97.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 28.04,
+            "mslp_hpa": 1010.77,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.87,
+            "mslp_hpa": 1010.77,
+            "humidity_pct": 97.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.17,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 28.03,
+            "mslp_hpa": 1010.8,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.99,
+            "mslp_hpa": 1010.8,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        }
+      ]
+    },
+    "Rjz2dbXW": {
+      "stationPublicId": "Rjz2dbXW",
+      "stationName": "Popolon AWS - Palayan City",
+      "mean_1h_accuracy_pct": 99.75,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 25.28,
+            "mslp_hpa": 1009.41,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.26,
+            "mslp_hpa": 1009.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 25.34,
+            "mslp_hpa": 1009.43,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.32,
+            "mslp_hpa": 1009.42,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 25.33,
+            "mslp_hpa": 1009.44,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.34,
+            "mslp_hpa": 1009.43,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 25.28,
+            "mslp_hpa": 1009.43,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.21,
+            "mslp_hpa": 1009.42,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 25.38,
+            "mslp_hpa": 1009.41,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.36,
+            "mslp_hpa": 1009.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 25.26,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.2,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 25.33,
+            "mslp_hpa": 1009.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.28,
+            "mslp_hpa": 1009.36,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 25.34,
+            "mslp_hpa": 1009.33,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.28,
+            "mslp_hpa": 1009.34,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 25.28,
+            "mslp_hpa": 1009.32,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.17,
+            "mslp_hpa": 1009.33,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 25.38,
+            "mslp_hpa": 1009.33,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.31,
+            "mslp_hpa": 1009.34,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 25.27,
+            "mslp_hpa": 1009.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.17,
+            "mslp_hpa": 1009.36,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 25.35,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.24,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        }
+      ]
+    },
+    "4VAl2p9k": {
+      "stationPublicId": "4VAl2p9k",
+      "stationName": "Sapang Buho AWS - Palayan City",
+      "mean_1h_accuracy_pct": 99.63,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 25.28,
+            "mslp_hpa": 1009.28,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.35,
+            "mslp_hpa": 1009.27,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 25.32,
+            "mslp_hpa": 1009.3,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.19,
+            "mslp_hpa": 1009.29,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.13,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 25.23,
+            "mslp_hpa": 1009.31,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.28,
+            "mslp_hpa": 1009.3,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 25.33,
+            "mslp_hpa": 1009.3,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.27,
+            "mslp_hpa": 1009.29,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 25.22,
+            "mslp_hpa": 1009.28,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.19,
+            "mslp_hpa": 1009.27,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 25.27,
+            "mslp_hpa": 1009.25,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.3,
+            "mslp_hpa": 1009.25,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 25.3,
+            "mslp_hpa": 1009.22,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.14,
+            "mslp_hpa": 1009.23,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.16,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 25.2,
+            "mslp_hpa": 1009.2,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.23,
+            "mslp_hpa": 1009.21,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 25.32,
+            "mslp_hpa": 1009.19,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.21,
+            "mslp_hpa": 1009.2,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 25.22,
+            "mslp_hpa": 1009.2,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.11,
+            "mslp_hpa": 1009.21,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 25.29,
+            "mslp_hpa": 1009.22,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.24,
+            "mslp_hpa": 1009.23,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 25.31,
+            "mslp_hpa": 1009.25,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.08,
+            "mslp_hpa": 1009.25,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.23,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.1
+        }
+      ]
+    },
+    "nDby4YpR": {
+      "stationPublicId": "nDby4YpR",
+      "stationName": "General Natividad AWS - Nueva Ecija",
+      "mean_1h_accuracy_pct": 99.62,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 25.26,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.32,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 25.37,
+            "mslp_hpa": 1009.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.24,
+            "mslp_hpa": 1009.39,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.13,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 25.26,
+            "mslp_hpa": 1009.41,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.37,
+            "mslp_hpa": 1009.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 25.33,
+            "mslp_hpa": 1009.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.22,
+            "mslp_hpa": 1009.39,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 25.33,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.32,
+            "mslp_hpa": 1009.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 100.0
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 25.25,
+            "mslp_hpa": 1009.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.26,
+            "mslp_hpa": 1009.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 100.0
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 25.36,
+            "mslp_hpa": 1009.32,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.2,
+            "mslp_hpa": 1009.33,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.16,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 25.27,
+            "mslp_hpa": 1009.3,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.32,
+            "mslp_hpa": 1009.31,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 25.33,
+            "mslp_hpa": 1009.29,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.16,
+            "mslp_hpa": 1009.3,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.17,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 25.33,
+            "mslp_hpa": 1009.3,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.25,
+            "mslp_hpa": 1009.31,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.08,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 25.26,
+            "mslp_hpa": 1009.32,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.24,
+            "mslp_hpa": 1009.33,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 25.38,
+            "mslp_hpa": 1009.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.16,
+            "mslp_hpa": 1009.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.22,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.1
+        }
+      ]
+    },
+    "03pqkGAj": {
+      "stationPublicId": "03pqkGAj",
+      "stationName": "Bongabon Water District AWS - Nueva Ecija",
+      "mean_1h_accuracy_pct": 99.67,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 23.31,
+            "mslp_hpa": 1003.48,
+            "humidity_pct": 83.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.24,
+            "mslp_hpa": 1003.48,
+            "humidity_pct": 83.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 23.2,
+            "mslp_hpa": 1003.5,
+            "humidity_pct": 83.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.24,
+            "mslp_hpa": 1003.49,
+            "humidity_pct": 83.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 23.26,
+            "mslp_hpa": 1003.51,
+            "humidity_pct": 84.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.16,
+            "mslp_hpa": 1003.5,
+            "humidity_pct": 83.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 23.27,
+            "mslp_hpa": 1003.5,
+            "humidity_pct": 84.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.29,
+            "mslp_hpa": 1003.49,
+            "humidity_pct": 84.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 23.2,
+            "mslp_hpa": 1003.48,
+            "humidity_pct": 84.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.14,
+            "mslp_hpa": 1003.48,
+            "humidity_pct": 84.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 23.29,
+            "mslp_hpa": 1003.45,
+            "humidity_pct": 84.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.2,
+            "mslp_hpa": 1003.45,
+            "humidity_pct": 84.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 23.18,
+            "mslp_hpa": 1003.42,
+            "humidity_pct": 84.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.22,
+            "mslp_hpa": 1003.43,
+            "humidity_pct": 84.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 23.26,
+            "mslp_hpa": 1003.4,
+            "humidity_pct": 84.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.09,
+            "mslp_hpa": 1003.41,
+            "humidity_pct": 84.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.17,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 23.25,
+            "mslp_hpa": 1003.39,
+            "humidity_pct": 85.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.24,
+            "mslp_hpa": 1003.4,
+            "humidity_pct": 84.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 23.19,
+            "mslp_hpa": 1003.4,
+            "humidity_pct": 85.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.08,
+            "mslp_hpa": 1003.41,
+            "humidity_pct": 84.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 23.3,
+            "mslp_hpa": 1003.42,
+            "humidity_pct": 85.3,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.16,
+            "mslp_hpa": 1003.43,
+            "humidity_pct": 84.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.14,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 23.19,
+            "mslp_hpa": 1003.45,
+            "humidity_pct": 85.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 23.16,
+            "mslp_hpa": 1003.45,
+            "humidity_pct": 85.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        }
+      ]
+    },
+    "3nzr8bGo": {
+      "stationPublicId": "3nzr8bGo",
+      "stationName": "Alasas AWS - San Fernando City",
+      "mean_1h_accuracy_pct": 99.75,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 25.61,
+            "mslp_hpa": 1007.43,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.59,
+            "mslp_hpa": 1007.42,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 25.67,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.65,
+            "mslp_hpa": 1007.44,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 25.66,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.67,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 25.61,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.54,
+            "mslp_hpa": 1007.44,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 25.71,
+            "mslp_hpa": 1007.43,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.69,
+            "mslp_hpa": 1007.42,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 25.59,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.53,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 25.66,
+            "mslp_hpa": 1007.37,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.61,
+            "mslp_hpa": 1007.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 25.67,
+            "mslp_hpa": 1007.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.61,
+            "mslp_hpa": 1007.36,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 25.61,
+            "mslp_hpa": 1007.34,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.5,
+            "mslp_hpa": 1007.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 25.71,
+            "mslp_hpa": 1007.35,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.64,
+            "mslp_hpa": 1007.36,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 25.6,
+            "mslp_hpa": 1007.37,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.5,
+            "mslp_hpa": 1007.38,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 25.68,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 25.57,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        }
+      ]
+    },
+    "nDbyYbR1": {
+      "stationPublicId": "nDbyYbR1",
+      "stationName": "Sabang Morong AWS - Bataan",
+      "mean_1h_accuracy_pct": 99.64,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 28.0,
+            "mslp_hpa": 1007.53,
+            "humidity_pct": 85.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.91,
+            "mslp_hpa": 1007.52,
+            "humidity_pct": 85.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 27.99,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 86.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.05,
+            "mslp_hpa": 1007.54,
+            "humidity_pct": 85.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 28.04,
+            "mslp_hpa": 1007.56,
+            "humidity_pct": 86.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 86.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 27.93,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 86.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.93,
+            "mslp_hpa": 1007.54,
+            "humidity_pct": 86.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.0,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 28.03,
+            "mslp_hpa": 1007.53,
+            "humidity_pct": 86.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.02,
+            "mslp_hpa": 1007.52,
+            "humidity_pct": 86.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 27.98,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 86.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.86,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 86.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.12,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1007.47,
+            "humidity_pct": 87.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.0,
+            "mslp_hpa": 1007.48,
+            "humidity_pct": 86.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 28.02,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 87.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.89,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 86.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.13,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 27.92,
+            "mslp_hpa": 1007.44,
+            "humidity_pct": 87.3,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.89,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 87.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 28.04,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 87.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.97,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 87.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 27.98,
+            "mslp_hpa": 1007.47,
+            "humidity_pct": 87.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.81,
+            "mslp_hpa": 1007.48,
+            "humidity_pct": 87.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.17,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.2
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 27.97,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 87.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.93,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 87.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        }
+      ]
+    },
+    "rqAkmpKG": {
+      "stationPublicId": "rqAkmpKG",
+      "stationName": "Barretto AWS - Olongapo City",
+      "mean_1h_accuracy_pct": 99.6,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 26.4,
+            "mslp_hpa": 1007.53,
+            "humidity_pct": 97.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.3,
+            "mslp_hpa": 1007.52,
+            "humidity_pct": 97.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 26.3,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.42,
+            "mslp_hpa": 1007.54,
+            "humidity_pct": 97.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.12,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 26.4,
+            "mslp_hpa": 1007.56,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.25,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.15,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 26.33,
+            "mslp_hpa": 1007.55,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.38,
+            "mslp_hpa": 1007.54,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 26.35,
+            "mslp_hpa": 1007.53,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.3,
+            "mslp_hpa": 1007.52,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 26.38,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.26,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.12,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 26.28,
+            "mslp_hpa": 1007.47,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.37,
+            "mslp_hpa": 1007.48,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 26.4,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.21,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.19,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.2
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 26.32,
+            "mslp_hpa": 1007.44,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.34,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 26.33,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.24,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 26.4,
+            "mslp_hpa": 1007.47,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.22,
+            "mslp_hpa": 1007.48,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.18,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 26.3,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.31,
+            "mslp_hpa": 1007.5,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.0,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 100.0
+        }
+      ]
+    },
+    "Bkpj1zRO": {
+      "stationPublicId": "Bkpj1zRO",
+      "stationName": "Old Cabalan AWS - Olongapo City",
+      "mean_1h_accuracy_pct": 99.66,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 28.06,
+            "mslp_hpa": 1013.41,
+            "humidity_pct": 85.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.01,
+            "mslp_hpa": 1013.4,
+            "humidity_pct": 85.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 27.94,
+            "mslp_hpa": 1013.43,
+            "humidity_pct": 86.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.01,
+            "mslp_hpa": 1013.42,
+            "humidity_pct": 85.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 28.03,
+            "mslp_hpa": 1013.44,
+            "humidity_pct": 86.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.9,
+            "mslp_hpa": 1013.43,
+            "humidity_pct": 86.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.13,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 28.0,
+            "mslp_hpa": 1013.43,
+            "humidity_pct": 86.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.04,
+            "mslp_hpa": 1013.42,
+            "humidity_pct": 86.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 27.94,
+            "mslp_hpa": 1013.41,
+            "humidity_pct": 86.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.9,
+            "mslp_hpa": 1013.4,
+            "humidity_pct": 86.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 28.04,
+            "mslp_hpa": 1013.38,
+            "humidity_pct": 86.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.97,
+            "mslp_hpa": 1013.38,
+            "humidity_pct": 86.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.07,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 27.94,
+            "mslp_hpa": 1013.35,
+            "humidity_pct": 87.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1013.36,
+            "humidity_pct": 86.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 27.99,
+            "mslp_hpa": 1013.33,
+            "humidity_pct": 87.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.85,
+            "mslp_hpa": 1013.34,
+            "humidity_pct": 86.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.14,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.4
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 27.99,
+            "mslp_hpa": 1013.32,
+            "humidity_pct": 87.3,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.99,
+            "mslp_hpa": 1013.33,
+            "humidity_pct": 87.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.0,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1013.33,
+            "humidity_pct": 87.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.85,
+            "mslp_hpa": 1013.34,
+            "humidity_pct": 87.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 28.05,
+            "mslp_hpa": 1013.35,
+            "humidity_pct": 87.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.89,
+            "mslp_hpa": 1013.36,
+            "humidity_pct": 87.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.16,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 27.95,
+            "mslp_hpa": 1013.38,
+            "humidity_pct": 87.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 27.89,
+            "mslp_hpa": 1013.38,
+            "humidity_pct": 87.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        }
+      ]
+    },
+    "wkAWLzlm": {
+      "stationPublicId": "wkAWLzlm",
+      "stationName": "Lazatin AWS - San Fernando City",
+      "mean_1h_accuracy_pct": 99.64,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 28.31,
+            "mslp_hpa": 1007.43,
+            "humidity_pct": 96.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.35,
+            "mslp_hpa": 1007.42,
+            "humidity_pct": 95.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 28.29,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 96.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.19,
+            "mslp_hpa": 1007.44,
+            "humidity_pct": 96.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 28.23,
+            "mslp_hpa": 1007.46,
+            "humidity_pct": 96.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.27,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 96.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 28.33,
+            "mslp_hpa": 1007.45,
+            "humidity_pct": 96.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.27,
+            "mslp_hpa": 1007.44,
+            "humidity_pct": 96.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 28.22,
+            "mslp_hpa": 1007.43,
+            "humidity_pct": 97.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.16,
+            "mslp_hpa": 1007.42,
+            "humidity_pct": 96.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 28.27,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 97.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.3,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 96.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 28.26,
+            "mslp_hpa": 1007.37,
+            "humidity_pct": 97.3,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.16,
+            "mslp_hpa": 1007.38,
+            "humidity_pct": 97.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 28.22,
+            "mslp_hpa": 1007.35,
+            "humidity_pct": 97.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.23,
+            "mslp_hpa": 1007.36,
+            "humidity_pct": 97.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 28.32,
+            "mslp_hpa": 1007.34,
+            "humidity_pct": 97.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.21,
+            "mslp_hpa": 1007.35,
+            "humidity_pct": 97.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 28.22,
+            "mslp_hpa": 1007.35,
+            "humidity_pct": 97.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.11,
+            "mslp_hpa": 1007.36,
+            "humidity_pct": 97.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 28.29,
+            "mslp_hpa": 1007.37,
+            "humidity_pct": 97.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.25,
+            "mslp_hpa": 1007.38,
+            "humidity_pct": 97.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 28.31,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 98.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.11,
+            "mslp_hpa": 1007.4,
+            "humidity_pct": 97.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.2,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.1
+        }
+      ]
+    },
+    "1Zb102pg": {
+      "stationPublicId": "1Zb102pg",
+      "stationName": "San Jose City AWS",
+      "mean_1h_accuracy_pct": 99.69,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 26.53,
+            "mslp_hpa": 1009.67,
+            "humidity_pct": 89.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.56,
+            "mslp_hpa": 1009.66,
+            "humidity_pct": 89.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 26.48,
+            "mslp_hpa": 1009.69,
+            "humidity_pct": 89.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.42,
+            "mslp_hpa": 1009.68,
+            "humidity_pct": 89.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 26.45,
+            "mslp_hpa": 1009.7,
+            "humidity_pct": 89.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.46,
+            "mslp_hpa": 1009.69,
+            "humidity_pct": 89.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.01,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 26.54,
+            "mslp_hpa": 1009.69,
+            "humidity_pct": 90.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.5,
+            "mslp_hpa": 1009.68,
+            "humidity_pct": 89.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.04,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 26.42,
+            "mslp_hpa": 1009.67,
+            "humidity_pct": 90.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.36,
+            "mslp_hpa": 1009.66,
+            "humidity_pct": 90.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 26.5,
+            "mslp_hpa": 1009.64,
+            "humidity_pct": 90.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.5,
+            "mslp_hpa": 1009.64,
+            "humidity_pct": 90.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.0,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 100.0
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 26.46,
+            "mslp_hpa": 1009.61,
+            "humidity_pct": 90.5,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.36,
+            "mslp_hpa": 1009.62,
+            "humidity_pct": 90.2,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 26.45,
+            "mslp_hpa": 1009.59,
+            "humidity_pct": 90.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.42,
+            "mslp_hpa": 1009.6,
+            "humidity_pct": 90.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 26.53,
+            "mslp_hpa": 1009.58,
+            "humidity_pct": 90.8,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.44,
+            "mslp_hpa": 1009.59,
+            "humidity_pct": 90.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 26.42,
+            "mslp_hpa": 1009.59,
+            "humidity_pct": 90.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.31,
+            "mslp_hpa": 1009.6,
+            "humidity_pct": 90.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.11,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 26.51,
+            "mslp_hpa": 1009.61,
+            "humidity_pct": 91.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.45,
+            "mslp_hpa": 1009.62,
+            "humidity_pct": 90.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 26.5,
+            "mslp_hpa": 1009.64,
+            "humidity_pct": 91.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 26.33,
+            "mslp_hpa": 1009.64,
+            "humidity_pct": 90.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.17,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        }
+      ]
+    },
+    "3nzr48bG": {
+      "stationPublicId": "3nzr48bG",
+      "stationName": "Calumpit AWS - Bulacan",
+      "mean_1h_accuracy_pct": 99.67,
+      "checkpoints_5min": [
+        {
+          "step": 1,
+          "elapsed_minutes": 5,
+          "timestamp": "2026-08-30 20:57:10 PHT",
+          "time_str": "08:57 PM",
+          "predicted": {
+            "temperature_c": 28.4,
+            "mslp_hpa": 1008.28,
+            "humidity_pct": 94.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.42,
+            "mslp_hpa": 1008.27,
+            "humidity_pct": 94.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 2,
+          "elapsed_minutes": 10,
+          "timestamp": "2026-08-30 21:02:10 PHT",
+          "time_str": "09:02 PM",
+          "predicted": {
+            "temperature_c": 28.36,
+            "mslp_hpa": 1008.3,
+            "humidity_pct": 94.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.28,
+            "mslp_hpa": 1008.29,
+            "humidity_pct": 94.6,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.08,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.1,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 3,
+          "elapsed_minutes": 15,
+          "timestamp": "2026-08-30 21:07:10 PHT",
+          "time_str": "09:07 PM",
+          "predicted": {
+            "temperature_c": 28.31,
+            "mslp_hpa": 1008.31,
+            "humidity_pct": 95.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.34,
+            "mslp_hpa": 1008.3,
+            "humidity_pct": 94.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.03,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 4,
+          "elapsed_minutes": 20,
+          "timestamp": "2026-08-30 21:12:10 PHT",
+          "time_str": "09:12 PM",
+          "predicted": {
+            "temperature_c": 28.41,
+            "mslp_hpa": 1008.3,
+            "humidity_pct": 95.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.36,
+            "mslp_hpa": 1008.29,
+            "humidity_pct": 95.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.2,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.8
+        },
+        {
+          "step": 5,
+          "elapsed_minutes": 25,
+          "timestamp": "2026-08-30 21:17:10 PHT",
+          "time_str": "09:17 PM",
+          "predicted": {
+            "temperature_c": 28.29,
+            "mslp_hpa": 1008.28,
+            "humidity_pct": 95.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.23,
+            "mslp_hpa": 1008.27,
+            "humidity_pct": 95.1,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.06,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 6,
+          "elapsed_minutes": 30,
+          "timestamp": "2026-08-30 21:22:10 PHT",
+          "time_str": "09:22 PM",
+          "predicted": {
+            "temperature_c": 28.39,
+            "mslp_hpa": 1008.25,
+            "humidity_pct": 95.6,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.37,
+            "mslp_hpa": 1008.25,
+            "humidity_pct": 95.3,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.02,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.9
+        },
+        {
+          "step": 7,
+          "elapsed_minutes": 35,
+          "timestamp": "2026-08-30 21:27:10 PHT",
+          "time_str": "09:27 PM",
+          "predicted": {
+            "temperature_c": 28.34,
+            "mslp_hpa": 1008.22,
+            "humidity_pct": 95.7,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.25,
+            "mslp_hpa": 1008.23,
+            "humidity_pct": 95.4,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.09,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.6
+        },
+        {
+          "step": 8,
+          "elapsed_minutes": 40,
+          "timestamp": "2026-08-30 21:32:10 PHT",
+          "time_str": "09:32 PM",
+          "predicted": {
+            "temperature_c": 28.31,
+            "mslp_hpa": 1008.2,
+            "humidity_pct": 95.9,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.26,
+            "mslp_hpa": 1008.21,
+            "humidity_pct": 95.5,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 9,
+          "elapsed_minutes": 45,
+          "timestamp": "2026-08-30 21:37:10 PHT",
+          "time_str": "09:37 PM",
+          "predicted": {
+            "temperature_c": 28.4,
+            "mslp_hpa": 1008.19,
+            "humidity_pct": 96.0,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.3,
+            "mslp_hpa": 1008.2,
+            "humidity_pct": 95.7,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 10,
+          "elapsed_minutes": 50,
+          "timestamp": "2026-08-30 21:42:10 PHT",
+          "time_str": "09:42 PM",
+          "predicted": {
+            "temperature_c": 28.29,
+            "mslp_hpa": 1008.2,
+            "humidity_pct": 96.1,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.19,
+            "mslp_hpa": 1008.21,
+            "humidity_pct": 95.8,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.1,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.5
+        },
+        {
+          "step": 11,
+          "elapsed_minutes": 55,
+          "timestamp": "2026-08-30 21:47:10 PHT",
+          "time_str": "09:47 PM",
+          "predicted": {
+            "temperature_c": 28.38,
+            "mslp_hpa": 1008.22,
+            "humidity_pct": 96.2,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.33,
+            "mslp_hpa": 1008.23,
+            "humidity_pct": 95.9,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.05,
+            "mslp_error_hpa": 0.01,
+            "hum_error_pct": 0.3,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.7
+        },
+        {
+          "step": 12,
+          "elapsed_minutes": 60,
+          "timestamp": "2026-08-30 21:52:10 PHT",
+          "time_str": "09:52 PM",
+          "predicted": {
+            "temperature_c": 28.35,
+            "mslp_hpa": 1008.25,
+            "humidity_pct": 96.4,
+            "rain_mm_h": 0.0
+          },
+          "observed": {
+            "temperature_c": 28.2,
+            "mslp_hpa": 1008.25,
+            "humidity_pct": 96.0,
+            "rain_mm_h": 0.0
+          },
+          "errors": {
+            "temp_error_c": 0.15,
+            "mslp_error_hpa": 0.0,
+            "hum_error_pct": 0.4,
+            "rain_error_mm_h": 0.0
+          },
+          "accuracy_pct": 99.3
+        }
+      ]
+    }
+  }
+}
