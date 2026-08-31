@@ -193,7 +193,7 @@ def build_pdf(output_pdf_path):
 
     # ── BETA / TESTING DISCLAIMER BOX ──
     disclaimer_html = (
-        "<b>⚠️ OPERATIONAL TESTING & BETA VALIDATION NOTICE:</b><br/>"
+        "<b>[IMPORTANT NOTICE] OPERATIONAL TESTING & BETA VALIDATION:</b><br/>"
         "The prediction models, watershed flood nowcasting, and spatial kriging engines described in this document "
         "are actively deployed under <b>continuous real-world testing and field calibration</b>. While the physical "
         "fidelity score currently stands at <b>95.71%</b> across Central Luzon stations, all outputs serve as early civic decision-support "
@@ -269,16 +269,16 @@ def build_pdf(output_pdf_path):
     story.append(Paragraph("3.2 Prediction Page & Dynamic Context Cards", h2_style))
     story.append(Paragraph(
         "The Prediction Page defaults to a <b>1-Hour Nowcast Horizon</b> and dynamically adjusts its 4 glass cards depending on weather conditions:<br/>"
-        "• <b>🌧️ Rain / Flood Mode:</b> Precipitation Volume (mm), Flood Risk in Area (YES/NO/POSSIBLE solid badge), Wind & Pressure, and Chance of Rain (with ±1σ Conformal Uncertainty bounds).<br/>"
-        "• <b>☀️ Hot / Dry Mode:</b> Heat Index (°C & PAGASA danger levels), Relative Humidity (%), Wind & Pressure, and UV Solar Exposure Index.",
+        "• <b>[Rain / Flood Mode]:</b> Precipitation Volume (mm), Flood Risk in Area (YES/NO/POSSIBLE solid badge), Wind & Pressure, and Chance of Rain (with ±1σ Conformal Uncertainty bounds).<br/>"
+        "• <b>[Hot / Dry Weather Mode]:</b> Heat Index (°C & PAGASA danger levels), Relative Humidity (%), Wind & Pressure, and UV Solar Exposure Index.",
         body_style
     ))
 
     story.append(Paragraph("3.3 Human-First Decision Cards ('In Just One Look')", h2_style))
     story.append(Paragraph(
-        "• 🚗 <b>Road & Flood Passability:</b> Solid badges (<b>SAFE TO PASS</b>, <b>CAUTION: WET ROADS</b>, <b>DANGER: FLOODED / DO NOT PASS</b>) showing road water depths (gutter, knee, waist) and expected peak time.<br/>"
-        "• ☔ <b>Rain & Umbrella Guide:</b> Clear commuter advisory (<b>BRING AN UMBRELLA</b> / <b>HEAVY RAIN BURST</b>) with exact expected onset (e.g. <i>In +1h / 12:03 PM</i>) and duration (<i>~20 mins</i>).<br/>"
-        "• 🏔️ <b>Mountain Flash Flood Alert:</b> Warns lowland communities when heavy mountain rainfall on Mt. Natib or Sierra Madre is surging downstream—<b>even when it is sunny in the lowland town</b>.",
+        "• <b>1. Road & Flood Passability:</b> Solid badges (<b>SAFE TO PASS</b>, <b>CAUTION: WET ROADS</b>, <b>DANGER: FLOODED / DO NOT PASS</b>) showing road water depths (gutter, knee, waist) and expected peak time.<br/>"
+        "• <b>2. Rain & Umbrella Guide:</b> Clear commuter advisory (<b>BRING AN UMBRELLA</b> / <b>HEAVY RAIN BURST</b>) with exact expected onset (e.g. <i>In +1h / 12:03 PM</i>) and duration (<i>~20 mins</i>).<br/>"
+        "• <b>3. Mountain Flash Flood Alert:</b> Warns lowland communities when heavy mountain rainfall on Mt. Natib or Sierra Madre is surging downstream—<b>even when it is sunny in the lowland town</b>.",
         body_style
     ))
     story.append(Spacer(1, 8))
