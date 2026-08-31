@@ -25,7 +25,7 @@ export default function PredictionDashboard({
 }: PredictionDashboardProps) {
   const t = useTranslations("prediction");
   const [data, setData] = useState<PredictionPublicDTO>(initialData);
-  const [horizon, setHorizon] = useState<PredictionHorizon>("24h");
+  const [horizon, setHorizon] = useState<PredictionHorizon>("1h");
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLocating, setIsLocating] = useState(false);

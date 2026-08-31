@@ -40,7 +40,7 @@ export default function PredictionPeakSummary({
   summary,
   forecast,
   station,
-  horizon = "24h",
+  horizon = "1h",
   onSelectHorizon,
   suddenRainBurst,
 }: PredictionPeakSummaryProps) {

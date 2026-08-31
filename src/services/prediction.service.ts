@@ -341,13 +341,13 @@ export class PredictionService {
    */
   async getPredictionForStation(
     stationId: string,
-    horizon: PredictionHorizon = "24h"
+    horizon: PredictionHorizon = "1h"
   ): Promise<PredictionPublicDTO> {
     const cacheKey = `prediction-${stationId}-${horizon}`;
     const cached = predictionCache.get(cacheKey);
     if (cached) return cached;
 
-    const horizonHours = HORIZON_HOURS_MAP[horizon] ?? 24;
+    const horizonHours = HORIZON_HOURS_MAP[horizon] ?? 1;
 
     // 1. Resolve Target Station Metadata
     const defaultMatched = DEFAULT_CENTRAL_LUZON_STATIONS.find(

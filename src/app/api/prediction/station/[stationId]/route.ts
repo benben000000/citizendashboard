@@ -24,7 +24,7 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url);
-    const horizon = (searchParams.get("horizon") as PredictionHorizon) || "24h";
+    const horizon = (searchParams.get("horizon") as PredictionHorizon) || "1h";
 
     const data = await predictionService.getPredictionForStation(stationId, horizon);
 

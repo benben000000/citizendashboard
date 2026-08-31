@@ -61,12 +61,12 @@ export default async function PredictionPage({
     selectedStation = selectedStation ?? stations[0] ?? DEFAULT_CENTRAL_LUZON_STATIONS[0];
 
     const stationId = selectedStation?.stationPublicId || "O3z0j5bG";
-    predictionData = await predictionService.getPredictionForStation(stationId, "24h");
+    predictionData = await predictionService.getPredictionForStation(stationId, "1h");
   } catch (error) {
     console.error("Failed to load prediction dashboard:", error);
     hasError = true;
     stations = DEFAULT_CENTRAL_LUZON_STATIONS;
-    predictionData = await predictionService.getPredictionForStation("O3z0j5bG", "24h");
+    predictionData = await predictionService.getPredictionForStation("O3z0j5bG", "1h");
   }
 
   return (

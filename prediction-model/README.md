@@ -4,7 +4,7 @@ This module handles water level and hydrological forecasting by processing raw t
 
 ---
 
-## 🌊 Overview & Objectives
+##  Overview & Objectives
 
 - **Continuous-Time Modeling**: Leverage Liquid Neural Networks (LNNs / Liquid Time-Constant Networks / CfC) to model continuous physical dynamics of water level fluctuations, rainfall accumulation, and river discharge.
 - **Irregular & Sparse Telemetry Handling**: LNNs adapt dynamically to variable reporting intervals, sensor drops, and varying environmental conditions across distributed weather stations.
@@ -21,7 +21,7 @@ The model ingests raw telemetry metrics from stations:
 
 ---
 
-## 🧠 Architecture: Liquid Neural Network (LNN)
+## Architecture: Liquid Neural Network (LNN)
 
 Liquid Neural Networks offer significant advantages for time-series telemetry:
 1. **Dynamic Synaptic Weights**: Neurons and synapses are governed by continuous differential equations that adapt to incoming telemetry changes in real time.
@@ -30,7 +30,7 @@ Liquid Neural Networks offer significant advantages for time-series telemetry:
 
 ---
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```plaintext
 prediction-model/
@@ -60,7 +60,7 @@ prediction-model/
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Ingest Historical Telemetry
 ```bash
@@ -74,7 +74,7 @@ python3 src/train_standalone.py
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 1. **Set up Python Virtual Environment**:
    ```bash
