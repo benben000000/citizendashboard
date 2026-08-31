@@ -524,14 +524,13 @@ export class TelemetryService {
         const isRecent = recordedTime > 0 && (Date.now() - recordedTime) < 24 * 60 * 60 * 1000;
 
         // Check if raw sensor reading is healthy and actively recording in last 24h
+        // Temperature and Humidity indicate active, valid physical sensing
         const isHealthy =
           isRecent &&
           temp >= 16.0 &&
           temp <= 43.0 &&
           hum >= 20.0 &&
-          hum <= 100.0 &&
-          pres >= 970.0 &&
-          pres <= 1030.0;
+          hum <= 100.0;
 
         return {
           station: st,
