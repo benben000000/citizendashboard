@@ -137,5 +137,5 @@ export async function getWaterLevelMetricHistoryFromKloudtrackApi(
 ): Promise<WaterLevelHistoryMetricRaw> {
   const queryString = new URLSearchParams(params).toString();
   const suffix = queryString ? `?${queryString}` : "";
-  return kloudtrackApi.get<WaterLevelHistoryMetricRaw>(`/water-level/station/${stationId}/history/${variable}${suffix}`);
+  return kloudtrackApi.get<WaterLevelHistoryMetricRaw>(`/water-level/station/${stationId}/parameter/${variable}${suffix}`);
 }
