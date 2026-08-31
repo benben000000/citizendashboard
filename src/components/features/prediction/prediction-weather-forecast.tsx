@@ -17,6 +17,10 @@ import {
   Wind,
   CloudRain,
   Waves,
+  Sun,
+  Droplets,
+  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 
 interface PredictionWeatherForecastProps {
@@ -192,9 +196,53 @@ export default function PredictionWeatherForecast({
         ? t("rainLikelihood.scattered")
         : t("rainLikelihood.low");
 
+  // Dynamic Weather Condition Context:
+  // Active Rain / Flood Mode: triggered by active rain accumulation, high rain probability, or flood alert
+  // Hot / Dry Weather Mode: triggered when conditions are dry/warm
+  const isRainyOrFloodMode =
+    targetData.precipitationMm > 0.0 ||
+    targetData.rainProbability >= 40 ||
+    targetData.riskStatus !== "normal" ||
+    targetData.condition === "rain" ||
+    targetData.condition === "storm";
+
+  // Dynamic Daytime UV Index Calculation
+  const now = new Date();
+  const phHour = (now.getUTCHours() + 8) % 24 + now.getUTCMinutes() / 60;
+  const isDaytime = phHour >= 6 && phHour <= 18;
+  const uvValue = isDaytime
+    ? Math.max(0, Math.min(11, Math.round(9.2 * Math.sin((Math.PI * (phHour - 6)) / 12) * 10) / 10))
+    : 0.0;
+
+  // Flood Risk (YES / NO / POSSIBLE) evaluation
+  const floodRiskBadge = useMemo(() => {
+    if (targetData.riskStatus === "critical" || targetData.riskStatus === "warning") {
+      return {
+        text: t("cards.yes"),
+        bgColor: "#e11d48",
+        textColor: "#ffffff",
+        subtext: t("cards.highRisk"),
+      };
+    }
+    if (targetData.riskStatus === "advisory") {
+      return {
+        text: t("cards.possible"),
+        bgColor: "#eab308",
+        textColor: "#1e293b",
+        subtext: t("cards.moderateRisk"),
+      };
+    }
+    return {
+      text: t("cards.no"),
+      bgColor: "#22c55e",
+      textColor: "#ffffff",
+      subtext: t("cards.lowRisk"),
+    };
+  }, [targetData.riskStatus, t]);
+
   return (
     <div className="w-full pt-1 pb-0">
-      {/* 2-Column Hero: Left Side Hero Info + Right Side 4 Specific Glass Cards */}
+      {/* 2-Column Hero: Left Side Hero Info + Right Side Dynamic Context-Aware 4 Glass Cards */}
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-14 xl:gap-20">
         {/* ── LEFT COLUMN: HERO INFORMATION ── */}
         <div className="flex flex-col items-start lg:col-span-7">
@@ -257,97 +305,210 @@ export default function PredictionWeatherForecast({
           </p>
         </div>
 
-        {/* ── RIGHT COLUMN: 4 REQUESTED GLASS CARDS (2x2 Grid) ── */}
+        {/* ── RIGHT COLUMN: DYNAMIC 4 GLASS CARDS (2x2 Grid) ── */}
         <div className="w-full lg:col-span-5 flex justify-center lg:justify-end">
           <div className="grid grid-cols-2 gap-3.5 md:gap-4 w-full max-w-md">
-            {/* 1. Heat Index Card */}
-            <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
-              <div className="flex items-center gap-2">
-                <Flame className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
-                <span className="text-xs md:text-sm text-light font-medium leading-tight">
-                  {t("cards.heatIndex")}
-                </span>
-              </div>
+            {isRainyOrFloodMode ? (
+              /* 🌧️ WET / RAINY / FLOOD RISK MODE (Precipitation, Flood Risk, Wind & Pressure, Chance of Rain) */
+              <>
+                {/* 1. Precipitation Card */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    <CloudRain className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.precipitation")}
+                    </span>
+                  </div>
 
-              <div className="my-auto flex items-baseline gap-1 text-light">
-                <span className="text-2xl md:text-3xl font-bold leading-none">
-                  {targetData.heatIndex.toFixed(1)}
-                </span>
-                <span className="text-xs font-medium">°C</span>
-              </div>
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-2xl md:text-3xl font-bold leading-none">
+                      {targetData.precipitationMm > 0 ? targetData.precipitationMm.toFixed(1) : "0.0"}
+                    </span>
+                    <span className="text-xs font-medium">mm</span>
+                  </div>
 
-              <div className="text-[11px] font-semibold text-light/85 truncate">
-                {getHeatIndexLabel(targetData.heatIndex)}
-              </div>
-            </div>
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {willItRainText}
+                  </div>
+                </div>
 
-            {/* 2. Wind & Pressure Card */}
-            <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
-              <div className="flex items-center gap-2">
-                <Wind className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
-                <span className="text-xs md:text-sm text-light font-medium leading-tight">
-                  {t("cards.windPressure")}
-                </span>
-              </div>
+                {/* 2. Flood Risk Card (YES / NO with Risk Level) */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    {targetData.riskStatus === "normal" ? (
+                      <ShieldCheck className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    ) : (
+                      <ShieldAlert className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    )}
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.floodRisk")}
+                    </span>
+                  </div>
 
-              <div className="my-auto flex items-baseline gap-1 text-light">
-                <span className="text-xl sm:text-2xl md:text-3xl font-bold leading-none">
-                  {targetData.windDirection} {targetData.windSpeedKmH}
-                </span>
-                <span className="text-xs font-medium">km/h</span>
-              </div>
+                  <div className="my-auto flex items-center gap-2">
+                    <span
+                      className="inline-flex items-center rounded-lg px-2.5 py-1 text-lg md:text-xl font-extrabold tracking-wide shadow-xs"
+                      style={{
+                        backgroundColor: floodRiskBadge.bgColor,
+                        color: floodRiskBadge.textColor,
+                      }}
+                    >
+                      {floodRiskBadge.text}
+                    </span>
+                    <span className="text-[11px] font-semibold text-light/90 truncate">
+                      {floodRiskBadge.subtext}
+                    </span>
+                  </div>
 
-              <div className="text-[11px] font-semibold text-light/85 truncate">
-                {targetData.pressure} hPa
-              </div>
-            </div>
+                  <div className="text-[11px] font-semibold text-light/85 truncate flex items-center gap-1">
+                    <span>{riskDetails.waterStatusLabel}</span>
+                  </div>
+                </div>
 
-            {/* 3. Rain Forecast on Selected Horizon Card */}
-            <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
-              <div className="flex items-center gap-2">
-                <CloudRain className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
-                <span className="text-xs md:text-sm text-light font-medium leading-tight">
-                  {t("cards.rainChance")} ({horizon})
-                </span>
-              </div>
+                {/* 3. Wind & Pressure Card */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    <Wind className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.windPressure")}
+                    </span>
+                  </div>
 
-              <div className="my-auto flex items-baseline gap-1 text-light">
-                <span className="text-2xl md:text-3xl font-bold leading-none">
-                  {targetData.rainProbability}
-                </span>
-                <span className="text-xs font-medium">%</span>
-                {targetData.conformalBounds && (
-                  <span className="text-[10px] text-light/75 ml-1 font-mono tracking-tight bg-white/10 px-1.5 py-0.5 rounded-full">
-                    ±1σ: {targetData.conformalBounds.likelyLower}–{targetData.conformalBounds.likelyUpper}%
-                  </span>
-                )}
-              </div>
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-xl sm:text-2xl md:text-3xl font-bold leading-none">
+                      {targetData.windDirection} {targetData.windSpeedKmH}
+                    </span>
+                    <span className="text-xs font-medium">km/h</span>
+                  </div>
 
-              <div className="text-[11px] font-semibold text-light/85 truncate">
-                {willItRainText} {targetData.precipitationMm > 0 ? `(~${targetData.precipitationMm.toFixed(1)}mm)` : ""}
-              </div>
-            </div>
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {targetData.pressure} hPa
+                  </div>
+                </div>
 
-            {/* 4. Water Level & Flood Alert Card */}
-            <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
-              <div className="flex items-center gap-2">
-                <Waves className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
-                <span className="text-xs md:text-sm text-light font-medium leading-tight">
-                  {t("cards.waterLevelFlood")}
-                </span>
-              </div>
+                {/* 4. Chance of Rain Card */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    <CloudRain className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.rainChance")} ({horizon})
+                    </span>
+                  </div>
 
-              <div className="my-auto flex items-baseline gap-1 text-light">
-                <span className="text-2xl md:text-3xl font-bold leading-none">
-                  {targetData.predictedWaterLevel.toFixed(2)}
-                </span>
-                <span className="text-xs font-medium">m</span>
-              </div>
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-2xl md:text-3xl font-bold leading-none">
+                      {targetData.rainProbability}
+                    </span>
+                    <span className="text-xs font-medium">%</span>
+                    {targetData.conformalBounds && (
+                      <span className="text-[10px] text-light/75 ml-1 font-mono tracking-tight bg-white/10 px-1.5 py-0.5 rounded-full">
+                        ±1σ: {targetData.conformalBounds.likelyLower}–{targetData.conformalBounds.likelyUpper}%
+                      </span>
+                    )}
+                  </div>
 
-              <div className="text-[11px] font-semibold text-light/85 truncate flex items-center gap-1">
-                <span>{riskDetails.waterStatusLabel}</span>
-              </div>
-            </div>
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {targetData.precipitationMm > 0 ? `~${targetData.precipitationMm.toFixed(1)} mm volume` : willItRainText}
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* ☀️ HOT / DRY WEATHER MODE (Heat Index, Humidity, Wind & Pressure, UV Index) */
+              <>
+                {/* 1. Heat Index Card */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.heatIndex")}
+                    </span>
+                  </div>
+
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-2xl md:text-3xl font-bold leading-none">
+                      {targetData.heatIndex.toFixed(1)}
+                    </span>
+                    <span className="text-xs font-medium">°C</span>
+                  </div>
+
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {getHeatIndexLabel(targetData.heatIndex)}
+                  </div>
+                </div>
+
+                {/* 2. Humidity Card */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.humidity")}
+                    </span>
+                  </div>
+
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-2xl md:text-3xl font-bold leading-none">
+                      {targetData.humidity.toFixed(1)}
+                    </span>
+                    <span className="text-xs font-medium">%</span>
+                  </div>
+
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {targetData.humidity >= 75
+                      ? t("cards.highHumidity")
+                      : targetData.humidity <= 50
+                        ? t("cards.dryAir")
+                        : t("cards.normalHumidity")}
+                  </div>
+                </div>
+
+                {/* 3. Wind & Pressure Card */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    <Wind className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.windPressure")}
+                    </span>
+                  </div>
+
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-xl sm:text-2xl md:text-3xl font-bold leading-none">
+                      {targetData.windDirection} {targetData.windSpeedKmH}
+                    </span>
+                    <span className="text-xs font-medium">km/h</span>
+                  </div>
+
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {targetData.pressure} hPa
+                  </div>
+                </div>
+
+                {/* 4. UV Index Card */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <span className="text-xs md:text-sm text-light font-medium leading-tight">
+                      {t("cards.uvIndex")}
+                    </span>
+                  </div>
+
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-2xl md:text-3xl font-bold leading-none">
+                      {uvValue.toFixed(1)}
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {uvValue >= 8
+                      ? t("cards.uvVeryHigh")
+                      : uvValue >= 6
+                        ? t("cards.uvHigh")
+                        : uvValue >= 3
+                          ? t("cards.uvModerate")
+                          : t("cards.uvLow")}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
