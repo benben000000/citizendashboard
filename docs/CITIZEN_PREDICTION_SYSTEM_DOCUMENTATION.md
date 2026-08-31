@@ -210,8 +210,10 @@ Our models and validation frameworks are built upon foundational, peer-reviewed 
 
 ---
 
-### ❓ Q3: "Why did Today's Precipitation show 3.2 mm instead of 12.7 mm?"
-**Answer:** **`3.2 mm` is the true physical rainfall volume.** The hardware rain gauge records rain *rate* in millimeters per hour ($\text{mm/h}$). If an $8\text{ mm/h}$ shower lasts for only 15 minutes ($0.25\text{ hours}$), it actually deposits $2\text{ mm}$ of water on the ground. Simply adding the raw rates gives an exaggerated $12.7\text{ mm}$ ($4\times$ overestimate), whereas our time-series integration ($\int R(t) dt$) produces the exact **$3.2\text{ mm}$** of water that actually fell.
+### ❓ Q3: "Why do different weather apps show different rainfall numbers (e.g., 3.2 mm vs 12.7 mm), and which one is physically real?"
+**Answer:** **`3.2 mm` is the physically accurate rainfall depth.**  
+* **The Reason:** Hardware weather sensors measure the instantaneous rain *rate* in millimeters per hour ($\text{mm/h}$). If a heavy shower of $8.0\text{ mm/h}$ lasts for only 15 minutes ($0.25\text{ hours}$), the actual water collected in the rain gauge bucket is $8.0 \times 0.25 = \mathbf{2.0\text{ mm}}$.  
+* **The Error in Other Apps:** If a platform simply adds up the raw snapshot numbers without multiplying by time ($\Delta t = 0.25\text{h}$), it calculates as if it poured for a full hour, producing an inflated $12.7\text{ mm}$ ($4\times$ false overestimate). Our platform integrates the area under the curve ($\int R(t) dt$) to give the true physical water depth on the ground.
 
 ---
 
@@ -240,8 +242,12 @@ Our models and validation frameworks are built upon foundational, peer-reviewed 
 
 ---
 
-### ❓ Q9: "Why is the default forecast horizon set to 1 hour instead of 24 hours?"
-**Answer:** A **1-Hour Horizon** gives citizens the highest possible accuracy for immediate decisions (e.g. *"Should I bring an umbrella right now?"* or *"Can I drive through this road in 30 minutes?"*). Users can still switch to 3h, 6h, 12h, 24h, or 72h using the horizon toggle at any time.
+### ❓ Q9: "Why is the prediction defaulted to 1 Hour (Nowcasting) instead of 24 Hours, and when should I use the other horizons (3h, 6h, 12h, 24h, 72h)?"
+**Answer:**  
+* **1-Hour Horizon (Default):** Provides maximum precision (sub-second ODE nowcast) for immediate civic choices—such as whether you need to bring an umbrella right now, if street flooding will block your commute in 30 minutes, or if outdoor construction should pause.  
+* **3h to 6h Horizons:** Ideal for half-day travel planning, school dismissals, and public transport dispatching.  
+* **12h to 24h Horizons:** Best for daily logistics, agricultural work, and municipal disaster readiness meetings.  
+* **72h Horizon:** Provides synoptic multi-day storm tracking and reservoir water management.
 
 ---
 
@@ -260,6 +266,49 @@ Our models and validation frameworks are built upon foundational, peer-reviewed 
 
 ### ❓ Q12: "What is the official status of this project?"
 **Answer:** The platform is in **Active Operational Beta / Continuous Validation Stage**, continuously ingesting live telemetry across Central Luzon and benchmarked daily against PAGASA and WMO ground truth.
+
+---
+
+### ❓ Q13: "How is the Heat Index calculated, and why does 32°C sometimes feel like 39°C?"
+**Answer:** The Heat Index ("Damang Init") accounts for relative humidity. When humidity is high (e.g. 80%), human sweat cannot evaporate quickly, preventing the body from cooling down naturally. The system applies the PAGASA-Rothfusz thermodynamic equations to accurately report what the temperature actually feels like on human skin.
+
+---
+
+### ❓ Q14: "What is the difference between the Weather Page, the Water Level Page, and the Prediction Page?"
+**Answer:**  
+1. **Weather Page (`/weather`):** Shows **real-time current ground observations** (live temperature, integrated rainfall, humidity, wind).  
+2. **Water Level Page (`/water-level`):** Shows **physical ultrasonic river gauges** with 24-hour historical rising/falling trends.  
+3. **Prediction Page (`/prediction`):** Uses the **PINN-LNN model** to forecast what will happen over the next 1 to 72 hours (flood passability, umbrella alerts, and mountain runoff).
+
+---
+
+### ❓ Q15: "How does this platform help local DRRMOs and Barangay Captains make evacuation decisions?"
+**Answer:** Local officials receive **45 to 90 minutes of lead time** before floodwaters crest. By seeing the projected peak stage height (e.g., *"Peak 4.28m expected around 7:50 PM"*) and watershed inflow rate, leaders can order preemptive evacuations of low-lying riverbanks before roads become impassable.
+
+---
+
+### ❓ Q16: "Can farmers, fisherfolk, and outdoor workers use this for their daily livelihoods?"
+**Answer:** **Yes.** Farmers can track soil moisture accumulation and mountain runoff before irrigating fields or harvesting crops. Fisherfolk and boat operators can check wind pressure and coastal cloudburst nowcasts before heading out to sea.
+
+---
+
+### ❓ Q17: "How is citizen privacy protected when viewing the dashboard?"
+**Answer:** The platform strictly serves public hydrometeorological intelligence. It does **not track personal user locations, store user GPS coordinates, or collect private user data**. All station queries are processed anonymously on the server edge.
+
+---
+
+### ❓ Q18: "What makes the system resilient during severe storms or network dropouts?"
+**Answer:** The system features **edge-cached continuous-time fallbacks**. If a cell tower goes down temporarily, the server serves the last validated continuous ODE trajectory while spatial kriging reconstructs missing values from unaffected stations across the regional mesh.
+
+---
+
+### ❓ Q19: "How does the system distinguish between coastal sea breezes and actual storm rain?"
+**Answer:** By coupling **barometric pressure rate-of-change ($\frac{dP}{dt}$)** with **satellite convective indices**. A harmless sea breeze increases humidity without a significant drop in atmospheric pressure, whereas an incoming convective storm cell causes a sharp barometric drop and high Doppler radar reflectivity.
+
+---
+
+### ❓ Q20: "Can this system be scaled to other provinces and regions across the Philippines?"
+**Answer:** **Yes.** The PINN-LNN engine is modular and topology-agnostic. Deploying it in a new province simply requires registering the local IoT stations and uploading the local 30m Digital Elevation Model (DEM) watershed boundary.
 
 ---
 
