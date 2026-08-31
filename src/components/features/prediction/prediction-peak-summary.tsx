@@ -130,12 +130,14 @@ export default function PredictionPeakSummary({
     }
     return {
       badge: t("passableSafe"),
-      bgColor: "#22c55e",
+      bgColor: "#16a34a",
       textColor: "#ffffff",
       description: t("passableSafeDesc"),
       icon: ShieldCheck,
     };
   })();
+
+  const cleanTimeStr = burst.expectedWindow.replace(/^Expected in\s+/i, "");
 
   const umbrellaInfo = (() => {
     if (isHeavyBurst) {
@@ -143,7 +145,7 @@ export default function PredictionPeakSummary({
         badge: t("umbrellaHeavy"),
         bgColor: "#e11d48",
         textColor: "#ffffff",
-        description: t("umbrellaHeavyDesc", { time: burst.expectedWindow }),
+        description: t("umbrellaHeavyDesc", { time: cleanTimeStr }),
         icon: Umbrella,
       };
     }
@@ -153,7 +155,7 @@ export default function PredictionPeakSummary({
         bgColor: "#0284c7",
         textColor: "#ffffff",
         description: t("umbrellaLightDesc", {
-          time: burst.expectedWindow,
+          time: cleanTimeStr,
           duration: burst.durationMinutes > 0 ? `${burst.durationMinutes}m` : "15-20m",
         }),
         icon: Umbrella,
@@ -161,7 +163,7 @@ export default function PredictionPeakSummary({
     }
     return {
       badge: t("umbrellaNoRain"),
-      bgColor: "#22c55e",
+      bgColor: "#16a34a",
       textColor: "#ffffff",
       description: t("umbrellaNoRainDesc"),
       icon: Sun,
@@ -187,7 +189,7 @@ export default function PredictionPeakSummary({
     }
     return {
       badge: t("mountainSafe"),
-      bgColor: "#22c55e",
+      bgColor: "#16a34a",
       textColor: "#ffffff",
       description: t("mountainSafeDesc"),
     };
@@ -198,6 +200,7 @@ export default function PredictionPeakSummary({
       id="prediction-details"
       className="w-full max-w-7xl mx-auto min-h-[90svh] flex flex-col justify-center px-5 py-10 sm:px-8 md:px-12"
     >
+      {/* ── SECTION HEADER WITH SYNCHRONIZED LEAD HORIZON SELECTOR ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <div className="flex items-center gap-2">
@@ -211,6 +214,7 @@ export default function PredictionPeakSummary({
           </h2>
         </div>
 
+        {/* Dynamic Horizon Selector on Screen 2 */}
         {onSelectHorizon && (
           <div className="flex items-center rounded-full border border-slate-950/10 bg-white/70 px-3.5 py-1.5 shadow-2xs backdrop-blur-md self-start sm:self-auto">
             <PredictionHorizonSelector
@@ -221,7 +225,10 @@ export default function PredictionPeakSummary({
         )}
       </div>
 
+      {/* ── 3-CARD COMPREHENSIVE CITIZEN ACTION GRID ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-6 w-full">
+        
+        {/* ── CARD 1: ROAD & FLOOD PASSABILITY ("Ligtas ba ang Daan o May Baha?") ── */}
         <div className="glass flex flex-col justify-between p-5 md:p-6 transition hover:scale-[1.01]">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
@@ -238,16 +245,18 @@ export default function PredictionPeakSummary({
               </div>
             </div>
 
+            {/* Solid Color Action Badge */}
             <div
-              className="rounded-xl p-3 my-3 shadow-xs flex items-center gap-2.5"
-              style={{ backgroundColor: `${passabilityInfo.bgColor}25`, border: `1.5px solid ${passabilityInfo.bgColor}60` }}
+              className="rounded-xl p-3 my-3 shadow-md flex items-center gap-2.5 transition"
+              style={{ backgroundColor: passabilityInfo.bgColor, color: passabilityInfo.textColor }}
             >
-              <passabilityInfo.icon className="h-5 w-5 shrink-0" style={{ color: passabilityInfo.bgColor }} />
-              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-light">
+              <passabilityInfo.icon className="h-5 w-5 shrink-0" style={{ color: passabilityInfo.textColor }} />
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wide" style={{ color: passabilityInfo.textColor }}>
                 {passabilityInfo.badge}
               </span>
             </div>
 
+            {/* Peak Metric Large Display & Expected Peak Time */}
             <div className="my-3 flex flex-wrap items-baseline justify-between gap-2">
               <div className="flex items-baseline gap-1 text-light">
                 <span className="text-3xl sm:text-4xl font-black tracking-tight tabular-nums">
@@ -261,6 +270,7 @@ export default function PredictionPeakSummary({
               </span>
             </div>
 
+            {/* Human Flood Depth Gauge Bar */}
             <div className="space-y-1.5 my-3">
               <div className="flex justify-between items-center text-[10px] font-semibold text-light/80">
                 <span>{t("thresholdLabels.normal", { val: advisoryThreshold.toFixed(1) })}</span>
@@ -268,6 +278,7 @@ export default function PredictionPeakSummary({
                 <span>{t("thresholdLabels.critical", { val: criticalThreshold.toFixed(1) })}</span>
               </div>
 
+              {/* Clean Adaptive Track */}
               <div className="relative h-2.5 w-full rounded-full bg-slate-900/15 dark:bg-white/15 overflow-hidden p-0.5 border border-white/20">
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -280,11 +291,13 @@ export default function PredictionPeakSummary({
             </div>
           </div>
 
+          {/* Citizen Road Practical Advice */}
           <div className="pt-3.5 border-t border-slate-950/10 dark:border-white/10 text-xs font-medium text-light/95 leading-relaxed">
             {passabilityInfo.description}
           </div>
         </div>
 
+        {/* ── CARD 2: RAIN & UMBRELLA GUIDE ("Bubuhos ba ang Ulan? Payong & Kapote") ── */}
         <div className="glass flex flex-col justify-between p-5 md:p-6 transition hover:scale-[1.01]">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
@@ -310,16 +323,18 @@ export default function PredictionPeakSummary({
               </div>
             </div>
 
+            {/* Solid Color Action Badge */}
             <div
-              className="rounded-xl p-3 my-3 shadow-xs flex items-center gap-2.5"
-              style={{ backgroundColor: `${umbrellaInfo.bgColor}25`, border: `1.5px solid ${umbrellaInfo.bgColor}60` }}
+              className="rounded-xl p-3 my-3 shadow-md flex items-center gap-2.5 transition"
+              style={{ backgroundColor: umbrellaInfo.bgColor, color: umbrellaInfo.textColor }}
             >
-              <umbrellaInfo.icon className="h-5 w-5 shrink-0" style={{ color: umbrellaInfo.bgColor }} />
-              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-light">
+              <umbrellaInfo.icon className="h-5 w-5 shrink-0" style={{ color: umbrellaInfo.textColor }} />
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wide" style={{ color: umbrellaInfo.textColor }}>
                 {umbrellaInfo.badge}
               </span>
             </div>
 
+            {/* 2 Clean Citizen Decision Boxes (When & How Long) */}
             <div className="grid grid-cols-2 gap-2.5 my-3">
               <div className="bg-white/35 dark:bg-white/10 rounded-xl p-2.5 sm:p-3 border border-white/30 dark:border-white/10">
                 <span className="text-[10px] font-bold text-light/75 uppercase tracking-wider block mb-1">
@@ -327,7 +342,7 @@ export default function PredictionPeakSummary({
                 </span>
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-light">
                   <Timer className="h-3.5 w-3.5 text-light shrink-0" />
-                  <span className="leading-tight">{burst.expectedWindow}</span>
+                  <span className="leading-tight">{cleanTimeStr}</span>
                 </div>
               </div>
 
@@ -344,11 +359,13 @@ export default function PredictionPeakSummary({
             </div>
           </div>
 
+          {/* Actionable Protective Advisory */}
           <div className="pt-3.5 border-t border-slate-950/10 dark:border-white/10 text-xs font-medium text-light/95 leading-relaxed">
             {umbrellaInfo.description}
           </div>
         </div>
 
+        {/* ── CARD 3: MOUNTAIN FLASH FLOOD ALERT ("Baha Mula sa Bundok") ── */}
         <div className="glass flex flex-col justify-between p-5 md:p-6 transition hover:scale-[1.01]">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
@@ -370,16 +387,18 @@ export default function PredictionPeakSummary({
               </div>
             </div>
 
+            {/* Solid Color Action Badge */}
             <div
-              className="rounded-xl p-3 my-3 shadow-xs flex items-center gap-2.5"
-              style={{ backgroundColor: `${mountainInfo.bgColor}25`, border: `1.5px solid ${mountainInfo.bgColor}60` }}
+              className="rounded-xl p-3 my-3 shadow-md flex items-center gap-2.5 transition"
+              style={{ backgroundColor: mountainInfo.bgColor, color: mountainInfo.textColor }}
             >
-              <Mountain className="h-5 w-5 shrink-0" style={{ color: mountainInfo.bgColor }} />
-              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-light">
+              <Mountain className="h-5 w-5 shrink-0" style={{ color: mountainInfo.textColor }} />
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wide" style={{ color: mountainInfo.textColor }}>
                 {mountainInfo.badge}
               </span>
             </div>
 
+            {/* Clean Frosted Watershed Status Grid */}
             <div className="grid grid-cols-2 gap-2.5 my-3">
               <div className="bg-white/35 dark:bg-white/10 rounded-xl p-2.5 sm:p-3 border border-white/30 dark:border-white/10">
                 <span className="text-[10px] font-bold text-light/75 uppercase tracking-wider block mb-1">
@@ -408,6 +427,7 @@ export default function PredictionPeakSummary({
             </div>
           </div>
 
+          {/* Hydrological Physical Runoff Summary */}
           <div className="pt-3.5 border-t border-slate-950/10 dark:border-white/10 text-xs font-medium text-light/95 leading-relaxed">
             {mountainInfo.description}
           </div>
