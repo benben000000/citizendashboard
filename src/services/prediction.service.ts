@@ -675,9 +675,16 @@ export class PredictionService {
       });
     }
 
-    // 4. Calculate Sudden Rain / Short Burst Detection across the selected horizon
-    const maxBurstPrecip = Math.max(...hourlyForecasts.map((h) => h.precipitationMm), 0);
+    // 4. Calculate Sudden Rain / Short Burst Detection directly from Model Continuous-Time Trajectory
+    const rainIndices: number[] = [];
+    hourlyForecasts.forEach((h, idx) => {
+      if (h.precipitationMm >= 0.1 || h.rainProbability >= 40) {
+        rainIndices.push(idx);
+      }
+    });
+
     const maxBurstProb = Math.max(...hourlyForecasts.map((h) => h.rainProbability), 0);
+    const maxBurstPrecip = Math.max(...hourlyForecasts.map((h) => h.precipitationMm), 0);
 
     let burstType: SuddenBurstType = "none";
     let burstTitle = "No Sudden Rain Bursts Expected";
@@ -685,35 +692,77 @@ export class PredictionService {
     let burstWindow = horizon === "1h" ? "Next 1 Hour (Dry)" : horizon === "72h" ? "Next 3 Days (Dry)" : `Next ${horizon.toUpperCase()} (Dry)`;
     let burstDuration = 0;
     let burstAdvisory = "Atmospheric column is stable. Normal diurnal conditions.";
+    let radarReflectivityDbz = 5.0;
+    let convectiveCloudCover = 12.0;
 
-    const firstBurstIndex = hourlyForecasts.findIndex((h) => h.precipitationMm > 0 || h.rainProbability >= 40);
+    if (rainIndices.length > 0) {
+      const firstIdx = rainIndices[0];
 
-    if (maxBurstPrecip >= 5.0 || (maxBurstProb >= 70 && currentPressure < 1006)) {
-      burstType = maxBurstPrecip >= 10.0 ? "sudden_heavy" : "short_burst_heavy";
-      burstTitle = maxBurstPrecip >= 10.0 ? "Sudden Heavy Rain Detected" : "Short Burst of Heavy Downpour";
-      burstIntensity = Number(maxBurstPrecip.toFixed(1));
-      burstDuration = Math.min(60, Math.max(25, Math.round(burstIntensity * 4)));
-      if (firstBurstIndex >= 0) {
-        const offsetHrs = (firstBurstIndex + 1) * stepHours;
-        const targetTime = hourlyForecasts[firstBurstIndex].time;
-        burstWindow = offsetHrs <= 0.5 ? `In ~30m (${targetTime})` : `In +${offsetHrs >= 10 ? Math.round(offsetHrs) : (offsetHrs % 1 === 0 ? offsetHrs : offsetHrs.toFixed(1))}h (${targetTime})`;
-      } else {
-        burstWindow = `Within Next ${horizon.toUpperCase()}`;
+      // Trace contiguous rain cluster from model onset until first dry period
+      let lastIdx = firstIdx;
+      for (let k = 1; k < rainIndices.length; k++) {
+        if (rainIndices[k] === lastIdx + 1) {
+          lastIdx = rainIndices[k];
+        } else {
+          break; // Continuous storm cell ends
+        }
       }
-      burstAdvisory = "Rapid convective downpour. Flash pooling on roads and low drainage areas possible.";
-    } else if (maxBurstPrecip >= 0.5 || maxBurstProb >= 40) {
-      burstType = maxBurstPrecip >= 2.5 ? "sudden_light" : "short_burst_light";
-      burstTitle = maxBurstPrecip >= 2.5 ? "Sudden Light Rain Showers" : "Short Burst of Passing Light Rain";
-      burstIntensity = Number(maxBurstPrecip.toFixed(1));
-      burstDuration = 20;
-      if (firstBurstIndex >= 0) {
-        const offsetHrs = (firstBurstIndex + 1) * stepHours;
-        const targetTime = hourlyForecasts[firstBurstIndex].time;
-        burstWindow = offsetHrs <= 0.5 ? `In ~30m (${targetTime})` : `In +${offsetHrs >= 10 ? Math.round(offsetHrs) : (offsetHrs % 1 === 0 ? offsetHrs : offsetHrs.toFixed(1))}h (${targetTime})`;
+
+      const clusterSteps = hourlyForecasts.slice(firstIdx, lastIdx + 1);
+      const maxPrecipInCluster = Math.max(...clusterSteps.map((h) => h.precipitationMm));
+      const maxProbInCluster = Math.max(...clusterSteps.map((h) => h.rainProbability));
+      const peakStep = clusterSteps.find((h) => h.precipitationMm === maxPrecipInCluster) || clusterSteps[0];
+
+      burstIntensity = Number(maxPrecipInCluster.toFixed(1));
+
+      // Calculate physical duration directly from forward model trajectory timestamps
+      const onsetMs = new Date(hourlyForecasts[firstIdx].timestamp).getTime();
+      const endMs = new Date(hourlyForecasts[lastIdx].timestamp).getTime() + (stepHours * 60 * 60 * 1000);
+      burstDuration = Math.max(15, Math.round((endMs - onsetMs) / (60 * 1000)));
+
+      // Calculate physical onset offset from current time
+      const offsetMs = Math.max(0, onsetMs - now.getTime());
+      const offsetMinutes = Math.round(offsetMs / (60 * 1000));
+      const offsetHours = offsetMinutes / 60;
+      const targetClockTime = hourlyForecasts[firstIdx].time;
+
+      if (offsetMinutes <= 30) {
+        burstWindow = `In ~30m (${targetClockTime})`;
+      } else if (offsetMinutes <= 75) {
+        burstWindow = `In +1h (${targetClockTime})`;
       } else {
-        burstWindow = `Within Next ${horizon.toUpperCase()}`;
+        const hVal = offsetHours >= 10 ? Math.round(offsetHours) : (offsetHours % 1 === 0 ? offsetHours : offsetHours.toFixed(1));
+        burstWindow = `In +${hVal}h (${targetClockTime})`;
       }
-      burstAdvisory = "Brief localized passing drizzle. Minimal flood risk, light umbrella recommended.";
+
+      // Classify burst type from physical precipitation intensity derived from PINN-LNN
+      if (burstIntensity >= 10.0 || (maxProbInCluster >= 80 && currentPressure < 1004)) {
+        burstType = "sudden_heavy";
+        burstTitle = "Sudden Heavy Rain Detected";
+        burstAdvisory = "Rapid convective downpour. Flash pooling on roads and low drainage areas possible.";
+      } else if (burstIntensity >= 5.0 || (maxProbInCluster >= 65 && currentPressure < 1007)) {
+        burstType = "short_burst_heavy";
+        burstTitle = "Short Burst of Heavy Downpour";
+        burstAdvisory = "Moderate-to-heavy convective shower. Localized roadway ponding expected.";
+      } else if (burstIntensity >= 2.0 || maxProbInCluster >= 50) {
+        burstType = "sudden_light";
+        burstTitle = "Sudden Light Rain Showers";
+        burstAdvisory = "Localized passing showers. Light umbrella recommended.";
+      } else {
+        burstType = "short_burst_light";
+        burstTitle = "Short Burst of Passing Light Rain";
+        burstAdvisory = "Brief localized passing drizzle. Minimal flood risk, carry an umbrella.";
+      }
+
+      // Physics radar reflectivity from Z = 130 * R^1.45 (Marshall-Palmer tropical archipelago model)
+      radarReflectivityDbz = Number(
+        Math.min(56.0, Math.max(12.0, 21.14 + 14.5 * Math.log10(Math.max(0.1, burstIntensity)))).toFixed(1)
+      );
+
+      // Convective cloud cover % from model atmospheric moisture and probability
+      convectiveCloudCover = Number(
+        Math.min(100, Math.max(25, Math.round(maxProbInCluster * 0.75 + (peakStep.humidity || currentHumidity) * 0.25))).toFixed(0)
+      );
     }
 
     const suddenRainBurst: SuddenRainBurstPrediction = {
@@ -724,8 +773,8 @@ export class PredictionService {
       probabilityPct: maxBurstProb,
       expectedWindow: burstWindow,
       durationMinutes: burstDuration,
-      radarReflectivityDbz: burstType === "sudden_heavy" || burstType === "short_burst_heavy" ? 42.5 : burstType !== "none" ? 24.0 : 5.0,
-      convectiveCloudCover: burstType === "sudden_heavy" || burstType === "short_burst_heavy" ? 82.0 : burstType !== "none" ? 48.0 : 12.0,
+      radarReflectivityDbz,
+      convectiveCloudCover,
       advisory: burstAdvisory,
     };
 

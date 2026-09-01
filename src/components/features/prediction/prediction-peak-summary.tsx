@@ -108,7 +108,7 @@ export default function PredictionPeakSummary({
     0
   );
 
-  const fallbackBurst = suddenRainBurst ?? summary.suddenRainBurst ?? {
+  const burst = suddenRainBurst ?? summary.suddenRainBurst ?? {
     detected: false,
     burstType: "none" as const,
     title: t("burstTypes.none"),
@@ -121,59 +121,17 @@ export default function PredictionPeakSummary({
     advisory: t("burstLabels.stable"),
   };
 
-  // ── REAL-TIME ADAPTIVE RAIN ONSET & DURATION ACROSS SELECTED HORIZON ──
-  let adaptiveBurstDetected = false;
-  let adaptiveBurstType: SuddenBurstType = "none";
-  let adaptiveWindow = horizon === "1h" ? "Next 1 Hour (Dry)" : horizon === "72h" ? "Next 3 Days (Dry)" : `Next ${horizon.toUpperCase()} (Dry)`;
-  let adaptiveDurationStr = "0 mins (Dry)";
-  let adaptiveIntensityMmHr = 0.0;
-
-  if (rainPoints.length > 0 && peakRainPoint && peakRainPoint.rainfallAccumulationMm > 0.05) {
-    adaptiveBurstDetected = true;
-    adaptiveIntensityMmHr = peakRainPoint.rainfallAccumulationMm;
-    adaptiveBurstType =
-      adaptiveIntensityMmHr >= 5.0
-        ? "sudden_heavy"
-        : adaptiveIntensityMmHr >= 1.5
-        ? "sudden_light"
-        : "short_burst_light";
-
-    const firstRainPoint = rainPoints[0];
-    const firstRainDate = new Date(firstRainPoint.timestamp);
-    const diffMins = Math.max(0, Math.round((firstRainDate.getTime() - now.getTime()) / (60 * 1000)));
-    const diffHours = diffMins / 60;
-
-    const timeFormatted = firstRainDate.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-    if (diffMins <= 30) {
-      adaptiveWindow = `In ~30m (${timeFormatted})`;
-    } else if (diffMins <= 75) {
-      adaptiveWindow = `In +1h (${timeFormatted})`;
-    } else {
-      const displayHours = diffHours >= 10 ? Math.round(diffHours) : (diffHours % 1 === 0 ? diffHours : diffHours.toFixed(1));
-      adaptiveWindow = `In +${displayHours}h (${timeFormatted})`;
-    }
-
-    const durationMinutes = Math.min(
-      180,
-      Math.max(15, rainPoints.length * (horizon === "1h" || horizon === "3h" || horizon === "6h" ? 30 : 60))
-    );
-    adaptiveDurationStr = durationMinutes >= 60 ? `~${Math.round(durationMinutes / 60)} hrs` : `${durationMinutes} mins`;
-  } else if (fallbackBurst.detected && fallbackBurst.burstType !== "none") {
-    adaptiveBurstDetected = true;
-    adaptiveBurstType = fallbackBurst.burstType;
-    adaptiveWindow = fallbackBurst.expectedWindow;
-    adaptiveDurationStr = fallbackBurst.durationMinutes > 0 ? `${fallbackBurst.durationMinutes} mins` : "15-20 mins";
-    adaptiveIntensityMmHr = fallbackBurst.intensityMmHr;
-  }
-
-  const isHeavyBurst = adaptiveBurstType === "sudden_heavy" || adaptiveBurstType === "short_burst_heavy" || adaptiveIntensityMmHr >= 5.0;
-  const isLightBurst = adaptiveBurstType === "sudden_light" || adaptiveBurstType === "short_burst_light" || adaptiveIntensityMmHr > 0.1;
+  const isHeavyBurst = burst.burstType === "sudden_heavy" || burst.burstType === "short_burst_heavy" || burst.intensityMmHr >= 5.0;
+  const isLightBurst = burst.burstType === "sudden_light" || burst.burstType === "short_burst_light" || burst.intensityMmHr > 0.1;
   const burstBadgeColor = isHeavyBurst ? "#e11d48" : isLightBurst ? "#0284c7" : "#16a34a";
+
+  const chipTimeStr = burst.expectedWindow;
+  const cleanTimeStr = burst.expectedWindow.replace(/^(Expected in|In)\s+/i, "");
+  const durationText = burst.durationMinutes > 0
+    ? (burst.durationMinutes >= 60
+        ? `~${(burst.durationMinutes / 60).toFixed(burst.durationMinutes % 60 === 0 ? 0 : 1)} hrs`
+        : `${burst.durationMinutes} mins`)
+    : "0 mins (Dry)";
 
   const passabilityInfo = (() => {
     if (summary.riskLevel === "critical" || summary.riskLevel === "warning" || peakLevel >= warningThreshold) {
@@ -203,9 +161,6 @@ export default function PredictionPeakSummary({
     };
   })();
 
-  const cleanTimeStr = adaptiveWindow.replace(/^(Expected in|In)\s+/i, "");
-  const chipTimeStr = adaptiveWindow;
-
   const umbrellaInfo = (() => {
     if (isHeavyBurst) {
       return {
@@ -223,7 +178,7 @@ export default function PredictionPeakSummary({
         textColor: "#ffffff",
         description: t("umbrellaLightDesc", {
           time: cleanTimeStr,
-          duration: adaptiveDurationStr,
+          duration: durationText,
         }),
         icon: Umbrella,
       };
@@ -384,8 +339,8 @@ export default function PredictionPeakSummary({
                 className="px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider shrink-0 shadow-xs"
                 style={{ backgroundColor: burstBadgeColor }}
               >
-                {adaptiveBurstDetected
-                  ? t(`burstBadges.${adaptiveBurstType}`)
+                {burst.detected
+                  ? t(`burstBadges.${burst.burstType}`)
                   : t("burstBadges.none")}
               </div>
             </div>
@@ -418,7 +373,7 @@ export default function PredictionPeakSummary({
                   {t("burstLabels.duration")}
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-light leading-tight block">
-                  {adaptiveDurationStr}
+                  {durationText}
                 </span>
               </div>
             </div>

@@ -40,7 +40,7 @@ export default function PredictionDashboard({
       try {
         setIsRefreshing(true);
         const res = await fetch(
-          `/api/prediction/station/${stationId}?horizon=${horizon}`
+          `/api/prediction/station/${stationId}?horizon=${horizon}&_t=${Date.now()}`
         );
         const json = await res.json();
         if (json.success && json.data) {
@@ -91,7 +91,7 @@ export default function PredictionDashboard({
       try {
         setIsRefreshing(true);
         const res = await fetch(
-          `/api/prediction/station/${data.station.stationPublicId}?horizon=${newHorizon}`
+          `/api/prediction/station/${data.station.stationPublicId}?horizon=${newHorizon}&_t=${Date.now()}`
         );
         const json = await res.json();
         if (json.success && json.data) {
@@ -109,7 +109,7 @@ export default function PredictionDashboard({
     try {
       setIsRefreshing(true);
       const res = await fetch(
-        `/api/prediction/station/${data.station.stationPublicId}?horizon=${horizon}`
+        `/api/prediction/station/${data.station.stationPublicId}?horizon=${horizon}&_t=${Date.now()}`
       );
       const json = await res.json();
       if (json.success && json.data) {
