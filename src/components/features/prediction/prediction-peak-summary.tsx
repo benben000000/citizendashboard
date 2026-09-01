@@ -22,6 +22,7 @@ import type {
   PredictionDataPoint,
   PredictionHorizon,
   FloodRiskLevel,
+  SuddenBurstType,
   SuddenRainBurstPrediction,
 } from "@/types/prediction";
 import type { StationPublicInfo } from "@/types/telemetry";
@@ -50,18 +51,7 @@ export default function PredictionPeakSummary({
   const locale = useLocale();
   const t = useTranslations("prediction.peakSection");
 
-  const peakDate = new Date(summary.peakTime);
-  const timeStr = peakDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-  const dayIndex = peakDate.getDay();
-  const dayName = locale === "fil" ? TAGALOG_DAYS[dayIndex] : ENGLISH_DAYS[dayIndex];
-  const formattedPeakTime = `${dayName} ${timeStr}`;
-
   const thresholds = summary.thresholds;
-  const peakLevel = summary.peakPredictedLevel;
   const rawCrit = thresholds.critical || 8.2;
   const rawWarn = thresholds.warning || 6.8;
   const rawAdv = thresholds.advisory || 5.0;
@@ -70,6 +60,32 @@ export default function PredictionPeakSummary({
   const warningThreshold = rawWarn > 20 ? rawWarn / 100 : rawWarn;
   const advisoryThreshold = rawAdv > 20 ? rawAdv / 100 : rawAdv;
 
+  // ── REAL-TIME HORIZON-ADAPTIVE FORECAST PARSER ──
+  const now = new Date();
+  const forwardPoints = forecast.filter((p) => p.isForecast);
+  const rainPoints = forwardPoints.filter((p) => p.rainfallAccumulationMm > 0.05);
+  const peakRainPoint = forwardPoints.reduce(
+    (max, p) => (p.rainfallAccumulationMm > (max?.rainfallAccumulationMm ?? 0) ? p : max),
+    null as PredictionDataPoint | null
+  );
+
+  const peakForecastPoint = forwardPoints.reduce(
+    (max, p) => (p.predictedWaterLevel > (max?.predictedWaterLevel ?? 0) ? p : max),
+    null as PredictionDataPoint | null
+  );
+
+  // Peak time adaptively synchronized to the selected horizon
+  const activePeakDate = peakForecastPoint ? new Date(peakForecastPoint.timestamp) : new Date(summary.peakTime);
+  const timeStr = activePeakDate.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  const dayIndex = activePeakDate.getDay();
+  const dayName = locale === "fil" ? TAGALOG_DAYS[dayIndex] : ENGLISH_DAYS[dayIndex];
+  const formattedPeakTime = `${dayName} ${timeStr}`;
+
+  const peakLevel = peakForecastPoint ? peakForecastPoint.predictedWaterLevel : summary.peakPredictedLevel;
   const peakPercent = Math.min(100, Math.max(0, (peakLevel / (criticalThreshold * 1.15)) * 100));
 
   const getRiskColor = (level: FloodRiskLevel) => {
@@ -92,21 +108,71 @@ export default function PredictionPeakSummary({
     0
   );
 
-  const burst = suddenRainBurst ?? summary.suddenRainBurst ?? {
+  const fallbackBurst = suddenRainBurst ?? summary.suddenRainBurst ?? {
     detected: false,
     burstType: "none" as const,
     title: t("burstTypes.none"),
     intensityMmHr: 0.0,
     probabilityPct: 15,
-    expectedWindow: "Next 6 Hours",
+    expectedWindow: `Next ${horizon.toUpperCase()} (Dry)`,
     durationMinutes: 0,
     radarReflectivityDbz: 5.0,
     convectiveCloudCover: 12.0,
     advisory: t("burstLabels.stable"),
   };
 
-  const isHeavyBurst = burst.burstType === "sudden_heavy" || burst.burstType === "short_burst_heavy" || burst.intensityMmHr >= 5.0;
-  const isLightBurst = burst.burstType === "sudden_light" || burst.burstType === "short_burst_light" || burst.intensityMmHr > 0.1;
+  // ── REAL-TIME ADAPTIVE RAIN ONSET & DURATION ACROSS SELECTED HORIZON ──
+  let adaptiveBurstDetected = false;
+  let adaptiveBurstType: SuddenBurstType = "none";
+  let adaptiveWindow = horizon === "1h" ? "Next 1 Hour (Dry)" : horizon === "72h" ? "Next 3 Days (Dry)" : `Next ${horizon.toUpperCase()} (Dry)`;
+  let adaptiveDurationStr = "0 mins (Dry)";
+  let adaptiveIntensityMmHr = 0.0;
+
+  if (rainPoints.length > 0 && peakRainPoint && peakRainPoint.rainfallAccumulationMm > 0.05) {
+    adaptiveBurstDetected = true;
+    adaptiveIntensityMmHr = peakRainPoint.rainfallAccumulationMm;
+    adaptiveBurstType =
+      adaptiveIntensityMmHr >= 5.0
+        ? "sudden_heavy"
+        : adaptiveIntensityMmHr >= 1.5
+        ? "sudden_light"
+        : "short_burst_light";
+
+    const firstRainPoint = rainPoints[0];
+    const firstRainDate = new Date(firstRainPoint.timestamp);
+    const diffMins = Math.max(0, Math.round((firstRainDate.getTime() - now.getTime()) / (60 * 1000)));
+    const diffHours = diffMins / 60;
+
+    const timeFormatted = firstRainDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    if (diffMins <= 30) {
+      adaptiveWindow = `In ~30m (${timeFormatted})`;
+    } else if (diffMins <= 75) {
+      adaptiveWindow = `In +1h (${timeFormatted})`;
+    } else {
+      const displayHours = diffHours >= 10 ? Math.round(diffHours) : (diffHours % 1 === 0 ? diffHours : diffHours.toFixed(1));
+      adaptiveWindow = `In +${displayHours}h (${timeFormatted})`;
+    }
+
+    const durationMinutes = Math.min(
+      180,
+      Math.max(15, rainPoints.length * (horizon === "1h" || horizon === "3h" || horizon === "6h" ? 30 : 60))
+    );
+    adaptiveDurationStr = durationMinutes >= 60 ? `~${Math.round(durationMinutes / 60)} hrs` : `${durationMinutes} mins`;
+  } else if (fallbackBurst.detected && fallbackBurst.burstType !== "none") {
+    adaptiveBurstDetected = true;
+    adaptiveBurstType = fallbackBurst.burstType;
+    adaptiveWindow = fallbackBurst.expectedWindow;
+    adaptiveDurationStr = fallbackBurst.durationMinutes > 0 ? `${fallbackBurst.durationMinutes} mins` : "15-20 mins";
+    adaptiveIntensityMmHr = fallbackBurst.intensityMmHr;
+  }
+
+  const isHeavyBurst = adaptiveBurstType === "sudden_heavy" || adaptiveBurstType === "short_burst_heavy" || adaptiveIntensityMmHr >= 5.0;
+  const isLightBurst = adaptiveBurstType === "sudden_light" || adaptiveBurstType === "short_burst_light" || adaptiveIntensityMmHr > 0.1;
   const burstBadgeColor = isHeavyBurst ? "#e11d48" : isLightBurst ? "#0284c7" : "#16a34a";
 
   const passabilityInfo = (() => {
@@ -137,8 +203,8 @@ export default function PredictionPeakSummary({
     };
   })();
 
-  const cleanTimeStr = burst.expectedWindow.replace(/^(Expected in|In)\s+/i, "");
-  const chipTimeStr = burst.expectedWindow;
+  const cleanTimeStr = adaptiveWindow.replace(/^(Expected in|In)\s+/i, "");
+  const chipTimeStr = adaptiveWindow;
 
   const umbrellaInfo = (() => {
     if (isHeavyBurst) {
@@ -157,7 +223,7 @@ export default function PredictionPeakSummary({
         textColor: "#ffffff",
         description: t("umbrellaLightDesc", {
           time: cleanTimeStr,
-          duration: burst.durationMinutes > 0 ? `${burst.durationMinutes}m` : "15-20m",
+          duration: adaptiveDurationStr,
         }),
         icon: Umbrella,
       };
@@ -318,8 +384,8 @@ export default function PredictionPeakSummary({
                 className="px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider shrink-0 shadow-xs"
                 style={{ backgroundColor: burstBadgeColor }}
               >
-                {burst.detected
-                  ? t(`burstBadges.${burst.burstType}`)
+                {adaptiveBurstDetected
+                  ? t(`burstBadges.${adaptiveBurstType}`)
                   : t("burstBadges.none")}
               </div>
             </div>
@@ -343,7 +409,7 @@ export default function PredictionPeakSummary({
                 </span>
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-light">
                   <Timer className="h-3.5 w-3.5 text-light shrink-0" />
-                  <span className="leading-tight">{cleanTimeStr}</span>
+                  <span className="leading-tight">{chipTimeStr}</span>
                 </div>
               </div>
 
@@ -352,9 +418,7 @@ export default function PredictionPeakSummary({
                   {t("burstLabels.duration")}
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-light leading-tight block">
-                  {burst.durationMinutes > 0
-                    ? t("burstLabels.minutes", { min: burst.durationMinutes })
-                    : "0 mins (Dry)"}
+                  {adaptiveDurationStr}
                 </span>
               </div>
             </div>
