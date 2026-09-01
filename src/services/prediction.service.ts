@@ -567,10 +567,10 @@ export class PredictionService {
       );
       const rainProb = Number(multiModalRainProb.toFixed(2));
 
-      // Predicted rain volume
+      // Predicted rain volume from live radar/forecast or thermodynamic condensation
       const expectedRainMm = regionalPrecip !== undefined && regionalPrecip > 0
         ? Number((regionalPrecip * 1.1 + (rainProb > 0.7 ? 1.5 : 0)).toFixed(1))
-        : (rainProb > 0.4 ? Math.max(0.2, (rainProb - 0.3) * 12.0) : 0.0);
+        : (rainProb >= 0.65 && stepHumidity >= 85 ? Number(Math.max(0.2, (rainProb - 0.55) * 8.0).toFixed(1)) : 0.0);
 
       // Continuous Antecedent Moisture Index (CAMI) & Infiltration Dynamics (Horton / Green-Ampt non-linear scaling):
       // Soil matrix saturates during prolonged rainfall and dries via solar evapotranspiration.
@@ -675,11 +675,11 @@ export class PredictionService {
       });
     }
 
-    // 4. Calculate Sudden Rain / Short Burst Detection directly from Model Continuous-Time Trajectory
-    const rainIndices: number[] = [];
+    // 4. Calculate Expected Rain Event Timing directly from Model Trajectory
+    const significantRainSteps: number[] = [];
     hourlyForecasts.forEach((h, idx) => {
-      if (h.precipitationMm >= 0.1 || h.rainProbability >= 40) {
-        rainIndices.push(idx);
+      if (h.precipitationMm >= 0.2 || h.rainProbability >= 45) {
+        significantRainSteps.push(idx);
       }
     });
 
@@ -687,44 +687,54 @@ export class PredictionService {
     const maxBurstPrecip = Math.max(...hourlyForecasts.map((h) => h.precipitationMm), 0);
 
     let burstType: SuddenBurstType = "none";
-    let burstTitle = "No Sudden Rain Bursts Expected";
+    let burstTitle = "No Rain Expected";
     let burstIntensity = 0.0;
     let burstWindow = horizon === "1h" ? "Next 1 Hour (Dry)" : horizon === "72h" ? "Next 3 Days (Dry)" : `Next ${horizon.toUpperCase()} (Dry)`;
     let burstDuration = 0;
-    let burstAdvisory = "Atmospheric column is stable. Normal diurnal conditions.";
+    let burstAdvisory = "Atmospheric column is stable. Clear or fair skies across this horizon.";
     let radarReflectivityDbz = 5.0;
     let convectiveCloudCover = 12.0;
 
-    if (rainIndices.length > 0) {
-      const firstIdx = rainIndices[0];
-
-      // Trace contiguous rain cluster from model onset until first dry period
-      let lastIdx = firstIdx;
-      for (let k = 1; k < rainIndices.length; k++) {
-        if (rainIndices[k] === lastIdx + 1) {
-          lastIdx = rainIndices[k];
-        } else {
-          break; // Continuous storm cell ends
+    if (significantRainSteps.length > 0) {
+      // Find the primary rain peak step across the selected horizon
+      let peakIdx = significantRainSteps[0];
+      let maxRainInHorizon = hourlyForecasts[peakIdx].precipitationMm;
+      for (const idx of significantRainSteps) {
+        if (hourlyForecasts[idx].precipitationMm > maxRainInHorizon) {
+          maxRainInHorizon = hourlyForecasts[idx].precipitationMm;
+          peakIdx = idx;
         }
       }
 
-      const clusterSteps = hourlyForecasts.slice(firstIdx, lastIdx + 1);
-      const maxPrecipInCluster = Math.max(...clusterSteps.map((h) => h.precipitationMm));
-      const maxProbInCluster = Math.max(...clusterSteps.map((h) => h.rainProbability));
-      const peakStep = clusterSteps.find((h) => h.precipitationMm === maxPrecipInCluster) || clusterSteps[0];
+      // Trace the continuous storm cell around this rain peak
+      let cellStartIdx = peakIdx;
+      while (cellStartIdx > 0 && (hourlyForecasts[cellStartIdx - 1].precipitationMm >= 0.1 || hourlyForecasts[cellStartIdx - 1].rainProbability >= 40)) {
+        cellStartIdx--;
+      }
 
-      burstIntensity = Number(maxPrecipInCluster.toFixed(1));
+      let cellEndIdx = peakIdx;
+      while (cellEndIdx < hourlyForecasts.length - 1 && (hourlyForecasts[cellEndIdx + 1].precipitationMm >= 0.1 || hourlyForecasts[cellEndIdx + 1].rainProbability >= 40)) {
+        cellEndIdx++;
+      }
 
-      // Calculate physical duration directly from forward model trajectory timestamps
-      const onsetMs = new Date(hourlyForecasts[firstIdx].timestamp).getTime();
-      const endMs = new Date(hourlyForecasts[lastIdx].timestamp).getTime() + (stepHours * 60 * 60 * 1000);
-      burstDuration = Math.max(15, Math.round((endMs - onsetMs) / (60 * 1000)));
+      const cellSteps = hourlyForecasts.slice(cellStartIdx, cellEndIdx + 1);
+      const maxPrecipInCell = Math.max(...cellSteps.map((h) => h.precipitationMm));
+      const maxProbInCell = Math.max(...cellSteps.map((h) => h.rainProbability));
+      const peakStep = hourlyForecasts[peakIdx];
 
-      // Calculate physical onset offset from current time
+      burstIntensity = Number(maxPrecipInCell.toFixed(1));
+
+      // Calculate physical duration of this storm cell in minutes
+      const cellOnsetMs = new Date(hourlyForecasts[cellStartIdx].timestamp).getTime();
+      const cellEndMs = new Date(hourlyForecasts[cellEndIdx].timestamp).getTime() + (stepHours * 60 * 60 * 1000);
+      burstDuration = Math.min(180, Math.max(20, Math.round((cellEndMs - cellOnsetMs) / (60 * 1000))));
+
+      // Calculate physical arrival time of the rain
+      const onsetMs = cellOnsetMs;
       const offsetMs = Math.max(0, onsetMs - now.getTime());
       const offsetMinutes = Math.round(offsetMs / (60 * 1000));
       const offsetHours = offsetMinutes / 60;
-      const targetClockTime = hourlyForecasts[firstIdx].time;
+      const targetClockTime = hourlyForecasts[cellStartIdx].time;
 
       if (offsetMinutes <= 30) {
         burstWindow = `In ~30m (${targetClockTime})`;
@@ -735,16 +745,16 @@ export class PredictionService {
         burstWindow = `In +${hVal}h (${targetClockTime})`;
       }
 
-      // Classify burst type from physical precipitation intensity derived from PINN-LNN
-      if (burstIntensity >= 10.0 || (maxProbInCluster >= 80 && currentPressure < 1004)) {
+      // Classify burst severity
+      if (burstIntensity >= 10.0 || (maxProbInCell >= 80 && currentPressure < 1004)) {
         burstType = "sudden_heavy";
         burstTitle = "Sudden Heavy Rain Detected";
         burstAdvisory = "Rapid convective downpour. Flash pooling on roads and low drainage areas possible.";
-      } else if (burstIntensity >= 5.0 || (maxProbInCluster >= 65 && currentPressure < 1007)) {
+      } else if (burstIntensity >= 5.0 || (maxProbInCell >= 65 && currentPressure < 1007)) {
         burstType = "short_burst_heavy";
         burstTitle = "Short Burst of Heavy Downpour";
         burstAdvisory = "Moderate-to-heavy convective shower. Localized roadway ponding expected.";
-      } else if (burstIntensity >= 2.0 || maxProbInCluster >= 50) {
+      } else if (burstIntensity >= 2.0 || maxProbInCell >= 50) {
         burstType = "sudden_light";
         burstTitle = "Sudden Light Rain Showers";
         burstAdvisory = "Localized passing showers. Light umbrella recommended.";
@@ -761,7 +771,7 @@ export class PredictionService {
 
       // Convective cloud cover % from model atmospheric moisture and probability
       convectiveCloudCover = Number(
-        Math.min(100, Math.max(25, Math.round(maxProbInCluster * 0.75 + (peakStep.humidity || currentHumidity) * 0.25))).toFixed(0)
+        Math.min(100, Math.max(25, Math.round(maxProbInCell * 0.75 + (peakStep.humidity || currentHumidity) * 0.25))).toFixed(0)
       );
     }
 
