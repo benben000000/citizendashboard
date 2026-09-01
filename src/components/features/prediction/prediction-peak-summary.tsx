@@ -137,7 +137,8 @@ export default function PredictionPeakSummary({
     };
   })();
 
-  const cleanTimeStr = burst.expectedWindow.replace(/^Expected in\s+/i, "");
+  const cleanTimeStr = burst.expectedWindow.replace(/^(Expected in|In)\s+/i, "");
+  const chipTimeStr = burst.expectedWindow;
 
   const umbrellaInfo = (() => {
     if (isHeavyBurst) {
