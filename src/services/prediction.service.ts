@@ -29,12 +29,15 @@ const HORIZON_HOURS_MAP: Record<PredictionHorizon, number> = {
   "72h": 72,
 };
 
+import fs from "fs";
+import path from "path";
+
 // Normalization statistics calculated from 756,000+ real Philippine telemetry records
 const NORM_MEANS = [28.5, 33.0, 10.0, 1008.0];
 const NORM_STDS = [4.5, 6.5, 8.0, 6.0];
 
-// Trained PINN-LNN (Physics-Informed Liquid Neural Network) Weights (Gen-3 Stochastic-Explorer Champion)
-const LNN_WEIGHTS = {
+// Default Trained PINN-LNN (Physics-Informed Liquid Neural Network) Weights (Gen-3 Stochastic-Explorer Champion)
+const DEFAULT_LNN_WEIGHTS = {
   hidden_dim: 8,
   W_in: [
     [0.4964, 0.13102, -0.40384, 0.10267, -0.03185, -0.19228, -0.00657, -0.0533],
@@ -61,6 +64,23 @@ const LNN_WEIGHTS = {
   W_water: [-0.28239, 0.1724, -0.31458, 0.35129, -0.34647, -0.39615, -0.4921, 0.24757],
   b_water: 3.42,
 };
+
+function getActiveLnnWeights() {
+  try {
+    const onlineWeightsPath = path.join(process.cwd(), "prediction-model", "data", "pinn_lnn_3h_online_weights.json");
+    if (fs.existsSync(onlineWeightsPath)) {
+      const data = JSON.parse(fs.readFileSync(onlineWeightsPath, "utf-8"));
+      if (data.W_in && data.W_rec && data.tau) {
+        return data;
+      }
+    }
+  } catch {
+    // Fallback cleanly to default champion weights
+  }
+  return DEFAULT_LNN_WEIGHTS;
+}
+
+const LNN_WEIGHTS = getActiveLnnWeights();
 
 function sigmoid(x: number): number {
   return 1.0 / (1.0 + Math.exp(-Math.max(-20, Math.min(20, x))));
