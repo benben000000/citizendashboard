@@ -79,7 +79,7 @@ export default function BenchmarkExportModal({
     setEndDate(formatForInput(current));
   };
 
-  // Calculate estimated records
+  // Calculate estimated records & serverless safety thresholds
   const startMs = new Date(startDate).getTime();
   const endMs = new Date(endDate).getTime();
   const diffMinutes = Math.max(0, Math.floor((endMs - startMs) / (60 * 1000)));
@@ -87,11 +87,31 @@ export default function BenchmarkExportModal({
   const numStations = selectedStation === "all" ? DEFAULT_CENTRAL_LUZON_STATIONS.length : 1;
   const estimatedRows = Math.floor(diffMinutes / stepMinutes) * numStations;
 
+  const maxSafeRows = format === "xlsx" ? 3800 : 12000;
+  const isLargeDataset = estimatedRows > maxSafeRows;
+
+  let predictedInterval: string = interval;
+  if (isLargeDataset) {
+    const totalMins = diffMinutes * numStations;
+    const rawStep = Math.ceil(totalMins / maxSafeRows);
+    if (rawStep <= 10) predictedInterval = "10m";
+    else if (rawStep <= 15) predictedInterval = "15m";
+    else if (rawStep <= 30) predictedInterval = "30m";
+    else if (rawStep <= 60) predictedInterval = "1h";
+    else if (rawStep <= 120) predictedInterval = "2h";
+    else if (rawStep <= 180) predictedInterval = "3h";
+    else if (rawStep <= 360) predictedInterval = "6h";
+    else predictedInterval = `${Math.ceil(rawStep / 60)}h`;
+  }
+
+  const [successInfo, setSuccessInfo] = useState<string | null>(null);
+
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
       setErrorMsg(null);
       setDownloadSuccess(false);
+      setSuccessInfo(null);
 
       const params = new URLSearchParams({
         stationId: selectedStation,
@@ -106,8 +126,13 @@ export default function BenchmarkExportModal({
       // Trigger native browser download
       const response = await fetch(downloadUrl);
       if (!response.ok) {
-        throw new Error(`Server returned HTTP ${response.status}`);
+        const errJson = await response.json().catch(() => null);
+        throw new Error(errJson?.message || errJson?.error || `Server returned HTTP ${response.status}`);
       }
+
+      const autoScaled = response.headers.get("X-Benchmark-AutoScaled") === "true";
+      const effectiveInt = response.headers.get("X-Benchmark-Interval") || interval;
+      const totalRowsHeader = response.headers.get("X-Benchmark-TotalRows");
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
@@ -126,8 +151,13 @@ export default function BenchmarkExportModal({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
 
+      const rowText = totalRowsHeader ? `${Number(totalRowsHeader).toLocaleString()} rows` : "";
+      const scaleText = autoScaled
+        ? ` (${effectiveInt} interval auto-optimized for serverless stability)`
+        : ` (${effectiveInt} interval)`;
+      setSuccessInfo(`Benchmark log generated: ${rowText}${scaleText}.`);
       setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 5000);
+      setTimeout(() => setDownloadSuccess(false), 6000);
     } catch (err) {
       console.error("Export download failed:", err);
       setErrorMsg(err instanceof Error ? err.message : "Failed to download dataset");
@@ -326,7 +356,7 @@ export default function BenchmarkExportModal({
                 Ground-Truth Multi-Stream Matrix
               </span>
               <span className="text-[11px] font-mono text-muted-foreground">
-                Est. ~{estimatedRows.toLocaleString()} rows
+                Est. ~{estimatedRows.toLocaleString()} raw steps
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px] text-muted-foreground">
@@ -343,6 +373,19 @@ export default function BenchmarkExportModal({
                 Prediction page PINN-LNN ODE: 1h, 3h, 6h, 12h, 24h, 48h, 72h across all 10 stats.
               </div>
             </div>
+
+            {/* Smart Serverless Stability Notice for Large Multi-Station / Multi-Week ranges */}
+            {isLargeDataset && (
+              <div className="mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+                <div>
+                  <strong className="font-semibold block">Multi-station serverless auto-optimization active:</strong>
+                  Requesting ~{estimatedRows.toLocaleString()} rows would exceed serverless payload thresholds (&gt;50MB). 
+                  The server will automatically organize each station into its own tab and adapt resolution to <strong>{predictedInterval}</strong> for instant 1-click download. 
+                  <span className="italic opacity-80 block mt-0.5">Tip: To download 5-minute precision for a month, select an individual station from the dropdown above.</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Feedback messages */}
@@ -356,7 +399,7 @@ export default function BenchmarkExportModal({
           {downloadSuccess && (
             <div className="flex items-center gap-2 p-3 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>Comparative benchmark log generated and downloaded successfully!</span>
+              <span>{successInfo || "Comparative benchmark log generated and downloaded successfully!"}</span>
             </div>
           )}
         </div>

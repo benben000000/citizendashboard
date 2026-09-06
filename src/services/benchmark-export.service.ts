@@ -149,6 +149,8 @@ export class BenchmarkExportService {
   public async generateBenchmarkExport(params: BenchmarkExportParams): Promise<{
     records: BenchmarkRecord[];
     totalCount: number;
+    effectiveInterval?: string;
+    wasAutoScaled?: boolean;
     filename: string;
     buffer?: Buffer;
     csvString?: string;
@@ -166,29 +168,10 @@ export class BenchmarkExportService {
       ? new Date(params.startDate)
       : new Date(end.getTime() - 24 * 60 * 60 * 1000);
 
-    // Get all registered stations (both Weather Stations and Water Level nodes)
-    const [weatherDashboard, waterLevelDashboard] = await Promise.all([
-      telemetryService.getDashboardStations().catch(() => []),
-      import("@/services/water-level.service")
-        .then((m) => m.waterLevelService.getDashboardStations())
-        .catch(() => []),
-    ]);
-
-    const liveTelemetryMap = new Map<string, any>();
-    for (const item of [...weatherDashboard, ...waterLevelDashboard]) {
-      if (item?.station?.stationPublicId) {
-        liveTelemetryMap.set(item.station.stationPublicId, item);
-      }
-    }
-
-    // Build unified station list from DEFAULT_CENTRAL_LUZON_STATIONS
-    const allStations = DEFAULT_CENTRAL_LUZON_STATIONS.map((st) => {
-      const live = liveTelemetryMap.get(st.stationPublicId);
-      return {
-        station: st,
-        telemetry: live?.telemetry || null,
-      };
-    });
+    // Build unified station list directly from DEFAULT_CENTRAL_LUZON_STATIONS (instant, no external telemetry latency)
+    const allStations = DEFAULT_CENTRAL_LUZON_STATIONS.map((st) => ({
+      station: st,
+    }));
 
     const stationSubset =
       params.stationId && params.stationId !== "all"
@@ -209,9 +192,34 @@ export class BenchmarkExportService {
         liveMqttData = parsed.stations || {};
       }
     } catch (e) {
-      console.warn("Could not read local MQTT predictions file:", e);
+      // Local fallback
     }
 
+    // Smart auto-scaling for serverless environments (prevents V8 property limits & Vercel 4.5MB payload crashes)
+    const totalDurationMinutes = Math.max(1, Math.floor((end.getTime() - start.getTime()) / (60 * 1000)));
+    const totalStationMinutes = totalDurationMinutes * stationSubset.length;
+    // Strict safety caps for Vercel 4.5MB serverless response payload:
+    // 99 columns per row: ~3,800 rows for XLSX = ~3.2MB compressed; ~12,000 rows for CSV = ~3.5MB
+    const maxSafeRows = format === "xlsx" ? 3800 : 12000;
+
+    let effectiveIntervalMinutes = intervalMinutes;
+    let wasAutoScaled = false;
+
+    if (totalStationMinutes / effectiveIntervalMinutes > maxSafeRows) {
+      const rawCalculatedStep = Math.ceil(totalStationMinutes / maxSafeRows);
+      if (rawCalculatedStep <= 10) effectiveIntervalMinutes = 10;
+      else if (rawCalculatedStep <= 15) effectiveIntervalMinutes = 15;
+      else if (rawCalculatedStep <= 30) effectiveIntervalMinutes = 30;
+      else if (rawCalculatedStep <= 60) effectiveIntervalMinutes = 60;
+      else if (rawCalculatedStep <= 120) effectiveIntervalMinutes = 120;
+      else if (rawCalculatedStep <= 180) effectiveIntervalMinutes = 180;
+      else if (rawCalculatedStep <= 360) effectiveIntervalMinutes = 360;
+      else effectiveIntervalMinutes = Math.ceil(rawCalculatedStep / 60) * 60;
+
+      wasAutoScaled = true;
+    }
+
+    const effectiveIntervalMs = effectiveIntervalMinutes * 60 * 1000;
     const records: BenchmarkRecord[] = [];
 
     for (const item of stationSubset) {
@@ -237,7 +245,7 @@ export class BenchmarkExportService {
         const microNoise = Math.sin(cur / (1000 * 900) + stationSeed) * 0.18;
 
         // Reset daily accumulator at midnight PHT
-        if (phHour < intervalMinutes / 60) {
+        if (phHour < effectiveIntervalMinutes / 60) {
           dailyAccRain = 0.0;
         }
 
@@ -247,7 +255,7 @@ export class BenchmarkExportService {
         const rawP = Math.round((1008.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24) + microNoise * 0.2) * 10) / 10;
         const rawW = Math.round(Math.max(0, 6.0 + 4.5 * Math.max(0, Math.sin((Math.PI * (phHour - 9)) / 10)) + microNoise * 2) * 10) / 10;
         const rawRain = phHour >= 15.0 && phHour <= 16.5 ? Math.round((1.2 + Math.sin((phHour - 15) * Math.PI) * 1.8) * 10) / 10 : 0.0;
-        dailyAccRain = Math.round((dailyAccRain + (rawRain * intervalMinutes) / 60) * 10) / 10;
+        dailyAccRain = Math.round((dailyAccRain + (rawRain * effectiveIntervalMinutes) / 60) * 10) / 10;
 
         // NOAA Heat Index equation approximation
         const rawHi = rawT >= 27 && rawH >= 40 ? Math.round((rawT + (rawH / 100) * 5.2) * 10) / 10 : rawT;
@@ -409,7 +417,7 @@ export class BenchmarkExportService {
           delta_pred_1h_precip_mm: Math.round((h1.pRain - rawRain) * 10) / 10,
         });
 
-        cur += intervalMs;
+        cur += effectiveIntervalMs;
       }
     }
 
@@ -417,7 +425,8 @@ export class BenchmarkExportService {
       params.stationId && params.stationId !== "all" ? params.stationId : "All_Stations";
     const startStr = params.startDate ? params.startDate.slice(0, 10) : start.toISOString().slice(0, 10);
     const endStr = params.endDate ? params.endDate.slice(0, 10) : end.toISOString().slice(0, 10);
-    const baseName = `Kloudtrack_Benchmark_Comparison_${safeStation}_${startStr}_to_${endStr}_${interval}`;
+    const effectiveIntervalDesc = wasAutoScaled ? `${effectiveIntervalMinutes}m` : interval;
+    const baseName = `Kloudtrack_Benchmark_Comparison_${safeStation}_${startStr}_to_${endStr}_${effectiveIntervalDesc}`;
 
     let buffer: Buffer | undefined;
     let csvString: string | undefined;
@@ -437,7 +446,9 @@ export class BenchmarkExportService {
             stationId: safeStation,
             startDate: startStr,
             endDate: endStr,
-            interval,
+            interval: effectiveIntervalDesc,
+            requestedInterval: interval,
+            wasAutoScaled,
             horizons: ["1h", "3h", "6h", "12h", "24h", "48h", "72h"],
             metrics: [
               "temperature_c",
@@ -464,6 +475,8 @@ export class BenchmarkExportService {
     return {
       records: exportRows,
       totalCount: records.length,
+      effectiveInterval: effectiveIntervalDesc,
+      wasAutoScaled,
       filename: `${baseName}.${format}`,
       buffer,
       csvString,
@@ -493,15 +506,66 @@ export class BenchmarkExportService {
 
   private toXLSX(records: BenchmarkRecord[]): Buffer {
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(records);
 
-    if (records.length > 0) {
-      const keys = Object.keys(records[0]);
-      ws["!cols"] = keys.map((k) => ({ wch: Math.max(k.length + 2, 14) }));
+    if (records.length === 0) {
+      const ws = XLSX.utils.aoa_to_sheet([["No records found for the selected range"]]);
+      XLSX.utils.book_append_sheet(wb, ws, "Benchmark_Log");
+      return XLSX.write(wb, { type: "buffer", bookType: "xlsx", compression: true }) as Buffer;
     }
 
-    XLSX.utils.book_append_sheet(wb, ws, "Benchmark_Log");
-    return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+    // Group records by station to organize into clean station tabs and prevent single-sheet V8 cell limits
+    const stationMap = new Map<string, BenchmarkRecord[]>();
+    for (const r of records) {
+      let list = stationMap.get(r.station_id);
+      if (!list) {
+        list = [];
+        stationMap.set(r.station_id, list);
+      }
+      list.push(r);
+    }
+
+    if (stationMap.size <= 1) {
+      // Single station: one worksheet
+      const ws = XLSX.utils.json_to_sheet(records);
+      const keys = Object.keys(records[0]);
+      ws["!cols"] = keys.map((k) => ({ wch: Math.max(k.length + 2, 14) }));
+      const sheetName = (records[0]?.station_name || "Benchmark_Log")
+        .replace(/[:\/\\?*\[\]]/g, "_")
+        .slice(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    } else {
+      // Multi-station: Add an Overview Summary sheet first
+      const summaryRows = Array.from(stationMap.entries()).map(([sid, rows]) => ({
+        station_id: sid,
+        station_name: rows[0]?.station_name || sid,
+        total_records: rows.length,
+        start_time: rows[0]?.timestamp || "",
+        end_time: rows[rows.length - 1]?.timestamp || "",
+      }));
+      const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Overview_Stations");
+
+      // Then add a sheet per station (tab name <= 31 chars)
+      const usedSheetNames = new Set<string>(["Overview_Stations"]);
+      for (const [sid, stRecords] of stationMap.entries()) {
+        const ws = XLSX.utils.json_to_sheet(stRecords);
+        const keys = Object.keys(stRecords[0]);
+        ws["!cols"] = keys.map((k) => ({ wch: Math.max(k.length + 2, 14) }));
+
+        let rawName = (stRecords[0]?.station_name || sid)
+          .replace(/[:\/\\?*\[\]]/g, "_")
+          .slice(0, 28);
+        let safeName = rawName;
+        let suffix = 1;
+        while (usedSheetNames.has(safeName)) {
+          safeName = `${rawName.slice(0, 25)}_${suffix++}`;
+        }
+        usedSheetNames.add(safeName);
+        XLSX.utils.book_append_sheet(wb, ws, safeName);
+      }
+    }
+
+    return XLSX.write(wb, { type: "buffer", bookType: "xlsx", compression: true }) as Buffer;
   }
 }
 

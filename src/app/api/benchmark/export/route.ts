@@ -6,6 +6,7 @@ import {
 } from "@/services/benchmark-export.service";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   try {
@@ -30,7 +31,9 @@ export async function GET(request: Request) {
     if (isPreview) {
       return NextResponse.json({
         success: true,
-        interval,
+        interval: result.effectiveInterval || interval,
+        requestedInterval: interval,
+        wasAutoScaled: result.wasAutoScaled || false,
         format,
         totalCount: result.totalCount,
         previewCount: result.records.length,
@@ -39,13 +42,20 @@ export async function GET(request: Request) {
       });
     }
 
+    const commonHeaders: Record<string, string> = {
+      "X-Benchmark-Interval": result.effectiveInterval || interval,
+      "X-Benchmark-AutoScaled": String(result.wasAutoScaled || false),
+      "X-Benchmark-TotalRows": String(result.totalCount),
+      "Cache-Control": "no-store, max-age=0",
+    };
+
     if (format === "csv" && result.csvString) {
       return new NextResponse(result.csvString, {
         status: 200,
         headers: {
+          ...commonHeaders,
           "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": `attachment; filename="${result.filename}"`,
-          "Cache-Control": "no-store, max-age=0",
         },
       });
     }
@@ -54,10 +64,10 @@ export async function GET(request: Request) {
       return new NextResponse(new Uint8Array(result.buffer), {
         status: 200,
         headers: {
+          ...commonHeaders,
           "Content-Type":
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "Content-Disposition": `attachment; filename="${result.filename}"`,
-          "Cache-Control": "no-store, max-age=0",
         },
       });
     }
@@ -65,9 +75,9 @@ export async function GET(request: Request) {
     return new NextResponse(result.jsonString || JSON.stringify(result.records), {
       status: 200,
       headers: {
+        ...commonHeaders,
         "Content-Type": "application/json; charset=utf-8",
         "Content-Disposition": `attachment; filename="${result.filename}"`,
-        "Cache-Control": "no-store, max-age=0",
       },
     });
   } catch (error) {
