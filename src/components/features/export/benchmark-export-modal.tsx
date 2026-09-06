@@ -46,6 +46,7 @@ export default function BenchmarkExportModal({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successInfo, setSuccessInfo] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -103,8 +104,6 @@ export default function BenchmarkExportModal({
     else if (rawStep <= 360) predictedInterval = "6h";
     else predictedInterval = `${Math.ceil(rawStep / 60)}h`;
   }
-
-  const [successInfo, setSuccessInfo] = useState<string | null>(null);
 
   const handleDownload = async () => {
     try {

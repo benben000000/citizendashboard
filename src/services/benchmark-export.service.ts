@@ -552,7 +552,7 @@ export class BenchmarkExportService {
         const keys = Object.keys(stRecords[0]);
         ws["!cols"] = keys.map((k) => ({ wch: Math.max(k.length + 2, 14) }));
 
-        let rawName = (stRecords[0]?.station_name || sid)
+        const rawName = (stRecords[0]?.station_name || sid)
           .replace(/[:\/\\?*\[\]]/g, "_")
           .slice(0, 28);
         let safeName = rawName;
