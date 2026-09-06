@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { LocaleProvider } from "@/contexts/locale-context";
 import { DEFAULT_LOCALE } from "@/lib/i18n/translations";
 import RouteTransitionLoader from "@/components/shared/route-transition-loader";
+import BenchmarkFloatingButton from "@/components/features/export/benchmark-floating-button";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -102,6 +103,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Suspense fallback={null}>
                 <RouteTransitionLoader />
               </Suspense>
+              <BenchmarkFloatingButton />
             </div>
           </LocaleProvider>
         </ThemeProvider>

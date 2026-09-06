@@ -19,6 +19,8 @@
 Thumbs.db
 *.zip
 /misc
+scratch/
+BETA/
 
 # python & virtual environments
 .venv/
