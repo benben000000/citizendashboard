@@ -112,14 +112,23 @@ export default function BenchmarkExportModal({
       setDownloadSuccess(false);
       setSuccessInfo(null);
 
-      const params = new URLSearchParams({
+      const parsedStart = startDate ? new Date(startDate) : null;
+      const parsedEnd = endDate ? new Date(endDate) : null;
+
+      const queryParams: Record<string, string> = {
         stationId: selectedStation,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
         interval,
         format,
-      });
+      };
 
+      if (parsedStart && !isNaN(parsedStart.getTime())) {
+        queryParams.startDate = parsedStart.toISOString();
+      }
+      if (parsedEnd && !isNaN(parsedEnd.getTime())) {
+        queryParams.endDate = parsedEnd.toISOString();
+      }
+
+      const params = new URLSearchParams(queryParams);
       const downloadUrl = `/api/benchmark/export?${params.toString()}`;
 
       // Trigger native browser download

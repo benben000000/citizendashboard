@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       "Cache-Control": "no-store, max-age=0",
     };
 
-    if (format === "csv" && result.csvString) {
+    if (format === "csv" && result.csvString !== undefined) {
       return new NextResponse(result.csvString, {
         status: 200,
         headers: {
