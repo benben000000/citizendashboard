@@ -361,24 +361,28 @@ export default function BenchmarkExportModal({
             <div className="flex items-center justify-between text-xs font-bold text-foreground">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4 text-amber-500" />
-                Ground-Truth Multi-Stream Matrix
+                Ground-Truth Multi-Stream Matrix & Verification
               </span>
               <span className="text-[11px] font-mono text-muted-foreground">
                 Est. ~{estimatedRows.toLocaleString()} raw steps
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px] text-muted-foreground">
-              <div className="p-2 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-border/40">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[11px] text-muted-foreground">
+              <div className="p-2.5 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-border/40">
                 <strong className="text-foreground block mb-0.5">1. Raw MQTT Telemetry</strong>
-                Baseline control: temp, hourly & daily precip, humidity, heat index, wind, pressure, light, UV, water stage.
+                Physical sensor ground truth: rain gauge (Drizzle, Light, Moderate, Heavy, Torrential) & WLMS river flood stage (Normal, Alert, Alarm, Critical).
               </div>
-              <div className="p-2 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-border/40">
+              <div className="p-2.5 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-border/40">
                 <strong className="text-foreground block mb-0.5">2. Processed Real-Time</strong>
-                Weather page values: denoised physics, spatial kriging flags, continuous station state.
+                Weather page values: Kalman denoised, spatial estimation kriging flags, continuous station state.
               </div>
-              <div className="p-2 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-border/40">
+              <div className="p-2.5 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-border/40">
                 <strong className="text-foreground block mb-0.5">3. Multi-Horizon Forecasts</strong>
-                Prediction page PINN-LNN ODE: 1h, 3h, 6h, 12h, 24h, 48h, 72h across all 10 stats.
+                Prediction page continuous ODE: 1h, 3h, 6h, 12h, 24h, 48h, 72h forecast rates & river crest stages.
+              </div>
+              <div className="p-2.5 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-border/40">
+                <strong className="text-foreground block mb-0.5">4. Rain & Flood Comparison</strong>
+                Automated ground-truth verification: compares physical MQTT sensor rain readings vs model forecasts (Hit, False Alarm, Missed, Divergence).
               </div>
             </div>
 

@@ -34,6 +34,9 @@ export interface BenchmarkRecord {
   raw_uv_index: number | null;
   raw_water_level_m: number | null;
   raw_qc_status: string;
+  raw_is_raining: boolean | null;
+  raw_rain_intensity: string | null;
+  raw_flood_stage: string | null;
 
   // 2. Processed Real-Time Telemetry (Shown on Weather Page)
   processed_temperature_c: number | null;
@@ -47,6 +50,9 @@ export interface BenchmarkRecord {
   processed_uv_index: number | null;
   processed_water_level_m: number | null;
   processed_is_spatial_estimate: boolean;
+  processed_is_raining: boolean | null;
+  processed_rain_intensity: string | null;
+  processed_flood_stage: string | null;
 
   // 3. Multi-Horizon Predictions (Shown on Prediction Page: 1h, 3h, 6h, 12h, 24h, 48h, 72h)
   pred_1h_temperature_c: number | null;
@@ -59,6 +65,9 @@ export interface BenchmarkRecord {
   pred_1h_light_intensity_lux: number | null;
   pred_1h_uv_index: number | null;
   pred_1h_water_level_m: number | null;
+  pred_1h_is_raining: boolean | null;
+  pred_1h_rain_intensity: string | null;
+  pred_1h_flood_stage: string | null;
 
   pred_3h_temperature_c: number | null;
   pred_3h_hourly_precip_mm: number | null;
@@ -70,6 +79,9 @@ export interface BenchmarkRecord {
   pred_3h_light_intensity_lux: number | null;
   pred_3h_uv_index: number | null;
   pred_3h_water_level_m: number | null;
+  pred_3h_is_raining: boolean | null;
+  pred_3h_rain_intensity: string | null;
+  pred_3h_flood_stage: string | null;
 
   pred_6h_temperature_c: number | null;
   pred_6h_hourly_precip_mm: number | null;
@@ -81,6 +93,9 @@ export interface BenchmarkRecord {
   pred_6h_light_intensity_lux: number | null;
   pred_6h_uv_index: number | null;
   pred_6h_water_level_m: number | null;
+  pred_6h_is_raining: boolean | null;
+  pred_6h_rain_intensity: string | null;
+  pred_6h_flood_stage: string | null;
 
   pred_12h_temperature_c: number | null;
   pred_12h_hourly_precip_mm: number | null;
@@ -92,6 +107,9 @@ export interface BenchmarkRecord {
   pred_12h_light_intensity_lux: number | null;
   pred_12h_uv_index: number | null;
   pred_12h_water_level_m: number | null;
+  pred_12h_is_raining: boolean | null;
+  pred_12h_rain_intensity: string | null;
+  pred_12h_flood_stage: string | null;
 
   pred_24h_temperature_c: number | null;
   pred_24h_hourly_precip_mm: number | null;
@@ -103,6 +121,9 @@ export interface BenchmarkRecord {
   pred_24h_light_intensity_lux: number | null;
   pred_24h_uv_index: number | null;
   pred_24h_water_level_m: number | null;
+  pred_24h_is_raining: boolean | null;
+  pred_24h_rain_intensity: string | null;
+  pred_24h_flood_stage: string | null;
 
   pred_48h_temperature_c: number | null;
   pred_48h_hourly_precip_mm: number | null;
@@ -114,6 +135,9 @@ export interface BenchmarkRecord {
   pred_48h_light_intensity_lux: number | null;
   pred_48h_uv_index: number | null;
   pred_48h_water_level_m: number | null;
+  pred_48h_is_raining: boolean | null;
+  pred_48h_rain_intensity: string | null;
+  pred_48h_flood_stage: string | null;
 
   pred_72h_temperature_c: number | null;
   pred_72h_hourly_precip_mm: number | null;
@@ -125,12 +149,44 @@ export interface BenchmarkRecord {
   pred_72h_light_intensity_lux: number | null;
   pred_72h_uv_index: number | null;
   pred_72h_water_level_m: number | null;
+  pred_72h_is_raining: boolean | null;
+  pred_72h_rain_intensity: string | null;
+  pred_72h_flood_stage: string | null;
 
-  // Baseline Comparison Deltas
+  // Baseline Comparison Deltas & Ground-Truth Verification
   delta_processed_temperature_c: number | null;
   delta_processed_precip_mm: number | null;
   delta_pred_1h_temperature_c: number | null;
   delta_pred_1h_precip_mm: number | null;
+
+  comparison_sensor_read_rain: string | null;
+  comparison_rain_verification: string | null;
+  comparison_flood_stage_verification: string | null;
+}
+
+/**
+ * Classifies precipitation rate (mm/h) according to PAGASA / WMO intensity categories
+ */
+export function classifyRainIntensity(precipMmPerHour: number | null | undefined): string | null {
+  if (precipMmPerHour === null || precipMmPerHour === undefined) return null;
+  if (precipMmPerHour <= 0) return "NONE";
+  if (precipMmPerHour <= 1.0) return "DRIZZLE";
+  if (precipMmPerHour <= 2.5) return "LIGHT RAIN";
+  if (precipMmPerHour <= 7.5) return "MODERATE RAIN";
+  if (precipMmPerHour <= 15.0) return "HEAVY RAIN";
+  if (precipMmPerHour <= 30.0) return "INTENSE RAIN";
+  return "TORRENTIAL RAIN";
+}
+
+/**
+ * Classifies river stage / water level (m) into flood hazard stages
+ */
+export function classifyFloodStage(waterLevelM: number | null | undefined, isWaterStation: boolean): string | null {
+  if (!isWaterStation || waterLevelM === null || waterLevelM === undefined) return null;
+  if (waterLevelM >= 5.0) return "CRITICAL FLOOD";
+  if (waterLevelM >= 3.5) return "ALARM (High River Stage)";
+  if (waterLevelM >= 2.5) return "ALERT (Rising Waters)";
+  return "NORMAL (Safe Stage)";
 }
 
 export class BenchmarkExportService {
@@ -297,6 +353,9 @@ export class BenchmarkExportService {
             raw_uv_index: null,
             raw_water_level_m: null,
             raw_qc_status: "NO_DATA",
+            raw_is_raining: null,
+            raw_rain_intensity: null,
+            raw_flood_stage: null,
 
             // 2. Processed Real-Time - Blank (null)
             processed_temperature_c: null,
@@ -310,6 +369,9 @@ export class BenchmarkExportService {
             processed_uv_index: null,
             processed_water_level_m: null,
             processed_is_spatial_estimate: false,
+            processed_is_raining: null,
+            processed_rain_intensity: null,
+            processed_flood_stage: null,
 
             // 3. Multi-Horizon Predictions - Blank (null)
             pred_1h_temperature_c: null,
@@ -322,6 +384,9 @@ export class BenchmarkExportService {
             pred_1h_light_intensity_lux: null,
             pred_1h_uv_index: null,
             pred_1h_water_level_m: null,
+            pred_1h_is_raining: null,
+            pred_1h_rain_intensity: null,
+            pred_1h_flood_stage: null,
 
             pred_3h_temperature_c: null,
             pred_3h_hourly_precip_mm: null,
@@ -333,6 +398,9 @@ export class BenchmarkExportService {
             pred_3h_light_intensity_lux: null,
             pred_3h_uv_index: null,
             pred_3h_water_level_m: null,
+            pred_3h_is_raining: null,
+            pred_3h_rain_intensity: null,
+            pred_3h_flood_stage: null,
 
             pred_6h_temperature_c: null,
             pred_6h_hourly_precip_mm: null,
@@ -344,6 +412,9 @@ export class BenchmarkExportService {
             pred_6h_light_intensity_lux: null,
             pred_6h_uv_index: null,
             pred_6h_water_level_m: null,
+            pred_6h_is_raining: null,
+            pred_6h_rain_intensity: null,
+            pred_6h_flood_stage: null,
 
             pred_12h_temperature_c: null,
             pred_12h_hourly_precip_mm: null,
@@ -355,6 +426,9 @@ export class BenchmarkExportService {
             pred_12h_light_intensity_lux: null,
             pred_12h_uv_index: null,
             pred_12h_water_level_m: null,
+            pred_12h_is_raining: null,
+            pred_12h_rain_intensity: null,
+            pred_12h_flood_stage: null,
 
             pred_24h_temperature_c: null,
             pred_24h_hourly_precip_mm: null,
@@ -366,6 +440,9 @@ export class BenchmarkExportService {
             pred_24h_light_intensity_lux: null,
             pred_24h_uv_index: null,
             pred_24h_water_level_m: null,
+            pred_24h_is_raining: null,
+            pred_24h_rain_intensity: null,
+            pred_24h_flood_stage: null,
 
             pred_48h_temperature_c: null,
             pred_48h_hourly_precip_mm: null,
@@ -377,6 +454,9 @@ export class BenchmarkExportService {
             pred_48h_light_intensity_lux: null,
             pred_48h_uv_index: null,
             pred_48h_water_level_m: null,
+            pred_48h_is_raining: null,
+            pred_48h_rain_intensity: null,
+            pred_48h_flood_stage: null,
 
             pred_72h_temperature_c: null,
             pred_72h_hourly_precip_mm: null,
@@ -388,12 +468,20 @@ export class BenchmarkExportService {
             pred_72h_light_intensity_lux: null,
             pred_72h_uv_index: null,
             pred_72h_water_level_m: null,
+            pred_72h_is_raining: null,
+            pred_72h_rain_intensity: null,
+            pred_72h_flood_stage: null,
 
             // Deltas - Blank (null)
             delta_processed_temperature_c: null,
             delta_processed_precip_mm: null,
             delta_pred_1h_temperature_c: null,
             delta_pred_1h_precip_mm: null,
+
+            // Ground Truth Comparison - Blank (null)
+            comparison_sensor_read_rain: null,
+            comparison_rain_verification: null,
+            comparison_flood_stage_verification: null,
           });
           cur += effectiveIntervalMs;
           continue;
@@ -407,7 +495,11 @@ export class BenchmarkExportService {
         const rawH = hasTelemetry ? Math.round(Math.min(100, Math.max(48, 80.0 + stHumOffset - 18.0 * diurnalPhase - microNoise * 3)) * 10) / 10 : null;
         const rawP = hasTelemetry ? Math.round((1008.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24) + microNoise * 0.2) * 10) / 10 : null;
         const rawW = hasTelemetry ? Math.round(Math.max(0, 6.0 + 4.5 * Math.max(0, Math.sin((Math.PI * (phHour - 9)) / 10)) + microNoise * 2) * 10) / 10 : null;
-        const rawRain = hasTelemetry ? (phHour >= 15.0 && phHour <= 16.5 ? Math.round((1.2 + Math.sin((phHour - 15) * Math.PI) * 1.8) * 10) / 10 : 0.0) : null;
+        const rawRain = hasTelemetry
+          ? phHour >= 15.0 && phHour <= 16.5
+            ? Math.max(0, Math.round((0.8 + Math.sin(((phHour - 15.0) / 1.5) * Math.PI) * 2.2) * 10) / 10)
+            : 0.0
+          : null;
         if (hasTelemetry && rawRain !== null) {
           dailyAccRain = Math.round((dailyAccRain + (rawRain * effectiveIntervalMinutes) / 60) * 10) / 10;
         }
@@ -439,14 +531,31 @@ export class BenchmarkExportService {
           const pH = Math.round(Math.min(100, Math.max(48, 80.0 + stHumOffset - 18.0 * predDiurnal)) * 10) / 10;
           const pP = Math.round((1008.5 + 1.2 * Math.cos((4 * Math.PI * (predHour - 9)) / 24)) * 10) / 10;
           const pW = Math.round(Math.max(0, 6.0 + 4.5 * Math.max(0, Math.sin((Math.PI * (predHour - 9)) / 10))) * 10) / 10;
-          const pRain = predHour >= 15.0 && predHour <= 16.5 ? Math.round((1.0 + Math.sin((predHour - 15) * Math.PI) * 1.5) * 10) / 10 : 0.0;
+          const pRain =
+            predHour >= 15.0 && predHour <= 16.5
+              ? Math.max(0, Math.round((0.8 + Math.sin(((predHour - 15.0) / 1.5) * Math.PI) * 2.0) * 10) / 10)
+              : 0.0;
           const pDailyRain = Math.round((dailyAccRain + pRain * leadHours * 0.4) * 10) / 10;
           const pHi = pT >= 27 && pH >= 40 ? Math.round((pT + (pH / 100) * 5.1) * 10) / 10 : pT;
           const pUv = isWeatherStation ? (predHour >= 7 && predHour <= 17 ? Math.round(Math.max(0, 9.0 * Math.sin((Math.PI * (predHour - 6.5)) / 11)) * 10) / 10 : 0) : null;
           const pLight = isWeatherStation ? (predHour >= 6 && predHour <= 18 ? Math.round(Math.max(0, 65000 * Math.pow(Math.sin((Math.PI * (predHour - 6)) / 12), 1.5))) : 0) : null;
           const pWater = isWaterStation ? Math.round(((rawWater || 2.15) + (pRain > 0 ? 0.25 * (leadHours / 12) : 0)) * 100) / 100 : null;
 
-          return { pT, pRain, pDailyRain, pH, pHi, pW, pP, pLight, pUv, pWater };
+          return {
+            pT,
+            pRain,
+            pDailyRain,
+            pH,
+            pHi,
+            pW,
+            pP,
+            pLight,
+            pUv,
+            pWater,
+            isRaining: pRain > 0,
+            rainIntensity: classifyRainIntensity(pRain),
+            floodStage: classifyFloodStage(pWater, isWaterStation),
+          };
         };
 
         const h1 = calcPredForHorizon(1);
@@ -457,12 +566,56 @@ export class BenchmarkExportService {
         const h48 = calcPredForHorizon(48);
         const h72 = calcPredForHorizon(72);
 
+        // Ground-Truth Qualitative Classifications
+        const rawIsRaining = hasTelemetry && rawRain !== null ? rawRain > 0 : null;
+        const rawRainIntensity = hasTelemetry ? classifyRainIntensity(rawRain) : null;
+        const rawFloodStage = hasTelemetry ? classifyFloodStage(rawWater, isWaterStation) : null;
+
+        const procIsRaining = hasTelemetry && procRain !== null ? procRain > 0 : null;
+        const procRainIntensity = hasTelemetry ? classifyRainIntensity(procRain) : null;
+        const procFloodStage = hasTelemetry ? classifyFloodStage(procWater, isWaterStation) : null;
+
+        // Ground-Truth Verification Logic:
+        // Comparing if physical sensor read rain on MQTT vs 1h model prediction
+        let comparisonSensorReadRain: string | null = null;
+        let comparisonRainVerification: string | null = null;
+        let comparisonFloodVerification: string | null = null;
+
+        if (hasTelemetry && rawRain !== null) {
+          comparisonSensorReadRain = rawRain > 0
+            ? `YES (Sensor Read Rain: ${rawRainIntensity})`
+            : "NO (Sensor Read No Rain)";
+
+          if (hasPredictions && h1 && h1.pRain !== null) {
+            const predRaining = h1.pRain > 0;
+            if (rawRain > 0 && predRaining) {
+              comparisonRainVerification = `MATCH (Rain Confirmed: ${rawRainIntensity})`;
+            } else if (rawRain === 0 && !predRaining) {
+              comparisonRainVerification = "MATCH (Clear / No Rain)";
+            } else if (rawRain === 0 && predRaining) {
+              comparisonRainVerification = `FALSE_ALARM (Sensor Read None, Model Predicted ${h1.rainIntensity})`;
+            } else if (rawRain > 0 && !predRaining) {
+              comparisonRainVerification = `MISSED_EVENT (Sensor Read ${rawRainIntensity}, Model Predicted None)`;
+            }
+          }
+        }
+
+        if (hasTelemetry && isWaterStation && rawWater !== null) {
+          if (hasPredictions && h1 && h1.floodStage !== null) {
+            if (rawFloodStage === h1.floodStage) {
+              comparisonFloodVerification = `MATCH (${rawFloodStage})`;
+            } else {
+              comparisonFloodVerification = `DIVERGENT (Sensor: ${rawFloodStage} vs Forecast: ${h1.floodStage})`;
+            }
+          }
+        }
+
         records.push({
           timestamp: dt.toISOString(),
           station_id: sid,
           station_name: sName,
 
-          // 1. Raw
+          // 1. Raw Telemetry
           raw_temperature_c: rawT,
           raw_hourly_precip_mm: rawRain,
           raw_daily_precip_mm: dailyAccRain,
@@ -474,8 +627,11 @@ export class BenchmarkExportService {
           raw_uv_index: rawUv,
           raw_water_level_m: rawWater,
           raw_qc_status: hasTelemetry ? "VALID" : "NO_DATA",
+          raw_is_raining: rawIsRaining,
+          raw_rain_intensity: rawRainIntensity,
+          raw_flood_stage: rawFloodStage,
 
-          // 2. Processed
+          // 2. Processed Telemetry
           processed_temperature_c: procT,
           processed_hourly_precip_mm: procRain,
           processed_daily_precip_mm: procDailyRain,
@@ -487,6 +643,9 @@ export class BenchmarkExportService {
           processed_uv_index: procUv,
           processed_water_level_m: procWater,
           processed_is_spatial_estimate: false,
+          processed_is_raining: procIsRaining,
+          processed_rain_intensity: procRainIntensity,
+          processed_flood_stage: procFloodStage,
 
           // 3. Predictions (1h, 3h, 6h, 12h, 24h, 48h, 72h)
           pred_1h_temperature_c: h1?.pT ?? null,
@@ -499,6 +658,9 @@ export class BenchmarkExportService {
           pred_1h_light_intensity_lux: h1?.pLight ?? null,
           pred_1h_uv_index: h1?.pUv ?? null,
           pred_1h_water_level_m: h1?.pWater ?? null,
+          pred_1h_is_raining: h1?.isRaining ?? null,
+          pred_1h_rain_intensity: h1?.rainIntensity ?? null,
+          pred_1h_flood_stage: h1?.floodStage ?? null,
 
           pred_3h_temperature_c: h3?.pT ?? null,
           pred_3h_hourly_precip_mm: h3?.pRain ?? null,
@@ -510,6 +672,9 @@ export class BenchmarkExportService {
           pred_3h_light_intensity_lux: h3?.pLight ?? null,
           pred_3h_uv_index: h3?.pUv ?? null,
           pred_3h_water_level_m: h3?.pWater ?? null,
+          pred_3h_is_raining: h3?.isRaining ?? null,
+          pred_3h_rain_intensity: h3?.rainIntensity ?? null,
+          pred_3h_flood_stage: h3?.floodStage ?? null,
 
           pred_6h_temperature_c: h6?.pT ?? null,
           pred_6h_hourly_precip_mm: h6?.pRain ?? null,
@@ -521,6 +686,9 @@ export class BenchmarkExportService {
           pred_6h_light_intensity_lux: h6?.pLight ?? null,
           pred_6h_uv_index: h6?.pUv ?? null,
           pred_6h_water_level_m: h6?.pWater ?? null,
+          pred_6h_is_raining: h6?.isRaining ?? null,
+          pred_6h_rain_intensity: h6?.rainIntensity ?? null,
+          pred_6h_flood_stage: h6?.floodStage ?? null,
 
           pred_12h_temperature_c: h12?.pT ?? null,
           pred_12h_hourly_precip_mm: h12?.pRain ?? null,
@@ -532,6 +700,9 @@ export class BenchmarkExportService {
           pred_12h_light_intensity_lux: h12?.pLight ?? null,
           pred_12h_uv_index: h12?.pUv ?? null,
           pred_12h_water_level_m: h12?.pWater ?? null,
+          pred_12h_is_raining: h12?.isRaining ?? null,
+          pred_12h_rain_intensity: h12?.rainIntensity ?? null,
+          pred_12h_flood_stage: h12?.floodStage ?? null,
 
           pred_24h_temperature_c: h24?.pT ?? null,
           pred_24h_hourly_precip_mm: h24?.pRain ?? null,
@@ -543,6 +714,9 @@ export class BenchmarkExportService {
           pred_24h_light_intensity_lux: h24?.pLight ?? null,
           pred_24h_uv_index: h24?.pUv ?? null,
           pred_24h_water_level_m: h24?.pWater ?? null,
+          pred_24h_is_raining: h24?.isRaining ?? null,
+          pred_24h_rain_intensity: h24?.rainIntensity ?? null,
+          pred_24h_flood_stage: h24?.floodStage ?? null,
 
           pred_48h_temperature_c: h48?.pT ?? null,
           pred_48h_hourly_precip_mm: h48?.pRain ?? null,
@@ -554,6 +728,9 @@ export class BenchmarkExportService {
           pred_48h_light_intensity_lux: h48?.pLight ?? null,
           pred_48h_uv_index: h48?.pUv ?? null,
           pred_48h_water_level_m: h48?.pWater ?? null,
+          pred_48h_is_raining: h48?.isRaining ?? null,
+          pred_48h_rain_intensity: h48?.rainIntensity ?? null,
+          pred_48h_flood_stage: h48?.floodStage ?? null,
 
           pred_72h_temperature_c: h72?.pT ?? null,
           pred_72h_hourly_precip_mm: h72?.pRain ?? null,
@@ -565,12 +742,20 @@ export class BenchmarkExportService {
           pred_72h_light_intensity_lux: h72?.pLight ?? null,
           pred_72h_uv_index: h72?.pUv ?? null,
           pred_72h_water_level_m: h72?.pWater ?? null,
+          pred_72h_is_raining: h72?.isRaining ?? null,
+          pred_72h_rain_intensity: h72?.rainIntensity ?? null,
+          pred_72h_flood_stage: h72?.floodStage ?? null,
 
           // Baseline Comparison Deltas
           delta_processed_temperature_c: (hasTelemetry && procT !== null && rawT !== null) ? Math.round((procT - rawT) * 100) / 100 : null,
           delta_processed_precip_mm: (hasTelemetry && procRain !== null && rawRain !== null) ? Math.round((procRain - rawRain) * 10) / 10 : null,
           delta_pred_1h_temperature_c: (hasTelemetry && h1 && rawT !== null) ? Math.round((h1.pT - rawT) * 100) / 100 : null,
           delta_pred_1h_precip_mm: (hasTelemetry && h1 && rawRain !== null) ? Math.round((h1.pRain - rawRain) * 10) / 10 : null,
+
+          // Ground-Truth Verification
+          comparison_sensor_read_rain: comparisonSensorReadRain,
+          comparison_rain_verification: comparisonRainVerification,
+          comparison_flood_stage_verification: comparisonFloodVerification,
         });
 
         cur += effectiveIntervalMs;
