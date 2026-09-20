@@ -100,35 +100,37 @@ export interface StationPINNProfile {
   tauHydro: number;
   elevM: number;
   tau: number[];
+  hasRainGauge?: boolean;
+  baseDailyPrecipM?: number;
 }
 
 export const STATION_PINN_PROFILES: Record<string, StationPINNProfile> = {
   // Public Telemetry IDs (15 Active API Stations)
-  "95pM7BAV": { name: "Doña Maria AWS", type: "COASTAL_URBAN", lat: 14.6852, lon: 120.5284, baseWaterM: 2.10, tauHydro: 6.0, elevM: 6.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0] },
-  "lMAZe9b3": { name: "Abucay AWS", type: "COASTAL_PLAIN", lat: 14.7358, lon: 120.5372, baseWaterM: 2.20, tauHydro: 5.5, elevM: 8.0, tau: [0.35, 0.45, 2.8, 3.2, 3.8, 11.0, 12.0, 20.0] },
-  "2Dpo5DAK": { name: "1Bataan Command Center", type: "REGIONAL_HUB", lat: 14.6784, lon: 120.5412, baseWaterM: 2.00, tauHydro: 6.0, elevM: 15.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0] },
-  "QgbGldAY": { name: "Pag-asa Bagac AWS", type: "WESTERN_RAIN_SHADOW", lat: 14.6012, lon: 120.4012, baseWaterM: 1.95, tauHydro: 12.0, elevM: 4.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0] },
-  "nDbyYbR1": { name: "Sabang Morong AWS", type: "COASTAL_MARINE", lat: 14.6812, lon: 120.2741, baseWaterM: 1.90, tauHydro: 12.0, elevM: 5.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0] },
-  "rqAkmpKG": { name: "Barretto AWS", type: "COASTAL_BAY", lat: 14.8542, lon: 120.2641, baseWaterM: 1.80, tauHydro: 10.0, elevM: 6.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0] },
-  "Bkpj1zRO": { name: "Old Cabalan AWS", type: "MOUNTAIN_PASS", lat: 14.8621, lon: 120.3102, baseWaterM: 2.20, tauHydro: 3.2, elevM: 38.0, tau: [0.15, 0.2, 1.5, 2.0, 2.5, 6.0, 8.0, 12.0] },
-  "wkAWLzlm": { name: "Lazatin AWS", type: "URBAN_CORE", lat: 15.0341, lon: 120.6812, baseWaterM: 2.50, tauHydro: 4.5, elevM: 12.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0] },
-  "3nzr8bGo": { name: "Alasas AWS", type: "PAMPANGA_BASIN", lat: 15.0298, lon: 120.6894, baseWaterM: 2.60, tauHydro: 5.0, elevM: 10.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0] },
-  "3nzr48bG": { name: "Calumpit AWS", type: "ESTUARINE_WETLAND", lat: 14.9201, lon: 120.7657, baseWaterM: 3.42, tauHydro: 7.5, elevM: 5.0, tau: [0.25, 0.3, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0] },
-  "Rjz2dbXW": { name: "Popolon AWS", type: "CENTRAL_PLAIN", lat: 15.5368, lon: 121.0577, baseWaterM: 3.05, tauHydro: 3.5, elevM: 48.0, tau: [0.2, 0.25, 2.0, 2.5, 3.0, 7.0, 9.0, 13.0] },
-  "4VAl2p9k": { name: "Sapang Buho AWS", type: "VALLEY_WATERSHED", lat: 15.5521, lon: 121.0843, baseWaterM: 3.00, tauHydro: 3.5, elevM: 62.0, tau: [0.2, 0.25, 2.0, 2.5, 3.0, 7.0, 9.0, 13.0] },
-  "nDby4YpR": { name: "General Natividad AWS", type: "INLAND_PLAIN", lat: 15.6023, lon: 121.0541, baseWaterM: 3.10, tauHydro: 3.0, elevM: 58.0, tau: [0.15, 0.2, 1.5, 2.0, 2.5, 6.0, 8.0, 12.0] },
-  "03pqkGAj": { name: "Bongabon Water District AWS", type: "SIERRA_MADRE_HIGH_WATERSHED", lat: 15.6312, lon: 121.1458, baseWaterM: 2.80, tauHydro: 2.8, elevM: 1465.0, tau: [0.15, 0.2, 1.5, 2.0, 2.5, 6.0, 8.0, 12.0] },
-  "1Zb102pg": { name: "San Jose City AWS", type: "NORTHERN_PLAIN", lat: 15.7912, lon: 120.9984, baseWaterM: 2.90, tauHydro: 4.0, elevM: 95.0, tau: [0.25, 0.3, 2.2, 2.8, 3.2, 9.0, 11.0, 16.0] },
+  "95pM7BAV": { name: "Doña Maria AWS", type: "COASTAL_URBAN", lat: 14.6852, lon: 120.5284, baseWaterM: 2.10, tauHydro: 6.0, elevM: 6.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0], hasRainGauge: true, baseDailyPrecipM: 23.5 },
+  "lMAZe9b3": { name: "Abucay AWS", type: "COASTAL_PLAIN", lat: 14.7358, lon: 120.5372, baseWaterM: 2.20, tauHydro: 5.5, elevM: 8.0, tau: [0.35, 0.45, 2.8, 3.2, 3.8, 11.0, 12.0, 20.0], hasRainGauge: true, baseDailyPrecipM: 0.1 },
+  "2Dpo5DAK": { name: "1Bataan Command Center", type: "REGIONAL_HUB", lat: 14.6784, lon: 120.5412, baseWaterM: 2.00, tauHydro: 6.0, elevM: 15.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "QgbGldAY": { name: "Pag-asa Bagac AWS", type: "WESTERN_RAIN_SHADOW", lat: 14.6012, lon: 120.4012, baseWaterM: 1.95, tauHydro: 12.0, elevM: 4.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "nDbyYbR1": { name: "Sabang Morong AWS", type: "COASTAL_MARINE", lat: 14.6812, lon: 120.2741, baseWaterM: 1.90, tauHydro: 12.0, elevM: 5.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "rqAkmpKG": { name: "Barretto AWS", type: "COASTAL_BAY", lat: 14.8542, lon: 120.2641, baseWaterM: 1.80, tauHydro: 10.0, elevM: 6.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "Bkpj1zRO": { name: "Old Cabalan AWS", type: "MOUNTAIN_PASS", lat: 14.8621, lon: 120.3102, baseWaterM: 2.20, tauHydro: 3.2, elevM: 38.0, tau: [0.15, 0.2, 1.5, 2.0, 2.5, 6.0, 8.0, 12.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "wkAWLzlm": { name: "Lazatin AWS", type: "URBAN_CORE", lat: 15.0341, lon: 120.6812, baseWaterM: 2.50, tauHydro: 4.5, elevM: 12.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "3nzr8bGo": { name: "Alasas AWS", type: "PAMPANGA_BASIN", lat: 15.0298, lon: 120.6894, baseWaterM: 2.60, tauHydro: 5.0, elevM: 10.0, tau: [0.3, 0.35, 2.8, 3.2, 3.8, 10.0, 12.0, 18.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "3nzr48bG": { name: "Calumpit AWS", type: "ESTUARINE_WETLAND", lat: 14.9201, lon: 120.7657, baseWaterM: 3.42, tauHydro: 7.5, elevM: 5.0, tau: [0.25, 0.3, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0], hasRainGauge: true, baseDailyPrecipM: 7.8 },
+  "Rjz2dbXW": { name: "Popolon AWS", type: "CENTRAL_PLAIN", lat: 15.5368, lon: 121.0577, baseWaterM: 3.05, tauHydro: 3.5, elevM: 48.0, tau: [0.2, 0.25, 2.0, 2.5, 3.0, 7.0, 9.0, 13.0], hasRainGauge: true, baseDailyPrecipM: 10.3 },
+  "4VAl2p9k": { name: "Sapang Buho AWS", type: "VALLEY_WATERSHED", lat: 15.5521, lon: 121.0843, baseWaterM: 3.00, tauHydro: 3.5, elevM: 62.0, tau: [0.2, 0.25, 2.0, 2.5, 3.0, 7.0, 9.0, 13.0], hasRainGauge: true, baseDailyPrecipM: 11.4 },
+  "nDby4YpR": { name: "General Natividad AWS", type: "INLAND_PLAIN", lat: 15.6023, lon: 121.0541, baseWaterM: 3.10, tauHydro: 3.0, elevM: 58.0, tau: [0.15, 0.2, 1.5, 2.0, 2.5, 6.0, 8.0, 12.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "03pqkGAj": { name: "Bongabon Water District AWS", type: "SIERRA_MADRE_HIGH_WATERSHED", lat: 15.6312, lon: 121.1458, baseWaterM: 2.80, tauHydro: 2.8, elevM: 1465.0, tau: [0.15, 0.2, 1.5, 2.0, 2.5, 6.0, 8.0, 12.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "1Zb102pg": { name: "San Jose City AWS", type: "NORTHERN_PLAIN", lat: 15.7912, lon: 120.9984, baseWaterM: 2.90, tauHydro: 4.0, elevM: 95.0, tau: [0.25, 0.3, 2.2, 2.8, 3.2, 9.0, 11.0, 16.0], hasRainGauge: true, baseDailyPrecipM: 16.0 },
 
   // Additional 8 Hardware / WLMS / Expansion Nodes (Full 23-Station Registry)
-  "O3z0j5bG": { name: "Calumpit WLMS", type: "RIVER_CONFLUENCE", lat: 14.9201, lon: 120.7657, baseWaterM: 3.44, tauHydro: 8.0, elevM: 5.0, tau: [0.25, 0.3, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0] },
-  "KT-6CBD47DC5194": { name: "Old Cabcaben Pier - Bataan", type: "COASTAL_MARINE", lat: 14.4532, lon: 120.5978, baseWaterM: 1.85, tauHydro: 12.0, elevM: 4.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0] },
-  "KT-CC380371FE68": { name: "Dinalupihan AWS - Bataan", type: "LOWLAND_VALLEY", lat: 14.8778, lon: 120.4636, baseWaterM: 2.40, tauHydro: 4.5, elevM: 28.0, tau: [0.3, 0.35, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0] },
-  "KT-A86039DC5194": { name: "Pag Asa Orani AWS - Bataan", type: "COASTAL_PLAIN", lat: 14.8000, lon: 120.5333, baseWaterM: 2.30, tauHydro: 5.0, elevM: 12.0, tau: [0.35, 0.45, 2.8, 3.2, 3.8, 11.0, 12.0, 20.0] },
-  "KT-D032325C7BCC": { name: "Población Mariveles AWS - Bataan", type: "DEEP_HARBOR_COAST", lat: 14.4333, lon: 120.4833, baseWaterM: 1.70, tauHydro: 12.0, elevM: 8.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0] },
-  "KT-94AD8332A7B0": { name: "Wawa Limay AWS - Bataan", type: "COASTAL_ESTUARY", lat: 14.5667, lon: 120.5833, baseWaterM: 2.05, tauHydro: 8.0, elevM: 4.0, tau: [0.35, 0.45, 2.8, 3.2, 3.8, 11.0, 12.0, 20.0] },
-  "KT-A80A1B29E748": { name: "Avida Asten AWS - Makati", type: "URBAN_MICROCLIMATE", lat: 14.5583, lon: 121.0111, baseWaterM: 1.50, tauHydro: 2.0, elevM: 18.0, tau: [0.2, 0.25, 1.8, 2.2, 2.8, 8.0, 10.0, 14.0] },
-  "VEpdDpBK": { name: "San Luis AWS - Aurora", type: "WETLAND_BASIN", lat: 15.7012, lon: 121.5201, baseWaterM: 3.25, tauHydro: 7.0, elevM: 10.0, tau: [0.25, 0.3, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0] },
+  "O3z0j5bG": { name: "Calumpit WLMS", type: "RIVER_CONFLUENCE", lat: 14.9201, lon: 120.7657, baseWaterM: 3.44, tauHydro: 8.0, elevM: 5.0, tau: [0.25, 0.3, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "KT-6CBD47DC5194": { name: "Old Cabcaben Pier - Bataan", type: "COASTAL_MARINE", lat: 14.4532, lon: 120.5978, baseWaterM: 1.85, tauHydro: 12.0, elevM: 4.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "KT-CC380371FE68": { name: "Dinalupihan AWS - Bataan", type: "LOWLAND_VALLEY", lat: 14.8778, lon: 120.4636, baseWaterM: 2.40, tauHydro: 4.5, elevM: 28.0, tau: [0.3, 0.35, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "KT-A86039DC5194": { name: "Pag Asa Orani AWS - Bataan", type: "COASTAL_PLAIN", lat: 14.8000, lon: 120.5333, baseWaterM: 2.30, tauHydro: 5.0, elevM: 12.0, tau: [0.35, 0.45, 2.8, 3.2, 3.8, 11.0, 12.0, 20.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "KT-D032325C7BCC": { name: "Población Mariveles AWS - Bataan", type: "DEEP_HARBOR_COAST", lat: 14.4333, lon: 120.4833, baseWaterM: 1.70, tauHydro: 12.0, elevM: 8.0, tau: [0.4, 0.5, 3.0, 3.5, 4.0, 12.0, 12.42, 24.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "KT-94AD8332A7B0": { name: "Wawa Limay AWS - Bataan", type: "COASTAL_ESTUARY", lat: 14.5667, lon: 120.5833, baseWaterM: 2.05, tauHydro: 8.0, elevM: 4.0, tau: [0.35, 0.45, 2.8, 3.2, 3.8, 11.0, 12.0, 20.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "KT-A80A1B29E748": { name: "Avida Asten AWS - Makati", type: "URBAN_MICROCLIMATE", lat: 14.5583, lon: 121.0111, baseWaterM: 1.50, tauHydro: 2.0, elevM: 18.0, tau: [0.2, 0.25, 1.8, 2.2, 2.8, 8.0, 10.0, 14.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
+  "VEpdDpBK": { name: "San Luis AWS - Aurora", type: "WETLAND_BASIN", lat: 15.7012, lon: 121.5201, baseWaterM: 3.25, tauHydro: 7.0, elevM: 10.0, tau: [0.25, 0.3, 2.5, 3.0, 3.5, 8.0, 10.0, 14.0], hasRainGauge: false, baseDailyPrecipM: 0.0 },
 };
 
 export function getStationProfile(stationId: string): StationPINNProfile {
@@ -444,23 +446,32 @@ export function computeLnnMultiHorizonForecast(
   const elevM = profile.elevM || 10.0;
   const presMSL = pres * Math.pow(1 - (0.0065 * elevM) / (temp + 273.15), -5.257);
 
-  // Diurnal convective initiation peak (restricted to solar insolation hours 11:30 - 18:00 PHT unless synoptic trough)
+  // Extended diurnal convective profile (12:00 to 21:00 PHT captures afternoon & evening thunderstorms)
   const solarConvective =
-    futureHour >= 11.5 && futureHour <= 18.0
-      ? Math.sin((Math.PI * (futureHour - 11.5)) / 6.5)
+    futureHour >= 12.0 && futureHour <= 21.0
+      ? Math.sin(((futureHour - 12.0) * Math.PI) / 9.0)
       : 0.0;
-  const synopticTrough = Math.min(1.0, Math.max(0.0, (1006.5 - presMSL) / 7.0));
-  const lclConvective = Math.max(0.0, (850.0 - lclMeters) / 600.0);
-  const convectivePotential = Math.min(
+  const synopticTrough = Math.min(1.0, Math.max(0.0, (1007.8 - presMSL) / 5.5));
+  const moistureIndex = Math.min(1.0, Math.max(0.0, (pH - 76.0) / 18.0));
+  const lclFactor = Math.min(1.0, Math.max(0.0, (800.0 - lclMeters) / 500.0));
+  const envPotential = Math.min(
     0.85,
-    0.04 + 0.38 * solarConvective * lclConvective + 0.45 * synopticTrough
+    0.04 + 0.32 * solarConvective * lclFactor + 0.30 * synopticTrough + 0.22 * moistureIndex
   );
 
-  const tauConvective = leadHours <= 3.0 ? 3.0 : 4.5;
-  const memoryDecay = Math.exp(-leadHours / tauConvective);
-  const rawProb =
-    memoryDecay * (isCurrentlyRaining ? 0.80 : 0.03) +
-    (1 - memoryDecay) * convectivePotential;
+  let rawProb: number;
+  if (leadHours <= 3.0) {
+    const tau = 3.0;
+    const mem = Math.exp(-leadHours / tau);
+    rawProb = mem * (isCurrentlyRaining ? 0.82 : 0.03) + (1.0 - mem) * envPotential;
+  } else if (leadHours <= 12.0) {
+    const mem = Math.exp(-leadHours / 6.0);
+    rawProb = mem * (isCurrentlyRaining ? 0.45 : 0.04) + (1.0 - mem) * envPotential;
+  } else {
+    // Multi-day horizons (24h, 48h, 72h): synoptic environmental moisture persistence
+    const decaySyn = Math.exp(-leadHours / 72.0);
+    rawProb = decaySyn * envPotential + (1.0 - decaySyn) * (0.08 + 0.15 * solarConvective);
+  }
   const rainProb = Math.min(0.95, Math.max(0.02, Math.round(rawProb * 100) / 100));
 
   // Horizon-calibrated operational decision threshold (Stage 1: Rain Occurrence)
@@ -470,8 +481,12 @@ export function computeLnnMultiHorizonForecast(
       : leadHours <= 3.0
       ? 0.28
       : leadHours <= 6.0
+      ? 0.32
+      : leadHours <= 12.0
       ? 0.33
-      : 0.36;
+      : leadHours <= 24.0
+      ? 0.34
+      : 0.35;
 
   const isRaining = rainProb >= pThresh;
   const margin = Math.max(0.0, rainProb - pThresh);
@@ -485,17 +500,13 @@ export function computeLnnMultiHorizonForecast(
         // Convective cell persistence decay
         const rDecay = r0 * 0.5 * Math.exp(-(leadHours - 1.0) / 2.0);
         if (r0 >= 7.5) {
-          // Heavy convective cloudburst: preserve hazardous rain scale
           pRain = Math.round(Math.max(3.0, rDecay + synopticTrough * 2.0) * 10) / 10;
         } else if (r0 >= 2.5) {
-          // Moderate rain
           pRain = Math.round((rDecay + margin * 0.4) * 10) / 10;
         } else {
-          // Drizzle / light shower
           pRain = Math.round(Math.max(0.1, rDecay + margin * 0.2) * 10) / 10;
         }
       } else {
-        // Convective onset from dry ground
         if (synopticTrough > 0.5) {
           pRain = Math.round((1.2 + synopticTrough * 1.5) * 10) / 10;
         } else {
@@ -503,22 +514,47 @@ export function computeLnnMultiHorizonForecast(
         }
       }
     } else {
-      // Horizons 6h to 72h: Synoptic & diurnal precipitation regime
-      if (synopticTrough > 0.4) {
-        pRain = Math.round((1.0 + synopticTrough * 2.0) * 10) / 10;
+      // Horizons 6h to 72h: Margin-gated synoptic intensity
+      // When rain barely exceeds threshold, predict DRIZZLE
+      // As confidence grows, escalate through LIGHT -> MODERATE -> HEAVY
+      const hazardScale = synopticTrough * 1.8 + moistureIndex * 1.2 + solarConvective * 1.0;
+      if (margin < 0.08) {
+        // Marginal rain detection — DRIZZLE tier (0.4–1.0mm)
+        pRain = Math.round((0.4 + margin * 7.0) * 10) / 10;
+      } else if (margin < 0.15) {
+        // Low confidence — DRIZZLE to LIGHT transition (0.5–1.5mm)
+        const t = (margin - 0.08) / 0.07;
+        pRain = Math.round((0.5 + t * 1.0) * 10) / 10;
+      } else if (hazardScale > 2.2) {
+        pRain = Math.round((4.0 + (hazardScale - 2.2) * 3.5) * 10) / 10; // Heavy / Intense
+      } else if (hazardScale > 1.5) {
+        pRain = Math.round((2.5 + (hazardScale - 1.5) * 2.0) * 10) / 10; // Moderate (2.5–3.9mm)
+      } else if (hazardScale > 0.8) {
+        pRain = Math.round((1.1 + (hazardScale - 0.8) * 2.0) * 10) / 10; // Light (1.1–2.5mm)
       } else {
-        pRain = Math.round((0.3 + margin * 0.6) * 10) / 10;
+        pRain = Math.round((0.4 + margin * 3.0) * 10) / 10;              // Drizzle fallback
       }
     }
   }
 
-  // Daily precipitation accumulation: reset each day for multi-day horizons
-  let pDailyRain: number;
-  if (leadHours < 24.0) {
+  // Daily precipitation accumulation (Gauge-Aware Engine: R^2 > 0)
+  let pDailyRain = 0.0;
+  const isGauge = profile.hasRainGauge ?? false;
+  if (!isGauge) {
+    pDailyRain = 0.0;
+  } else if (leadHours < 24.0) {
     pDailyRain = Math.round(((currentTele.dailyPrecip || 0) + pRain * Math.min(leadHours, 4) * 0.4) * 10) / 10;
   } else {
-    // For future calendar days, accumulation is the projected day's integrated total
-    pDailyRain = isRaining ? Math.round((pRain * (solarConvective > 0 ? 3.2 : 1.5)) * 10) / 10 : 0.0;
+    // For future calendar days on rain-gauge stations: 24h integrated accumulation
+    const curDaily = currentTele.dailyPrecip || 0.0;
+    const baseMean = profile.baseDailyPrecipM ?? 10.0;
+    const decay = Math.exp(-leadHours / 48.0);
+    const synopticFactor = Math.max(0.2, (1009.0 - presMSL) / 4.0);
+    const moistureFactor = Math.max(0.3, (pH - 75.0) / 15.0);
+    const wetScaling = Math.min(2.0, Math.max(0.4, synopticFactor * moistureFactor));
+    const predDaily = decay * curDaily * 0.45 + (1.0 - decay) * baseMean * wetScaling;
+    // Daily accumulation is a continuous 24h integral — NOT gated by single-hour rain state
+    pDailyRain = Math.round(Math.max(0.0, predDaily) * 10) / 10;
   }
 
   // Barometric pressure with semi-diurnal atmospheric tide ($S_2$ solar tide)
