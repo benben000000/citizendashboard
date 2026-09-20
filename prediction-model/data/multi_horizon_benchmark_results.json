@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "evaluated_at": "2026-09-20T09:14:58.098256",
+    "evaluated_at": "2026-09-20T09:38:29.503626",
     "total_stations": 18,
     "date_range": "2026-09-01 to 2026-09-20",
     "horizons": [
@@ -20,7 +20,7 @@
   },
   "horizon_metrics": {
     "1h": {
-      "samples": 4150,
+      "samples": 4151,
       "temperature": {
         "mae": 0.61,
         "rmse": 1.8,
@@ -31,11 +31,11 @@
       "water_level": {
         "mae": 0.052,
         "pers_mae": 0.024,
-        "skill_vs_pers": -1.17
+        "skill_vs_pers": -1.172
       }
     },
     "3h": {
-      "samples": 4113,
+      "samples": 4114,
       "temperature": {
         "mae": 1.61,
         "rmse": 2.59,
@@ -46,11 +46,11 @@
       "water_level": {
         "mae": 0.091,
         "pers_mae": 0.068,
-        "skill_vs_pers": -0.338
+        "skill_vs_pers": -0.335
       }
     },
     "6h": {
-      "samples": 4057,
+      "samples": 4058,
       "temperature": {
         "mae": 2.48,
         "rmse": 3.45,
@@ -61,26 +61,26 @@
       "water_level": {
         "mae": 0.134,
         "pers_mae": 0.118,
-        "skill_vs_pers": -0.142
+        "skill_vs_pers": -0.14
       }
     },
     "12h": {
-      "samples": 3972,
+      "samples": 3973,
       "temperature": {
         "mae": 2.81,
         "rmse": 3.79,
         "pers_mae": 3.29,
         "diur_mae": 1.68,
-        "skill_vs_pers": 0.145
+        "skill_vs_pers": 0.144
       },
       "water_level": {
-        "mae": 0.16,
-        "pers_mae": 0.155,
-        "skill_vs_pers": -0.034
+        "mae": 0.161,
+        "pers_mae": 0.156,
+        "skill_vs_pers": -0.032
       }
     },
     "24h": {
-      "samples": 3825,
+      "samples": 3826,
       "temperature": {
         "mae": 1.15,
         "rmse": 2.34,
@@ -91,11 +91,11 @@
       "water_level": {
         "mae": 0.092,
         "pers_mae": 0.097,
-        "skill_vs_pers": 0.055
+        "skill_vs_pers": 0.056
       }
     },
     "48h": {
-      "samples": 3570,
+      "samples": 3571,
       "temperature": {
         "mae": 1.53,
         "rmse": 2.66,
@@ -105,23 +105,23 @@
       },
       "water_level": {
         "mae": 0.163,
-        "pers_mae": 0.186,
-        "skill_vs_pers": 0.123
+        "pers_mae": 0.185,
+        "skill_vs_pers": 0.122
       }
     },
     "72h": {
-      "samples": 3328,
+      "samples": 3329,
       "temperature": {
         "mae": 1.78,
         "rmse": 2.89,
         "pers_mae": 1.58,
         "diur_mae": 1.73,
-        "skill_vs_pers": -0.126
+        "skill_vs_pers": -0.127
       },
       "water_level": {
         "mae": 0.22,
-        "pers_mae": 0.266,
-        "skill_vs_pers": 0.172
+        "pers_mae": 0.265,
+        "skill_vs_pers": 0.17
       }
     }
   },
@@ -135,7 +135,7 @@
       "r2": 0.097
     },
     "6h": {
-      "mae": 5.66,
+      "mae": 5.65,
       "r2": 0.016
     },
     "12h": {
@@ -226,7 +226,7 @@
       "accuracy": 0.777,
       "ci95_low": 76.4,
       "ci95_high": 79.0,
-      "persistence_accuracy": 0.749,
+      "persistence_accuracy": 0.75,
       "no_rain_baseline_accuracy": 0.823,
       "pod_recall": 0.334,
       "precision": 0.362,
@@ -289,7 +289,7 @@
       }
     },
     "72h": {
-      "accuracy": 0.788,
+      "accuracy": 0.789,
       "ci95_low": 77.4,
       "ci95_high": 80.2,
       "persistence_accuracy": 0.744,
@@ -324,7 +324,7 @@
       },
       "confusion_matrix": [
         [
-          3112,
+          3113,
           0,
           282
         ],
@@ -352,7 +352,7 @@
       },
       "confusion_matrix": [
         [
-          2890,
+          2891,
           350,
           126
         ],
@@ -380,7 +380,7 @@
       },
       "confusion_matrix": [
         [
-          3072,
+          3073,
           137,
           116
         ],
@@ -397,7 +397,7 @@
       ]
     },
     "12h": {
-      "accuracy": 0.745,
+      "accuracy": 0.746,
       "macro_f1": 0.406,
       "hazardous_rain_recall": 0.264,
       "hazardous_rain_precision": 0.214,
@@ -408,7 +408,7 @@
       },
       "confusion_matrix": [
         [
-          2853,
+          2854,
           297,
           118
         ],
@@ -436,7 +436,7 @@
       },
       "confusion_matrix": [
         [
-          2849,
+          2850,
           148,
           121
         ],
@@ -464,7 +464,7 @@
       },
       "confusion_matrix": [
         [
-          2670,
+          2671,
           160,
           113
         ],
@@ -492,7 +492,7 @@
       },
       "confusion_matrix": [
         [
-          2466,
+          2467,
           151,
           131
         ],
@@ -511,7 +511,7 @@
   },
   "flood_stage_metrics": {
     "1h": {
-      "samples": 465,
+      "samples": 466,
       "accuracy": 0.97,
       "ci95_low": 95.0,
       "ci95_high": 98.2,
@@ -526,7 +526,7 @@
         ],
         [
           0,
-          321,
+          322,
           6,
           0
         ],
@@ -545,7 +545,7 @@
       ]
     },
     "3h": {
-      "samples": 463,
+      "samples": 464,
       "accuracy": 0.944,
       "ci95_low": 91.9,
       "ci95_high": 96.1,
@@ -560,7 +560,7 @@
         ],
         [
           1,
-          311,
+          312,
           15,
           0
         ],
@@ -579,9 +579,9 @@
       ]
     },
     "6h": {
-      "samples": 460,
-      "accuracy": 0.93,
-      "ci95_low": 90.3,
+      "samples": 461,
+      "accuracy": 0.931,
+      "ci95_low": 90.4,
       "ci95_high": 95.0,
       "macro_f1_active_classes": 0.917,
       "macro_f1_all_classes": 0.458,
@@ -594,7 +594,7 @@
         ],
         [
           0,
-          307,
+          308,
           20,
           0
         ],
@@ -613,7 +613,7 @@
       ]
     },
     "12h": {
-      "samples": 454,
+      "samples": 455,
       "accuracy": 0.936,
       "ci95_low": 91.0,
       "ci95_high": 95.5,
@@ -628,7 +628,7 @@
         ],
         [
           0,
-          310,
+          311,
           17,
           0
         ],
@@ -647,7 +647,7 @@
       ]
     },
     "24h": {
-      "samples": 442,
+      "samples": 443,
       "accuracy": 0.939,
       "ci95_low": 91.3,
       "ci95_high": 95.8,
@@ -662,7 +662,7 @@
         ],
         [
           0,
-          305,
+          306,
           22,
           0
         ],
@@ -681,7 +681,7 @@
       ]
     },
     "48h": {
-      "samples": 418,
+      "samples": 419,
       "accuracy": 0.902,
       "ci95_low": 87.0,
       "ci95_high": 92.7,
@@ -696,7 +696,7 @@
         ],
         [
           0,
-          288,
+          289,
           39,
           0
         ],
@@ -715,12 +715,12 @@
       ]
     },
     "72h": {
-      "samples": 394,
-      "accuracy": 0.855,
-      "ci95_low": 81.7,
-      "ci95_high": 88.7,
+      "samples": 395,
+      "accuracy": 0.853,
+      "ci95_low": 81.5,
+      "ci95_high": 88.5,
       "macro_f1_active_classes": 0.803,
-      "macro_f1_all_classes": 0.402,
+      "macro_f1_all_classes": 0.401,
       "confusion_matrix": [
         [
           0,
@@ -729,7 +729,7 @@
           0
         ],
         [
-          1,
+          2,
           271,
           55,
           0
@@ -755,11 +755,11 @@
         "tp": 537,
         "fp": 282,
         "fn": 219,
-        "tn": 3112
+        "tn": 3113
       },
       "intensity_tiers": [
         [
-          3112,
+          3113,
           0,
           0,
           245,
@@ -800,11 +800,11 @@
         "tp": 421,
         "fp": 476,
         "fn": 326,
-        "tn": 2890
+        "tn": 2891
       },
       "intensity_tiers": [
         [
-          2890,
+          2891,
           318,
           32,
           92,
@@ -845,11 +845,11 @@
         "tp": 193,
         "fp": 253,
         "fn": 539,
-        "tn": 3072
+        "tn": 3073
       },
       "intensity_tiers": [
         [
-          3072,
+          3073,
           121,
           16,
           88,
@@ -890,11 +890,11 @@
         "tp": 235,
         "fp": 415,
         "fn": 469,
-        "tn": 2853
+        "tn": 2854
       },
       "intensity_tiers": [
         [
-          2853,
+          2854,
           214,
           83,
           62,
@@ -935,11 +935,11 @@
         "tp": 197,
         "fp": 269,
         "fn": 510,
-        "tn": 2849
+        "tn": 2850
       },
       "intensity_tiers": [
         [
-          2849,
+          2850,
           139,
           9,
           58,
@@ -980,11 +980,11 @@
         "tp": 181,
         "fp": 273,
         "fn": 446,
-        "tn": 2670
+        "tn": 2671
       },
       "intensity_tiers": [
         [
-          2670,
+          2671,
           144,
           16,
           46,
@@ -1025,11 +1025,11 @@
         "tp": 158,
         "fp": 282,
         "fn": 422,
-        "tn": 2466
+        "tn": 2467
       },
       "intensity_tiers": [
         [
-          2466,
+          2467,
           135,
           16,
           47,

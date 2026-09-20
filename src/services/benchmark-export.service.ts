@@ -191,6 +191,23 @@ export function classifyFloodStage(waterLevelM: number | null | undefined, isWat
   return "NORMAL (Safe Stage)";
 }
 
+/**
+ * Calculates Heat Index using the official NOAA / NWS 9-term Rothfusz polynomial
+ */
+export function calculateRothfuszHeatIndex(T: number, R: number): number {
+  if (T < 26.7) return T;
+  const c1 = -8.784695;
+  const c2 = 1.61139411;
+  const c3 = 2.338549;
+  const c4 = -0.14611605;
+  const c5 = -0.012308094;
+  const c6 = -0.016424828;
+  const c7 = 0.002211732;
+  const c8 = 0.00072546;
+  const c9 = -0.000003582;
+  return Math.round((c1 + c2 * T + c3 * R + c4 * T * R + c5 * T * T + c6 * R * R + c7 * T * T * R + c8 * T * R * R + c9 * T * T * R * R) * 10) / 10;
+}
+
 export interface PhysicalPoint {
   timeMs: number;
   temp: number | null;
@@ -680,20 +697,14 @@ export class BenchmarkExportService {
         const rawHi =
           point.hi ??
           (rawT !== null && rawH !== null
-            ? Math.round((rawT + (rawH / 100) * 5.2) * 10) / 10
+            ? calculateRothfuszHeatIndex(rawT, rawH)
             : null);
         const rawWater = isWaterStation ? point.water : null;
 
-        const phHour = (dt.getUTCHours() + 8) % 24 + dt.getUTCMinutes() / 60;
-        const isDaylight = phHour >= 6 && phHour <= 18;
-        const rawUv =
-          isWeatherStation && isDaylight
-            ? Math.round(Math.max(0, 8.5 * Math.sin((Math.PI * (phHour - 6)) / 12)) * 10) / 10
-            : 0;
-        const rawLight =
-          isWeatherStation && isDaylight
-            ? Math.round(Math.max(0, 60000 * Math.pow(Math.sin((Math.PI * (phHour - 6)) / 12), 1.5)))
-            : 0;
+        // Central Luzon AWS telemetry nodes lack physical pyranometers and UV photodiodes.
+        // If physical sensor telemetry is absent, preserve null to prevent generating artificial 0.000 error benchmarks.
+        const rawUv: number | null = (point as unknown as { uv?: number | null }).uv ?? null;
+        const rawLight: number | null = (point as unknown as { light?: number | null }).light ?? null;
 
         const rawIsRaining = rawRain > 0;
         const rawRainIntensity = classifyRainIntensity(rawRain);
@@ -717,7 +728,7 @@ export class BenchmarkExportService {
         const procDailyRain = rawDailyRain;
         const procHi =
           procT !== null && procH !== null
-            ? Math.round((procT + (procH / 100) * 5.2) * 10) / 10
+            ? calculateRothfuszHeatIndex(procT, procH)
             : null;
         const procUv = rawUv;
         const procLight = rawLight;

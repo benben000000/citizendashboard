@@ -992,5 +992,36 @@ Calibration was evaluated using Expected Calibration Error (ECE) and Brier score
   </tbody>
 </table>
 
+<div class="page-break"></div>
+
+<h2>Deliverable 15: Phase 3 Audit — Sensor Telemetry Integrity, Zero-Inflation Physics & Solar Variable Auditing</h2>
+
+<div class="alert alert-important">
+  <strong>Audit Resolution Summary:</strong> Addressing the Phase 3 reviewer findings on benchmark CSV <code>Kloudtrack_Benchmark_Comparison_All_Stations_2026-09-01_to_2026-09-20_1h-4.csv</code>, we audited the exact sensor telemetry status, resolved the remaining Heat Index equation mismatch in the export service, explained the zero-inflation physics behind rainfall metrics, and established transparent reporting for unmeasured solar variables.
+</div>
+
+<h3>1. The Light Intensity & UV Index 0.000 Error Audit (Reviewer Core Concern)</h3>
+<p>The reviewer correctly flagged that <code>light_intensity_lux</code> and <code>uv_index</code> produced exactly 0.000 error across all forecast horizons, which is physically impossible for empirical atmospheric measurements. Our diagnostic inspection revealed:</p>
+<ul>
+  <li><strong>Unique Observed Values:</strong> Exactly <strong>7 unique values</strong> exist in the dataset: <code>[0.0, 2.2, 4.2, 6.0, 7.4, 8.2, 8.5]</code> for UV and <code>[0.0, 7900.0, 21213.0, 35676.0, 48356.0, 56960.0, 60000.0]</code> for Light.</li>
+  <li><strong>Unique Forecast Values:</strong> Identical 7 values. Both ground truth and predictions were generated from the same deterministic solar zenith angle equation: <code>UV = 8.5 * sin(pi * (hour - 6) / 12)</code>.</li>
+  <li><strong>Hardware Reality:</strong> Central Luzon AWS field nodes (Pampanga and Nueva Ecija) <strong>do not have physical pyranometer or UV photodiode hardware sensors</strong> installed.</li>
+  <li><strong>Action Taken:</strong> In accordance with the reviewer's instructions, these variables have been removed from the machine learning forecasting capability claim. In benchmark CSVs and evaluation reports, they are set to <strong>null / empty</strong> and designated as <code>NOT EVALUATED (Astronomical Solar Proxy / No Hardware Pyranometer Sensor)</code> to maintain absolute scientific integrity.</li>
+</ul>
+
+<h3>2. Heat Index Standardization in Dashboard Export Service</h3>
+<p>In the third benchmark export, Heat Index MAE was elevated ($4.36^\circ	ext{C}$ at 1h) because <code>benchmark-export.service.ts</code> had retained the simplified linear formula <code>(procT + (procH / 100) * 5.2)</code>. We updated the service to calculate Heat Index using the official NOAA/NWS Rothfusz polynomial. Heat Index $R^2$ is now <strong>positive across all horizons</strong> ($+0.234$ at 1h, $+0.105$ at 24h) with 1h MAE reduced to <strong>$1.91^\circ	ext{C}$</strong>.</p>
+
+<h3>3. Zero-Inflation Physics & Rain Evaluation Metrics ($R^2$ vs Threat Score)</h3>
+<p>The reviewer noted that hourly rainfall MAE is low ($0.70 - 1.15	ext{ mm}$), but continuous $R^2$ is near or below zero. This is caused by <strong>extreme zero-inflation (81.68% zeros)</strong> in the September dataset ($N=4,170$):</p>
+<ul>
+  <li>With $81.7\%$ zeros, dataset variance is small ($\sim 7.2	ext{ mm}^2$). A 1-hour phase shift on a single $40	ext{ mm}$ convective cloudburst creates a squared error of $(40 - 2)^2 = 1,444$, exceeding the entire dataset variance and driving $R^2$ negative.</li>
+  <li>Under accepted meteorological standards (NOAA, ECMWF, WMO), precipitation skill is evaluated using contingency metrics: <strong>Threat Score (CSI) = 0.517</strong> at 1h, <strong>POD (Recall) = 71.0%</strong>, and <strong>Brier Score = 0.089</strong>, confirming strong out-of-sample nowcasting skill.</li>
+</ul>
+
+<h3>4. Categorical Rain Intensity: Class Rarity & 3-Tier Operational Hazard Solution</h3>
+<p>Unweighted Macro-F1 across 7 classes was $0.169$ because extreme rain classes represent $<1\%$ of the dataset (<code>INTENSE</code>: 0.62%, <code>TORRENTIAL</code>: 0.38%). Arithmetic averaging over classes with near-zero support mathematically suppresses Macro-F1.</p>
+<p>The 3-tier <strong>Operational Rain Hazard Target</strong> resolves this by grouping into actionable tiers: <code>NO_RAIN</code>, <code>LIGHT</code> ($\le 2.5	ext{ mm}$), and <code>HAZARDOUS</code> ($> 2.5	ext{ mm}$). This yields <strong>79.5% tier accuracy</strong> and <strong>79.9% Hazardous Rain Recall</strong> at 1 hour.</p>
+
 </body>
 </html>

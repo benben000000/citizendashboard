@@ -848,8 +848,10 @@ def main():
             raw_daily_rain = daily_acc_rain
 
             raw_hi = calculate_rothfusz_heat_index(raw_t, raw_h)
-            raw_uv = round(max(0.0, 8.5 * math.sin(math.pi * (ph_hour - 6.0) / 12.0)), 1) if (not is_wl and is_daylight) else 0.0
-            raw_light = round(max(0.0, 60000.0 * math.pow(math.sin(math.pi * (ph_hour - 6.0) / 12.0), 1.5))) if (not is_wl and is_daylight) else 0
+            # Central Luzon AWS telemetry nodes lack physical pyranometers and UV photodiodes.
+            # Leaving empty to adhere to physical audit standards (preventing artificial 0.000 error).
+            raw_uv = ""
+            raw_light = ""
 
             raw_is_raining = raw_rain > 0.0
             raw_rain_intensity = classify_rain_intensity(raw_rain)
@@ -863,8 +865,8 @@ def main():
             proc_rain = raw_rain
             proc_daily_rain = raw_daily_rain
             proc_hi = calculate_rothfusz_heat_index(proc_t, proc_h)
-            proc_uv = raw_uv
-            proc_light = raw_light
+            proc_uv = ""
+            proc_light = ""
             proc_water = raw_water
             proc_is_raining = raw_is_raining
             proc_rain_intensity = raw_rain_intensity
@@ -946,8 +948,8 @@ def main():
                 "pred_1h_heat_index_c": h1["pHi"],
                 "pred_1h_wind_speed_kmh": h1["pW"],
                 "pred_1h_pressure_hpa": h1["pP"],
-                "pred_1h_light_intensity_lux": h1["pLight"] if h1["pLight"] is not None else "",
-                "pred_1h_uv_index": h1["pUv"] if h1["pUv"] is not None else "",
+                "pred_1h_light_intensity_lux": "",
+                "pred_1h_uv_index": "",
                 "pred_1h_water_level_m": h1["pWater"] if h1["pWater"] is not None else "",
                 "pred_1h_is_raining": str(h1["isRaining"]).upper(),
                 "pred_1h_rain_intensity": h1["rainIntensity"],
@@ -959,8 +961,8 @@ def main():
                 "pred_3h_heat_index_c": h3["pHi"],
                 "pred_3h_wind_speed_kmh": h3["pW"],
                 "pred_3h_pressure_hpa": h3["pP"],
-                "pred_3h_light_intensity_lux": h3["pLight"] if h3["pLight"] is not None else "",
-                "pred_3h_uv_index": h3["pUv"] if h3["pUv"] is not None else "",
+                "pred_3h_light_intensity_lux": "",
+                "pred_3h_uv_index": "",
                 "pred_3h_water_level_m": h3["pWater"] if h3["pWater"] is not None else "",
                 "pred_3h_is_raining": str(h3["isRaining"]).upper(),
                 "pred_3h_rain_intensity": h3["rainIntensity"],
@@ -972,8 +974,8 @@ def main():
                 "pred_6h_heat_index_c": h6["pHi"],
                 "pred_6h_wind_speed_kmh": h6["pW"],
                 "pred_6h_pressure_hpa": h6["pP"],
-                "pred_6h_light_intensity_lux": h6["pLight"] if h6["pLight"] is not None else "",
-                "pred_6h_uv_index": h6["pUv"] if h6["pUv"] is not None else "",
+                "pred_6h_light_intensity_lux": "",
+                "pred_6h_uv_index": "",
                 "pred_6h_water_level_m": h6["pWater"] if h6["pWater"] is not None else "",
                 "pred_6h_is_raining": str(h6["isRaining"]).upper(),
                 "pred_6h_rain_intensity": h6["rainIntensity"],
@@ -985,8 +987,8 @@ def main():
                 "pred_12h_heat_index_c": h12["pHi"],
                 "pred_12h_wind_speed_kmh": h12["pW"],
                 "pred_12h_pressure_hpa": h12["pP"],
-                "pred_12h_light_intensity_lux": h12["pLight"] if h12["pLight"] is not None else "",
-                "pred_12h_uv_index": h12["pUv"] if h12["pUv"] is not None else "",
+                "pred_12h_light_intensity_lux": "",
+                "pred_12h_uv_index": "",
                 "pred_12h_water_level_m": h12["pWater"] if h12["pWater"] is not None else "",
                 "pred_12h_is_raining": str(h12["isRaining"]).upper(),
                 "pred_12h_rain_intensity": h12["rainIntensity"],
@@ -998,8 +1000,8 @@ def main():
                 "pred_24h_heat_index_c": h24["pHi"],
                 "pred_24h_wind_speed_kmh": h24["pW"],
                 "pred_24h_pressure_hpa": h24["pP"],
-                "pred_24h_light_intensity_lux": h24["pLight"] if h24["pLight"] is not None else "",
-                "pred_24h_uv_index": h24["pUv"] if h24["pUv"] is not None else "",
+                "pred_24h_light_intensity_lux": "",
+                "pred_24h_uv_index": "",
                 "pred_24h_water_level_m": h24["pWater"] if h24["pWater"] is not None else "",
                 "pred_24h_is_raining": str(h24["isRaining"]).upper(),
                 "pred_24h_rain_intensity": h24["rainIntensity"],
@@ -1011,8 +1013,8 @@ def main():
                 "pred_48h_heat_index_c": h48["pHi"],
                 "pred_48h_wind_speed_kmh": h48["pW"],
                 "pred_48h_pressure_hpa": h48["pP"],
-                "pred_48h_light_intensity_lux": h48["pLight"] if h48["pLight"] is not None else "",
-                "pred_48h_uv_index": h48["pUv"] if h48["pUv"] is not None else "",
+                "pred_48h_light_intensity_lux": "",
+                "pred_48h_uv_index": "",
                 "pred_48h_water_level_m": h48["pWater"] if h48["pWater"] is not None else "",
                 "pred_48h_is_raining": str(h48["isRaining"]).upper(),
                 "pred_48h_rain_intensity": h48["rainIntensity"],
@@ -1024,8 +1026,8 @@ def main():
                 "pred_72h_heat_index_c": h72["pHi"],
                 "pred_72h_wind_speed_kmh": h72["pW"],
                 "pred_72h_pressure_hpa": h72["pP"],
-                "pred_72h_light_intensity_lux": h72["pLight"] if h72["pLight"] is not None else "",
-                "pred_72h_uv_index": h72["pUv"] if h72["pUv"] is not None else "",
+                "pred_72h_light_intensity_lux": "",
+                "pred_72h_uv_index": "",
                 "pred_72h_water_level_m": h72["pWater"] if h72["pWater"] is not None else "",
                 "pred_72h_is_raining": str(h72["isRaining"]).upper(),
                 "pred_72h_rain_intensity": h72["rainIntensity"],
