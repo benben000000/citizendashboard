@@ -269,8 +269,16 @@ STATION_METADATA = [
 NORM_MEANS = [28.5, 33.0, 10.0, 1008.0]
 NORM_STDS = [4.5, 6.5, 8.0, 6.0]
 
-def sigmoid(x: float) -> float:
-    return 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, x))))
+def calculate_rothfusz_heat_index(temp: float, rh: float) -> float:
+    if temp < 26.7:
+        return round(temp, 1)
+    t = temp
+    r = rh
+    c1, c2, c3 = -8.784695, 1.61139411, 2.338549
+    c4, c5, c6 = -0.14611605, -0.012308094, -0.016424828
+    c7, c8, c9 = 0.002211732, 0.00072546, -0.000003582
+    hi = c1 + c2*t + c3*r + c4*t*r + c5*t*t + c6*r*r + c7*t*t*r + c8*t*r*r + c9*t*t*r*r
+    return round(hi, 1)
 
 class GarciaPINNLNNEngine:
     def __init__(self):
@@ -353,16 +361,16 @@ class GarciaPINNLNNEngine:
             pT = round(decay * temp_c + (1.0 - decay) * diurnal_clim, 1)
 
         pT = min(43.0, max(18.0, pT))
-        pH = round(min(98.0, max(35.0, rh_pct - (pT - temp_c) * 4.2)), 1)
+        if horizon_hours <= 12.0:
+            pH = round(min(98.0, max(35.0, rh_pct - (pT - temp_c) * 4.2)), 1)
+        else:
+            future_solar_phase = math.cos((2 * math.pi * (future_hour - 14.0)) / 24.0)
+            diurnal_clim_rh = 80.0 - future_solar_phase * 12.0
+            decay_h = math.exp(-horizon_hours / 48.0)
+            coupled_rh = rh_pct - (pT - temp_c) * 4.2
+            pH = round(min(98.0, max(35.0, decay_h * coupled_rh + (1.0 - decay_h) * diurnal_clim_rh)), 1)
 
-        pHi = pT
-        if pT >= 26.7:
-            T = pT
-            R = pH
-            c1, c2, c3 = -8.784695, 1.61139411, 2.338549
-            c4, c5, c6 = -0.14611605, -0.012308094, -0.016424828
-            c7, c8, c9 = 0.002211732, 0.00072546, -0.000003582
-            pHi = round(c1 + c2*T + c3*R + c4*T*R + c5*T*T + c6*R*R + c7*T*T*R + c8*T*R*R + c9*T*T*R*R, 1)
+        pHi = calculate_rothfusz_heat_index(pT, pH)
 
         # Atmospheric thermodynamics & LCL
         es = 6.1121 * math.exp((17.67 * temp_c) / (temp_c + 243.5))
@@ -374,7 +382,10 @@ class GarciaPINNLNNEngine:
 
         # Diurnal Convective Gating & Hurdle Model
         solar_convective = math.sin((math.pi * (future_hour - 11.5)) / 6.5) if (11.5 <= future_hour <= 18.0) else 0.0
-        synoptic_trough = max(0.0, (1006.5 - pres_hpa) / 7.0)
+        # Hypsometric reduction to mean sea level pressure (MSLP)
+        elev_m = station_meta.get("elev_m", 10.0)
+        pres_msl = pres_hpa * math.pow(1.0 - (0.0065 * elev_m) / (temp_c + 273.15), -5.257)
+        synoptic_trough = max(0.0, (1006.5 - pres_msl) / 7.0)
         lcl_convective = max(0.0, (850.0 - lcl_meters) / 600.0)
         convective_potential = min(0.85, 0.04 + 0.38 * solar_convective * lcl_convective + 0.45 * synoptic_trough)
 
@@ -388,19 +399,23 @@ class GarciaPINNLNNEngine:
         is_raining = rain_prob >= p_thresh
         margin = max(0.0, rain_prob - p_thresh)
 
+        # Stage 2: Empirical Quantile-Calibrated Rainfall Intensity
         if is_raining:
-            if synoptic_trough > 0.4:
-                pRain = round(3.5 + margin * 15.0 + synoptic_trough * 12.0, 1)
-            elif margin > 0.25:
-                pRain = round(1.8 + margin * 8.0, 1)
-            elif margin > 0.12:
-                pRain = round(0.8 + margin * 4.0, 1)
+            if synoptic_trough > 0.6 and margin > 0.35:
+                pRain = round(7.5 + margin * 15.0 + synoptic_trough * 10.0, 1)
+            elif margin > 0.30 or synoptic_trough > 0.4:
+                pRain = round(2.6 + margin * 8.0, 1)
+            elif margin > 0.15:
+                pRain = round(1.1 + margin * 4.0, 1)
             else:
-                pRain = round(0.2 + margin * 2.0, 1)
+                pRain = round(0.2 + margin * 2.5, 1)
         else:
             pRain = 0.0
 
-        pDailyRain = round(pRain * min(horizon_hours, 4.0) * 0.4, 1)
+        if horizon_hours < 24.0:
+            pDailyRain = round(pRain * min(horizon_hours, 4.0) * 0.4, 1)
+        else:
+            pDailyRain = round(pRain * (3.2 if solar_convective > 0 else 1.5), 1) if is_raining else 0.0
         pP = round(pres_hpa - (1.2 if pRain > 0 else 0.0), 1)
         pW = round(max(0.0, wind_kmh + (3.5 if pRain > 0 else 0.0)), 1)
 
@@ -520,6 +535,34 @@ def find_nearest_measurement(series_ms: dict, target_ms: int, max_tolerance_ms: 
     return best_val
 
 
+def load_cached_raw_telemetry(csv_path: str) -> dict:
+    cached = {}
+    if not os.path.exists(csv_path):
+        return cached
+    try:
+        with open(csv_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                if r.get("raw_qc_status") == "VALID":
+                    sid = r["station_id"]
+                    ts_dt = datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00"))
+                    ts_ms = int(ts_dt.timestamp() * 1000)
+                    if sid not in cached:
+                        cached[sid] = {
+                            "temperature": {}, "humidity": {}, "pressure": {},
+                            "windSpeed": {}, "precipitation": {}, "waterLevel": {}
+                        }
+                    if r.get("raw_temperature_c"): cached[sid]["temperature"][ts_ms] = float(r["raw_temperature_c"])
+                    if r.get("raw_humidity_pct"): cached[sid]["humidity"][ts_ms] = float(r["raw_humidity_pct"])
+                    if r.get("raw_pressure_hpa"): cached[sid]["pressure"][ts_ms] = float(r["raw_pressure_hpa"])
+                    if r.get("raw_wind_speed_kmh"): cached[sid]["windSpeed"][ts_ms] = float(r["raw_wind_speed_kmh"])
+                    if r.get("raw_hourly_precip_mm"): cached[sid]["precipitation"][ts_ms] = float(r["raw_hourly_precip_mm"])
+                    if r.get("raw_water_level_m"): cached[sid]["waterLevel"][ts_ms] = float(r["raw_water_level_m"]) * 100.0
+    except Exception as e:
+        print(f"  [WARN] Could not load cached telemetry: {e}")
+    return cached
+
+
 def main():
     print("=" * 105)
     print("🚀 GENERATING 100% GENUINE SEPTEMBER 1 TO SEPTEMBER 20, 2026 HISTORICAL BACKTEST CSV")
@@ -538,6 +581,10 @@ def main():
 
     print(f"⏱️ Total Planned Hourly Intervals: {total_hours} hours per station (Total: {total_hours * len(STATION_METADATA)} records)")
 
+    output_csv_public = os.path.join(PUBLIC_EXPORTS_DIR, "Kloudtrack_Benchmark_Comparison_All_Stations_2026-09-01_to_2026-09-20_1h.csv")
+    output_csv_data = os.path.join(DATA_DIR, "segregated", "september_2026_backtest_1h.csv")
+    cached_telemetry = load_cached_raw_telemetry(output_csv_public)
+
     # 1. Fetch Real Telemetry for each station
     station_data = {}
     for stn in STATION_METADATA:
@@ -548,6 +595,12 @@ def main():
 
         if is_wl:
             wl_series = fetch_station_parameter_series(sid, "distance", is_water=True)
+            if not wl_series and sid in cached_telemetry and cached_telemetry[sid]["waterLevel"]:
+                wl_series = cached_telemetry[sid]["waterLevel"]
+                print(f"   ✓ [CACHE-FALLBACK] Ingested {len(wl_series)} real cached water level observations.")
+            else:
+                print(f"   ✓ Ingested {len(wl_series)} real water level observations.")
+
             station_data[sid] = {
                 "temperature": {},
                 "humidity": {},
@@ -556,13 +609,22 @@ def main():
                 "precipitation": {},
                 "waterLevel": wl_series,
             }
-            print(f"   ✓ Ingested {len(wl_series)} real water level observations.")
         else:
             t_series = fetch_station_parameter_series(sid, "temperature", is_water=False)
             h_series = fetch_station_parameter_series(sid, "humidity", is_water=False)
             p_series = fetch_station_parameter_series(sid, "pressure", is_water=False)
             w_series = fetch_station_parameter_series(sid, "windSpeed", is_water=False)
             r_series = fetch_station_parameter_series(sid, "precipitation", is_water=False)
+
+            if not t_series and sid in cached_telemetry and cached_telemetry[sid]["temperature"]:
+                t_series = cached_telemetry[sid]["temperature"]
+                h_series = cached_telemetry[sid]["humidity"]
+                p_series = cached_telemetry[sid]["pressure"]
+                w_series = cached_telemetry[sid]["windSpeed"]
+                r_series = cached_telemetry[sid]["precipitation"]
+                print(f"   ✓ [CACHE-FALLBACK] Ingested {len(t_series)} real cached temperature records, {len(h_series)} humidity records.")
+            else:
+                print(f"   ✓ Ingested {len(t_series)} real temperature records, {len(h_series)} humidity records.")
 
             station_data[sid] = {
                 "temperature": t_series,
@@ -572,7 +634,6 @@ def main():
                 "precipitation": r_series,
                 "waterLevel": {},
             }
-            print(f"   ✓ Ingested {len(t_series)} real temperature records, {len(h_series)} humidity records.")
 
     # CSV Fieldnames
     fieldnames = [
@@ -786,7 +847,7 @@ def main():
             daily_acc_rain = round(daily_acc_rain + raw_rain, 1)
             raw_daily_rain = daily_acc_rain
 
-            raw_hi = round(raw_t + (raw_h / 100.0) * 5.2 if (raw_t >= 27.0 and raw_h >= 40.0) else raw_t, 1)
+            raw_hi = calculate_rothfusz_heat_index(raw_t, raw_h)
             raw_uv = round(max(0.0, 8.5 * math.sin(math.pi * (ph_hour - 6.0) / 12.0)), 1) if (not is_wl and is_daylight) else 0.0
             raw_light = round(max(0.0, 60000.0 * math.pow(math.sin(math.pi * (ph_hour - 6.0) / 12.0), 1.5))) if (not is_wl and is_daylight) else 0
 
@@ -801,7 +862,7 @@ def main():
             proc_w = raw_w
             proc_rain = raw_rain
             proc_daily_rain = raw_daily_rain
-            proc_hi = raw_hi
+            proc_hi = calculate_rothfusz_heat_index(proc_t, proc_h)
             proc_uv = raw_uv
             proc_light = raw_light
             proc_water = raw_water
