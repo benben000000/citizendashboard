@@ -114,9 +114,14 @@ def run_1hour_audit():
             d_temp = round(abs(pred_temp - gt_temp), 2)
             d_hi = round(abs(pred_hi - gt_hi), 2)
 
-            is_raining_gt = gt_precip > 0.0 or pred_rain_prob >= 50
+            is_raining_gt = gt_precip > 0.0
             is_raining_pred = pred_rain_prob >= 50 or pred_rain_mm > 0.0
-            rain_match = "MATCH ✅" if is_raining_gt == is_raining_pred else "MISMATCH ⚠️"
+            if is_raining_gt == is_raining_pred:
+                rain_match = "MATCH ✅"
+            elif is_raining_pred and not is_raining_gt:
+                rain_match = "FALSE_ALARM ⚠️"
+            else:
+                rain_match = "MISSED_EVENT ❌"
 
             status = "ACCURATE ✅" if d_temp <= 2.5 else "ELEVATED ERROR ⚠️"
 

@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default async function PredictionPage({
   searchParams,
 }: {
-  searchParams: { lat?: string; lon?: string; location?: string };
+  searchParams: { lat?: string; lon?: string; location?: string; stationId?: string };
 }) {
   let stations: StationPublicInfo[] = [];
   let selectedStation: StationPublicInfo | null = null;
@@ -43,7 +43,11 @@ export default async function PredictionPage({
 
     stations = Array.from(allStationsMap.values());
 
-    if (searchParams.location && stations.length) {
+    if (searchParams.stationId && stations.length) {
+      selectedStation = stations.find((s) => s.stationPublicId === searchParams.stationId) || null;
+    }
+
+    if (!selectedStation && searchParams.location && stations.length) {
       selectedStation =
         findStationByLocation(stations, searchParams.location, "weather") ||
         findStationByLocation(stations, searchParams.location, "waterLevel");

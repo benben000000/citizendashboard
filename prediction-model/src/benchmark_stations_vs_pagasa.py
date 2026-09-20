@@ -510,6 +510,60 @@ def fetch_synoptic_forecast_at_coords(lat: float, lon: float) -> dict:
         return {}
 
 
+def load_latest_station_telemetry():
+    """
+    Loads latest actual telemetry per station from clean_consolidated_2024_2026.csv
+    and mqtt_live_predictions.json to seed benchmark initial conditions with real data.
+    """
+    station_data = {}
+    csv_path = os.path.join(DATA_DIR, "segregated", "clean_consolidated_2024_2026.csv")
+    if os.path.exists(csv_path):
+        try:
+            with open(csv_path, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                for row in reader:
+                    if len(row) > 16 and row[5]:
+                        sid = row[5].strip()
+                        try:
+                            station_data[sid] = {
+                                "temperature_c": float(row[10]) if row[10] else None,
+                                "relative_humidity_pct": float(row[11]) if row[11] else None,
+                                "heat_index_c": float(row[12]) if row[12] else None,
+                                "wind_speed_kmh": float(row[13]) if row[13] else None,
+                                "pressure_hpa": float(row[14]) if row[14] else None,
+                                "rain_mm": float(row[15]) if row[15] else None,
+                                "water_level_m": float(row[16]) if row[16] else None,
+                            }
+                        except ValueError:
+                            pass
+        except Exception:
+            pass
+
+    # Overwrite with live MQTT if available
+    mqtt_path = os.path.join(DATA_DIR, "mqtt_live_predictions.json")
+    if os.path.exists(mqtt_path):
+        try:
+            with open(mqtt_path, "r", encoding="utf-8") as f:
+                mqtt = json.load(f)
+                stations = mqtt.get("stations", {})
+                for sid, sval in stations.items():
+                    raw = sval.get("raw_telemetry", {})
+                    if raw:
+                        station_data[sid] = {
+                            "temperature_c": raw.get("temperature_c"),
+                            "relative_humidity_pct": raw.get("humidity_pct"),
+                            "heat_index_c": None,
+                            "wind_speed_kmh": raw.get("wind_speed_kmh"),
+                            "pressure_hpa": raw.get("pressure_hpa"),
+                            "rain_mm": raw.get("rain_mm"),
+                            "water_level_m": raw.get("water_level_m"),
+                        }
+        except Exception:
+            pass
+    return station_data
+
+
 def run_empirical_benchmark():
     print("=" * 95)
     print("🔬 RUNNING EMPIRICAL BENCHMARK: GARCIA PINN-LNN vs. WMO/PAGASA SYNOPTIC TELEMETRY")
@@ -518,6 +572,7 @@ def run_empirical_benchmark():
     print("👉 Evaluation Mode: Unmanipulated Live Data Comparison across 23 Station GPS Coordinates\n")
 
     pinn_engine = GarciaPINNLNNEngine()
+    latest_telemetry = load_latest_station_telemetry()
     results = []
     csv_rows = []
 
@@ -530,6 +585,7 @@ def run_empirical_benchmark():
     for stn in STATION_REGISTRY:
         idx = stn["index"]
         name = stn["name"]
+        raw_id = stn.get("raw_id", "")
         lat = stn["lat"]
         lon = stn["lon"]
         elev = stn["elev_m"]
@@ -539,7 +595,9 @@ def run_empirical_benchmark():
         print(f"📡 Evaluating [{idx}] {name} ({cat}) at ({lat}°N, {lon}°E, {elev}m)...")
         synoptic_data = fetch_synoptic_forecast_at_coords(lat, lon)
 
-        # Baseline conditions from synoptic or physical station defaults
+        # Baseline conditions from real station observation or synoptic
+        real_obs = latest_telemetry.get(raw_id) or latest_telemetry.get(raw_id.replace("KT-", "")) or {}
+
         temps = synoptic_data.get("temperature_2m", [28.5, 29.0, 29.5])
         rhs = synoptic_data.get("relative_humidity_2m", [80, 78, 75])
         pres = synoptic_data.get("surface_pressure", [1008.0, 1007.5, 1007.0])
@@ -548,11 +606,13 @@ def run_empirical_benchmark():
         rains_mm = synoptic_data.get("precipitation", [0.0, 0.2, 1.5])
         app_temps = synoptic_data.get("apparent_temperature", [33.0, 34.2, 35.0])
 
-        init_temp = temps[0] if temps else 28.5
-        init_rh = rhs[0] if rhs else 80.0
-        init_pres = pres[0] if pres else 1008.0
-        init_wind = winds[0] if winds else 12.0
-        init_water = stn["base_water_m"] if has_wl else None
+        init_temp = real_obs.get("temperature_c") or (temps[0] if temps else 28.5)
+        init_rh = real_obs.get("relative_humidity_pct") or (rhs[0] if rhs else 80.0)
+        init_pres = real_obs.get("pressure_hpa") or (pres[0] if pres else 1008.0)
+        init_wind = real_obs.get("wind_speed_kmh") or (winds[0] if winds else 12.0)
+        init_water = real_obs.get("water_level_m") if has_wl else None
+        if init_water is None and has_wl:
+            init_water = stn["base_water_m"]
 
         initial_state = {
             "temperature_c": init_temp,
@@ -595,9 +655,9 @@ def run_empirical_benchmark():
             wl_pred = pred["predicted_water_level_m"]
             wl_status = f"{wl_pred:.2f} m" if wl_pred is not None else "N/A (Pure AWS)"
 
-            if has_wl and wl_pred is not None:
-                # River gauge crest baseline comparison
-                stage_crest_error_cm = round(abs(wl_pred - (stn["base_water_m"] + 0.12 * h)) * 100, 1)
+            if has_wl and wl_pred is not None and init_water is not None:
+                # River gauge crest baseline comparison against observed baseline
+                stage_crest_error_cm = round(abs(wl_pred - init_water) * 100, 1)
                 wlms_stage_deltas.append(stage_crest_error_cm)
             else:
                 stage_crest_error_cm = None
@@ -642,7 +702,7 @@ def run_empirical_benchmark():
             "temp_mae_vs_pagasa_c": mean_temp_mae,
             "heat_index_mae_vs_pagasa_c": mean_hi_mae,
             "rain_prob_delta_pct": mean_rp_delta,
-            "mean_latency_us": round(sum(station_temp_errors) / len(station_temp_errors) * 20.0 + 32.0, 2),
+            "mean_latency_us": round(sum(p["latency_us"] for p in horizon_comparisons) / len(horizon_comparisons), 2),
             "horizon_evaluations": horizon_comparisons,
         }
         results.append(station_summary)

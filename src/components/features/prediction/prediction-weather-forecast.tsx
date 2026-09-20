@@ -285,8 +285,8 @@ export default function PredictionWeatherForecast({
             />
           </div>
 
-          {/* Warning / Risk Pill Badge */}
-          <div className="mt-3 md:mt-4 flex items-center">
+          {/* Warning / Risk Pill Badges */}
+          <div className="mt-3 md:mt-4 flex flex-wrap items-center gap-2">
             <div
               className="inline-flex items-center rounded-full px-4.5 py-1 text-xs md:text-sm font-bold shadow-xs transition"
               style={{
@@ -297,6 +297,15 @@ export default function PredictionWeatherForecast({
               <TriangleAlert className="mr-2 h-3.5 w-3.5 shrink-0" />
               <span>{riskDetails.label}</span>
             </div>
+
+            {targetData.heatIndex >= 42 && (
+              <div className="inline-flex items-center rounded-full px-3.5 py-1 text-xs md:text-sm font-bold bg-amber-600/90 text-white shadow-xs border border-amber-400/40">
+                <Flame className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {targetData.heatIndex >= 52 ? "Extreme Heat Danger" : "Heat Wave Warning"} ({targetData.heatIndex.toFixed(1)}°C)
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Citizen Advisory Statement */}

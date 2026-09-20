@@ -28,6 +28,7 @@ import fs from "fs";
 import path from "path";
 import { CACHE_CONFIG } from "@/lib/config/cache.config";
 import { DEFAULT_CENTRAL_LUZON_STATIONS } from "@/lib/constants/default-stations";
+import { BenchmarkExportService } from "./benchmark-export.service";
 
 export class TelemetryService {
   // Cache instances using centralized config
@@ -292,8 +293,8 @@ export class TelemetryService {
       console.warn(`[getSpatialReconstructedHistory] Error querying neighbor history for ${stationId}:`, e);
     }
 
-    // Fallback to continuous 15-minute physics model if no neighbor API history exists
-    return this.getMqtt15MinuteHistory(stationId, parameter, interval, startDate, endDate);
+    // Fallback to continuous 15-minute real telemetry if no neighbor API history exists
+    return await this.getMqtt15MinuteHistory(stationId, parameter, interval, startDate, endDate);
   }
 
   // ==================== PRIVATE TRANSFORMATION METHODS ====================
@@ -625,24 +626,11 @@ export class TelemetryService {
     const rawWind = ((data.windSpeed ?? wind?.speed) as number) ?? 0;
 
     const now = new Date();
-    const phHour = (now.getUTCHours() + 8) % 24 + now.getUTCMinutes() / 60;
-    const solarPhase = Math.cos((2 * Math.PI * (phHour - 13.5)) / 24);
 
-    // Physics Quality-Controlled Bounds & Spatial-Neural Reconstruction
-    let cleanTemp = rawTemp;
-    let cleanHum = rawHum;
-    let cleanPres = rawPres;
-
-    // Filter broken / absurd spikes like Barretto (108°C) or Dead Sensor Dropout (0°C)
-    if (rawTemp < 16.0 || rawTemp > 43.0) {
-      cleanTemp = Math.round((28.8 + 3.4 * solarPhase) * 100) / 100;
-    }
-    if (rawHum < 20.0 || rawHum > 100.0) {
-      cleanHum = Math.round(Math.max(50, Math.min(95, 76.0 - 15.0 * solarPhase)) * 100) / 100;
-    }
-    if (rawPres < 970.0 || rawPres > 1030.0) {
-      cleanPres = Math.round((1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24)) * 100) / 100;
-    }
+    // Use direct real physical measurements
+    const cleanTemp = rawTemp;
+    const cleanHum = rawHum;
+    const cleanPres = rawPres > 0 ? rawPres : 1010.0;
 
     // Real Sensor Precipitation
     const rawHourlyPrecip = (data.hourlyPrecip as number) ?? (data.precipitation as number) ?? 0;
@@ -667,7 +655,7 @@ export class TelemetryService {
       windSpeed: toTwoDecimalPlaces(Math.max(0, Math.min(150, rawWind))),
       precipitation: cleanPrecip,
       hourlyPrecip: cleanHourlyPrecip,
-      uvIndex: toTwoDecimalPlaces((data.uvIndex as number) ?? (phHour >= 6 && phHour <= 18 ? 4 : 0)),
+      uvIndex: toTwoDecimalPlaces((data.uvIndex as number) ?? 0),
       distance: toTwoDecimalPlaces((data.distance as number) ?? 165.0),
       lightIntensity: toTwoDecimalPlaces((data.lightIntensity as number) ?? 0),
     };
@@ -691,26 +679,30 @@ export class TelemetryService {
     }
 
     const now = new Date();
-    const phHour = (now.getUTCHours() + 8) % 24 + now.getUTCMinutes() / 60;
-    const solarPhase = Math.cos((2 * Math.PI * (phHour - 13.5)) / 24);
 
     return DEFAULT_CENTRAL_LUZON_STATIONS.map((station, index) => {
       const sid = station.stationPublicId;
       const mqttEntry = (mqttData[sid] || mqttData[`KT-${sid}`] || mqttData[sid.replace("KT-", "")]) as Record<string, unknown> | undefined;
       const raw = (mqttEntry?.raw_telemetry || {}) as Record<string, number>;
 
-      const temp = raw.temperature_c ?? (Math.round((28.5 + 3.8 * solarPhase + (index % 5) * 0.15) * 100) / 100);
-      const hum = raw.humidity_pct ?? (Math.round(Math.max(50, Math.min(95, 78.0 - 16.0 * solarPhase)) * 100) / 100);
-      const pres = raw.pressure_hpa ?? (Math.round((1010.5 + 1.2 * Math.cos((4 * Math.PI * (phHour - 9)) / 24)) * 100) / 100);
-      const wind = raw.wind_speed_kmh ?? (Math.round((8.0 + 4.0 * Math.sin((2 * Math.PI * (phHour - 14)) / 24)) * 100) / 100);
-      const rain = raw.rain_mm ?? 0.0;
+      // If missing in MQTT, look up latest real physical observation from consolidated dataset
+      const cachePoints = BenchmarkExportService.telemetryCache.get(sid) ||
+        BenchmarkExportService.telemetryCache.get(sid.replace("KT-", "")) ||
+        BenchmarkExportService.telemetryCache.get(`KT-${sid}`);
+      const latestCache = cachePoints && cachePoints.length > 0 ? cachePoints[cachePoints.length - 1] : null;
+
+      const temp = raw.temperature_c ?? latestCache?.temp ?? 28.5;
+      const hum = raw.humidity_pct ?? latestCache?.hum ?? 75.0;
+      const pres = raw.pressure_hpa ?? latestCache?.pres ?? 1010.0;
+      const wind = raw.wind_speed_kmh ?? latestCache?.wind ?? 5.0;
+      const rain = raw.rain_mm ?? latestCache?.rain ?? 0.0;
       const heatIdx = toTwoDecimalPlaces(temp + (hum / 100) * 5.5);
 
       return {
         station,
         telemetry: {
           telemetryId: 5000 + index,
-          recordedAt: (mqttEntry?.timestamp as string) || now.toISOString(),
+          recordedAt: (mqttEntry?.timestamp as string) || (latestCache ? new Date(latestCache.timeMs).toISOString() : now.toISOString()),
           temperature: temp,
           humidity: hum,
           pressure: pres,
@@ -719,157 +711,100 @@ export class TelemetryService {
           windSpeed: wind,
           precipitation: rain,
           hourlyPrecip: rain,
-          uvIndex: phHour >= 6 && phHour <= 18 ? 6 : 0,
+          uvIndex: 0,
           distance: toTwoDecimalPlaces(350 - (station.stationType === "WATERLEVEL" ? 185 : 0)),
-          lightIntensity: phHour >= 6 && phHour <= 18 ? 45000 : 0,
+          lightIntensity: 0,
         },
       };
     });
   }
 
   /**
-   * Generates continuous-time 15-minute telemetry intervals for station parameters
-   * with realistic diurnal physics, day-over-day meteorological variance, and zero duplication.
+   * Retrieves real historical 15-minute telemetry intervals for station parameters
+   * from the clean consolidated production dataset and live MQTT stream.
+   * Never generates synthetic or benchmark mathematical formulas.
    */
-  private getMqtt15MinuteHistory(
+  private async getMqtt15MinuteHistory(
     stationId: string,
     parameter: string,
     interval: number = 15,
     startDateStr?: string,
     endDateStr?: string
-  ): TelemetryMetricRaw[] {
+  ): Promise<TelemetryMetricRaw[]> {
+    await BenchmarkExportService.loadRealTelemetry();
+
     const end = endDateStr ? new Date(endDateStr) : new Date();
     const start = startDateStr ? new Date(startDateStr) : new Date(end.getTime() - 48 * 60 * 60 * 1000);
     const intervalMs = Math.max(15, interval) * 60 * 1000;
     const points: TelemetryMetricRaw[] = [];
 
-    // Derive deterministic station hash offset so different stations have unique microclimates
-    let stationSeed = 0;
-    for (let i = 0; i < stationId.length; i++) {
-      stationSeed = (stationSeed * 31 + stationId.charCodeAt(i)) & 0xfffff;
+    const stationPoints =
+      BenchmarkExportService.telemetryCache.get(stationId) ||
+      BenchmarkExportService.telemetryCache.get(stationId.replace("KT-", "")) ||
+      BenchmarkExportService.telemetryCache.get(`KT-${stationId}`);
+
+    if (!stationPoints || stationPoints.length === 0) {
+      return [];
     }
-    const stationTempOffset = ((stationSeed % 100) / 100 - 0.5) * 1.8; // +/- 0.9°C
-    const stationHumOffset = (((stationSeed >> 4) % 100) / 100 - 0.5) * 6.0; // +/- 3.0%
 
     let current = start.getTime();
     let pointId = 1;
 
     while (current <= end.getTime()) {
-      const dt = new Date(current);
-      const phHour = (dt.getUTCHours() + 8) % 24 + dt.getUTCMinutes() / 60;
-      const hoursAgo = (end.getTime() - current) / (1000 * 3600);
-      const isYesterday = hoursAgo >= 24;
+      const point = BenchmarkExportService.findClosestPoint(
+        stationPoints,
+        current,
+        Math.max(intervalMs, 30 * 60 * 1000)
+      );
 
-      // Day-over-day synoptic weather variance (Yesterday vs Today)
-      // Yesterday had higher cloud cover in the afternoon, lowering peak solar insolation
-      const dayTempDelta = isYesterday ? -0.7 : 0.3;
-      const dayHumDelta = isYesterday ? 4.0 : -2.5;
-      const daySolarPeak = isYesterday ? 0.88 : 1.0;
+      if (point && point.temp !== null) {
+        let selectedVal = point.temp;
+        switch (parameter) {
+          case "temperature":
+          case "temp":
+            selectedVal = point.temp;
+            break;
+          case "humidity":
+          case "hum":
+            selectedVal = point.hum ?? 75.0;
+            break;
+          case "heatIndex":
+          case "heat_index":
+            selectedVal = point.hi ?? point.temp;
+            break;
+          case "pressure":
+          case "pres":
+            selectedVal = point.pres ?? 1010.0;
+            break;
+          case "windSpeed":
+          case "wind":
+            selectedVal = point.wind ?? 0.0;
+            break;
+          case "precipitation":
+          case "rain":
+            selectedVal = point.rain ?? 0.0;
+            break;
+          default:
+            selectedVal = point.temp;
+        }
 
-      // Diurnal solar insolation curve (0 at night, peaks at 13:30 PST)
-      const solarAngle = (2 * Math.PI * (phHour - 13.5)) / 24;
-      const solarInsolation = Math.max(0, Math.sin((Math.PI * (phHour - 6)) / 12)); // 6am to 6pm
-      const diurnalPhase = Math.cos(solarAngle);
-
-      // Micro-turbulence perturbation (deterministic sensor noise)
-      const microNoise = Math.sin((current / (1000 * 900)) + stationSeed) * 0.15;
-
-      // 1. Temperature (°C)
-      const temp = 24.5 + stationTempOffset + dayTempDelta + (7.2 * diurnalPhase * daySolarPeak) + microNoise;
-
-      // 2. Humidity (%) - psychrometrically coupled inversely with temperature
-      const hum = Math.min(100, Math.max(45, 84.0 + stationHumOffset + dayHumDelta - (22.0 * diurnalPhase * daySolarPeak) - (microNoise * 3)));
-
-      // 3. Pressure (hPa) - semi-diurnal atmospheric tide with 12-hour harmonic
-      const tide12h = 1.2 * Math.cos((4 * Math.PI * (phHour - 9.0)) / 24);
-      const synopticTrend = isYesterday ? 0.5 : -0.3;
-      const pres = 1008.5 + tide12h + synopticTrend + (microNoise * 0.2);
-
-      // 4. Heat Index (°C) via NOAA Steadman/Rothfusz approximation
-      const c1 = -8.78469475556, c2 = 1.61139411, c3 = 2.33854883889, c4 = -0.14611605;
-      const c5 = -0.012308094, c6 = -0.0164248277778, c7 = 0.002211732, c8 = 0.00072546;
-      const c9 = -0.000003582;
-      const hiRothfusz = c1 + c2 * temp + c3 * hum + c4 * temp * hum + c5 * (temp * temp) + c6 * (hum * hum) + c7 * (temp * temp) * hum + c8 * temp * (hum * hum) + c9 * (temp * temp) * (hum * hum);
-      const heatIndexVal = temp >= 27.0 && hum >= 40 ? Math.max(temp, hiRothfusz) : temp;
-
-      // 5. Wind Speed (km/h) - sea breeze convection peaking at 14:00-16:00
-      const windSpeedVal = Math.max(0, 3.5 + 6.0 * Math.max(0, Math.sin((Math.PI * (phHour - 9)) / 10)) + microNoise * 2);
-
-      // 6. Precipitation (mm) - localized afternoon convective cell
-      let rainVal = 0.0;
-      if (isYesterday && phHour >= 14.5 && phHour <= 16.0) {
-        rainVal = 1.8 + Math.sin((phHour - 14.5) * Math.PI) * 2.4;
-      } else if (!isYesterday && phHour >= 16.5 && phHour <= 17.5) {
-        rainVal = 0.4 + Math.sin((phHour - 16.5) * Math.PI) * 0.8;
+        points.push({
+          id: pointId++,
+          recordedAt: new Date(point.timeMs).toISOString(),
+          temperature: toTwoDecimalPlaces(point.temp),
+          humidity: toTwoDecimalPlaces(point.hum ?? 0),
+          pressure: toTwoDecimalPlaces(point.pres ?? 1013.25),
+          heatIndex: toTwoDecimalPlaces(point.hi ?? point.temp),
+          windSpeed: toTwoDecimalPlaces(point.wind ?? 0),
+          windDirection: 225,
+          precipitation: toTwoDecimalPlaces(point.rain ?? 0),
+          hourlyPrecip: toTwoDecimalPlaces(point.rain ?? 0),
+          uvIndex: 0,
+          distance: 165.0,
+          lightIntensity: 0,
+          value: toTwoDecimalPlaces(selectedVal),
+        } as unknown as TelemetryMetricRaw);
       }
-
-      // 7. UV Index (0 to 11+) - strictly 0 at night, peaks at 12:00-13:00
-      let uvVal = 0.0;
-      if (phHour >= 6.5 && phHour <= 17.5) {
-        uvVal = Math.max(0, 9.5 * daySolarPeak * Math.sin((Math.PI * (phHour - 6.5)) / 11) + microNoise * 0.5);
-      }
-
-      // 8. Light Intensity (lx) - 0 at night, peaks up to 75,000 lx at midday
-      let lightVal = 0.0;
-      if (phHour >= 6.0 && phHour <= 18.0) {
-        lightVal = Math.max(0, 68000 * daySolarPeak * Math.pow(Math.sin((Math.PI * (phHour - 6.0)) / 12), 1.5) + (microNoise * 500));
-      }
-
-      // Select requested parameter value
-      let selectedVal = temp;
-      switch (parameter) {
-        case "temperature":
-        case "temp":
-          selectedVal = temp;
-          break;
-        case "humidity":
-        case "hum":
-          selectedVal = hum;
-          break;
-        case "heatIndex":
-        case "heat_index":
-          selectedVal = heatIndexVal;
-          break;
-        case "pressure":
-        case "pres":
-          selectedVal = pres;
-          break;
-        case "windSpeed":
-        case "wind":
-          selectedVal = windSpeedVal;
-          break;
-        case "precipitation":
-        case "rain":
-          selectedVal = rainVal;
-          break;
-        case "uvIndex":
-        case "uv":
-          selectedVal = uvVal;
-          break;
-        case "lightIntensity":
-        case "light":
-          selectedVal = lightVal;
-          break;
-        default:
-          selectedVal = temp;
-      }
-
-      points.push({
-        id: pointId++,
-        recordedAt: dt.toISOString(),
-        temperature: toTwoDecimalPlaces(temp),
-        humidity: toTwoDecimalPlaces(hum),
-        pressure: toTwoDecimalPlaces(pres),
-        heatIndex: toTwoDecimalPlaces(heatIndexVal),
-        windSpeed: toTwoDecimalPlaces(windSpeedVal),
-        windDirection: 225,
-        precipitation: toTwoDecimalPlaces(rainVal),
-        hourlyPrecip: toTwoDecimalPlaces(rainVal),
-        uvIndex: toTwoDecimalPlaces(uvVal),
-        distance: 165.0,
-        lightIntensity: toTwoDecimalPlaces(lightVal),
-        value: toTwoDecimalPlaces(selectedVal),
-      } as unknown as TelemetryMetricRaw);
 
       current += intervalMs;
     }
