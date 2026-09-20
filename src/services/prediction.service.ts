@@ -388,12 +388,15 @@ export function computeLnnMultiHorizonForecast(
     // 1h: Physical inertia dominates (persistence baseline wins out-of-sample)
     pT = Math.round(temp * 10) / 10;
   } else if (leadHours <= 12.0) {
-    // 3h-12h: Diurnal solar cycle dominates
+    // 3h-12h: Diurnal solar cycle dominates, damped towards diurnal climatology at 12h phase inversion
     const futureSolarPhase = Math.cos((2 * Math.PI * (futureHour - 14.0)) / 24);
     const currentSolarPhase = Math.cos((2 * Math.PI * (currentHour - 14.0)) / 24);
     const diurnalAmp = profile.type.includes("COASTAL") ? 2.2 : 3.6;
     const diurnalShift = (futureSolarPhase - currentSolarPhase) * diurnalAmp;
-    pT = Math.round((temp + diurnalShift + tempDelta * 0.08) * 10) / 10;
+    const rawPT = temp + diurnalShift + tempDelta * 0.08;
+    const diurnClim = 28.5 + futureSolarPhase * 2.8;
+    const alpha = Math.exp(-leadHours / 10.0);
+    pT = Math.round((alpha * rawPT + (1 - alpha) * diurnClim) * 10) / 10;
   } else {
     // 24h, 48h, 72h: 24h harmonic cyclic persistence damped to climatology
     const decay = Math.exp(-leadHours / 72.0);
@@ -405,17 +408,16 @@ export function computeLnnMultiHorizonForecast(
   // Physical bounds on predicted temperature
   pT = Math.min(43.0, Math.max(18.0, pT));
 
-  // 5. Humidity Psychrometric Coupling with Diurnal Climatology Relaxation
+  // 5. Humidity Psychrometric Coupling with Station Climatology Relaxation
   let pH: number;
   if (leadHours <= 12.0) {
-    pH = Math.round(Math.min(98, Math.max(35, rh - (pT - temp) * 4.2)));
+    pH = Math.round(Math.min(98, Math.max(35, rh - (pT - temp) * 3.0)));
   } else {
-    // For 24h, 48h, 72h: Relax towards diurnal climatology to prevent drift
-    const futureSolarPhase = Math.cos((2 * Math.PI * (futureHour - 14.0)) / 24);
-    const diurnalClimRH = 80.0 - futureSolarPhase * 12.0;
-    const decayH = Math.exp(-leadHours / 48.0);
-    const coupledRH = rh - (pT - temp) * 4.2;
-    pH = Math.round(Math.min(98, Math.max(35, decayH * coupledRH + (1 - decayH) * diurnalClimRH)));
+    // For 24h, 48h, 72h: Relax towards station-level humidity persistence and psychrometric balance
+    const decayH = Math.exp(-leadHours / 36.0);
+    const coupledRH = rh - (pT - temp) * 2.5;
+    const baseRH = Math.max(75.0, Math.min(95.0, rh));
+    pH = Math.round(Math.min(98, Math.max(35, decayH * coupledRH + (1 - decayH) * baseRH)));
   }
 
   // 6. Heat Index (Full Rothfusz / PAGASA Equation)

@@ -353,7 +353,10 @@ class GarciaPINNLNNEngine:
             current_solar_phase = math.cos((2 * math.pi * (current_hour - 14.0)) / 24.0)
             diurnal_amp = 2.2 if "COASTAL" in station_meta.get("microclimate", "") else 3.6
             diurnal_shift = (future_solar_phase - current_solar_phase) * diurnal_amp
-            pT = round(temp_c + diurnal_shift + temp_delta * 0.08, 1)
+            raw_pt = temp_c + diurnal_shift + temp_delta * 0.08
+            diurn_clim = 28.5 + future_solar_phase * 2.8
+            alpha = math.exp(-horizon_hours / 10.0)
+            pT = round(alpha * raw_pt + (1.0 - alpha) * diurn_clim, 1)
         else:
             decay = math.exp(-horizon_hours / 72.0)
             future_solar_phase = math.cos((2 * math.pi * (future_hour - 14.0)) / 24.0)
@@ -362,13 +365,12 @@ class GarciaPINNLNNEngine:
 
         pT = min(43.0, max(18.0, pT))
         if horizon_hours <= 12.0:
-            pH = round(min(98.0, max(35.0, rh_pct - (pT - temp_c) * 4.2)), 1)
+            pH = round(min(98.0, max(35.0, rh_pct - (pT - temp_c) * 3.0)), 1)
         else:
-            future_solar_phase = math.cos((2 * math.pi * (future_hour - 14.0)) / 24.0)
-            diurnal_clim_rh = 80.0 - future_solar_phase * 12.0
-            decay_h = math.exp(-horizon_hours / 48.0)
-            coupled_rh = rh_pct - (pT - temp_c) * 4.2
-            pH = round(min(98.0, max(35.0, decay_h * coupled_rh + (1.0 - decay_h) * diurnal_clim_rh)), 1)
+            decay_h = math.exp(-horizon_hours / 36.0)
+            coupled_rh = rh_pct - (pT - temp_c) * 2.5
+            base_rh = max(75.0, min(95.0, rh_pct))
+            pH = round(min(98.0, max(35.0, decay_h * coupled_rh + (1.0 - decay_h) * base_rh)), 1)
 
         pHi = calculate_rothfusz_heat_index(pT, pH)
 
