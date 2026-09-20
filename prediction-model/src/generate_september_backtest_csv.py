@@ -891,6 +891,7 @@ def main():
                 "relative_humidity_pct": proc_h,
                 "pressure_hpa": proc_p,
                 "wind_speed_kmh": proc_w,
+                "precipitation": proc_rain,
                 "water_level_m": proc_water,
             }
 
