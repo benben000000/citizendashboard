@@ -449,7 +449,7 @@ export function computeLnnMultiHorizonForecast(
     futureHour >= 11.5 && futureHour <= 18.0
       ? Math.sin((Math.PI * (futureHour - 11.5)) / 6.5)
       : 0.0;
-  const synopticTrough = Math.max(0.0, (1006.5 - presMSL) / 7.0);
+  const synopticTrough = Math.min(1.0, Math.max(0.0, (1006.5 - presMSL) / 7.0));
   const lclConvective = Math.max(0.0, (850.0 - lclMeters) / 600.0);
   const convectivePotential = Math.min(
     0.85,
@@ -463,36 +463,52 @@ export function computeLnnMultiHorizonForecast(
     (1 - memoryDecay) * convectivePotential;
   const rainProb = Math.min(0.95, Math.max(0.02, Math.round(rawProb * 100) / 100));
 
-  // Horizon-calibrated operational decision threshold
+  // Horizon-calibrated operational decision threshold (Stage 1: Rain Occurrence)
   const pThresh =
     leadHours <= 1.0
       ? 0.24
       : leadHours <= 3.0
-      ? 0.30
+      ? 0.28
       : leadHours <= 6.0
-      ? 0.35
-      : leadHours <= 12.0
-      ? 0.38
-      : 0.40;
+      ? 0.33
+      : 0.36;
 
   const isRaining = rainProb >= pThresh;
   const margin = Math.max(0.0, rainProb - pThresh);
 
-  // Stage 2: Empirical Quantile-Calibrated Rainfall Intensity
+  // Stage 2: Event-Weighted Conditional Rainfall Amount E[Y | Rain = 1]
   let pRain = 0.0;
   if (isRaining) {
-    if (synopticTrough > 0.6 && margin > 0.35) {
-      // Severe synoptic trough / tropical depression forcing: Heavy / Intense rain
-      pRain = Math.round((7.5 + margin * 15.0 + synopticTrough * 10.0) * 10) / 10;
-    } else if (margin > 0.30 || synopticTrough > 0.4) {
-      // Moderate convective showers
-      pRain = Math.round((2.6 + margin * 8.0) * 10) / 10;
-    } else if (margin > 0.15) {
-      // Light convective rain
-      pRain = Math.round((1.1 + margin * 4.0) * 10) / 10;
+    const r0 = currentTele.precipitation || 0.0;
+    if (leadHours <= 3.0) {
+      if (isCurrentlyRaining) {
+        // Convective cell persistence decay
+        const rDecay = r0 * 0.5 * Math.exp(-(leadHours - 1.0) / 2.0);
+        if (r0 >= 7.5) {
+          // Heavy convective cloudburst: preserve hazardous rain scale
+          pRain = Math.round(Math.max(3.0, rDecay + synopticTrough * 2.0) * 10) / 10;
+        } else if (r0 >= 2.5) {
+          // Moderate rain
+          pRain = Math.round((rDecay + margin * 0.4) * 10) / 10;
+        } else {
+          // Drizzle / light shower
+          pRain = Math.round(Math.max(0.1, rDecay + margin * 0.2) * 10) / 10;
+        }
+      } else {
+        // Convective onset from dry ground
+        if (synopticTrough > 0.5) {
+          pRain = Math.round((1.2 + synopticTrough * 1.5) * 10) / 10;
+        } else {
+          pRain = Math.round((0.3 + margin * 0.5) * 10) / 10;
+        }
+      }
     } else {
-      // Typical tropical afternoon drizzle (empirical mode: 72% of Central Luzon events)
-      pRain = Math.round((0.2 + margin * 2.5) * 10) / 10;
+      // Horizons 6h to 72h: Synoptic & diurnal precipitation regime
+      if (synopticTrough > 0.4) {
+        pRain = Math.round((1.0 + synopticTrough * 2.0) * 10) / 10;
+      } else {
+        pRain = Math.round((0.3 + margin * 0.6) * 10) / 10;
+      }
     }
   }
 

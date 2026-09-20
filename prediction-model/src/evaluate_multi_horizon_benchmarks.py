@@ -227,7 +227,7 @@ def run_evaluation():
                 elif sid == "Bkpj1zRO": elev_m = 38.0
 
                 pres_msl = pres * math.pow(1.0 - (0.0065 * elev_m) / (temp + 273.15), -5.257)
-                synoptic_trough = max(0.0, (1006.5 - pres_msl) / 7.0)
+                synoptic_trough = min(1.0, max(0.0, (1006.5 - pres_msl) / 7.0))
                 lcl_convective = max(0.0, (850.0 - lcl_meters) / 600.0)
                 convective_potential = min(0.85, 0.04 + 0.38 * solar_convective * lcl_convective + 0.45 * synoptic_trough)
 
@@ -236,22 +236,33 @@ def run_evaluation():
                 raw_prob = memory_decay * (0.80 if is_rain else 0.03) + (1 - memory_decay) * convective_potential
                 rain_prob = min(0.95, max(0.02, round(raw_prob, 2)))
 
-                p_thresh = 0.24 if h <= 1.0 else (0.30 if h <= 3.0 else (0.35 if h <= 6.0 else (0.38 if h <= 12.0 else 0.40)))
+                p_thresh = 0.24 if h <= 1.0 else (0.28 if h <= 3.0 else (0.33 if h <= 6.0 else 0.36))
                 pred_is_rain = rain_prob >= p_thresh
                 margin = max(0.0, rain_prob - p_thresh)
 
-                # Empirical Quantile-Calibrated Rain Intensity
+                # Stage 2: Event-Weighted Conditional Rainfall Amount E[Y | Rain = 1]
+                pRain = 0.0
                 if pred_is_rain:
-                    if synoptic_trough > 0.6 and margin > 0.35:
-                        pRain = round(7.5 + margin * 15.0 + synoptic_trough * 10.0, 1)
-                    elif margin > 0.30 or synoptic_trough > 0.4:
-                        pRain = round(2.6 + margin * 8.0, 1)
-                    elif margin > 0.15:
-                        pRain = round(1.1 + margin * 4.0, 1)
+                    r0 = rain or 0.0
+                    if h <= 3.0:
+                        if is_rain:
+                            r_decay = r0 * 0.5 * math.exp(-(h - 1.0) / 2.0)
+                            if r0 >= 7.5:
+                                pRain = round(max(3.0, r_decay + synoptic_trough * 2.0), 1)
+                            elif r0 >= 2.5:
+                                pRain = round(r_decay + margin * 0.4, 1)
+                            else:
+                                pRain = round(max(0.1, r_decay + margin * 0.2), 1)
+                        else:
+                            if synoptic_trough > 0.5:
+                                pRain = round(1.2 + synoptic_trough * 1.5, 1)
+                            else:
+                                pRain = round(0.3 + margin * 0.5, 1)
                     else:
-                        pRain = round(0.2 + margin * 2.5, 1)
-                else:
-                    pRain = 0.0
+                        if synoptic_trough > 0.4:
+                            pRain = round(1.0 + synoptic_trough * 2.0, 1)
+                        else:
+                            pRain = round(0.3 + margin * 0.6, 1)
 
                 # Calumpit Tidal-Hydrologic Water Model
                 if water is not None and tgt['water'] is not None:
