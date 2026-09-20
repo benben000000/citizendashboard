@@ -424,23 +424,56 @@ export function computeLnnMultiHorizonForecast(
     pHi = Math.round((c1 + c2 * T + c3 * R + c4 * T * R + c5 * T * T + c6 * R * R + c7 * T * T * R + c8 * T * R * R + c9 * T * T * R * R) * 10) / 10;
   }
 
-  // 7. Calibrated Rain Detection (Solving the 0% Recall Artifact)
+  // 7. Calibrated Two-Stage Hurdle Model for Rain Detection & Quantitative Precipitation
   const isCurrentlyRaining = (currentTele.precipitation || 0) > 0;
-  const tauConvective = 5.0; // Convective cell memory
+
+  // Diurnal convective initiation peak (restricted to solar insolation hours 11:30 - 18:00 PHT unless synoptic trough)
+  const solarConvective =
+    futureHour >= 11.5 && futureHour <= 18.0
+      ? Math.sin((Math.PI * (futureHour - 11.5)) / 6.5)
+      : 0.0;
+  const synopticTrough = Math.max(0.0, (1006.5 - pres) / 7.0);
+  const lclConvective = Math.max(0.0, (850.0 - lclMeters) / 600.0);
+  const convectivePotential = Math.min(
+    0.85,
+    0.04 + 0.38 * solarConvective * lclConvective + 0.45 * synopticTrough
+  );
+
+  const tauConvective = leadHours <= 3.0 ? 3.0 : 4.5;
   const memoryDecay = Math.exp(-leadHours / tauConvective);
+  const rawProb =
+    memoryDecay * (isCurrentlyRaining ? 0.80 : 0.03) +
+    (1 - memoryDecay) * convectivePotential;
+  const rainProb = Math.min(0.95, Math.max(0.02, Math.round(rawProb * 100) / 100));
 
-  // Atmospheric convective potential from LCL saturation and barometric deficit
-  const lclFactor = Math.max(0.0, Math.min(1.0, (1100.0 - lclMeters) / 750.0));
-  const baroFactor = Math.max(0.0, Math.min(1.0, (1010.0 - pres) / 9.0));
-  const atmosphericPotential = 0.12 + 0.45 * lclFactor + 0.30 * baroFactor;
+  // Horizon-calibrated operational decision threshold
+  const pThresh =
+    leadHours <= 1.0
+      ? 0.24
+      : leadHours <= 3.0
+      ? 0.30
+      : leadHours <= 6.0
+      ? 0.35
+      : leadHours <= 12.0
+      ? 0.38
+      : 0.40;
 
-  // Calibrated probability combining physical lag and thermodynamic convective potential
-  const rawProb = memoryDecay * (isCurrentlyRaining ? 0.72 : 0.08) + (1 - memoryDecay) * atmosphericPotential;
-  const rainProb = Math.min(0.92, Math.max(0.05, Math.round(rawProb * 100) / 100));
+  const isRaining = rainProb >= pThresh;
+  const margin = Math.max(0.0, rainProb - pThresh);
 
-  // Asymmetric cost-tuned operational threshold (p_thresh = 0.24)
-  const isRaining = rainProb >= 0.24;
-  const pRain = isRaining ? Math.round((rainProb - 0.18) * 9.5 * 10) / 10 : 0.0;
+  // Stage 2: Quantile-Calibrated Conditional Rainfall Intensity
+  let pRain = 0.0;
+  if (isRaining) {
+    if (synopticTrough > 0.4) {
+      pRain = Math.round((3.5 + margin * 15.0 + synopticTrough * 12.0) * 10) / 10;
+    } else if (margin > 0.25) {
+      pRain = Math.round((1.8 + margin * 8.0) * 10) / 10;
+    } else if (margin > 0.12) {
+      pRain = Math.round((0.8 + margin * 4.0) * 10) / 10;
+    } else {
+      pRain = Math.round((0.2 + margin * 2.0) * 10) / 10;
+    }
+  }
   const pDailyRain = Math.round(((currentTele.dailyPrecip || 0) + pRain * Math.min(leadHours, 4) * 0.4) * 10) / 10;
 
   // Barometric pressure with semi-diurnal atmospheric tide ($S_2$ solar tide)
@@ -448,13 +481,17 @@ export function computeLnnMultiHorizonForecast(
   const pP = Math.round((pres + tideDelta - (pRain > 0 ? 1.2 : 0.0)) * 10) / 10;
   const pW = Math.round(Math.max(0, wind + (pRain > 0 ? 3.5 : 0)) * 10) / 10;
 
-  // 8. Damped Hydrologic Inertia Water Level (Solving the 0.518m Over-Decay Error)
+  // 8. Tidal-Hydrologic Continuity Water Level Engine (Preserving Calumpit M2 Tidal & Delta Backwater)
   let pWater: number | null = null;
   if (isWaterStation && baseWater !== null && baseWater !== undefined) {
-    // True slow drainage recession rate (0.0012/h) in flat Central Luzon floodplain
-    const hydrologicRecession = baseWater * Math.exp(-0.0012 * leadHours);
-    const rainRunoffInflow = pRain > 0 ? pRain * 0.015 * Math.min(leadHours, 12) : 0.0;
-    pWater = Math.round(Math.max(0.5, hydrologicRecession + rainRunoffInflow) * 100) / 100;
+    // Semidiurnal tidal backwater cycle (M2 tidal harmonic, period 12.42h from Manila Bay)
+    const timeHours = baseTimestampMs / (1000 * 3600) + leadHours;
+    const tidalPhase = (2 * Math.PI * timeHours) / 12.42;
+    const tidalBackwater = 0.065 * Math.sin(tidalPhase);
+    // Flat Central Luzon floodplain recession
+    const hydrologicRecession = baseWater * Math.exp(-0.0003 * leadHours);
+    const runoffInflow = pRain > 0 ? (pRain / 15.0) * 0.08 * Math.min(leadHours, 8.0) : 0.0;
+    pWater = Math.round(Math.max(0.5, hydrologicRecession + tidalBackwater + runoffInflow) * 100) / 100;
   }
 
   const isDaylight = futureHour >= 6 && futureHour <= 18;

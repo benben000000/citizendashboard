@@ -1,0 +1,587 @@
+{
+  "metadata": {
+    "evaluated_at": "2026-09-20T09:00:32.643797",
+    "total_stations": 18,
+    "date_range": "2026-09-01 to 2026-09-20",
+    "horizons": [
+      "1h",
+      "3h",
+      "6h",
+      "12h",
+      "24h",
+      "48h",
+      "72h"
+    ],
+    "baselines": [
+      "Persistence",
+      "Climatology_NoRain",
+      "Diurnal_HourOfDay"
+    ]
+  },
+  "horizon_metrics": {
+    "1h": {
+      "samples": 3745,
+      "temperature": {
+        "mae": 0.61,
+        "rmse": 1.87,
+        "pers_mae": 0.6,
+        "diur_mae": 1.7,
+        "skill_vs_pers": -0.005
+      },
+      "water_level": {
+        "mae": 0.052,
+        "pers_mae": 0.024,
+        "skill_vs_pers": -1.17
+      }
+    },
+    "3h": {
+      "samples": 3714,
+      "temperature": {
+        "mae": 1.62,
+        "rmse": 2.64,
+        "pers_mae": 1.49,
+        "diur_mae": 1.7,
+        "skill_vs_pers": -0.089
+      },
+      "water_level": {
+        "mae": 0.091,
+        "pers_mae": 0.068,
+        "skill_vs_pers": -0.338
+      }
+    },
+    "6h": {
+      "samples": 3667,
+      "temperature": {
+        "mae": 2.5,
+        "rmse": 3.51,
+        "pers_mae": 2.45,
+        "diur_mae": 1.71,
+        "skill_vs_pers": -0.02
+      },
+      "water_level": {
+        "mae": 0.134,
+        "pers_mae": 0.118,
+        "skill_vs_pers": -0.142
+      }
+    },
+    "12h": {
+      "samples": 3595,
+      "temperature": {
+        "mae": 2.85,
+        "rmse": 3.86,
+        "pers_mae": 3.25,
+        "diur_mae": 1.71,
+        "skill_vs_pers": 0.123
+      },
+      "water_level": {
+        "mae": 0.16,
+        "pers_mae": 0.155,
+        "skill_vs_pers": -0.034
+      }
+    },
+    "24h": {
+      "samples": 3472,
+      "temperature": {
+        "mae": 1.17,
+        "rmse": 2.42,
+        "pers_mae": 1.13,
+        "diur_mae": 1.71,
+        "skill_vs_pers": -0.037
+      },
+      "water_level": {
+        "mae": 0.092,
+        "pers_mae": 0.097,
+        "skill_vs_pers": 0.055
+      }
+    },
+    "48h": {
+      "samples": 3265,
+      "temperature": {
+        "mae": 1.57,
+        "rmse": 2.75,
+        "pers_mae": 1.41,
+        "diur_mae": 1.74,
+        "skill_vs_pers": -0.109
+      },
+      "water_level": {
+        "mae": 0.163,
+        "pers_mae": 0.186,
+        "skill_vs_pers": 0.123
+      }
+    },
+    "72h": {
+      "samples": 3053,
+      "temperature": {
+        "mae": 1.81,
+        "rmse": 2.96,
+        "pers_mae": 1.58,
+        "diur_mae": 1.78,
+        "skill_vs_pers": -0.148
+      },
+      "water_level": {
+        "mae": 0.22,
+        "pers_mae": 0.266,
+        "skill_vs_pers": 0.172
+      }
+    }
+  },
+  "rain_event_metrics": {
+    "1h": {
+      "accuracy": 0.846,
+      "persistence_accuracy": 0.853,
+      "no_rain_baseline_accuracy": 0.737,
+      "pod_recall": 0.752,
+      "precision": 0.691,
+      "far": 0.309,
+      "csi_threat_score": 0.563,
+      "f1_score": 0.72,
+      "balanced_accuracy": 0.816,
+      "tier_accuracy": 0.67,
+      "tier_macro_f1": 0.231,
+      "tier_f1_scores": {
+        "NONE": 0.894,
+        "DRIZZLE": 0.0,
+        "LIGHT": 0.0,
+        "MODERATE": 0.11,
+        "HEAVY": 0.151
+      }
+    },
+    "3h": {
+      "accuracy": 0.782,
+      "persistence_accuracy": 0.802,
+      "no_rain_baseline_accuracy": 0.737,
+      "pod_recall": 0.721,
+      "precision": 0.568,
+      "far": 0.432,
+      "csi_threat_score": 0.466,
+      "f1_score": 0.635,
+      "balanced_accuracy": 0.762,
+      "tier_accuracy": 0.692,
+      "tier_macro_f1": 0.311,
+      "tier_f1_scores": {
+        "NONE": 0.845,
+        "DRIZZLE": 0.509,
+        "LIGHT": 0.046,
+        "MODERATE": 0.037,
+        "HEAVY": 0.117
+      }
+    },
+    "6h": {
+      "accuracy": 0.719,
+      "persistence_accuracy": 0.764,
+      "no_rain_baseline_accuracy": 0.737,
+      "pod_recall": 0.343,
+      "precision": 0.454,
+      "far": 0.546,
+      "csi_threat_score": 0.243,
+      "f1_score": 0.391,
+      "balanced_accuracy": 0.598,
+      "tier_accuracy": 0.646,
+      "tier_macro_f1": 0.206,
+      "tier_f1_scores": {
+        "NONE": 0.817,
+        "DRIZZLE": 0.088,
+        "LIGHT": 0.035,
+        "MODERATE": 0.0,
+        "HEAVY": 0.089
+      }
+    },
+    "12h": {
+      "accuracy": 0.689,
+      "persistence_accuracy": 0.736,
+      "no_rain_baseline_accuracy": 0.739,
+      "pod_recall": 0.354,
+      "precision": 0.395,
+      "far": 0.605,
+      "csi_threat_score": 0.23,
+      "f1_score": 0.374,
+      "balanced_accuracy": 0.581,
+      "tier_accuracy": 0.618,
+      "tier_macro_f1": 0.209,
+      "tier_f1_scores": {
+        "NONE": 0.793,
+        "DRIZZLE": 0.084,
+        "LIGHT": 0.019,
+        "MODERATE": 0.031,
+        "HEAVY": 0.118
+      }
+    },
+    "24h": {
+      "accuracy": 0.704,
+      "persistence_accuracy": 0.768,
+      "no_rain_baseline_accuracy": 0.729,
+      "pod_recall": 0.293,
+      "precision": 0.43,
+      "far": 0.57,
+      "csi_threat_score": 0.211,
+      "f1_score": 0.348,
+      "balanced_accuracy": 0.574,
+      "tier_accuracy": 0.647,
+      "tier_macro_f1": 0.221,
+      "tier_f1_scores": {
+        "NONE": 0.808,
+        "DRIZZLE": 0.082,
+        "LIGHT": 0.032,
+        "MODERATE": 0.035,
+        "HEAVY": 0.149
+      }
+    },
+    "48h": {
+      "accuracy": 0.7,
+      "persistence_accuracy": 0.745,
+      "no_rain_baseline_accuracy": 0.735,
+      "pod_recall": 0.287,
+      "precision": 0.405,
+      "far": 0.595,
+      "csi_threat_score": 0.202,
+      "f1_score": 0.336,
+      "balanced_accuracy": 0.568,
+      "tier_accuracy": 0.643,
+      "tier_macro_f1": 0.212,
+      "tier_f1_scores": {
+        "NONE": 0.806,
+        "DRIZZLE": 0.065,
+        "LIGHT": 0.037,
+        "MODERATE": 0.019,
+        "HEAVY": 0.132
+      }
+    },
+    "72h": {
+      "accuracy": 0.684,
+      "persistence_accuracy": 0.72,
+      "no_rain_baseline_accuracy": 0.738,
+      "pod_recall": 0.266,
+      "precision": 0.362,
+      "far": 0.638,
+      "csi_threat_score": 0.181,
+      "f1_score": 0.306,
+      "balanced_accuracy": 0.549,
+      "tier_accuracy": 0.632,
+      "tier_macro_f1": 0.199,
+      "tier_f1_scores": {
+        "NONE": 0.796,
+        "DRIZZLE": 0.064,
+        "LIGHT": 0.019,
+        "MODERATE": 0.0,
+        "HEAVY": 0.117
+      }
+    }
+  },
+  "confusion_matrices": {
+    "1h": {
+      "binary": {
+        "tp": 741,
+        "fp": 331,
+        "fn": 244,
+        "tn": 2429
+      },
+      "intensity_tiers": [
+        [
+          2429,
+          0,
+          0,
+          170,
+          161
+        ],
+        [
+          187,
+          0,
+          0,
+          403,
+          110
+        ],
+        [
+          22,
+          0,
+          0,
+          43,
+          31
+        ],
+        [
+          18,
+          0,
+          0,
+          44,
+          51
+        ],
+        [
+          17,
+          0,
+          0,
+          24,
+          35
+        ]
+      ]
+    },
+    "3h": {
+      "binary": {
+        "tp": 705,
+        "fp": 536,
+        "fn": 273,
+        "tn": 2200
+      },
+      "intensity_tiers": [
+        [
+          2200,
+          214,
+          27,
+          21,
+          274
+        ],
+        [
+          187,
+          327,
+          39,
+          21,
+          119
+        ],
+        [
+          28,
+          23,
+          4,
+          2,
+          39
+        ],
+        [
+          33,
+          17,
+          5,
+          3,
+          55
+        ],
+        [
+          25,
+          12,
+          2,
+          2,
+          35
+        ]
+      ]
+    },
+    "6h": {
+      "binary": {
+        "tp": 331,
+        "fp": 398,
+        "fn": 634,
+        "tn": 2304
+      },
+      "intensity_tiers": [
+        [
+          2304,
+          106,
+          29,
+          3,
+          260
+        ],
+        [
+          485,
+          37,
+          38,
+          5,
+          115
+        ],
+        [
+          55,
+          4,
+          3,
+          0,
+          33
+        ],
+        [
+          54,
+          7,
+          3,
+          0,
+          49
+        ],
+        [
+          40,
+          10,
+          2,
+          0,
+          25
+        ]
+      ]
+    },
+    "12h": {
+      "binary": {
+        "tp": 333,
+        "fp": 510,
+        "fn": 607,
+        "tn": 2145
+      },
+      "intensity_tiers": [
+        [
+          2145,
+          118,
+          85,
+          16,
+          291
+        ],
+        [
+          473,
+          35,
+          29,
+          2,
+          127
+        ],
+        [
+          50,
+          5,
+          2,
+          0,
+          33
+        ],
+        [
+          53,
+          6,
+          1,
+          2,
+          46
+        ],
+        [
+          31,
+          5,
+          3,
+          1,
+          36
+        ]
+      ]
+    },
+    "24h": {
+      "binary": {
+        "tp": 275,
+        "fp": 364,
+        "fn": 665,
+        "tn": 2168
+      },
+      "intensity_tiers": [
+        [
+          2168,
+          79,
+          19,
+          1,
+          265
+        ],
+        [
+          512,
+          32,
+          8,
+          1,
+          108
+        ],
+        [
+          61,
+          3,
+          2,
+          0,
+          28
+        ],
+        [
+          61,
+          2,
+          1,
+          2,
+          43
+        ],
+        [
+          31,
+          2,
+          1,
+          0,
+          42
+        ]
+      ]
+    },
+    "48h": {
+      "binary": {
+        "tp": 248,
+        "fp": 364,
+        "fn": 617,
+        "tn": 2036
+      },
+      "intensity_tiers": [
+        [
+          2036,
+          83,
+          18,
+          2,
+          261
+        ],
+        [
+          486,
+          24,
+          9,
+          0,
+          100
+        ],
+        [
+          47,
+          2,
+          2,
+          0,
+          26
+        ],
+        [
+          54,
+          6,
+          0,
+          1,
+          39
+        ],
+        [
+          30,
+          2,
+          1,
+          1,
+          35
+        ]
+      ]
+    },
+    "72h": {
+      "binary": {
+        "tp": 213,
+        "fp": 376,
+        "fn": 588,
+        "tn": 1876
+      },
+      "intensity_tiers": [
+        [
+          1876,
+          78,
+          22,
+          4,
+          272
+        ],
+        [
+          463,
+          22,
+          7,
+          0,
+          93
+        ],
+        [
+          46,
+          3,
+          1,
+          0,
+          23
+        ],
+        [
+          48,
+          1,
+          0,
+          0,
+          31
+        ],
+        [
+          31,
+          1,
+          1,
+          0,
+          30
+        ]
+      ]
+    }
+  }
+}

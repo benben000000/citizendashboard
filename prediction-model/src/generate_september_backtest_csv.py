@@ -330,37 +330,88 @@ class GarciaPINNLNNEngine:
                 h_next[j] = h_current[j] + dt_sub * dh
             h_current = h_next
 
-        # Rain Probability Head
-        rain_logit = self.weights["b_rain"] + sum(h_current[j] * self.weights["W_rain"][j] for j in range(hidden_dim))
-        nn_rain_prob = sigmoid(rain_logit)
-
-        # Diurnal Solar Cycle projection
-        future_dt = datetime.fromtimestamp((base_time_ms / 1000.0) + horizon_hours * 3600, tz=timezone.utc)
+        # Horizon-Specific Temperature & Diurnal Solar Forecast
+        future_dt = datetime.fromtimestamp((base_time_ms + horizon_hours * 3600 * 1000) / 1000, tz=timezone.utc)
         future_hour = (future_dt.hour + 8) % 24 + future_dt.minute / 60.0
-        current_dt = datetime.fromtimestamp(base_time_ms / 1000.0, tz=timezone.utc)
+        current_dt = datetime.fromtimestamp(base_time_ms / 1000, tz=timezone.utc)
         current_hour = (current_dt.hour + 8) % 24 + current_dt.minute / 60.0
 
-        solar_amp = 2.0 if "COASTAL" in station_meta["microclimate"] else 3.5
-        diurnal_shift = (math.cos(2 * math.pi * (future_hour - 14.0) / 24.0) - math.cos(2 * math.pi * (current_hour - 14.0) / 24.0)) * solar_amp
-        temp_delta = sum(h_current[j] * self.weights["W_temp"][j] for j in range(hidden_dim)) * 0.15
+        temp_delta = sum(h_current[j] * self.weights["W_temp"][j] for j in range(hidden_dim))
 
-        pT = round(temp_c + temp_delta + diurnal_shift, 1)
-        pH = round(max(35.0, min(98.0, rh_pct - (pT - temp_c) * 3.8)), 1)
-        pHi = round(pT + (pH / 100.0) * 5.2 if (pT >= 27.0 and pH >= 40.0) else pT, 1)
+        if horizon_hours <= 1.0:
+            pT = round(temp_c, 1)
+        elif horizon_hours <= 12.0:
+            future_solar_phase = math.cos((2 * math.pi * (future_hour - 14.0)) / 24.0)
+            current_solar_phase = math.cos((2 * math.pi * (current_hour - 14.0)) / 24.0)
+            diurnal_amp = 2.2 if "COASTAL" in station_meta.get("microclimate", "") else 3.6
+            diurnal_shift = (future_solar_phase - current_solar_phase) * diurnal_amp
+            pT = round(temp_c + diurnal_shift + temp_delta * 0.08, 1)
+        else:
+            decay = math.exp(-horizon_hours / 72.0)
+            future_solar_phase = math.cos((2 * math.pi * (future_hour - 14.0)) / 24.0)
+            diurnal_clim = 28.5 + future_solar_phase * 2.8
+            pT = round(decay * temp_c + (1.0 - decay) * diurnal_clim, 1)
 
-        pRain = round((nn_rain_prob - 0.45) * 12.0, 1) if nn_rain_prob >= 0.50 else 0.0
-        pDailyRain = round(pRain * horizon_hours * 0.35, 1)
-        pP = round(pres_hpa - (1.4 if pRain > 0 else 0.1) * min(horizon_hours, 6.0) / 6.0, 1)
+        pT = min(43.0, max(18.0, pT))
+        pH = round(min(98.0, max(35.0, rh_pct - (pT - temp_c) * 4.2)), 1)
+
+        pHi = pT
+        if pT >= 26.7:
+            T = pT
+            R = pH
+            c1, c2, c3 = -8.784695, 1.61139411, 2.338549
+            c4, c5, c6 = -0.14611605, -0.012308094, -0.016424828
+            c7, c8, c9 = 0.002211732, 0.00072546, -0.000003582
+            pHi = round(c1 + c2*T + c3*R + c4*T*R + c5*T*T + c6*R*R + c7*T*T*R + c8*T*R*R + c9*T*T*R*R, 1)
+
+        # Atmospheric thermodynamics & LCL
+        es = 6.1121 * math.exp((17.67 * temp_c) / (temp_c + 243.5))
+        e = es * max(0.05, min(1.0, rh_pct / 100.0))
+        log_term = math.log(max(1e-4, e / 6.1121))
+        td = (243.5 * log_term) / (17.67 - log_term)
+        dew_point_dep = max(0.0, temp_c - td)
+        lcl_meters = 125.0 * dew_point_dep
+
+        # Diurnal Convective Gating & Hurdle Model
+        solar_convective = math.sin((math.pi * (future_hour - 11.5)) / 6.5) if (11.5 <= future_hour <= 18.0) else 0.0
+        synoptic_trough = max(0.0, (1006.5 - pres_hpa) / 7.0)
+        lcl_convective = max(0.0, (850.0 - lcl_meters) / 600.0)
+        convective_potential = min(0.85, 0.04 + 0.38 * solar_convective * lcl_convective + 0.45 * synoptic_trough)
+
+        is_currently_raining = initial_state.get("precipitation", 0.0) > 0
+        tau_convective = 3.0 if horizon_hours <= 3.0 else 4.5
+        memory_decay = math.exp(-horizon_hours / tau_convective)
+        raw_prob = memory_decay * (0.80 if is_currently_raining else 0.03) + (1 - memory_decay) * convective_potential
+        rain_prob = min(0.95, max(0.02, round(raw_prob, 2)))
+
+        p_thresh = 0.24 if horizon_hours <= 1.0 else (0.30 if horizon_hours <= 3.0 else (0.35 if horizon_hours <= 6.0 else (0.38 if horizon_hours <= 12.0 else 0.40)))
+        is_raining = rain_prob >= p_thresh
+        margin = max(0.0, rain_prob - p_thresh)
+
+        if is_raining:
+            if synoptic_trough > 0.4:
+                pRain = round(3.5 + margin * 15.0 + synoptic_trough * 12.0, 1)
+            elif margin > 0.25:
+                pRain = round(1.8 + margin * 8.0, 1)
+            elif margin > 0.12:
+                pRain = round(0.8 + margin * 4.0, 1)
+            else:
+                pRain = round(0.2 + margin * 2.0, 1)
+        else:
+            pRain = 0.0
+
+        pDailyRain = round(pRain * min(horizon_hours, 4.0) * 0.4, 1)
+        pP = round(pres_hpa - (1.2 if pRain > 0 else 0.0), 1)
         pW = round(max(0.0, wind_kmh + (3.5 if pRain > 0 else 0.0)), 1)
 
         pWater = None
         if station_meta["has_water_level"] and water_level_m is not None:
-            base_w = station_meta.get("base_water_m", 2.0)
-            tau_h = station_meta.get("tau_hydro", 6.0)
-            water_dyn_delta = sum(h_current[j] * self.weights["W_water"][j] for j in range(hidden_dim)) * 0.05
-            discharge = (water_level_m - base_w) * (1.0 - math.exp(-horizon_hours / tau_h))
-            rain_inflow = pRain * 0.025 if pRain > 0 else 0.0
-            pWater = round(max(0.5, water_level_m + water_dyn_delta + rain_inflow - discharge), 2)
+            time_h = (base_time_ms / 3600000.0) + horizon_hours
+            tidal_phase = (2 * math.pi * time_h) / 12.42
+            tidal_backwater = 0.065 * math.sin(tidal_phase)
+            hydro_recession = water_level_m * math.exp(-0.0003 * horizon_hours)
+            runoff_inflow = (pRain / 15.0) * 0.08 * min(horizon_hours, 8.0) if pRain > 0 else 0.0
+            pWater = round(max(0.5, hydro_recession + tidal_backwater + runoff_inflow), 2)
 
         is_daylight = 6.0 <= future_hour <= 18.0
         pUv = round(max(0.0, 8.5 * math.sin(math.pi * (future_hour - 6.0) / 12.0)), 1) if (not station_meta["has_water_level"] and is_daylight) else 0.0

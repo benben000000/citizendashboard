@@ -987,6 +987,9 @@ export class BenchmarkExportService {
               "uv_index",
               "water_level_m",
             ],
+            astronomicalProxyVariables: ["light_intensity_lux", "uv_index"],
+            astronomicalProxyDisclaimer:
+              "Light Intensity (lux) and UV Index are calculated using clear-sky solar zenith angle models (solar geometry proxy) due to absence of hardware pyranometers on AWS field nodes. They should not be used as machine learning skill metrics.",
             totalRecords: records.length,
             generatedAt: new Date().toISOString(),
           },
