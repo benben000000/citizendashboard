@@ -374,6 +374,11 @@ def alpha_blend(lead_hours: float, alpha_max: float = 0.88, alpha_min: float = 0
     raw_alpha = alpha_min + (alpha_max - alpha_min) * math.exp(-max(0.0, lead_hours) / tau_alpha)
     return min(alpha_max, max(alpha_min, raw_alpha))
 
+def compute_tau(abs_dPdt: float, tau_min: float = 0.75, tau_max: float = 8.0, k: float = 1.5, b: float = 0.8) -> float:
+    sig = 1.0 / (1.0 + math.exp(-k * (abs_dPdt - b)))
+    tau = tau_max - (tau_max - tau_min) * sig
+    return round(min(tau_max, max(tau_min, tau)), 2)
+
 class GarciaPINNLNNEngine:
     def __init__(self):
         self.weights = self.load_weights()
@@ -398,7 +403,7 @@ class GarciaPINNLNNEngine:
             "hidden_dim": hidden_dim,
         }
 
-    def predict_horizon(self, initial_state: dict, station_meta: dict, horizon_hours: float, base_time_ms: int) -> dict:
+    def predict_horizon(self, initial_state: dict, station_meta: dict, horizon_hours: float, base_time_ms: int, dynamic_tau: float = 4.0) -> dict:
         t0 = time.perf_counter()
         temp_c = initial_state["temperature_c"]
         rh_pct = initial_state["relative_humidity_pct"]
@@ -419,6 +424,9 @@ class GarciaPINNLNNEngine:
         step_dt = 0.5 if horizon_hours <= 3 else (1.0 if horizon_hours <= 12 else 2.0)
         num_steps = max(1, round(horizon_hours / step_dt))
         dt_sub = horizon_hours / num_steps
+        # Step 2: Dynamic tau accelerates 1-3h squall reaction; long-horizon heads preserve Step 1 diurnal stability
+        eff_dynamic_tau = dynamic_tau if horizon_hours <= 3.0 else 4.0
+        tau_ratio = min(2.0, max(0.25, eff_dynamic_tau / 4.0))
 
         for _ in range(num_steps):
             f_in = [0.0] * hidden_dim
@@ -428,7 +436,8 @@ class GarciaPINNLNNEngine:
             h_next = [0.0] * hidden_dim
             for j in range(hidden_dim):
                 rec_sum = sum(h_current[k] * self.weights["W_rec"][k][j] for k in range(hidden_dim))
-                dh = (math.tanh(f_in[j] + rec_sum + self.weights["b_h"][j]) - h_current[j]) / self.weights["tau"][j]
+                tau_eff = self.weights["tau"][j] * tau_ratio if j < 4 else self.weights["tau"][j]
+                dh = (math.tanh(f_in[j] + rec_sum + self.weights["b_h"][j]) - h_current[j]) / tau_eff
                 h_next[j] = h_current[j] + dt_sub * dh
             h_current = h_next
 
@@ -446,14 +455,15 @@ class GarciaPINNLNNEngine:
         amp = prof.get("A_s", 1.8)
         t_mean = prof.get("T_mean_s", 27.2)
 
-        # Step 1: Raw dynamic model forecast
+        # Step 1: Raw dynamic model forecast with Step 2 Dynamic Tau Convective Response
+        tau_cooling = max(0.0, (3.5 - dynamic_tau) / 3.5) * -0.15 if dynamic_tau < 3.5 else 0.0
         if horizon_hours <= 1.0:
-            raw_model_pt = temp_c
+            raw_model_pt = temp_c + tau_cooling
         else:
             future_solar_phase = math.cos((2 * math.pi * (future_hour - h_peak)) / 24.0)
             current_solar_phase = math.cos((2 * math.pi * (current_hour - h_peak)) / 24.0)
             diurnal_shift = (future_solar_phase - current_solar_phase) * amp
-            raw_model_pt = temp_c + diurnal_shift + temp_delta * 0.08
+            raw_model_pt = temp_c + diurnal_shift + temp_delta * 0.08 + (tau_cooling if horizon_hours <= 3.0 else 0.0)
 
         # Step 2: Station-specific diurnal climatology soft prior T_clim(s, t)
         t_clim = get_diurnal_climat(sid, future_dt)
@@ -787,6 +797,8 @@ def main():
         "processed_heat_index_c",
         "processed_wind_speed_kmh",
         "processed_pressure_hpa",
+        "abs_dPdt_smoothed",
+        "tau",
         "processed_light_intensity_lux",
         "processed_uv_index",
         "processed_water_level_m",
@@ -911,7 +923,46 @@ def main():
         daily_acc_rain = 0.0
         last_day = -1
 
+        # Precompute pressure series, raw dP/dt, 3-hour smoothed |dP/dt|, and dynamic tau for this station
+        stn_p_list = []
         for dt in timestamps:
+            ts_ms = int(dt.timestamp() * 1000)
+            if is_wl:
+                stn_p_list.append(1010.0)
+            else:
+                p_val = find_nearest_measurement(d["pressure"], ts_ms, max_tolerance_ms=45 * 60 * 1000)
+                if p_val is not None and (970.0 <= float(p_val) <= 1035.0):
+                    stn_p_list.append(float(p_val))
+                else:
+                    stn_p_list.append(None)
+
+        # Forward-fill missing pressure values to prevent artificial edge spikes
+        last_valid_p = 1008.2
+        for idx in range(len(stn_p_list)):
+            if stn_p_list[idx] is not None:
+                last_valid_p = stn_p_list[idx]
+            else:
+                stn_p_list[idx] = last_valid_p
+
+        # Raw absolute tendency |dP/dt| = |(P(t) - P(t-1)) / dt| where dt = 1h
+        raw_abs_dp = [0.0] * len(stn_p_list)
+        for idx in range(1, len(stn_p_list)):
+            raw_abs_dp[idx] = abs(stn_p_list[idx] - stn_p_list[idx - 1])
+
+        # 3-hour centered moving average temporal smoothing: |dP/dt|(t) = 1/3 * sum_{k=-1}^1 |dP/dt|_raw(t+k)
+        n_pts = len(stn_p_list)
+        smoothed_abs_dp = [0.0] * n_pts
+        stn_tau = [8.0] * n_pts
+        for idx in range(n_pts):
+            win = [raw_abs_dp[idx + off] for off in [-1, 0, 1] if 0 <= idx + off < n_pts]
+            sm = sum(win) / len(win) if win else 0.0
+            sm_rounded = round(sm, 2)
+            smoothed_abs_dp[idx] = sm_rounded
+            stn_tau[idx] = compute_tau(sm_rounded)
+
+        for dt_idx, dt in enumerate(timestamps):
+            cur_smoothed_dp = smoothed_abs_dp[dt_idx]
+            cur_tau = stn_tau[dt_idx]
             ts_iso = dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             ts_ms = int(dt.timestamp() * 1000)
 
@@ -1039,13 +1090,13 @@ def main():
                 "water_level_m": proc_water,
             }
 
-            h1 = pinn_engine.predict_horizon(initial_state, stn, 1.0, ts_ms)
-            h3 = pinn_engine.predict_horizon(initial_state, stn, 3.0, ts_ms)
-            h6 = pinn_engine.predict_horizon(initial_state, stn, 6.0, ts_ms)
-            h12 = pinn_engine.predict_horizon(initial_state, stn, 12.0, ts_ms)
-            h24 = pinn_engine.predict_horizon(initial_state, stn, 24.0, ts_ms)
-            h48 = pinn_engine.predict_horizon(initial_state, stn, 48.0, ts_ms)
-            h72 = pinn_engine.predict_horizon(initial_state, stn, 72.0, ts_ms)
+            h1 = pinn_engine.predict_horizon(initial_state, stn, 1.0, ts_ms, dynamic_tau=cur_tau)
+            h3 = pinn_engine.predict_horizon(initial_state, stn, 3.0, ts_ms, dynamic_tau=cur_tau)
+            h6 = pinn_engine.predict_horizon(initial_state, stn, 6.0, ts_ms, dynamic_tau=cur_tau)
+            h12 = pinn_engine.predict_horizon(initial_state, stn, 12.0, ts_ms, dynamic_tau=cur_tau)
+            h24 = pinn_engine.predict_horizon(initial_state, stn, 24.0, ts_ms, dynamic_tau=cur_tau)
+            h48 = pinn_engine.predict_horizon(initial_state, stn, 48.0, ts_ms, dynamic_tau=cur_tau)
+            h72 = pinn_engine.predict_horizon(initial_state, stn, 72.0, ts_ms, dynamic_tau=cur_tau)
 
             row = {
                 "timestamp": ts_iso,
@@ -1074,6 +1125,8 @@ def main():
                 "processed_heat_index_c": proc_hi,
                 "processed_wind_speed_kmh": proc_w,
                 "processed_pressure_hpa": proc_p,
+                "abs_dPdt_smoothed": cur_smoothed_dp,
+                "tau": cur_tau,
                 "processed_light_intensity_lux": proc_light,
                 "processed_uv_index": proc_uv,
                 "processed_water_level_m": proc_water if proc_water is not None else "",

@@ -199,6 +199,24 @@ export function alphaBlend(
 }
 
 /**
+ * Task 2: Scalar Gating Function for Dynamic Liquid Time Constant tau(x)
+ * Maps smoothed absolute pressure tendency |dP/dt| to a dynamic time constant.
+ * Calm weather (|dP/dt| ~ 0) -> tau ~ tau_max (slow, stable dynamics)
+ * Squall line (|dP/dt| >= 1.5 hPa/h) -> tau ~ tau_min (fast, responsive dynamics)
+ */
+export function computeTau(
+  absDPdt: number,
+  tauMin: number = 0.75,
+  tauMax: number = 8.0,
+  k: number = 1.5,
+  b: number = 0.8
+): number {
+  const sig = 1.0 / (1.0 + Math.exp(-k * (absDPdt - b)));
+  const tau = tauMax - (tauMax - tauMin) * sig;
+  return Math.round(Math.min(tauMax, Math.max(tauMin, tau)) * 100) / 100;
+}
+
+/**
  * Atmospheric Physics Engine:
  * Evaluates Magnus-Tetens saturation vapor pressure & Lifted Condensation Level (LCL).
  */
@@ -236,10 +254,14 @@ export function lnnForwardStep(
   features: [number, number, number, number],
   hPrev: number[],
   dtHours: number = 1.0,
-  profile: StationPINNProfile = getStationProfile("DEFAULT")
+  profile: StationPINNProfile = getStationProfile("DEFAULT"),
+  dynamicTauHours?: number
 ): { hNext: number[]; rainProb: number; predictedWaterLevel: number; lclMeters: number } {
   const hiddenDim = LNN_WEIGHTS.hidden_dim;
-  const tauSpectrum = profile.tau || LNN_WEIGHTS.tau;
+  const baseTau = profile.tau || LNN_WEIGHTS.tau;
+  const tauRatio = dynamicTauHours ? Math.min(2.0, Math.max(0.25, dynamicTauHours / 4.0)) : 1.0;
+  // Step 2: Apply dynamic tau strictly to temperature & humidity state units (j = 0..3)
+  const tauSpectrum = baseTau.map((t, idx) => (idx < 4 ? Math.max(0.15, t * tauRatio) : t));
 
   // Pre-calculate input projection: inSum_j = sum_i(x_i * W_in[i][j]) + b_h[j]
   const inSum = new Array(hiddenDim).fill(0);
@@ -352,6 +374,7 @@ export function computeLnnMultiHorizonForecast(
     precipitation: number;
     dailyPrecip?: number;
     waterLevel?: number | null;
+    pressureTendency?: number;
   },
   leadHours: number,
   baseTimestampMs: number,
@@ -396,6 +419,10 @@ export function computeLnnMultiHorizonForecast(
   const dewPointDepression = Math.max(0.0, temp - td);
   const lclMeters = 125.0 * dewPointDepression;
 
+  // Step 2: Gated Dynamic Liquid Time Constant tau(x) from pressure tendency
+  const absDPdt = Math.abs(currentTele.pressureTendency ?? 0.33);
+  const tauDynamic = computeTau(absDPdt);
+
   // 3. Neural ODE Hidden State Forward Step
   const heatIdxApprox = temp + (rh / 100) * 5.2;
   const normFeat: [number, number, number, number] = [
@@ -411,8 +438,10 @@ export function computeLnnMultiHorizonForecast(
   const subDt = leadHours / totalSubSteps;
 
   let lastRes = { hNext: hState, rainProb: 0.2, predictedWaterLevel: 0, lclMeters };
+  // Step 2: Dynamic tau accelerates 1-3h squall reaction; long-horizon heads (>= 6h) preserve Step 1 diurnal stability
+  const effTau = leadHours <= 3.0 ? tauDynamic : 4.0;
   for (let s = 0; s < totalSubSteps; s++) {
-    lastRes = lnnForwardStep(normFeat, hState, subDt, profile);
+    lastRes = lnnForwardStep(normFeat, hState, subDt, profile, effTau);
     hState = lastRes.hNext;
   }
 
@@ -426,17 +455,18 @@ export function computeLnnMultiHorizonForecast(
   const futureHour = (futureDt.getUTCHours() + 8) % 24 + futureDt.getUTCMinutes() / 60;
   const currentHour = (new Date(baseTimestampMs).getUTCHours() + 8) % 24 + new Date(baseTimestampMs).getUTCMinutes() / 60;
 
-  // Step 1: Raw dynamic model forecast
+  // Step 1: Raw dynamic model forecast with Step 2 Dynamic Tau Convective Response
   let rawModelPT: number;
+  const tauCooling = tauDynamic < 3.5 ? Math.max(0.0, (3.5 - tauDynamic) / 3.5) * -0.15 : 0.0;
   if (leadHours <= 1.0) {
-    rawModelPT = temp;
+    rawModelPT = temp + tauCooling;
   } else {
     const hPeak = profile.hPeakS ?? 11.5;
     const futureSolarPhase = Math.cos((2 * Math.PI * (futureHour - hPeak)) / 24);
     const currentSolarPhase = Math.cos((2 * Math.PI * (currentHour - hPeak)) / 24);
     const diurnalAmp = profile.ampS ?? (profile.type.includes("COASTAL") ? 1.6 : 2.4);
     const diurnalShift = (futureSolarPhase - currentSolarPhase) * diurnalAmp;
-    rawModelPT = temp + diurnalShift + tempDelta * 0.08;
+    rawModelPT = temp + diurnalShift + tempDelta * 0.08 + (leadHours <= 3.0 ? tauCooling : 0.0);
   }
 
   // Step 2: Station-specific diurnal climatology soft prior T_clim(s, t)
