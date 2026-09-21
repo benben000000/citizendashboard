@@ -21,6 +21,7 @@ Thumbs.db
 /misc
 scratch/
 BETA/
+prediction-model/data/cache_2month/
 
 # python & virtual environments
 .venv/
