@@ -31,11 +31,14 @@ The scalar gating function smoothly maps absolute pressure tendency $|dP/dt|$ to
 
 $$\tau(|dP/dt|) = \tau_{\max} - (\tau_{\max} - \tau_{\min}) \cdot \frac{1}{1 + \exp\Big(-k \big(|dP/dt| - b\big)\Big)}$$
 
-**Hyperparameters:**
+**Hyperparameters (Step 2 v1 Frozen Defaults):**
 - $\tau_{\min} = 0.75\text{ hours}$ (Fast squall dynamics)
 - $\tau_{\max} = 8.00\text{ hours}$ (Slow calm dynamics)
 - $k = 1.50$ (Sigmoid steepness)
 - $b = 0.80\text{ hPa/h}$ (Convective midpoint threshold)
+- Temporal smoothing: 3-hour centered moving average of $|dP/dt|$
+- Horizon scoping: dynamic $\tau$ for $h \le 3.0\text{h}$, nominal $\tau = 4.0\text{h}$ for $h \ge 6.0\text{h}$
+- *Note:* These parameters are locked as "Step 2 v1" defaults, to be tuned later if needed.
 - Clamping: $\tau \in [\tau_{\min}, \tau_{\max}]$
 
 **Asymptotic Behavior:**

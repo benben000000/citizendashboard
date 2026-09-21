@@ -199,17 +199,37 @@ export function alphaBlend(
 }
 
 /**
- * Task 2: Scalar Gating Function for Dynamic Liquid Time Constant tau(x)
+ * Step 2 v1 Frozen Hyperparameters (Gated Dynamic Liquid Time Constant):
+ * - tauMin = 0.75h (fast dynamics during squalls)
+ * - tauMax = 8.00h (slow dynamics during calm intervals)
+ * - k = 1.5 (sigmoid steepness)
+ * - b = 0.8 hPa/h (midpoint tendency threshold)
+ * - 3-hour smoothed |dP/dt| temporal window
+ * - Horizon scoping: dynamic tau for leadHours <= 3.0h, nominal tau (4.0h) for leadHours >= 6.0h.
+ * These are locked as "Step 2 v1" defaults, to be tuned later if needed.
+ */
+export const STEP2_DYNAMIC_TAU_V1_CONFIG = {
+  tauMin: 0.75,
+  tauMax: 8.0,
+  k: 1.5,
+  b: 0.8,
+  smoothingWindowHours: 3.0,
+  maxDynamicHorizonHours: 3.0,
+  nominalTauHours: 4.0,
+} as const;
+
+/**
+ * Task 2: Scalar Gating Function for Dynamic Liquid Time Constant tau(x) (Step 2 v1 defaults)
  * Maps smoothed absolute pressure tendency |dP/dt| to a dynamic time constant.
  * Calm weather (|dP/dt| ~ 0) -> tau ~ tau_max (slow, stable dynamics)
  * Squall line (|dP/dt| >= 1.5 hPa/h) -> tau ~ tau_min (fast, responsive dynamics)
  */
 export function computeTau(
   absDPdt: number,
-  tauMin: number = 0.75,
-  tauMax: number = 8.0,
-  k: number = 1.5,
-  b: number = 0.8
+  tauMin: number = STEP2_DYNAMIC_TAU_V1_CONFIG.tauMin,
+  tauMax: number = STEP2_DYNAMIC_TAU_V1_CONFIG.tauMax,
+  k: number = STEP2_DYNAMIC_TAU_V1_CONFIG.k,
+  b: number = STEP2_DYNAMIC_TAU_V1_CONFIG.b
 ): number {
   const sig = 1.0 / (1.0 + Math.exp(-k * (absDPdt - b)));
   const tau = tauMax - (tauMax - tauMin) * sig;

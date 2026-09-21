@@ -374,7 +374,31 @@ def alpha_blend(lead_hours: float, alpha_max: float = 0.88, alpha_min: float = 0
     raw_alpha = alpha_min + (alpha_max - alpha_min) * math.exp(-max(0.0, lead_hours) / tau_alpha)
     return min(alpha_max, max(alpha_min, raw_alpha))
 
-def compute_tau(abs_dPdt: float, tau_min: float = 0.75, tau_max: float = 8.0, k: float = 1.5, b: float = 0.8) -> float:
+# Step 2 v1 Frozen Hyperparameters (Gated Dynamic Liquid Time Constant):
+# - tau_min = 0.75h (fast dynamics during squalls)
+# - tau_max = 8.00h (slow dynamics during calm intervals)
+# - k = 1.5 (sigmoid steepness)
+# - b = 0.8 hPa/h (midpoint tendency threshold)
+# - 3-hour smoothed |dP/dt| temporal window
+# - Horizon scoping: dynamic tau for h <= 3.0h, nominal tau (4.0h) for h >= 6.0h.
+# These are locked as "Step 2 v1" defaults, to be tuned later if needed.
+STEP2_DYNAMIC_TAU_V1_CONFIG = {
+    "tau_min": 0.75,
+    "tau_max": 8.0,
+    "k": 1.5,
+    "b": 0.8,
+    "smoothing_window_hours": 3.0,
+    "max_dynamic_horizon_hours": 3.0,
+    "nominal_tau_hours": 4.0,
+}
+
+def compute_tau(
+    abs_dPdt: float,
+    tau_min: float = STEP2_DYNAMIC_TAU_V1_CONFIG["tau_min"],
+    tau_max: float = STEP2_DYNAMIC_TAU_V1_CONFIG["tau_max"],
+    k: float = STEP2_DYNAMIC_TAU_V1_CONFIG["k"],
+    b: float = STEP2_DYNAMIC_TAU_V1_CONFIG["b"]
+) -> float:
     sig = 1.0 / (1.0 + math.exp(-k * (abs_dPdt - b)))
     tau = tau_max - (tau_max - tau_min) * sig
     return round(min(tau_max, max(tau_min, tau)), 2)

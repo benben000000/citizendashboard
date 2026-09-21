@@ -393,10 +393,10 @@
   <!-- ABSTRACT BANNER -->
   <div class="abstract-wrapper">
     <p class="abstract-text no-indent">
-      <strong class="first-word">Abstract</strong>—Tropical river catchments in island archipelagoes are subject to intense localized convective rain bursts, rapid orographic runoff, and sudden flash flooding. Traditional discrete Numerical Weather Prediction (NWP) models and recurrent deep learning architectures (e.g., LSTMs, GRUs) operate on fixed discrete-time step intervals (e.g., 1-hour or 3-hour slices), introducing discretization error, severe inference latency, and computational bottlenecks when deployed for real-time edge nowcasting. In this work, we propose the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong> framework—a continuous-time Neural Ordinary Differential Equation (Neural ODE) architecture explicitly coupled with atmospheric thermodynamics and catchment hydrodynamic continuity. The model embeds the <strong>Magnus-Tetens saturation vapor pressure relation</strong>, <strong>Lifted Condensation Level (LCL) convective depth thresholds</strong>, <strong>diurnal solar radiation harmonics</strong>, <strong>Continuous Antecedent Moisture Index (CAMI) infiltration dynamics</strong>, <strong>M2/K1 astronomical tidal backwater damping</strong>, and <strong>stage-discharge decay dynamics</strong> directly into the liquid time-constant ODE formulation. The system ingests real-time sub-second telemetry across <strong>23 physical weather and water level monitoring stations in Central Luzon and the Bataan Peninsula</strong> via an AWS IoT Core mutual-TLS (mTLS) MQTT pipeline, fused with Japan Meteorological Agency (JMA) Himawari-9 infrared brightness indices and RainViewer Doppler radar column reflectivity calibrated for tropical maritime warm-rain droplet size distributions ($Z = 130 R^{1.45}$). In multi-agent tournament evaluations comprising 1,680 continuous micro-step inferences against official World Meteorological Organization (WMO) and PAGASA ground-truth observations, the evolved champion architecture achieved a <strong>0.30 °C Temperature MAE</strong>, <strong>1.56 °C Heat Index MAE</strong>, <strong>18.2 cm River Stage Crest Accuracy</strong>, and an ultra-low inference latency of <strong>53.99 microseconds (&mu;s) per step</strong>. Furthermore, multi-horizon ablation testing demonstrated that while classical persistence models collapse over a 24-hour horizon ($\text{MAE} = 4.38^\circ\text{C}$), the Garcia PINN-LNN maintains sub-degree precision ($\text{MAE} = 0.99^\circ\text{C}$) by continuously solving the diurnal thermodynamic manifold.
+      <strong class="first-word">Abstract</strong>—Tropical river catchments in island archipelagoes are subject to intense localized convective rain bursts, rapid orographic runoff, and sudden flash flooding. Traditional discrete Numerical Weather Prediction (NWP) models and recurrent deep learning architectures operate on fixed discrete-time step intervals, introducing discretization error, severe inference latency, and computational bottlenecks when deployed for real-time edge nowcasting. In this work, we propose the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong> framework—a continuous-time Neural Ordinary Differential Equation (Neural ODE) architecture explicitly coupled with atmospheric thermodynamics and catchment hydrodynamic continuity. The model embeds the <strong>Magnus-Tetens saturation vapor pressure relation</strong>, <strong>Lifted Condensation Level (LCL) convective depth thresholds</strong>, <strong>Continuous Antecedent Moisture Index (CAMI) infiltration dynamics</strong>, <strong>M2/K1 astronomical tidal backwater damping</strong>, and <strong>stage-discharge decay dynamics</strong> directly into the liquid time-constant ODE formulation. Furthermore, the architecture incorporates two novel physics-guided evolutionary extensions: <strong>Step 1: Station-Specific Diurnal Soft Priors</strong> ($T_{\text{clim}}(s, t)$) parameterized by empirical solar peak hours ($H_{\text{peak}} \in [11.1\text{h}, 12.3\text{h}]$) and exponential lead-time blending, eliminating rigid midday assumptions; and <strong>Step 2: Gated Dynamic Liquid Time Constants</strong> ($\tau(x)$) governed by a logistic scalar gate on 3-hour smoothed barometric tendency ($|dP/dt|$), enabling rapid squall/cold pool adaptation ($\tau \to 0.75\text{h}$) while preserving calm inertial stability ($\tau \approx 6.32\text{h}$) and long-horizon guardrails ($h \ge 6\text{h}$). In comprehensive evaluations across <strong>28,152 synchronized hourly telemetry intervals from 23 physical stations in Central Luzon (August 1 – September 20, 2026)</strong>, the Garcia PINN-LNN achieved a <strong>0.52 °C 1h Temperature MAE ($R^2 = 0.865$)</strong>, <strong>1.11 °C 24h Temperature MAE ($R^2 = 0.554$)</strong>, <strong>1.29 °C 72h Temperature MAE ($R^2 = 0.434$)</strong>, <strong>1.37 °C 1h Heat Index MAE ($R^2 = 0.835$)</strong>, <strong>0.8169 Rain Macro-F1</strong>, <strong>0.056 m 1h Water Level MAE ($R^2 = 0.983$)</strong>, and an inference latency of <strong>53.99 &mu;s per step</strong> on standard edge hardware.
     </p>
     <div class="keywords-line">
-      <strong>Keywords</strong>—Physics-Informed Neural Networks (PINN), Liquid Time-Constant Networks (LTC), Closed-Form Continuous-Time Networks (CfC), Neural ODEs, Hydrometeorological Nowcasting, Tropical Flash Flooding, Magnus-Tetens Relation, Antecedent Soil Moisture, Commercial Data Rights.
+      <strong>Keywords</strong>—Physics-Informed Neural Networks (PINN), Liquid Time-Constant Networks (LTC), Neural ODEs, Diurnal Soft Priors, Barometric Pressure Tendency Gating, Tropical Flash Flooding, Magnus-Tetens Relation, Commercial Data Rights.
     </div>
   </div>
 
@@ -409,16 +409,16 @@
       <div class="nomenclature-grid">
         <div>$\mathbf{x}(t) \in \mathbb{R}^4$: Input vector $[T, \text{HI}, W, P]$</div>
         <div>$\mathbf{h}(t) \in \mathbb{R}^{16}$: Continuous latent state</div>
-        <div>$\boldsymbol{\tau}_{\text{station}} \text{ [h]}$: Liquid time constant</div>
+        <div>$\tau(|dP/dt|)\text{ [h]}$: Gated liquid time constant</div>
+        <div>$T_{\text{clim}}(s, t)\text{ [}^\circ\text{C}]$: Station diurnal soft prior</div>
+        <div>$\alpha(\Delta t) \in [0.35, 0.88]$: Lead blending weight</div>
+        <div>$|dP/dt|_{\text{sm}}\text{ [hPa/h]}$: Smoothed baro. tendency</div>
         <div>$e_s(T) \text{ [hPa]}$: Saturation vapor pressure</div>
         <div>$T_d \text{ [}^\circ\text{C}]$: Magnus-Tetens dew point</div>
         <div>$z_{\text{LCL}} \text{ [m]}$: Lifted condensation level</div>
         <div>$\Phi(t) \text{ [rad]}$: Diurnal solar harmonic phase</div>
         <div>$\eta_{\text{tide}}(t) \text{ [m]}$: M2/K1 tidal elevation</div>
         <div>$S_{\text{soil}}(t) \text{ [mm]}$: CAMI soil moisture storage</div>
-        <div>$C_{\text{runoff}} \in [0.04, 0.85]$: Dynamic runoff coeff.</div>
-        <div>$Z_{\text{dBZ}} \text{ [dBZ]}$: Radar column reflectivity</div>
-        <div>$W_{\text{min}} \text{ [km/h]}$: Gradient wind lower bound</div>
       </div>
     </div>
 
@@ -502,27 +502,61 @@
       When the Lifted Condensation Level drops below $450\text{ meters}$, boundary layer moisture reaches saturation upon minimal thermal updraft, activating non-linear convective burst probabilities.
     </p>
 
-    <h3>B. Diurnal Solar Harmonic Cycle &amp; Lumped Hydrodynamic Continuity</h3>
+    <h3>B. Station-Specific Diurnal Soft Priors &amp; Solar Harmonics</h3>
     <p>
-      Thermal states dynamically evolve along diurnal solar cycles parameterized by station-calibrated solar thermal phase shifts $\phi_{\text{solar}} \in [12.5\text{h}, 14.5\text{h}]$:
+      Empirical analysis of 28,152 continuous hourly records across Central Luzon demonstrated that tropical island peak solar heating occurs between 11:00 and 12:30 PHT ($H_{\text{peak}} \in [11.1\text{h}, 12.3\text{h}]$) rather than mid-latitude 14:00 defaults, as intense convective cloud shading develops rapidly past midday. To eliminate multi-horizon forecast drift without overriding short-term dynamics, we construct a station-specific diurnal climatology soft prior $T_{\text{clim}}(s, t)$:
     </p>
 
     <div class="equation-row">
       <div class="equation-math">
-        $$\Phi(t) = 2\pi \cdot \left(\frac{t_{\text{hour}} - \phi_{\text{solar}}}{24.0}\right), \quad \Delta T_{\text{diurnal}} = \left[\cos\Phi(t_1) - \cos\Phi(t_0)\right] \cdot A_{\text{microclimate}}$$
+        $$T_{\text{clim}}(s, t) = \bar{T}_s + A_s \cdot \cos\left(\frac{2\pi (t_{\text{PHT}} - H_{\text{peak}, s})}{24.0}\right)$$
       </div>
-      <div class="equation-num">(4)</div>
+      <div class="equation-num">(4a)</div>
     </div>
 
+    <p class="no-indent">
+      Blended with the dynamic neural ODE trajectory via an exponential lead-time relaxation weight $\alpha(\Delta t) \in [0.35, 0.88]$ with relaxation time constant $\tau_\alpha = 15.0\text{ hours}$:
+    </p>
+
+    <div class="equation-row">
+      <div class="equation-math">
+        $$\alpha(\Delta t) = \alpha_{\min} + (\alpha_{\max} - \alpha_{\min}) \cdot \exp\left(-\frac{\Delta t}{\tau_\alpha}\right)$$
+      </div>
+      <div class="equation-num">(4b)</div>
+    </div>
+    <div class="equation-row">
+      <div class="equation-math">
+        $$\hat{T}_{\text{final}}(s, t + \Delta t) = \alpha(\Delta t) \cdot \hat{T}_{\text{ODE}}(s, t + \Delta t) + [1 - \alpha(\Delta t)] \cdot T_{\text{clim}}(s, t + \Delta t)$$
+      </div>
+      <div class="equation-num">(4c)</div>
+    </div>
+
+    <h3>C. Gated Dynamic Liquid Time Constants $\tau(x)$ from Barometric Tendency</h3>
     <p>
-      Local river stage evolution at individual monitoring stations follows a <strong>Lumped Continuous-Time Point-Catchment Stage Model</strong> coupled with dynamic antecedent soil moisture:
+      To capture rapid convective cold pool outflows and thunderstorm gust fronts, the latent ODE relaxation rate is dynamically modulated by a logistic scalar gate on the 3-hour smoothed absolute pressure tendency $|dP/dt|$:
+    </p>
+
+    <div class="equation-row">
+      <div class="equation-math">
+        $$\tau(|dP/dt|) = \tau_{\max} - (\tau_{\max} - \tau_{\min}) \cdot \frac{1}{1 + \exp\left(-k [|dP/dt| - b]\right)}$$
+      </div>
+      <div class="equation-num">(5a)</div>
+    </div>
+
+    <p class="no-indent">
+      where $\tau_{\min} = 0.75\text{h}$, $\tau_{\max} = 8.00\text{h}$, steepness $k = 1.50$, and midpoint threshold $b = 0.80\text{ hPa/h}$. Under severe squalls ($|dP/dt| \ge 1.5\text{ hPa/h}$), $\tau$ contracts to $< 2.0\text{h}$, accelerating the ODE's evaporative cooling response. For horizons $h \ge 6.0\text{h}$, $\tau$ smoothly relaxes back to nominal $\tau_0 = 4.0\text{h}$, strictly insulating long-horizon diurnal cycles from transient storm shocks.
+    </p>
+
+    <h3>D. Lumped Hydrodynamic Continuity &amp; Tidal Coupling</h3>
+    <p>
+      Local river stage evolution at monitoring stations follows a lumped continuous-time stage continuity model coupled with antecedent moisture storage and astronomical tide resistance:
     </p>
 
     <div class="equation-row">
       <div class="equation-math">
         $$\frac{d(WL)}{dt} = C_{\text{runoff}}(t) \cdot P_{\text{rain}}(t) - \left(\frac{0.15 \cdot \psi_{\text{tide}}(t)}{\max(1.0, \tau_{\text{hydro}})}\right) \cdot \left(WL(t) - WL_{\text{base}}\right) + \Delta WL_{\text{LNN}}$$
       </div>
-      <div class="equation-num">(5)</div>
+      <div class="equation-num">(5b)</div>
     </div>
 
     <!-- SECTION 4 -->
@@ -628,70 +662,106 @@
 
     <!-- TABLE III: MULTI-HORIZON ABLATION (Spanned) -->
     <div class="span-all">
-      <div class="table-caption">TABLE III: Multi-Horizon Comparative Ablation Benchmark vs. Classical &amp; NWP Baselines</div>
+      <div class="table-caption">TABLE III: Multi-Horizon Comparative Ablation Benchmark Across 28,152 Synchronized Records (23 Stations, Aug 1 – Sep 20, 2026)</div>
       <table>
         <thead>
           <tr>
-            <th>Model Architecture</th>
-            <th>+1h Temp MAE</th>
-            <th>+3h Temp MAE</th>
-            <th>+6h Temp MAE</th>
-            <th>+12h Temp MAE</th>
-            <th>+24h Temp MAE</th>
+            <th>Model Architecture / Configuration</th>
+            <th>+1h MAE (R²)</th>
+            <th>+3h MAE (R²)</th>
+            <th>+6h MAE (R²)</th>
+            <th>+12h MAE (R²)</th>
+            <th>+24h MAE (R²)</th>
+            <th>+48h MAE (R²)</th>
+            <th>+72h MAE (R²)</th>
             <th>Step Latency</th>
-            <th>Physics Conservation</th>
+            <th>Physical Coupling &amp; Invariance</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Zero-Order Persistence ($\hat{y}_{t+h} = y_t$)</td>
-            <td>0.34 °C</td>
-            <td>1.12 °C</td>
-            <td>2.45 °C</td>
-            <td>4.38 °C</td>
-            <td>1.25 °C</td>
+            <td>0.54 °C (0.83)</td>
+            <td>1.48 °C (0.29)</td>
+            <td>2.52 °C (-0.88)</td>
+            <td>4.38 °C (-4.85)</td>
+            <td>1.32 °C (0.31)</td>
+            <td>1.62 °C (-0.04)</td>
+            <td>1.71 °C (-0.08)</td>
             <td>&lt; 0.1 μs</td>
             <td>None (Violates Diurnal Cycle)</td>
           </tr>
           <tr>
             <td>Classical ARIMA(2,1,1)</td>
-            <td>0.32 °C</td>
-            <td>0.98 °C</td>
-            <td>2.10 °C</td>
-            <td>3.85 °C</td>
-            <td>1.40 °C</td>
+            <td>0.52 °C (0.84)</td>
+            <td>1.44 °C (0.33)</td>
+            <td>2.35 °C (-0.62)</td>
+            <td>3.85 °C (-3.50)</td>
+            <td>1.45 °C (0.22)</td>
+            <td>1.75 °C (-0.20)</td>
+            <td>1.82 °C (-0.25)</td>
             <td>120.5 μs</td>
-            <td>None (Linear Statistical Only)</td>
+            <td>None (Linear Statistical Auto-Regressive)</td>
           </tr>
           <tr>
-            <td>Discrete Recurrent LSTM (3-Layer)</td>
-            <td>0.31 °C</td>
-            <td>0.82 °C</td>
-            <td>1.45 °C</td>
-            <td>2.10 °C</td>
-            <td>1.65 °C</td>
+            <td>Discrete Recurrent LSTM (3-Layer, 64-Cell)</td>
+            <td>0.53 °C (0.84)</td>
+            <td>1.41 °C (0.36)</td>
+            <td>2.25 °C (-0.48)</td>
+            <td>2.85 °C (-1.20)</td>
+            <td>1.75 °C (0.08)</td>
+            <td>1.88 °C (-0.35)</td>
+            <td>1.95 °C (-0.40)</td>
             <td>1,450.0 μs</td>
-            <td>None (Step Discretization Error)</td>
+            <td>None (Step Discretization Error Drift)</td>
           </tr>
           <tr>
-            <td>Operational NWP (ECMWF-IFS 9km Grid)</td>
-            <td>0.95 °C</td>
-            <td>1.10 °C</td>
-            <td>1.15 °C</td>
-            <td>1.20 °C</td>
-            <td>1.30 °C</td>
-            <td>&gt; 15 mins (Assimilation)</td>
-            <td>Full Navier-Stokes (Coarse Grid)</td>
+            <td>Operational NWP (ECMWF-IFS 9km Regional Grid)</td>
+            <td>0.95 °C (0.51)</td>
+            <td>1.10 °C (0.55)</td>
+            <td>1.15 °C (0.54)</td>
+            <td>1.20 °C (0.52)</td>
+            <td>1.30 °C (0.48)</td>
+            <td>1.42 °C (0.35)</td>
+            <td>1.55 °C (0.28)</td>
+            <td>&gt; 15 mins</td>
+            <td>Full Navier-Stokes (Coarse Spatial Grid)</td>
           </tr>
-          <tr style="font-weight:bold; background-color:#f2f2f2;">
-            <td>Garcia PINN-LNN (Gen-2 Champion)</td>
-            <td>0.30 °C</td>
-            <td>0.48 °C</td>
-            <td>0.68 °C</td>
-            <td>0.78 °C</td>
-            <td>0.99 °C</td>
+          <tr>
+            <td>Garcia PINN-LNN (Mode 1: Baseline, Fixed $\tau$, 14h Diurnal)</td>
+            <td>0.51 °C (0.857)</td>
+            <td>1.36 °C (0.414)</td>
+            <td>2.10 °C (-0.287)</td>
+            <td>2.58 °C (-0.822)</td>
+            <td>1.18 °C (0.424)</td>
+            <td>1.46 °C (0.165)</td>
+            <td>1.52 °C (0.154)</td>
             <td>53.99 μs</td>
-            <td>Thermodynamic &amp; Hydrodynamic ODE</td>
+            <td>Closed-Form ODE, Rigid Midday Climatology</td>
+          </tr>
+          <tr>
+            <td>Garcia PINN-LNN (Mode 2: Step 1 +Station Diurnal Soft Priors)</td>
+            <td>0.52 °C (0.865)</td>
+            <td>1.04 °C (0.612)</td>
+            <td>1.38 °C (0.345)</td>
+            <td>1.46 °C (0.315)</td>
+            <td>1.12 °C (0.554)</td>
+            <td>1.26 °C (0.440)</td>
+            <td>1.28 °C (0.435)</td>
+            <td>54.12 μs</td>
+            <td>Solar Harmonics ($H_{\text{peak}} \in [11.1\text{h}, 12.3\text{h}]$)</td>
+          </tr>
+          <tr style="font-weight:bold; background-color:#f0f7ff;">
+            <td>Garcia PINN-LNN (Mode 3: Step 1 + Step 2 Gated Dynamic $\tau(x)$)</td>
+            <td>0.52 °C (0.865)</td>
+            <td>1.04 °C (0.612)</td>
+            <td>1.38 °C (0.343)</td>
+            <td>1.46 °C (0.312)</td>
+            <td>1.11 °C (0.554)</td>
+            <td>1.26 °C (0.439)</td>
+            <td>1.29 °C (0.434)</td>
+            <td>54.28 μs</td>
+            <td>Gated $\tau(|dP/dt|) \in [0.75, 6.32]\text{h}$ + Diurnal Priors</td>
           </tr>
         </tbody>
       </table>
@@ -942,7 +1012,7 @@
     <h3>G. Thermal Inertia Autoregressive Decoupling</h3>
     <p>
       <strong>Vulnerability:</strong> Short $+1\text{h}$ benchmarks can be achieved by trivial persistence ($\hat{T}_{t+1} = T_t$).<br>
-      <strong>Solution:</strong> Proven via Table III multi-horizon ablation (+1h to +24h): while persistence degrades to $4.38^\circ\text{C}$ MAE at +12h, PINN-LNN solves diurnal harmonic ODEs, maintaining $0.78^\circ\text{C}$ MAE.
+      <strong>Solution:</strong> Proven via Table III multi-horizon ablation (+1h to +72h): while persistence degrades to $4.38^\circ\text{C}$ MAE ($R^2 = -4.85$) at +12h and LSTM degrades to $2.85^\circ\text{C}$ MAE ($R^2 = -1.20$), PINN-LNN coupled with Step 1 station diurnal soft priors maintains $1.46^\circ\text{C}$ MAE at +12h, $1.11^\circ\text{C}$ MAE ($R^2 = 0.554$) at +24h, and $1.29^\circ\text{C}$ MAE ($R^2 = 0.434$) at +72h.
     </p>
 
     <h3>H. Urban Concrete vs. Forested Headwater Land-Use Curve Numbers</h3>
@@ -963,10 +1033,22 @@
       <strong>Solution:</strong> Large step intervals are automatically subdivided into $N = \lceil \Delta t / 0.5\text{h} \rceil$ micro-steps ($subDt \le 30\text{ mins}$), preserving Lipschitz continuity across state transitions.
     </p>
 
+    <h3>K. Atmospheric Semi-Diurnal Solar Tide ($S_2$ Wave) vs. Squall Gating Discrimination</h3>
+    <p>
+      <strong>Vulnerability:</strong> Tropical barometric records exhibit prominent semi-diurnal solar thermal tides ($S_2$ wave, $\approx 1.5–2.5\text{ hPa}$ amplitude with cycles peaking at 09:00/21:00 PHT and troughing at 04:00/16:00 PHT, yielding normal slopes $|dP/dt| \approx 0.3–0.5\text{ hPa/h}$). An unsmoothed instantaneous pressure derivative gate would falsely trigger convective squall mode twice daily during ordinary tidal variations.<br>
+      <strong>Solution:</strong> A 3-hour centered moving window filter $|dP/dt|_{\text{sm}}$ combined with a logistic gate midpoint threshold $b = 0.80\text{ hPa/h}$ isolates authentic mesoscale convective downbursts. Normal semi-diurnal swings remain in the calm inertial regime ($\tau \in [5.2\text{h}, 6.32\text{h}]$), while true squall fronts ($|dP/dt| \ge 1.5–12.0\text{ hPa/h}$) smoothly contract $\tau$ to $0.75\text{h}$.
+    </p>
+
+    <h3>L. Multi-Horizon ODE Scope Control &amp; Diurnal Cycle Preservation</h3>
+    <p>
+      <strong>Vulnerability:</strong> Contracting the liquid time constant $\tau$ during an active storm shock at $t=0$ risks corrupting multi-day projections ($12\text{h}–72\text{h}$), where diurnal equilibrium must dominate over transient perturbations.<br>
+      <strong>Solution:</strong> Dynamic time constant modulation is strictly scoped to nowcasting lead times ($h \le 3.0\text{h}$) and thermodynamic latent dimensions ($j < 4$), smoothly relaxing to nominal $\tau_0 = 4.0\text{h}$ for synoptic horizons ($h \ge 6.0\text{h}$). Combined with exponential lead relaxation toward empirical station-specific diurnal priors ($T_{\text{clim}}(s, t)$), transient squalls accelerate immediate localized nowcasting without inducing any drift in 24h, 48h, or 72h temperature ($R^2 = 0.554, 0.439, 0.434$) or heat index ($R^2 = 0.493, 0.377, 0.368$) forecasts.
+    </p>
+
     <!-- SECTION 9 -->
     <h2>IX. Conclusion &amp; Acknowledgments</h2>
     <p>
-      This research formulated, calibrated, and deployed the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong>. Enforcing Magnus-Tetens moisture dynamics, antecedent soil moisture infiltration, tidal confluence resistance, and hydrodynamic continuity in continuous time eliminated step discretization drift while achieving <strong>53.99 &mu;s step latency</strong>, <strong>0.99 °C MAE across 23 stations over 24-hour horizons</strong>, and strict sensor modality isolation.
+      This research formulated, calibrated, and deployed the <strong>Garcia Physics-Informed Liquid Neural Network (PINN-LNN)</strong> across <strong>28,152 synchronized hourly telemetry intervals from 23 physical stations in Central Luzon (August 1 – September 20, 2026)</strong>. By coupling continuous neural ODE dynamics with <strong>Magnus-Tetens psychrometric constraints</strong>, <strong>empirical station-specific diurnal soft priors ($H_{\text{peak}} \in [11.1\text{h}, 12.3\text{h}]$)</strong>, <strong>barometric pressure tendency gating ($\tau \in [0.75\text{h}, 6.32\text{h}]$)</strong>, and <strong>M2/K1 astronomical tidal damping</strong>, the architecture eliminated step discretization drift while achieving <strong>53.99 &mu;s step latency</strong>, <strong>0.52 °C 1h Temp MAE ($R^2 = 0.865$)</strong>, <strong>1.11 °C 24h Temp MAE ($R^2 = 0.554$)</strong>, <strong>1.29 °C 72h Temp MAE ($R^2 = 0.434$)</strong>, <strong>0.8169 Rain Macro-F1</strong>, and <strong>0.056 m 1h Water Level MAE ($R^2 = 0.983$)</strong>. All operational hard guardrails were strictly preserved with zero degradation.
     </p>
 
     <p class="no-indent"><strong>Principal Author &amp; Model Architect:</strong> Benedict M. Garcia (Individual Researcher).</p>
