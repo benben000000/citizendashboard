@@ -1,224 +1,269 @@
 {
   "model_status": "RESEARCH_PROTOTYPE",
-  "model_family": "ContinuousLNNCell (Model Family 2 \u2014 standalone trainer)",
-  "evaluation_scale": {
-    "total_records_dataset": 800039,
-    "evaluated_samples": 75616,
-    "monitored_stations": 16
+  "evaluation_type": "independent_future_window_test",
+  "forecast_horizon_hours": 1,
+  "split_method": "chronological_60_20_20_pre_windowing",
+  "conformal_calibration_samples": 32,
+  "independent_test_samples": 600,
+  "monitored_stations": 15,
+  "rain_forecast_comparison": {
+    "mf1_pytorch_cfc": {
+      "accuracy": 92.17,
+      "recall_pod": 0.0,
+      "precision": 0.0,
+      "f1_score": 0.0,
+      "false_alarm_ratio": 0.0,
+      "critical_success_index": 0.0,
+      "brier_score": 0.0705,
+      "tp": 0,
+      "fp": 0,
+      "tn": 553,
+      "fn": 47
+    },
+    "mf2_standalone_cell": {
+      "accuracy": 70.0,
+      "recall_pod": 57.45,
+      "precision": 14.44,
+      "f1_score": 23.08,
+      "false_alarm_ratio": 85.56,
+      "critical_success_index": 13.04,
+      "brier_score": 0.1627,
+      "tp": 27,
+      "fp": 160,
+      "tn": 393,
+      "fn": 20
+    },
+    "persistence_baseline": {
+      "accuracy": 92.5,
+      "recall_pod": 53.19,
+      "precision": 52.08,
+      "f1_score": 52.63,
+      "false_alarm_ratio": 47.92,
+      "critical_success_index": 35.71,
+      "brier_score": 0.075,
+      "tp": 25,
+      "fp": 23,
+      "tn": 530,
+      "fn": 22
+    },
+    "climatology_baseline": {
+      "accuracy": 92.17,
+      "recall_pod": 0.0,
+      "precision": 0.0,
+      "f1_score": 0.0,
+      "false_alarm_ratio": 0.0,
+      "critical_success_index": 0.0,
+      "brier_score": 0.0739,
+      "tp": 0,
+      "fp": 0,
+      "tn": 553,
+      "fn": 47
+    }
   },
-  "rain_metrics": {
-    "threshold": 0.5,
-    "recall_pod": "62.08%",
-    "accuracy": "65.85%",
-    "precision": "14.79%",
-    "f1_score": "23.88%",
-    "false_alarm_ratio": "85.21%",
-    "critical_success_index": "13.56%",
-    "brier_score": 0.1936
+  "water_level_forecast_comparison": {
+    "mf2": {
+      "mae": 0.8059,
+      "rmse": 0.8451
+    },
+    "persistence": {
+      "mae": 0.0007,
+      "rmse": 0.0027
+    },
+    "climatology": {
+      "mae": 0.2985,
+      "rmse": 0.346
+    },
+    "mf1": {
+      "mae": 0.8146,
+      "rmse": 0.8619
+    }
+  },
+  "conformal_uncertainty_test_coverage": {
+    "80%": {
+      "target_coverage": "80%",
+      "band_meters": 0.8147,
+      "empirical_test_coverage": "41.5%",
+      "calibration_samples": 32,
+      "test_samples": 41
+    },
+    "90%": {
+      "target_coverage": "90%",
+      "band_meters": 0.9128,
+      "empirical_test_coverage": "51.2%",
+      "calibration_samples": 32,
+      "test_samples": 41
+    },
+    "95%": {
+      "target_coverage": "95%",
+      "band_meters": 1.0,
+      "empirical_test_coverage": "78.0%",
+      "calibration_samples": 32,
+      "test_samples": 41
+    }
   },
   "threshold_sensitivity": [
     {
       "threshold": 0.3,
-      "accuracy": 35.15,
-      "recall": 93.11,
-      "precision": 11.12,
-      "f1": 19.86,
-      "far": 88.88,
-      "csi": 11.03
+      "accuracy": 45.0,
+      "recall": 70.21,
+      "precision": 9.46,
+      "f1": 16.67,
+      "far": 90.54,
+      "csi": 9.09
     },
     {
       "threshold": 0.4,
-      "accuracy": 48.42,
-      "recall": 83.33,
-      "precision": 12.55,
-      "f1": 21.81,
-      "far": 87.45,
-      "csi": 12.24
+      "accuracy": 63.33,
+      "recall": 63.83,
+      "precision": 12.88,
+      "f1": 21.43,
+      "far": 87.12,
+      "csi": 12.0
     },
     {
       "threshold": 0.5,
-      "accuracy": 65.85,
-      "recall": 62.08,
-      "precision": 14.79,
-      "f1": 23.88,
-      "far": 85.21,
-      "csi": 13.56
+      "accuracy": 70.0,
+      "recall": 57.45,
+      "precision": 14.44,
+      "f1": 23.08,
+      "far": 85.56,
+      "csi": 13.04
     },
     {
       "threshold": 0.6,
-      "accuracy": 83.97,
-      "recall": 24.05,
-      "precision": 17.98,
-      "f1": 20.58,
-      "far": 82.02,
-      "csi": 11.47
+      "accuracy": 89.5,
+      "recall": 25.53,
+      "precision": 30.0,
+      "f1": 27.59,
+      "far": 70.0,
+      "csi": 16.0
     },
     {
       "threshold": 0.7,
-      "accuracy": 90.8,
-      "recall": 1.49,
-      "precision": 15.52,
-      "f1": 2.71,
-      "far": 84.48,
-      "csi": 1.37
+      "accuracy": 92.17,
+      "recall": 0.0,
+      "precision": 0.0,
+      "f1": 0.0,
+      "far": 0.0,
+      "csi": 0.0
     }
   ],
   "rain_by_intensity": {
     "trace": {
       "range_mm": "0.0-0.5",
-      "event_count": 5890,
-      "detected_pct": 62.4
+      "event_count": 41,
+      "detected_pct": 53.7
     },
     "light": {
       "range_mm": "0.5-2.5",
-      "event_count": 583,
-      "detected_pct": 63.6
+      "event_count": 6,
+      "detected_pct": 83.3
     },
     "moderate": {
       "range_mm": "2.5-7.5",
-      "event_count": 11,
-      "detected_pct": 45.5
+      "event_count": 0,
+      "detected_pct": 0.0
     },
     "heavy": {
       "range_mm": "7.5-inf",
-      "event_count": 43,
-      "detected_pct": 2.3
+      "event_count": 0,
+      "detected_pct": 0.0
     }
   },
   "rain_by_station": {
     "03pqkGAj": {
-      "accuracy": 64.56,
-      "recall": 62.55,
-      "precision": 8.56,
-      "sample_count": 5000
+      "accuracy": 29.27,
+      "recall": 100.0,
+      "precision": 12.12,
+      "sample_count": 41
     },
     "1Zb102pg": {
-      "accuracy": 72.54,
-      "recall": 58.73,
-      "precision": 16.09,
-      "sample_count": 5000
+      "accuracy": 60.98,
+      "recall": 60.0,
+      "precision": 17.65,
+      "sample_count": 41
     },
     "2Dpo5DAK": {
-      "accuracy": 70.89,
-      "recall": 60.68,
-      "precision": 25.89,
-      "sample_count": 2810
+      "accuracy": 92.68,
+      "recall": 0.0,
+      "precision": 0.0,
+      "sample_count": 41
     },
     "3nzr48bG": {
-      "accuracy": 79.24,
-      "recall": 70.05,
-      "precision": 31.57,
-      "sample_count": 5000
+      "accuracy": 85.37,
+      "recall": 100.0,
+      "precision": 33.33,
+      "sample_count": 41
     },
     "3nzr8bGo": {
-      "accuracy": 61.14,
-      "recall": 84.84,
-      "precision": 20.18,
-      "sample_count": 5000
+      "accuracy": 63.41,
+      "recall": 100.0,
+      "precision": 16.67,
+      "sample_count": 41
     },
     "4VAl2p9k": {
-      "accuracy": 50.58,
-      "recall": 88.53,
-      "precision": 13.75,
-      "sample_count": 5000
+      "accuracy": 39.02,
+      "recall": 50.0,
+      "precision": 4.0,
+      "sample_count": 41
     },
     "95pM7BAV": {
-      "accuracy": 70.1,
-      "recall": 67.93,
-      "precision": 30.5,
-      "sample_count": 2806
+      "accuracy": 85.37,
+      "recall": 100.0,
+      "precision": 33.33,
+      "sample_count": 41
     },
     "Bkpj1zRO": {
-      "accuracy": 47.34,
-      "recall": 92.05,
-      "precision": 2.99,
-      "sample_count": 5000
+      "accuracy": 70.73,
+      "recall": 0.0,
+      "precision": 0.0,
+      "sample_count": 41
     },
     "QgbGldAY": {
-      "accuracy": 62.28,
-      "recall": 35.58,
-      "precision": 20.17,
-      "sample_count": 5000
+      "accuracy": 73.17,
+      "recall": 20.0,
+      "precision": 40.0,
+      "sample_count": 41
     },
     "Rjz2dbXW": {
-      "accuracy": 49.54,
-      "recall": 84.97,
-      "precision": 11.74,
-      "sample_count": 5000
+      "accuracy": 43.9,
+      "recall": 100.0,
+      "precision": 8.0,
+      "sample_count": 41
     },
     "VEpdDpBK": {
-      "accuracy": 84.86,
-      "recall": 39.02,
-      "precision": 4.33,
-      "sample_count": 5000
-    },
-    "lMAZe9b3": {
-      "accuracy": 59.38,
-      "recall": 72.19,
-      "precision": 5.79,
-      "sample_count": 5000
+      "accuracy": 100.0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "sample_count": 27
     },
     "nDby4YpR": {
-      "accuracy": 55.82,
-      "recall": 82.79,
-      "precision": 12.37,
-      "sample_count": 5000
+      "accuracy": 36.59,
+      "recall": 33.33,
+      "precision": 4.0,
+      "sample_count": 41
     },
     "nDbyYbR1": {
-      "accuracy": 73.74,
-      "recall": 52.97,
-      "precision": 8.75,
-      "sample_count": 5000
+      "accuracy": 100.0,
+      "recall": 0.0,
+      "precision": 0.0,
+      "sample_count": 41
     },
     "rqAkmpKG": {
-      "accuracy": 67.48,
-      "recall": 70.16,
-      "precision": 25.95,
-      "sample_count": 5000
+      "accuracy": 85.0,
+      "recall": 50.0,
+      "precision": 50.0,
+      "sample_count": 40
     },
     "wkAWLzlm": {
-      "accuracy": 88.12,
-      "recall": 11.62,
-      "precision": 37.43,
-      "sample_count": 5000
+      "accuracy": 95.12,
+      "recall": 66.67,
+      "precision": 66.67,
+      "sample_count": 41
     }
   },
-  "water_level_metrics": {
-    "source": "real_gauge_observations",
-    "gauge_station": "Calumpit WLMS (O3z0j5bG)",
-    "mae_meters": 0.6199,
-    "mae_cm": 62.0,
-    "rmse_meters": 0.676,
-    "gauge_matched_samples": 911,
-    "note": "Single-gauge validated. Do not generalize to all 16 weather stations."
-  },
-  "uncertainty_bands": {
-    "method": "empirical_conformal_prediction",
-    "note": "Computed from sorted absolute residuals on calibration set, NOT a fixed formula.",
-    "bands": [
-      {
-        "target_coverage": "80%",
-        "band_meters": 0.8679,
-        "empirical_coverage": "80.1%",
-        "calibration_samples": 911
-      },
-      {
-        "target_coverage": "90%",
-        "band_meters": 1.0119,
-        "empirical_coverage": "90.1%",
-        "calibration_samples": 911
-      },
-      {
-        "target_coverage": "95%",
-        "band_meters": 1.0865,
-        "empirical_coverage": "95.2%",
-        "calibration_samples": 911
-      }
-    ]
-  },
   "performance": {
-    "latency_microseconds": 17.4,
-    "throughput_per_second": 57457,
-    "infrastructure": "Serverless CPU"
+    "latency_microseconds": 5106.24,
+    "throughput_samples_per_sec": 195
   }
 }

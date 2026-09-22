@@ -5,11 +5,14 @@ This is the standalone (zero-dependency on PyTorch) ContinuousLNNCell trainer.
 See MODEL_REGISTRY.md for model family details.
 
 Audit fixes applied:
-  - Chronological train/val split (not random shuffle) (Critical)
-  - Random seed for reproducibility (Medium)
-  - Real water-level gauge targets where available (Critical)
-  - Rain threshold changed to > 0.1mm to match dataset.py (consistency)
-  - Dataset hash and split info recorded in saved weights (Medium)
+  - Date outlier quarantine (rejects records with year != 2025-2027)
+  - Physical bounds sensor check (rejects corrupt hardware spikes)
+  - Train-fitted normalization computed strictly on training split
+  - Chronological split (not random shuffle)
+  - Seed for reproducibility
+  - Real water gauge targets with masking
+  - Dataset hashes and normalization in saved weights
+  - RESEARCH_PROTOTYPE status
 """
 
 import os
@@ -20,33 +23,41 @@ import json
 import hashlib
 import platform
 from datetime import datetime, timezone
-from collections import defaultdict
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 WEATHER_CSV = os.path.join(DATA_DIR, "weather_telemetry.csv")
 WATER_CSV = os.path.join(DATA_DIR, "water_level_telemetry.csv")
 
-MEANS = [28.5, 33.0, 10.0, 1008.0]
-STDS = [4.5, 6.5, 8.0, 6.0]
-
 DEFAULT_SEED = 42
 
+# Allowed collection date bounds
+MIN_VALID_YEAR = 2025
+MAX_VALID_YEAR = 2027
 
-def sigmoid(x: float) -> float:
+# Physically plausible sensor ranges
+PHYSICAL_BOUNDS = {
+    "temperature": (10.0, 50.0),
+    "heat_index": (10.0, 70.0),
+    "wind_speed": (0.0, 180.0),
+    "pressure": (900.0, 1050.0),
+    "precipitation": (0.0, 300.0),
+}
+
+
+def sigmoid(x):
     return 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, x))))
 
 
-def tanh(x: float) -> float:
+def tanh(x):
     return math.tanh(max(-20.0, min(20.0, x)))
 
 
-def _file_hash(path: str) -> str:
-    """SHA-256 hash of a file for reproducibility."""
-    if not os.path.exists(path):
-        return "FILE_NOT_FOUND"
+def _file_hash(filepath: str) -> str:
+    if not os.path.exists(filepath):
+        return "file_not_found"
     h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
             h.update(chunk)
     return h.hexdigest()
 
@@ -99,7 +110,10 @@ def _load_water_gauge_lookup():
         reader = csv.DictReader(f)
         for row in reader:
             try:
-                ts = row.get("recorded_at", "")[:16]  # Minute precision
+                ts = row.get("recorded_at", "")
+                if not (ts.startswith("2026") or ts.startswith("2025") or ts.startswith("2027")):
+                    continue
+                ts_key = ts[:16]
                 wl_m = row.get("water_level_m")
                 wl_cm = row.get("water_level_cm")
                 if wl_m is not None and wl_m != "":
@@ -108,7 +122,7 @@ def _load_water_gauge_lookup():
                     wl = float(wl_cm) / 100.0
                 else:
                     continue
-                lookup[ts] = wl
+                lookup[ts_key] = wl
             except (ValueError, TypeError):
                 continue
     return lookup
@@ -117,66 +131,71 @@ def _load_water_gauge_lookup():
 def load_chronological_dataset(samples_per_class=4000, train_frac=0.8, seed=DEFAULT_SEED):
     """
     Load dataset with CHRONOLOGICAL split (not random shuffle).
-
-    The data is sorted by timestamp. The first train_frac of time-ordered
-    data is used for training, and the remaining for validation. Within
-    each split, we still do balanced sampling for rain/dry.
-
-    Returns (train_data, val_data) where each is a list of tuples:
-        (feat, target_rain, target_water, precip, has_real_water)
+    Applies data quality filtering and fits normalization strictly on train split.
     """
     random.seed(seed)
 
     if not os.path.exists(WEATHER_CSV):
-        return [], []
+        return [], [], [27.2, 31.0, 2.0, 1004.5], [2.8, 6.3, 3.0, 4.6]
 
-    # Load real water gauge data
     water_gauge = _load_water_gauge_lookup()
 
-    # Load all rows with timestamps for chronological ordering
-    all_rows = []
+    all_raw_rows = []
     with open(WEATHER_CSV, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             try:
                 ts = row.get("recorded_at", "")
+                if not (ts.startswith("2026") or ts.startswith("2025") or ts.startswith("2027")):
+                    continue
                 t = float(row.get("temperature") or 28.5)
                 hi = float(row.get("heat_index") or 33.0)
                 ws = float(row.get("wind_speed") or 10.0)
                 p = float(row.get("pressure") or 1008.0)
                 precip = float(row.get("precipitation") or 0.0)
 
-                feat = [
-                    (t - MEANS[0]) / STDS[0],
-                    (hi - MEANS[1]) / STDS[1],
-                    (ws - MEANS[2]) / STDS[2],
-                    (p - MEANS[3]) / STDS[3],
-                ]
+                # Physical bounds check
+                if not (
+                    PHYSICAL_BOUNDS["temperature"][0] <= t <= PHYSICAL_BOUNDS["temperature"][1] and
+                    PHYSICAL_BOUNDS["heat_index"][0] <= hi <= PHYSICAL_BOUNDS["heat_index"][1] and
+                    PHYSICAL_BOUNDS["wind_speed"][0] <= ws <= PHYSICAL_BOUNDS["wind_speed"][1] and
+                    PHYSICAL_BOUNDS["pressure"][0] <= p <= PHYSICAL_BOUNDS["pressure"][1] and
+                    PHYSICAL_BOUNDS["precipitation"][0] <= precip <= PHYSICAL_BOUNDS["precipitation"][1]
+                ):
+                    continue
 
-                # Real water target from gauge (if available)
                 ts_key = ts[:16]
                 real_water = water_gauge.get(ts_key)
-
-                if precip > 0.1:
-                    rain_target = 1.0
-                    water_t = real_water if real_water is not None else 3.45
-                    has_real = real_water is not None
-                    all_rows.append((ts, feat, rain_target, water_t, precip, has_real, "rain"))
-                else:
-                    rain_target = 0.0
-                    water_t = real_water if real_water is not None else 3.45
-                    has_real = real_water is not None
-                    all_rows.append((ts, feat, rain_target, water_t, 0.0, has_real, "dry"))
+                all_raw_rows.append((ts, [t, hi, ws, p], precip, real_water))
             except Exception:
                 continue
 
-    # Sort by timestamp (chronological order)
-    all_rows.sort(key=lambda x: x[0])
+    # Chronological sort
+    all_raw_rows.sort(key=lambda x: x[0])
 
-    # Chronological split
-    split_idx = int(len(all_rows) * train_frac)
-    train_rows = all_rows[:split_idx]
-    val_rows = all_rows[split_idx:]
+    # Fit normalization strictly on training split
+    split_idx = int(len(all_raw_rows) * train_frac)
+    train_raw = all_raw_rows[:split_idx]
+    val_raw = all_raw_rows[split_idx:]
+
+    train_feats = [r[1] for r in train_raw]
+    means = [sum(f[i] for f in train_feats) / len(train_feats) for i in range(4)]
+    stds = [math.sqrt(sum((f[i] - means[i]) ** 2 for f in train_feats) / len(train_feats)) for i in range(4)]
+    stds = [max(1e-4, s) for s in stds]
+
+    def _normalize_and_label(raw_list):
+        formatted = []
+        for ts, raw_f, precip, real_water in raw_list:
+            norm_f = [(raw_f[i] - means[i]) / stds[i] for i in range(4)]
+            rain_target = 1.0 if precip > 0.1 else 0.0
+            water_target = real_water if real_water is not None else 3.45
+            has_real = real_water is not None
+            label = "rain" if precip > 0.1 else "dry"
+            formatted.append((ts, norm_f, rain_target, water_target, precip, has_real, label))
+        return formatted
+
+    train_formatted = _normalize_and_label(train_raw)
+    val_formatted = _normalize_and_label(val_raw)
 
     def _balance_and_format(rows, max_per_class):
         rain = [(r[1], r[2], r[3], r[4], r[5]) for r in rows if r[6] == "rain"]
@@ -187,10 +206,10 @@ def load_chronological_dataset(samples_per_class=4000, train_frac=0.8, seed=DEFA
         random.shuffle(selected)
         return selected
 
-    train_data = _balance_and_format(train_rows, samples_per_class)
-    val_data = _balance_and_format(val_rows, samples_per_class // 2)
+    train_data = _balance_and_format(train_formatted, samples_per_class)
+    val_data = _balance_and_format(val_formatted, samples_per_class // 2)
 
-    return train_data, val_data
+    return train_data, val_data, means, stds
 
 
 def train_balanced(seed=DEFAULT_SEED):
@@ -198,54 +217,63 @@ def train_balanced(seed=DEFAULT_SEED):
     print("Training Balanced Continuous-Time CfC/LNN Model (Model Family 2)")
     print("=" * 70)
 
-    random.seed(seed)
-
-    train_data, val_data = load_chronological_dataset(samples_per_class=4000, seed=seed)
-    if not train_data:
-        print("ERROR: Dataset not found.")
-        return
-
+    train_data, val_data, norm_means, norm_stds = load_chronological_dataset(
+        samples_per_class=4000, train_frac=0.8, seed=seed
+    )
     print(f"Chronological Split (train first 80% by time, val last 20%)")
     print(f"   Training Set:   {len(train_data):,} balanced samples")
     print(f"   Validation Set: {len(val_data):,} balanced samples")
+    print(f"   Fitted Means:   {[round(m, 2) for m in norm_means]}")
+    print(f"   Fitted Stds:    {[round(s, 2) for s in norm_stds]}")
 
     model = ContinuousLNNCell(in_features=4, hidden_dim=8)
-    lr = 0.015
+    lr = 0.02
     epochs = 20
 
     for epoch in range(1, epochs + 1):
-        h = [0.0] * model.hidden_dim
         train_loss = 0.0
+        h = [0.0] * model.hidden_dim
 
-        for feat, target_rain, target_water, _, has_real_water in train_data:
+        for feat, target_rain, target_water, precip, has_real_water in train_data:
             h, pred_rain, pred_water = model.forward_step(feat, h, dt=1.0)
 
-            # Weighted BCE loss
-            eps = 1e-7
-            bce = -(target_rain * math.log(max(eps, pred_rain)) + (1.0 - target_rain) * math.log(max(eps, 1.0 - pred_rain)))
+            # Rain loss & gradient
+            err_rain = pred_rain - target_rain
+            loss_rain = - (target_rain * math.log(max(1e-7, pred_rain)) + (1.0 - target_rain) * math.log(max(1e-7, 1.0 - pred_rain)))
+            d_rain = err_rain
 
-            # Water loss: only use real gauge targets
+            # Water loss & gradient
             if has_real_water:
-                mse_water = (pred_water - target_water) ** 2
+                err_water = pred_water - target_water
+                d_water = err_water * 0.1
+                loss_water = 0.5 * (err_water ** 2)
             else:
-                mse_water = 0.0
+                d_water = 0.0
+                loss_water = 0.0
 
-            loss = bce + 0.8 * mse_water
-            train_loss += loss
+            total_sample_loss = loss_rain + 0.5 * loss_water
+            train_loss += total_sample_loss
 
-            # Gradients for Output Heads
-            grad_rain = pred_rain - target_rain
+            # Update heads
+            model.b_rain -= lr * d_rain
             for j in range(model.hidden_dim):
-                model.W_rain[j] -= lr * grad_rain * h[j]
-                model.W_in[0][j] -= lr * grad_rain * 0.01
-                model.W_in[3][j] -= lr * grad_rain * 0.01
-            model.b_rain -= lr * grad_rain
+                model.W_rain[j] -= lr * d_rain * h[j]
 
             if has_real_water:
-                grad_water = 2.0 * (pred_water - target_water)
+                model.b_water -= lr * d_water
                 for j in range(model.hidden_dim):
-                    model.W_water[j] -= lr * grad_water * h[j] * 0.05
-                model.b_water -= lr * grad_water * 0.02
+                    model.W_water[j] -= lr * d_water * h[j]
+
+            # Hidden state gradients
+            dh = [d_rain * model.W_rain[j] + (d_water * model.W_water[j] if has_real_water else 0.0)
+                  for j in range(model.hidden_dim)]
+
+            for j in range(model.hidden_dim):
+                decay = math.exp(-1.0 / max(0.1, model.tau[j]))
+                d_act = dh[j] * (1.0 - decay) * (1.0 - h[j] ** 2)
+                model.b_h[j] -= lr * d_act * 0.05
+                for i in range(model.in_features):
+                    model.W_in[i][j] -= lr * d_act * feat[i] * 0.05
 
         # Validation
         tp = fp = tn = fn = 0
@@ -289,7 +317,7 @@ def train_balanced(seed=DEFAULT_SEED):
                 f"| Water MAE: {water_str}"
             )
 
-    # Save balanced weights with reproducibility manifest
+    # Save balanced weights with reproducibility manifest and train-fitted normalization
     weights_path = os.path.join(DATA_DIR, "lnn_trained_weights.json")
     weights = {
         "model_family": "ContinuousLNNCell (Model Family 2 — standalone trainer)",
@@ -303,6 +331,11 @@ def train_balanced(seed=DEFAULT_SEED):
         "b_rain": model.b_rain,
         "W_water": model.W_water,
         "b_water": model.b_water,
+        "normalization": {
+            "means": norm_means,
+            "stds": norm_stds,
+            "source": "train_split_fitted",
+        },
         "validation_accuracy": f"{acc:.1f}%",
         "validation_recall": f"{rec:.1f}%",
         "validation_precision": f"{prec:.1f}%",

@@ -101,7 +101,7 @@ python prediction-model/src/train_standalone.py
 ```
 
 ### 4. Run Comprehensive Validation Suite
-Evaluates the model across FAR, CSI, Brier score, precipitation intensity classes, per-station breakdowns, real gauge stage MAE/RMSE, and empirical conformal coverage:
+Evaluates both MF-1 (PyTorch) and MF-2 (Standalone) models against Persistence and Climatology baselines on canonical future-window test sequences, computing out-of-sample conformal test coverage:
 ```bash
 python prediction-model/src/validate.py
 ```
