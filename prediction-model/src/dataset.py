@@ -327,8 +327,20 @@ class TelemetryDataPipeline:
             output_path = os.path.join(DATA_DIR, "data_quality_report.json")
 
         total_station_hours = sum(len(h) for h in self.station_hourly.values())
+        git_commit = "unknown"
+        try:
+            import subprocess
+            git_commit = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=os.path.dirname(DATA_DIR),
+                text=True
+            ).strip()
+        except Exception:
+            pass
+
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
+            "code_commit": git_commit,
             "data_hashes": {
                 "weather_telemetry_sha256": compute_file_sha256(self.weather_csv),
                 "water_level_telemetry_sha256": compute_file_sha256(self.water_csv),

@@ -2,8 +2,8 @@
   "manifest": {
     "model_family": "MF-2: ContinuousLNNCell (Standalone)",
     "model_status": "RESEARCH_PROTOTYPE",
-    "code_commit": "ec6303b7af56f9db09b2f276664aa35edab5d173",
-    "training_date": "2026-09-22T02:44:07.684410+00:00",
+    "code_commit": "44fba37dfdfe7d563e02a993e8ddc5fc9b87359f",
+    "training_date": "2026-09-22T03:24:40.385340+00:00",
     "seed": 42,
     "forecast_horizon_hours": 12,
     "feature_schema": [
