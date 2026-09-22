@@ -1,61 +1,224 @@
 {
+  "model_status": "RESEARCH_PROTOTYPE",
+  "model_family": "ContinuousLNNCell (Model Family 2 \u2014 standalone trainer)",
   "evaluation_scale": {
     "total_records_dataset": 800039,
     "evaluated_samples": 75616,
     "monitored_stations": 16
   },
   "rain_metrics": {
-    "recall_pod": "81.89%",
-    "accuracy": "51.07%",
-    "precision": "12.99%",
-    "f1_score": "22.42%"
+    "threshold": 0.5,
+    "recall_pod": "62.08%",
+    "accuracy": "65.85%",
+    "precision": "14.79%",
+    "f1_score": "23.88%",
+    "false_alarm_ratio": "85.21%",
+    "critical_success_index": "13.56%",
+    "brier_score": 0.1936
   },
-  "water_level_metrics": {
-    "mae_meters": 0.0621,
-    "mae_cm": 6.2,
-    "rmse_meters": 0.1184
-  },
-  "performance": {
-    "latency_microseconds": 17.14,
-    "throughput_per_second": 58356,
-    "infrastructure": "Serverless CPU (Zero GPU cost)"
-  },
-  "multi_horizon_stability": [
+  "threshold_sensitivity": [
     {
-      "horizon": "1h",
-      "uncertainty_band": "\u00b10.080m",
-      "status": "PASS (Physically Bounded)"
+      "threshold": 0.3,
+      "accuracy": 35.15,
+      "recall": 93.11,
+      "precision": 11.12,
+      "f1": 19.86,
+      "far": 88.88,
+      "csi": 11.03
     },
     {
-      "horizon": "3h",
-      "uncertainty_band": "\u00b10.139m",
-      "status": "PASS (Physically Bounded)"
+      "threshold": 0.4,
+      "accuracy": 48.42,
+      "recall": 83.33,
+      "precision": 12.55,
+      "f1": 21.81,
+      "far": 87.45,
+      "csi": 12.24
     },
     {
-      "horizon": "6h",
-      "uncertainty_band": "\u00b10.196m",
-      "status": "PASS (Physically Bounded)"
+      "threshold": 0.5,
+      "accuracy": 65.85,
+      "recall": 62.08,
+      "precision": 14.79,
+      "f1": 23.88,
+      "far": 85.21,
+      "csi": 13.56
     },
     {
-      "horizon": "12h",
-      "uncertainty_band": "\u00b10.277m",
-      "status": "PASS (Physically Bounded)"
+      "threshold": 0.6,
+      "accuracy": 83.97,
+      "recall": 24.05,
+      "precision": 17.98,
+      "f1": 20.58,
+      "far": 82.02,
+      "csi": 11.47
     },
     {
-      "horizon": "24h",
-      "uncertainty_band": "\u00b10.392m",
-      "status": "PASS (Physically Bounded)"
-    },
-    {
-      "horizon": "48h",
-      "uncertainty_band": "\u00b10.554m",
-      "status": "PASS (Physically Bounded)"
-    },
-    {
-      "horizon": "72h",
-      "uncertainty_band": "\u00b10.679m",
-      "status": "PASS (Physically Bounded)"
+      "threshold": 0.7,
+      "accuracy": 90.8,
+      "recall": 1.49,
+      "precision": 15.52,
+      "f1": 2.71,
+      "far": 84.48,
+      "csi": 1.37
     }
   ],
-  "overall_grade": "PASSED - PRODUCTION READY"
+  "rain_by_intensity": {
+    "trace": {
+      "range_mm": "0.0-0.5",
+      "event_count": 5890,
+      "detected_pct": 62.4
+    },
+    "light": {
+      "range_mm": "0.5-2.5",
+      "event_count": 583,
+      "detected_pct": 63.6
+    },
+    "moderate": {
+      "range_mm": "2.5-7.5",
+      "event_count": 11,
+      "detected_pct": 45.5
+    },
+    "heavy": {
+      "range_mm": "7.5-inf",
+      "event_count": 43,
+      "detected_pct": 2.3
+    }
+  },
+  "rain_by_station": {
+    "03pqkGAj": {
+      "accuracy": 64.56,
+      "recall": 62.55,
+      "precision": 8.56,
+      "sample_count": 5000
+    },
+    "1Zb102pg": {
+      "accuracy": 72.54,
+      "recall": 58.73,
+      "precision": 16.09,
+      "sample_count": 5000
+    },
+    "2Dpo5DAK": {
+      "accuracy": 70.89,
+      "recall": 60.68,
+      "precision": 25.89,
+      "sample_count": 2810
+    },
+    "3nzr48bG": {
+      "accuracy": 79.24,
+      "recall": 70.05,
+      "precision": 31.57,
+      "sample_count": 5000
+    },
+    "3nzr8bGo": {
+      "accuracy": 61.14,
+      "recall": 84.84,
+      "precision": 20.18,
+      "sample_count": 5000
+    },
+    "4VAl2p9k": {
+      "accuracy": 50.58,
+      "recall": 88.53,
+      "precision": 13.75,
+      "sample_count": 5000
+    },
+    "95pM7BAV": {
+      "accuracy": 70.1,
+      "recall": 67.93,
+      "precision": 30.5,
+      "sample_count": 2806
+    },
+    "Bkpj1zRO": {
+      "accuracy": 47.34,
+      "recall": 92.05,
+      "precision": 2.99,
+      "sample_count": 5000
+    },
+    "QgbGldAY": {
+      "accuracy": 62.28,
+      "recall": 35.58,
+      "precision": 20.17,
+      "sample_count": 5000
+    },
+    "Rjz2dbXW": {
+      "accuracy": 49.54,
+      "recall": 84.97,
+      "precision": 11.74,
+      "sample_count": 5000
+    },
+    "VEpdDpBK": {
+      "accuracy": 84.86,
+      "recall": 39.02,
+      "precision": 4.33,
+      "sample_count": 5000
+    },
+    "lMAZe9b3": {
+      "accuracy": 59.38,
+      "recall": 72.19,
+      "precision": 5.79,
+      "sample_count": 5000
+    },
+    "nDby4YpR": {
+      "accuracy": 55.82,
+      "recall": 82.79,
+      "precision": 12.37,
+      "sample_count": 5000
+    },
+    "nDbyYbR1": {
+      "accuracy": 73.74,
+      "recall": 52.97,
+      "precision": 8.75,
+      "sample_count": 5000
+    },
+    "rqAkmpKG": {
+      "accuracy": 67.48,
+      "recall": 70.16,
+      "precision": 25.95,
+      "sample_count": 5000
+    },
+    "wkAWLzlm": {
+      "accuracy": 88.12,
+      "recall": 11.62,
+      "precision": 37.43,
+      "sample_count": 5000
+    }
+  },
+  "water_level_metrics": {
+    "source": "real_gauge_observations",
+    "gauge_station": "Calumpit WLMS (O3z0j5bG)",
+    "mae_meters": 0.6199,
+    "mae_cm": 62.0,
+    "rmse_meters": 0.676,
+    "gauge_matched_samples": 911,
+    "note": "Single-gauge validated. Do not generalize to all 16 weather stations."
+  },
+  "uncertainty_bands": {
+    "method": "empirical_conformal_prediction",
+    "note": "Computed from sorted absolute residuals on calibration set, NOT a fixed formula.",
+    "bands": [
+      {
+        "target_coverage": "80%",
+        "band_meters": 0.8679,
+        "empirical_coverage": "80.1%",
+        "calibration_samples": 911
+      },
+      {
+        "target_coverage": "90%",
+        "band_meters": 1.0119,
+        "empirical_coverage": "90.1%",
+        "calibration_samples": 911
+      },
+      {
+        "target_coverage": "95%",
+        "band_meters": 1.0865,
+        "empirical_coverage": "95.2%",
+        "calibration_samples": 911
+      }
+    ]
+  },
+  "performance": {
+    "latency_microseconds": 17.4,
+    "throughput_per_second": 57457,
+    "infrastructure": "Serverless CPU"
+  }
 }

@@ -1,6 +1,8 @@
 """
-Liquid Neural Network (LNN) / Closed-form Continuous-time (CfC) Neural Model
-for Weather Station Telemetry & Flood Forecasting.
+Continuous-Time CfC (Closed-form Continuous-time) Recurrent Neural Network
+for Weather Station Telemetry & Hydrological Prediction.
+
+This is Model Family 1 (PyTorch WeatherWaterLNN). See MODEL_REGISTRY.md.
 
 Inputs:
   - Temperature (C)
@@ -11,8 +13,11 @@ Inputs:
 
 Outputs:
   - Chance of Rain (%) & Expected Rain Accumulation (mm)
-  - Projected River Water Level (meters) & Flood Risk Stage
+  - Projected River Water Level (meters)
+
+Status: Research prototype. See prediction-model-audit.md for limitations.
 """
+
 
 import torch
 import torch.nn as nn

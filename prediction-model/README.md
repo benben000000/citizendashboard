@@ -1,32 +1,50 @@
-# KloudTrack Water Level Prediction Model (LNN)
+# KloudTrack Continuous-Time Weather & Hydrological Model (CfC/LNN)
 
-This module handles water level and hydrological forecasting by processing raw telemetry streams from KloudTrack weather and river monitoring stations using **Liquid Neural Networks (LNNs)**.
+This module implements continuous-time recurrent neural network architectures for weather telemetry and hydrological stage forecasting using **Closed-form Continuous-time (CfC) / Liquid Neural Networks (LNNs)**.
 
----
-
-##  Overview & Objectives
-
-- **Continuous-Time Modeling**: Leverage Liquid Neural Networks (LNNs / Liquid Time-Constant Networks / CfC) to model continuous physical dynamics of water level fluctuations, rainfall accumulation, and river discharge.
-- **Irregular & Sparse Telemetry Handling**: LNNs adapt dynamically to variable reporting intervals, sensor drops, and varying environmental conditions across distributed weather stations.
-- **Multi-Horizon Forecasting**: Predict short-term (1–6 hours) and medium-term (12–72 hours) water levels to enable early flood warning systems and critical threshold alerting.
+> [!IMPORTANT]
+> **Status: Research Prototype**
+> The models and scorecards in this module are research prototypes developed for experimental evaluation. They are **not** certified for autonomous flood warning or emergency response decisions. Hydrological validation is currently single-gauge (Calumpit WLMS, station `O3z0j5bG`). See [MODEL_REGISTRY.md](file:///c:/Ben%20File/beta-citizen-prediction/prediction-model/MODEL_REGISTRY.md) and [prediction-model-audit.md](file:///c:/Ben%20File/beta-citizen-prediction/prediction-model-audit.md) for detailed evaluation criteria and known limitations.
 
 ---
 
-## 📡 Telemetry Inputs
+## Model Families
 
-The model ingests raw telemetry metrics from stations:
-- **Hydrological**: Water level (m / cm), rate of rise/fall, river flow.
-- **Meteorological**: Precipitation / Rainfall (mm / hourly rate), ambient temperature, relative humidity, barometric pressure, wind speed, and solar radiation.
-- **Station Metadata**: Location coordinates, elevation, watershed characteristics, and upstream station topology.
+To resolve historical conflation between different experimental implementations, the codebase explicitly separates three distinct model families. For detailed specifications, schemas, and governance, see [MODEL_REGISTRY.md](file:///c:/Ben%20File/beta-citizen-prediction/prediction-model/MODEL_REGISTRY.md).
+
+| Model ID | Name | Architecture | Framework | Training Method | Primary Artifact |
+|---|---|---|---|---|---|
+| **MF-1** | `WeatherWaterLNN` | Continuous-Time CfC Recurrent Neural Network | PyTorch | Multi-task gradient descent (AdamW) | `lnn_weather_water.pt` |
+| **MF-2** | `ContinuousLNNCell` | Analytical ODE Closed-Form Continuous Cell | Pure Python (Zero-dependency) | Chronologically split numerical updates | `lnn_trained_weights.json` |
+| **MF-3** | `StationAdaptivePINN` | Diurnal/Heuristic physics-coupled engine | Pure Python | Online parameter adaptation & diurnal priors | Configs in `config/` |
 
 ---
 
-## Architecture: Liquid Neural Network (LNN)
+## Key Capabilities & Formulation
 
-Liquid Neural Networks offer significant advantages for time-series telemetry:
-1. **Dynamic Synaptic Weights**: Neurons and synapses are governed by continuous differential equations that adapt to incoming telemetry changes in real time.
-2. **Compact & Interpretable**: Requires fewer parameters than standard LSTMs/Transformers while retaining high expressive power for non-linear hydrological systems.
-3. **Robust to Domain Shifts**: Maintains high generalization during extreme weather events (e.g., sudden typhoons, heavy monsoon downpours).
+- **Continuous-Time Recurrence**: Rather than assuming fixed 1-hour intervals, the recurrent hidden state evolves according to an analytical closed-form solution to a continuous-time ordinary differential equation (ODE):
+  $$\frac{dh}{dt} = -\left[\frac{1}{\tau} + f(x, h)\right] h + A \cdot f(x, h)$$
+  conditioned on the actual measured elapsed time $\Delta t$ between telemetry readings.
+- **Future Forecasting Targets**: The model is trained to predict future conditions at horizon $t_0 + h$ (where $h \in \{1, 3, 6, 12, 24\}$ hours) given a 24-hour historical observation window preceding forecast origin $t_0$, avoiding contemporaneous target leakage.
+- **Chronological Split**: Data is partitioned strictly by timestamp (train: first 60%–80%, validation: subsequent 20%, test: final held-out period) per station before windowing to ensure realistic temporal generalization.
+- **Real River Gauge Target Matching**: Water level training and evaluation targets are joined from real gauge telemetry (`water_level_telemetry.csv`, Calumpit WLMS) to the nearest weather station (`3nzr48bG`, Calumpit AWS). Samples without valid gauge observations are masked during loss calculation.
+- **Empirical Conformal Uncertainty**: Uncertainty intervals are calculated via conformal prediction on held-out residuals at 80%, 90%, and 95% empirical coverage, replacing arbitrary static formulas.
+
+---
+
+## Telemetry Features & Schema
+
+The model ingests 4 normalized weather channels along with elapsed continuous-time step $\Delta t$:
+1. **Temperature ($^\circ$C)**: Ambient dry-bulb temperature
+2. **Heat Index ($^\circ$C)**: Calculated apparent temperature
+3. **Wind Speed (km/h)**: Surface anemometer velocity
+4. **Atmospheric Pressure (hPa)**: Barometric surface pressure
+5. **Elapsed Time $\Delta t$ (hours)**: Continuous delta between consecutive measurements
+
+### Multi-Task Output Heads
+1. **Chance of Rain**: Probability $[0.0, 1.0]$ via Sigmoid activation
+2. **Precipitation Volume**: Expected accumulation in mm via ReLU activation ($\ge 0$)
+3. **River Stage**: Projected water level in meters at target horizon $t_0 + h$
 
 ---
 
@@ -34,62 +52,62 @@ Liquid Neural Networks offer significant advantages for time-series telemetry:
 
 ```plaintext
 prediction-model/
+├── MODEL_REGISTRY.md                 # Formal catalog and governance of model families
 ├── data/
-│   ├── weather_telemetry.csv         # 756,156 real historical telemetry rows across 16 stations
-│   ├── water_level_telemetry.csv     # 43,883 river gauge telemetry rows
-│   ├── dataset_summary.json          # Complete telemetry manifest and station metadata
-│   ├── lnn_trained_weights.json      # Trained LNN model weights (91.6% accuracy, 0.013m MAE)
-│   └── raw_*.json                    # Raw JSON station dumps (21 files)
+│   ├── weather_telemetry.csv         # 756,156 historical telemetry rows across 16 stations
+│   ├── water_level_telemetry.csv     # 43,883 river gauge telemetry rows (Calumpit WLMS)
+│   ├── dataset_summary.json          # Telemetry manifest and station inventory
+│   ├── lnn_trained_weights.json      # Model Family 2 trained weights
+│   ├── lnn_weather_water.pt          # Model Family 1 PyTorch checkpoint with manifest
+│   └── validation_scorecard.json     # Comprehensive validation metrics & conformal bands
 ├── docs/
-│   ├── README.md
-│   ├── technical-whitepaper.md       # Full technical paper & model documentation
+│   ├── technical-whitepaper.md       # Technical paper & model documentation
 │   ├── pagasa-validation-report.md   # 72h continuous benchmark against PAGASA ground truth
-│   ├── model-card.md                 # Technical formulation & model architecture
+│   ├── model-card.md                 # Model card specification
 │   ├── compliance-and-fair-usage.md  # Fair usage & community safety guidelines
-│   └── system-architecture.md        # 3-tier architecture diagram
+│   └── system-architecture.md        # System architecture diagram
 ├── src/
-│   ├── fetch_dataset.py              # Ingests historical data in single batch calls
-│   ├── dataset.py                    # Preprocessing & normalization pipeline
-│   ├── model.py                      # Continuous-time LNN / CfC PyTorch cell
-│   ├── train.py                      # PyTorch multi-task training loop
-│   ├── train_standalone.py           # Zero-dependency LNN trainer & evaluator
+│   ├── dataset.py                    # Chronological splitting, real gauge join, normalization
+│   ├── model.py                      # PyTorch CfCCell and WeatherWaterLNN (Model Family 1)
+│   ├── train.py                      # PyTorch training pipeline with reproducibility controls
+│   ├── train_standalone.py           # Zero-dependency standalone trainer (Model Family 2)
+│   ├── validate.py                   # Scorecard suite (FAR, CSI, Brier, conformal bands)
+│   ├── inference.py                  # Fail-closed serverless predictor
 │   ├── export_onnx.py                # Exports PyTorch weights to ONNX format
-│   └── inference.py                  # Standalone serverless predictor
+│   └── fetch_dataset.py              # Ingests telemetry data
 └── README.md
 ```
 
 ---
 
-## Quick Start
+## Quick Start & Verification
 
-### 1. Ingest Historical Telemetry
+### 1. Verify Pipeline (Smoke Test)
+Run a fast end-to-end smoke test (loads 1 mini-batch, executes forward pass, computes multi-task loss, runs backward pass, and verifies optimizer step):
 ```bash
-python3 src/fetch_dataset.py
+python prediction-model/src/train.py --smoke
 ```
 
-### 2. Train Continuous-Time LNN Model
+### 2. Train PyTorch CfC/LNN (Model Family 1)
+Trains the deep continuous-time recurrent model with chronological train/validation splits and masked real gauge loss:
 ```bash
-python3 src/train_standalone.py
+python prediction-model/src/train.py
 ```
 
----
+### 3. Train Standalone Cell (Model Family 2)
+Trains the lightweight zero-dependency continuous cell:
+```bash
+python prediction-model/src/train_standalone.py
+```
 
-## Getting Started
+### 4. Run Comprehensive Validation Suite
+Evaluates the model across FAR, CSI, Brier score, precipitation intensity classes, per-station breakdowns, real gauge stage MAE/RMSE, and empirical conformal coverage:
+```bash
+python prediction-model/src/validate.py
+```
 
-1. **Set up Python Virtual Environment**:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-2. **Run Exploratory Analysis**:
-   ```bash
-   jupyter lab notebooks/
-   ```
-
-3. **Train LNN Model**:
-   ```bash
-   python -m src.training.train --config configs/lnn_default.yaml
-   ```
-
+### 5. Run Fail-Closed Inference
+Produces lead-horizon predictions with checkpoint manifest validation and fail-closed safety:
+```bash
+python prediction-model/src/inference.py
+```

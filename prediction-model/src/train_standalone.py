@@ -1,7 +1,15 @@
 """
-Balanced Continuous-Time LNN (CfC) Trainer & Optimizer.
-Applies positive class reweighting for 8.6% rain occurrence to achieve
-high Probability of Detection (POD / Recall) and precise water level regression.
+Balanced Continuous-Time LNN (CfC) Trainer & Optimizer (Model Family 2).
+
+This is the standalone (zero-dependency on PyTorch) ContinuousLNNCell trainer.
+See MODEL_REGISTRY.md for model family details.
+
+Audit fixes applied:
+  - Chronological train/val split (not random shuffle) (Critical)
+  - Random seed for reproducibility (Medium)
+  - Real water-level gauge targets where available (Critical)
+  - Rain threshold changed to > 0.1mm to match dataset.py (consistency)
+  - Dataset hash and split info recorded in saved weights (Medium)
 """
 
 import os
@@ -9,6 +17,10 @@ import csv
 import math
 import random
 import json
+import hashlib
+import platform
+from datetime import datetime, timezone
+from collections import defaultdict
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 WEATHER_CSV = os.path.join(DATA_DIR, "weather_telemetry.csv")
@@ -17,6 +29,8 @@ WATER_CSV = os.path.join(DATA_DIR, "water_level_telemetry.csv")
 MEANS = [28.5, 33.0, 10.0, 1008.0]
 STDS = [4.5, 6.5, 8.0, 6.0]
 
+DEFAULT_SEED = 42
+
 
 def sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, x))))
@@ -24,6 +38,17 @@ def sigmoid(x: float) -> float:
 
 def tanh(x: float) -> float:
     return math.tanh(max(-20.0, min(20.0, x)))
+
+
+def _file_hash(path: str) -> str:
+    """SHA-256 hash of a file for reproducibility."""
+    if not os.path.exists(path):
+        return "FILE_NOT_FOUND"
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 class ContinuousLNNCell:
@@ -65,17 +90,56 @@ class ContinuousLNNCell:
         return h_next, rain_prob, water_pred
 
 
-def load_balanced_dataset(samples_per_class=4000):
+def _load_water_gauge_lookup():
+    """Load real water-level observations for gauge-matched validation."""
+    lookup = {}
+    if not os.path.exists(WATER_CSV):
+        return lookup
+    with open(WATER_CSV, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                ts = row.get("recorded_at", "")[:16]  # Minute precision
+                wl_m = row.get("water_level_m")
+                wl_cm = row.get("water_level_cm")
+                if wl_m is not None and wl_m != "":
+                    wl = float(wl_m)
+                elif wl_cm is not None and wl_cm != "":
+                    wl = float(wl_cm) / 100.0
+                else:
+                    continue
+                lookup[ts] = wl
+            except (ValueError, TypeError):
+                continue
+    return lookup
+
+
+def load_chronological_dataset(samples_per_class=4000, train_frac=0.8, seed=DEFAULT_SEED):
+    """
+    Load dataset with CHRONOLOGICAL split (not random shuffle).
+
+    The data is sorted by timestamp. The first train_frac of time-ordered
+    data is used for training, and the remaining for validation. Within
+    each split, we still do balanced sampling for rain/dry.
+
+    Returns (train_data, val_data) where each is a list of tuples:
+        (feat, target_rain, target_water, precip, has_real_water)
+    """
+    random.seed(seed)
+
     if not os.path.exists(WEATHER_CSV):
-        return []
+        return [], []
 
-    rain_samples = []
-    dry_samples = []
+    # Load real water gauge data
+    water_gauge = _load_water_gauge_lookup()
 
+    # Load all rows with timestamps for chronological ordering
+    all_rows = []
     with open(WEATHER_CSV, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             try:
+                ts = row.get("recorded_at", "")
                 t = float(row.get("temperature") or 28.5)
                 hi = float(row.get("heat_index") or 33.0)
                 ws = float(row.get("wind_speed") or 10.0)
@@ -89,43 +153,61 @@ def load_balanced_dataset(samples_per_class=4000):
                     (p - MEANS[3]) / STDS[3],
                 ]
 
-                if precip > 0.0:
-                    water_t = 3.45 + min(3.5, precip * 0.15)
-                    rain_samples.append((feat, 1.0, water_t, precip))
+                # Real water target from gauge (if available)
+                ts_key = ts[:16]
+                real_water = water_gauge.get(ts_key)
+
+                if precip > 0.1:
+                    rain_target = 1.0
+                    water_t = real_water if real_water is not None else 3.45
+                    has_real = real_water is not None
+                    all_rows.append((ts, feat, rain_target, water_t, precip, has_real, "rain"))
                 else:
-                    water_t = 3.45
-                    dry_samples.append((feat, 0.0, water_t, 0.0))
+                    rain_target = 0.0
+                    water_t = real_water if real_water is not None else 3.45
+                    has_real = real_water is not None
+                    all_rows.append((ts, feat, rain_target, water_t, 0.0, has_real, "dry"))
             except Exception:
                 continue
 
-    random.shuffle(rain_samples)
-    random.shuffle(dry_samples)
+    # Sort by timestamp (chronological order)
+    all_rows.sort(key=lambda x: x[0])
 
-    selected_rain = rain_samples[:samples_per_class]
-    selected_dry = dry_samples[:samples_per_class]
+    # Chronological split
+    split_idx = int(len(all_rows) * train_frac)
+    train_rows = all_rows[:split_idx]
+    val_rows = all_rows[split_idx:]
 
-    combined = selected_rain + selected_dry
-    random.shuffle(combined)
-    return combined
+    def _balance_and_format(rows, max_per_class):
+        rain = [(r[1], r[2], r[3], r[4], r[5]) for r in rows if r[6] == "rain"]
+        dry = [(r[1], r[2], r[3], r[4], r[5]) for r in rows if r[6] == "dry"]
+        random.shuffle(rain)
+        random.shuffle(dry)
+        selected = rain[:max_per_class] + dry[:max_per_class]
+        random.shuffle(selected)
+        return selected
+
+    train_data = _balance_and_format(train_rows, samples_per_class)
+    val_data = _balance_and_format(val_rows, samples_per_class // 2)
+
+    return train_data, val_data
 
 
-def train_balanced():
+def train_balanced(seed=DEFAULT_SEED):
     print("=" * 70)
-    print("🧠 Training Balanced Continuous-Time LNN Model on Real Telemetry")
+    print("Training Balanced Continuous-Time CfC/LNN Model (Model Family 2)")
     print("=" * 70)
 
-    dataset = load_balanced_dataset(samples_per_class=4000)
-    if not dataset:
-        print("❌ Dataset not found.")
+    random.seed(seed)
+
+    train_data, val_data = load_chronological_dataset(samples_per_class=4000, seed=seed)
+    if not train_data:
+        print("ERROR: Dataset not found.")
         return
 
-    train_size = int(len(dataset) * 0.8)
-    train_data = dataset[:train_size]
-    val_data = dataset[train_size:]
-
-    print(f"📊 Balanced Dataset: {len(dataset):,} samples (50% Rain Events, 50% Dry)")
-    print(f"   - Training Set:   {len(train_data):,} samples")
-    print(f"   - Validation Set: {len(val_data):,} samples")
+    print(f"Chronological Split (train first 80% by time, val last 20%)")
+    print(f"   Training Set:   {len(train_data):,} balanced samples")
+    print(f"   Validation Set: {len(val_data):,} balanced samples")
 
     model = ContinuousLNNCell(in_features=4, hidden_dim=8)
     lr = 0.015
@@ -135,13 +217,19 @@ def train_balanced():
         h = [0.0] * model.hidden_dim
         train_loss = 0.0
 
-        for feat, target_rain, target_water, _ in train_data:
+        for feat, target_rain, target_water, _, has_real_water in train_data:
             h, pred_rain, pred_water = model.forward_step(feat, h, dt=1.0)
 
-            # Weighted BCE loss + MSE water loss
+            # Weighted BCE loss
             eps = 1e-7
             bce = -(target_rain * math.log(max(eps, pred_rain)) + (1.0 - target_rain) * math.log(max(eps, 1.0 - pred_rain)))
-            mse_water = (pred_water - target_water) ** 2
+
+            # Water loss: only use real gauge targets
+            if has_real_water:
+                mse_water = (pred_water - target_water) ** 2
+            else:
+                mse_water = 0.0
+
             loss = bce + 0.8 * mse_water
             train_loss += loss
 
@@ -153,17 +241,19 @@ def train_balanced():
                 model.W_in[3][j] -= lr * grad_rain * 0.01
             model.b_rain -= lr * grad_rain
 
-            grad_water = 2.0 * (pred_water - target_water)
-            for j in range(model.hidden_dim):
-                model.W_water[j] -= lr * grad_water * h[j] * 0.05
-            model.b_water -= lr * grad_water * 0.02
+            if has_real_water:
+                grad_water = 2.0 * (pred_water - target_water)
+                for j in range(model.hidden_dim):
+                    model.W_water[j] -= lr * grad_water * h[j] * 0.05
+                model.b_water -= lr * grad_water * 0.02
 
         # Validation
         tp = fp = tn = fn = 0
         mae_sum = 0.0
+        water_count = 0
         h_val = [0.0] * model.hidden_dim
 
-        for feat, target_rain, target_water, _ in val_data:
+        for feat, target_rain, target_water, _, has_real_water in val_data:
             h_val, pred_rain, pred_water = model.forward_step(feat, h_val, dt=1.0)
             p_class = 1 if pred_rain >= 0.5 else 0
             t_class = int(target_rain)
@@ -177,15 +267,18 @@ def train_balanced():
             elif p_class == 0 and t_class == 1:
                 fn += 1
 
-            mae_sum += abs(pred_water - target_water)
+            if has_real_water:
+                mae_sum += abs(pred_water - target_water)
+                water_count += 1
 
-        acc = (tp + tn) / len(val_data) * 100.0
+        acc = (tp + tn) / len(val_data) * 100.0 if val_data else 0.0
         rec = (tp / (tp + fn)) * 100.0 if (tp + fn) > 0 else 0.0
         prec = (tp / (tp + fp)) * 100.0 if (tp + fp) > 0 else 0.0
         f1 = (2 * prec * rec / (prec + rec)) if (prec + rec) > 0 else 0.0
-        mae = mae_sum / len(val_data)
+        mae = mae_sum / water_count if water_count > 0 else float("nan")
 
         if epoch % 5 == 0 or epoch == epochs:
+            water_str = f"{mae:.3f}m (n={water_count})" if water_count > 0 else "N/A (no gauge data)"
             print(
                 f"Epoch [{epoch:02d}/{epochs:02d}] "
                 f"| Loss: {train_loss/len(train_data):.4f} "
@@ -193,12 +286,14 @@ def train_balanced():
                 f"| Recall: {rec:.1f}% "
                 f"| Precision: {prec:.1f}% "
                 f"| F1: {f1:.1f}% "
-                f"| Water MAE: {mae:.3f}m"
+                f"| Water MAE: {water_str}"
             )
 
-    # Save balanced weights
+    # Save balanced weights with reproducibility manifest
     weights_path = os.path.join(DATA_DIR, "lnn_trained_weights.json")
     weights = {
+        "model_family": "ContinuousLNNCell (Model Family 2 — standalone trainer)",
+        "model_status": "RESEARCH_PROTOTYPE",
         "hidden_dim": model.hidden_dim,
         "W_in": model.W_in,
         "W_rec": model.W_rec,
@@ -212,15 +307,27 @@ def train_balanced():
         "validation_recall": f"{rec:.1f}%",
         "validation_precision": f"{prec:.1f}%",
         "validation_f1": f"{f1:.1f}%",
-        "validation_mae_water": f"{mae:.3f}m",
+        "validation_mae_water": f"{mae:.3f}m" if water_count > 0 else "N/A",
+        "water_gauge_matched_samples": water_count,
+        "split_method": "chronological_80_20",
+        "reproducibility": {
+            "seed": seed,
+            "training_date": datetime.now(timezone.utc).isoformat(),
+            "weather_csv_sha256": _file_hash(WEATHER_CSV),
+            "water_csv_sha256": _file_hash(WATER_CSV),
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "train_samples": len(train_data),
+            "val_samples": len(val_data),
+        },
     }
     with open(weights_path, "w", encoding="utf-8") as f:
         json.dump(weights, f, indent=2)
 
     print("=" * 70)
-    print(f"✅ Balanced Training Complete! Saved -> {weights_path}")
+    print(f"Training Complete! Saved -> {weights_path}")
     print("=" * 70)
 
 
 if __name__ == "__main__":
-    train_balanced()
+    train_balanced(seed=DEFAULT_SEED)
