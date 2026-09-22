@@ -1,25 +1,19 @@
 """
-Training Script for Continuous-Time CfC/LNN Weather & Hydrological Model.
-Optimizes multi-task loss:
-  L_total = lambda_rain * L_bce + lambda_precip * L_precip + lambda_water * L_water
+Training Pipeline for Continuous-Time CfC/LNN Weather & Hydrological Forecasting (Model Family 1).
 
-Note: This trains the PyTorch WeatherWaterLNN model (Model Family 1).
-See MODEL_REGISTRY.md for model family details.
-
-Audit fixes applied:
-  - max_samples keyword fix (Fix 1)
-  - Train-fitted normalization parameters persisted in checkpoint (Fix 2)
-  - Reproducibility controls: seeds, SHA256 hashes, environment versions (Fix 3)
-  - Untouched test split evaluation recorded in checkpoint manifest (Fix 4)
-  - Chronological 60/20/20 train/val/test splits without temporal leakage (Fix 9)
-  - Real gauge observations joined for water level, missing masked (Fix 10)
-  - Future-forecasting targets at t0 + h (Fix 11)
+Trains PyTorch WeatherWaterLNN strictly on canonical future-window forecast samples:
+  - Input: [batch, seq_len, 4] normalized hourly telemetry.
+  - dt: [batch, seq_len, 1] actual elapsed hours between measurements.
+  - Targets: rain_prob, precip_mm, and water_level at future horizon t0 + h.
+  - Partitioning: Train split only for parameter updates; Validation split only for checkpoint selection.
+  - Test split is NEVER inspected during training (evaluated strictly by independent validator).
+  - Checkpoint includes complete reproducibility manifest with hashes, normalization, and parameters.
 """
 
-import sys
 import os
+import sys
+import argparse
 import random
-import hashlib
 import platform
 from datetime import datetime, timezone
 
@@ -29,14 +23,26 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from dataset import TelemetryDataset, FEATURE_MEANS, FEATURE_STDS
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
+from dataset import (
+    TelemetryDataset,
+    get_telemetry_pipeline,
+    compute_file_sha256,
+    DATA_DIR,
+    WEATHER_CSV_PATH,
+    WATER_CSV_PATH,
+    DEFAULT_SEQ_LEN,
+)
 from model import WeatherWaterLNN
 
 DEFAULT_SEED = 42
 
 
 def set_reproducibility_seed(seed: int = DEFAULT_SEED):
-    """Seed all pseudo-random number generators for reproducible training."""
+    """Seed all pseudo-random number generators for deterministic reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -46,178 +52,126 @@ def set_reproducibility_seed(seed: int = DEFAULT_SEED):
     torch.backends.cudnn.benchmark = False
 
 
-def _dataset_file_hash(filepath: str) -> str:
-    """Compute SHA256 hex digest of a dataset file for provenance tracking."""
-    if not os.path.exists(filepath):
-        return "file_not_found"
-    h = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        while chunk := f.read(65536):
-            h.update(chunk)
-    return h.hexdigest()
+def build_checkpoint_manifest(
+    model_family: str,
+    seed: int,
+    horizon: int,
+    epoch: int,
+    val_loss: float,
+    val_water_rmse: float,
+    model_config: dict,
+    pipeline,
+) -> dict:
+    """Construct complete metadata manifest saved inside the checkpoint."""
+    # Attempt to get git commit hash
+    git_commit = "unknown"
+    try:
+        import subprocess
+        git_commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=os.path.dirname(DATA_DIR),
+            text=True
+        ).strip()
+    except Exception:
+        pass
 
-
-def _build_reproducibility_manifest(seed: int, epoch: int, val_loss: float,
-                                     water_rmse: float, model_config: dict,
-                                     data_dir: str, horizon: int,
-                                     norm_means: np.ndarray,
-                                     norm_stds: np.ndarray) -> dict:
-    """Build a complete reproducibility manifest saved with the checkpoint."""
-    weather_csv = os.path.join(data_dir, "weather_telemetry.csv")
-    water_csv = os.path.join(data_dir, "water_level_telemetry.csv")
     return {
+        "model_family": model_family,
+        "model_status": "RESEARCH_PROTOTYPE",
+        "code_commit": git_commit,
         "training_date": datetime.now(timezone.utc).isoformat(),
         "seed": seed,
-        "model_config": model_config,
         "forecast_horizon_hours": horizon,
         "feature_schema": ["temperature", "heat_index", "wind_speed", "pressure"],
+        "input_sequence_length_hours": DEFAULT_SEQ_LEN,
+        "resampling_rule": "UTC hourly bins: last valid temp/hi/ws/pressure, sum of precip volume (mm), last valid water stage (m)",
+        "model_config": model_config,
+        "split_boundaries": {
+            "strategy": "chronological_60_20_20_with_48h_embargo",
+            "train_start": pipeline.time_range_min.isoformat() if pipeline.time_range_min else None,
+            "train_end": pipeline.train_end.isoformat() if pipeline.train_end else None,
+            "val_start": pipeline.val_start.isoformat() if pipeline.val_start else None,
+            "val_end": pipeline.val_end.isoformat() if pipeline.val_end else None,
+            "test_start": pipeline.test_start.isoformat() if pipeline.test_start else None,
+            "test_end": pipeline.time_range_max.isoformat() if pipeline.time_range_max else None,
+        },
         "normalization": {
-            "means": norm_means.tolist() if isinstance(norm_means, np.ndarray) else list(norm_means),
-            "stds": norm_stds.tolist() if isinstance(norm_stds, np.ndarray) else list(norm_stds),
+            "means": pipeline.norm_means.tolist() if isinstance(pipeline.norm_means, np.ndarray) else list(pipeline.norm_means),
+            "stds": pipeline.norm_stds.tolist() if isinstance(pipeline.norm_stds, np.ndarray) else list(pipeline.norm_stds),
             "source": "train_split_fitted",
         },
         "dataset_hashes": {
-            "weather_telemetry_sha256": _dataset_file_hash(weather_csv),
-            "water_level_telemetry_sha256": _dataset_file_hash(water_csv),
+            "weather_telemetry_sha256": compute_file_sha256(WEATHER_CSV_PATH),
+            "water_level_telemetry_sha256": compute_file_sha256(WATER_CSV_PATH),
         },
-        "split_method": "chronological_60_20_20",
         "environment": {
             "python_version": platform.python_version(),
             "torch_version": torch.__version__,
             "numpy_version": np.__version__,
             "platform": platform.platform(),
         },
-        "best_epoch": epoch,
-        "best_val_loss": val_loss,
-        "best_water_rmse": water_rmse,
+        "training_metrics": {
+            "best_epoch": epoch,
+            "best_val_loss": round(val_loss, 4),
+            "best_val_water_rmse_meters": round(val_water_rmse, 4) if not np.isnan(val_water_rmse) else None,
+        },
     }
 
 
-def evaluate_test_split(model: nn.Module, test_loader: DataLoader, device: torch.device) -> dict:
-    """
-    Evaluates model on the untouched test split and returns operational metrics.
-    """
-    model.eval()
-    bce_loss_fn = nn.BCELoss()
-    mse_loss_fn = nn.MSELoss(reduction="none")
-    huber_loss_fn = nn.SmoothL1Loss(reduction="none")
-
-    tp, fp, tn, fn = 0, 0, 0, 0
-    brier_sum = 0.0
-    water_errors = []
-    water_sq_errors = []
-    total_loss = 0.0
-    total_count = 0
-
-    with torch.no_grad():
-        for batch in test_loader:
-            telemetry = batch["telemetry"].to(device)
-            dt = batch["dt"].to(device)
-            target_rain = batch["rain_prob"].to(device)
-            target_precip = batch["precip_mm"].to(device)
-            target_water = batch["water_level"].to(device)
-            has_water = batch["has_water"].to(device)
-
-            pred_rain, pred_precip, pred_water = model(telemetry, dt)
-            pred_rain_final = pred_rain[:, -1, :]
-            pred_precip_final = pred_precip[:, -1, :]
-            pred_water_final = pred_water[:, -1, :]
-
-            loss_rain = bce_loss_fn(pred_rain_final, target_rain)
-            loss_precip = mse_loss_fn(pred_precip_final, target_precip).mean()
-            loss_water = (huber_loss_fn(pred_water_final, target_water) * has_water).sum() / (has_water.sum() + 1e-6)
-            loss = loss_rain + 0.1 * loss_precip + 0.5 * loss_water
-            total_loss += loss.item() * len(telemetry)
-            total_count += len(telemetry)
-
-            for i in range(len(telemetry)):
-                p = float(pred_rain_final[i, 0].item())
-                y = float(target_rain[i, 0].item())
-                brier_sum += (p - y) ** 2
-                cls_pred = 1 if p >= 0.5 else 0
-                if cls_pred == 1 and y == 1.0:
-                    tp += 1
-                elif cls_pred == 1 and y == 0.0:
-                    fp += 1
-                elif cls_pred == 0 and y == 0.0:
-                    tn += 1
-                else:
-                    fn += 1
-
-                if has_water[i, 0].item() > 0.5:
-                    w_pred = float(pred_water_final[i, 0].item())
-                    w_true = float(target_water[i, 0].item())
-                    water_errors.append(abs(w_pred - w_true))
-                    water_sq_errors.append((w_pred - w_true) ** 2)
-
-    acc = (tp + tn) / total_count * 100.0 if total_count > 0 else 0.0
-    rec = tp / (tp + fn) * 100.0 if (tp + fn) > 0 else 0.0
-    prec = tp / (tp + fp) * 100.0 if (tp + fp) > 0 else 0.0
-    f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-    far = fp / (tp + fp) * 100.0 if (tp + fp) > 0 else 0.0
-    csi = tp / (tp + fp + fn) * 100.0 if (tp + fp + fn) > 0 else 0.0
-    brier = brier_sum / total_count if total_count > 0 else 0.0
-    water_mae = sum(water_errors) / len(water_errors) if water_errors else None
-    water_rmse = (sum(water_sq_errors) / len(water_sq_errors)) ** 0.5 if water_sq_errors else None
-
-    return {
-        "test_samples": total_count,
-        "test_loss": round(total_loss / total_count, 4) if total_count > 0 else 0.0,
-        "accuracy": round(acc, 2),
-        "recall_pod": round(rec, 2),
-        "precision": round(prec, 2),
-        "f1_score": round(f1, 2),
-        "false_alarm_ratio": round(far, 2),
-        "critical_success_index": round(csi, 2),
-        "brier_score": round(brier, 4),
-        "water_gauge_samples": len(water_errors),
-        "water_mae_meters": round(water_mae, 4) if water_mae is not None else None,
-        "water_rmse_meters": round(water_rmse, 4) if water_rmse is not None else None,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Training
-# ---------------------------------------------------------------------------
-def train_lnn_model(
-    epochs: int = 25,
+def train_mf1_model(
+    horizon: int = 1,
+    epochs: int = 20,
     batch_size: int = 32,
     lr: float = 0.003,
     seed: int = DEFAULT_SEED,
-    horizon: int = 1,
-    save_path: str = "lnn_weather_water.pt",
+    max_train_samples: int = None,
+    save_path: str = None,
 ):
-    print("=" * 60)
-    print("Initializing Continuous-Time CfC/LNN Training Pipeline...")
-    print(f"Forecast horizon: +{horizon}h ahead")
-    print("=" * 60)
+    """
+    Train Model Family 1 (PyTorch WeatherWaterLNN) on canonical future-window dataset.
+    """
+    print("=" * 70)
+    print(f"Training Model Family 1 (PyTorch WeatherWaterLNN) | Horizon: +{horizon}h")
+    print("=" * 70)
 
     set_reproducibility_seed(seed)
+    pipeline = get_telemetry_pipeline()
 
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-    if save_path == "lnn_weather_water.pt":
-        save_path = os.path.join(data_dir, "lnn_weather_water.pt")
+    if save_path is None:
+        save_path = os.path.join(DATA_DIR, f"lnn_weather_water_h{horizon}.pt")
 
-    # Prepare datasets: fit normalization on train split, pass to val and test (Fix 2 & 9)
-    train_dataset = TelemetryDataset(max_samples=800, seq_len=24, split="train", horizon=horizon)
-    norm_means = train_dataset.norm_means
-    norm_stds = train_dataset.norm_stds
+    # Load canonical train and validation splits
+    print(f"Loading canonical datasets (horizon={horizon}h, seq_len={DEFAULT_SEQ_LEN})...")
+    train_dataset = TelemetryDataset(
+        split="train",
+        horizon=horizon,
+        seq_len=DEFAULT_SEQ_LEN,
+        max_samples=max_train_samples,
+        pipeline=pipeline,
+    )
+    val_dataset = TelemetryDataset(
+        split="val",
+        horizon=horizon,
+        seq_len=DEFAULT_SEQ_LEN,
+        max_samples=max_train_samples // 3 if max_train_samples else None,
+        pipeline=pipeline,
+    )
 
-    val_dataset = TelemetryDataset(max_samples=200, seq_len=24, split="val", horizon=horizon,
-                                   norm_means=norm_means, norm_stds=norm_stds)
-    test_dataset = TelemetryDataset(max_samples=200, seq_len=24, split="test", horizon=horizon,
-                                    norm_means=norm_means, norm_stds=norm_stds)
+    print(f"  Training samples:   {len(train_dataset)}")
+    print(f"  Validation samples: {len(val_dataset)}")
+
+    if len(train_dataset) == 0:
+        raise RuntimeError(f"No valid training samples found for horizon +{horizon}h!")
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # Initialize model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_config = {"input_dim": 4, "hidden_dim": 32}
     model = WeatherWaterLNN(**model_config).to(device)
 
-    # Losses & Optimizer
+    # Multi-task loss functions
     bce_loss_fn = nn.BCELoss()
     mse_loss_fn = nn.MSELoss(reduction="none")
     huber_loss_fn = nn.SmoothL1Loss(reduction="none")
@@ -227,6 +181,7 @@ def train_lnn_model(
     best_val_loss = float("inf")
     best_epoch = 0
     best_water_rmse = float("inf")
+    best_model_state = None
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -244,7 +199,7 @@ def train_lnn_model(
 
             pred_rain, pred_precip, pred_water = model(telemetry, dt)
 
-            # Use final hidden state output for the forecast at horizon t0 + h
+            # Target is evaluated at forecast origin t0 + h (final step in window)
             pred_rain_final = pred_rain[:, -1, :]
             pred_precip_final = pred_precip[:, -1, :]
             pred_water_final = pred_water[:, -1, :]
@@ -252,7 +207,7 @@ def train_lnn_model(
             loss_rain = bce_loss_fn(pred_rain_final, target_rain)
             loss_precip = mse_loss_fn(pred_precip_final, target_precip).mean()
 
-            # Water loss: only penalize when a real gauge observation is present
+            # Water loss: only backpropagate when a real gauge observation is present
             water_diff = huber_loss_fn(pred_water_final, target_water)
             water_count = has_water.sum()
             if water_count > 0:
@@ -265,16 +220,15 @@ def train_lnn_model(
 
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-
             total_train_loss += total_loss.item()
 
         scheduler.step()
-        avg_train_loss = total_train_loss / len(train_loader)
+        avg_train_loss = total_train_loss / max(1, len(train_loader))
 
-        # Validation (chronological holdout)
+        # Model validation on held-out validation split ONLY
         model.eval()
         total_val_loss = 0.0
-        val_water_rmse_sum = 0.0
+        val_water_sq_sum = 0.0
         val_water_count = 0
 
         with torch.no_grad():
@@ -300,8 +254,8 @@ def train_lnn_model(
                     loss_water = (water_diff * has_water).sum() / water_count
                     for i in range(len(has_water)):
                         if has_water[i].item() > 0.5:
-                            diff_val = pred_water_final[i].item() - target_water[i].item()
-                            val_water_rmse_sum += diff_val ** 2
+                            diff = pred_water_final[i].item() - target_water[i].item()
+                            val_water_sq_sum += diff ** 2
                             val_water_count += 1
                 else:
                     loss_water = torch.tensor(0.0, device=device)
@@ -309,100 +263,70 @@ def train_lnn_model(
                 val_loss = loss_rain + 0.1 * loss_precip + 0.5 * loss_water
                 total_val_loss += val_loss.item()
 
-        avg_val_loss = total_val_loss / len(val_loader)
-        avg_water_rmse = (val_water_rmse_sum / val_water_count) ** 0.5 if val_water_count > 0 else float("nan")
+        avg_val_loss = total_val_loss / max(1, len(val_loader))
+        avg_water_rmse = (val_water_sq_sum / val_water_count) ** 0.5 if val_water_count > 0 else float("nan")
 
         if epoch % 5 == 0 or epoch == epochs:
-            water_str = f"{avg_water_rmse:.3f}m" if val_water_count > 0 else "N/A (no gauge data)"
-            print(
-                f"Epoch [{epoch:02d}/{epochs:02d}] "
-                f"| Train Loss: {avg_train_loss:.4f} "
-                f"| Val Loss: {avg_val_loss:.4f} "
-                f"| Water RMSE: {water_str}"
-            )
+            w_str = f"{avg_water_rmse:.4f}m" if not np.isnan(avg_water_rmse) else "N/A"
+            print(f"  Epoch [{epoch:02d}/{epochs:02d}] Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Val Water RMSE: {w_str}")
 
+        # Checkpoint selection strictly on validation loss
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             best_epoch = epoch
             best_water_rmse = avg_water_rmse
-            manifest = _build_reproducibility_manifest(
-                seed, epoch, avg_val_loss, avg_water_rmse, model_config, data_dir, horizon,
-                norm_means, norm_stds,
-            )
-            torch.save(
-                {
-                    "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                    "val_loss": avg_val_loss,
-                    "water_rmse": avg_water_rmse,
-                    "manifest": manifest,
-                },
-                save_path,
-            )
+            best_model_state = model.state_dict()
 
-    print("=" * 60)
-    print(f"Training Complete! Best model saved to: {os.path.abspath(save_path)}")
-    print(f"Best epoch: {best_epoch}, Val loss: {best_val_loss:.4f}, Water RMSE: {best_water_rmse:.3f}m")
-    print("=" * 60)
+    # Save best checkpoint with complete manifest
+    manifest = build_checkpoint_manifest(
+        model_family="MF-1: PyTorch WeatherWaterLNN",
+        seed=seed,
+        horizon=horizon,
+        epoch=best_epoch,
+        val_loss=best_val_loss,
+        val_water_rmse=best_water_rmse,
+        model_config=model_config,
+        pipeline=pipeline,
+    )
 
-    # ------------------------------------------------------------------
-    # Untouched Test Split Evaluation (Fix 4)
-    # ------------------------------------------------------------------
-    print("\nEvaluating on UNTOUCHED TEST SPLIT (Out-of-sample holdout)...")
-    checkpoint = torch.load(save_path, map_location=device, weights_only=False)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    test_metrics = evaluate_test_split(model, test_loader, device)
-
-    print("=" * 60)
-    print("UNTOUCHED TEST SPLIT EVALUATION (MF-1 PyTorch WeatherWaterLNN):")
-    print(f"  Test Samples:               {test_metrics['test_samples']}")
-    print(f"  Accuracy:                   {test_metrics['accuracy']}%")
-    print(f"  Recall (POD):               {test_metrics['recall_pod']}%")
-    print(f"  Precision:                  {test_metrics['precision']}%")
-    print(f"  F1-Score:                   {test_metrics['f1_score']}%")
-    print(f"  False Alarm Ratio (FAR):    {test_metrics['false_alarm_ratio']}%")
-    print(f"  Critical Success Index:     {test_metrics['critical_success_index']}%")
-    print(f"  Brier Score:                {test_metrics['brier_score']}")
-    if test_metrics["water_mae_meters"] is not None:
-        print(f"  Water Stage MAE:            {test_metrics['water_mae_meters']:.4f} m ({test_metrics['water_gauge_samples']} gauge samples)")
-        print(f"  Water Stage RMSE:           {test_metrics['water_rmse_meters']:.4f} m")
-    else:
-        print("  Water Stage:                N/A (no gauge observations in test period)")
-    print("=" * 60)
-
-    # Re-save checkpoint with test evaluation included in manifest
-    manifest["test_evaluation"] = test_metrics
-    checkpoint["manifest"] = manifest
+    checkpoint = {
+        "epoch": best_epoch,
+        "model_state_dict": best_model_state,
+        "optimizer_state_dict": optimizer.state_dict(),
+        "val_loss": best_val_loss,
+        "water_rmse": best_water_rmse,
+        "manifest": manifest,
+    }
     torch.save(checkpoint, save_path)
+    # Also save to default path if horizon == 1
+    if horizon == 1:
+        default_path = os.path.join(DATA_DIR, "lnn_weather_water.pt")
+        torch.save(checkpoint, default_path)
 
-    return model
-
-
-# ---------------------------------------------------------------------------
-# Smoke test — verifies the full pipeline loads and runs one step
-# ---------------------------------------------------------------------------
-def smoke_test():
-    """Loads one batch and runs one optimizer step. Raises on any failure."""
-    print("Running smoke test...")
-    set_reproducibility_seed(0)
-    ds = TelemetryDataset(max_samples=10, seq_len=8, split="train", horizon=1)
-    loader = DataLoader(ds, batch_size=4, shuffle=False)
-    model = WeatherWaterLNN(input_dim=4, hidden_dim=16)
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    bce = nn.BCELoss()
-    mse = nn.MSELoss()
-
-    batch = next(iter(loader))
-    pred_rain, pred_precip, pred_water = model(batch["telemetry"], batch["dt"])
-    loss = bce(pred_rain[:, -1, :], batch["rain_prob"]) + mse(pred_precip[:, -1, :], batch["precip_mm"])
-    loss.backward()
-    optimizer.step()
-    print(f"Smoke test PASSED - loss={loss.item():.4f}")
+    print("=" * 70)
+    print(f"MF-1 Training Complete! Saved checkpoint -> {save_path}")
+    print(f"Best Epoch: {best_epoch} | Best Val Loss: {best_val_loss:.4f}")
+    print("=" * 70)
+    return save_path
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--smoke":
-        smoke_test()
-    else:
-        train_lnn_model(epochs=20, batch_size=32, horizon=1)
+    parser = argparse.ArgumentParser(description="Train MF-1 WeatherWaterLNN on canonical future windows.")
+    parser.add_argument("--horizon", type=int, default=1, help="Forecast horizon in hours (default: 1)")
+    parser.add_argument("--epochs", type=int, default=20, help="Training epochs (default: 20)")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size (default: 32)")
+    parser.add_argument("--lr", type=float, default=0.003, help="Learning rate (default: 0.003)")
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed (default: 42)")
+    parser.add_argument("--max_samples", type=int, default=None, help="Cap training samples (for smoke test)")
+    parser.add_argument("--save_path", type=str, default=None, help="Path to save checkpoint")
+    args = parser.parse_args()
+
+    train_mf1_model(
+        horizon=args.horizon,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        seed=args.seed,
+        max_train_samples=args.max_samples,
+        save_path=args.save_path,
+    )

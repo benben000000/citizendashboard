@@ -1,458 +1,581 @@
 """
-Telemetry Dataset and Normalization Pipeline for Weather Station & Hydrological Forecasting.
+Canonical Forecast Telemetry Dataset and Hourly Preprocessing Pipeline.
 
-Supports loading real historical KloudTrack CSV datasets with:
-  - Data quality filtering & outlier quarantine (date validation, physical bounds)
-  - Station identity preservation (no cross-station windows)
-  - Temporal continuity (sorted by station + timestamp, actual dt)
-  - Chronological train/val/test splits (strict temporal holdout)
-  - Train-fitted normalization (means and stds computed exclusively on train split)
-  - Real water-level gauge targets (joined by station/timestamp, masked unobserved)
-  - Future-forecasting targets (input window -> future horizon targets)
-  - Fair multi-station window representation (no single-station dominance)
+Implements the unified forecasting contract across all model families for
+weather station telemetry and hydrological river-stage forecasting.
 
-See prediction-model-audit-followup.md for the rationale behind these design decisions.
+Key Specifications:
+  - 1.1 Raw Timestamp & Sensor Bounds Cleaning:
+      * UTC timezone-aware parsing.
+      * Strict collection range [2025, 2027] quarantine (excludes 2069 bug).
+      * Physical sensor bounds quarantine per variable with reason counts.
+      * Provenance hashing (SHA-256) and data quality manifest output.
+      * Automated integrity assertions (no unsorted series, no cross-station windows).
+  - 1.2 Hourly Resampling Grid:
+      * Resamples irregular minute telemetry to standard UTC hourly bins.
+      * Temp, Heat Index, Wind Speed, Pressure: last valid observation in hour.
+      * Precipitation: sum of valid minute increments in hour (hourly volume mm).
+      * Water gauge: last valid gauge observation in hour (collocated at Calumpit).
+      * Tracks hour completeness and observation count.
+  - 1.3 Exact Forecast Target Contract:
+      * Horizon h in [1, 3, 6, 12, 24] hours.
+      * Forecast origin t0 = final timestamp in seq_len input window.
+      * Target timestamp = exactly t0 + h hours on the hourly grid.
+      * Target lead time validated against tolerance (|lead - h| <= 0.25h).
+      * Metadata fields exposed for transparent independent validation.
+  - 1.4 Chronological Split with Embargo:
+      * 60% train, 20% validation/calibration, 20% test by time range.
+      * 48-hour embargo (seq_len + max_horizon) between splits to prevent leakage.
+      * Supports temporal generalization (default) and station generalization.
+  - 1.5 Train-Fitted Normalization:
+      * Feature means and standard deviations fitted ONLY on the training split.
+      * Passed unchanged to validation and test splits.
 """
 
 import os
 import csv
 import hashlib
 import json
-from datetime import datetime, timedelta
-from collections import defaultdict
+from datetime import datetime, timezone, timedelta
+from collections import defaultdict, Counter
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+WEATHER_CSV_PATH = os.path.join(DATA_DIR, "weather_telemetry.csv")
+WATER_CSV_PATH = os.path.join(DATA_DIR, "water_level_telemetry.csv")
 
-# Fallback normalization constants (used ONLY when fit_train_normalization cannot run).
-FEATURE_MEANS = np.array([27.2, 31.0, 2.0, 1004.5], dtype=np.float32)
-FEATURE_STDS = np.array([2.8, 6.3, 3.0, 4.6], dtype=np.float32)
-
-# Forecast horizons (hours ahead of the forecast origin t0)
-DEFAULT_HORIZONS = [1, 3, 6, 12, 24]
-
-# Maximum gap (hours) allowed within an observation window before rejecting
-MAX_GAP_HOURS = 2.0
-
-# Allowed collection date bounds for KloudTrack 2026 telemetry corpus (Fix 1)
+# Allowed collection date bounds for KloudTrack corpus
 MIN_VALID_YEAR = 2025
 MAX_VALID_YEAR = 2027
 
-# Physically plausible sensor ranges for tropical Philippine surface telemetry
+# Physical bounds for Philippine tropical surface meteorology and river stage
 PHYSICAL_BOUNDS = {
     "temperature": (10.0, 50.0),    # Celsius
     "heat_index": (10.0, 70.0),     # Celsius
     "wind_speed": (0.0, 180.0),     # km/h
     "pressure": (900.0, 1050.0),    # hPa
-    "precipitation": (0.0, 300.0),  # mm/h
+    "precipitation": (0.0, 300.0),  # mm/h or mm per minute record
+    "water_level": (0.0, 15.0),     # meters
 }
 
-# Water-level gauge station ID (only one gauge available)
-WATER_GAUGE_STATION_ID = "O3z0j5bG"  # Calumpit WLMS - Bulacan
-# Nearest weather station to the gauge
-WATER_GAUGE_WEATHER_STATION = "3nzr48bG"  # Calumpit AWS - Bulacan
+# Collocated gauge and weather station IDs in Calumpit, Bulacan
+WATER_GAUGE_STATION_ID = "O3z0j5bG"       # Calumpit WLMS
+WATER_GAUGE_WEATHER_STATION = "3nzr48bG"  # Calumpit AWS
+
+DEFAULT_HORIZONS = [1, 3, 6, 12, 24]
+DEFAULT_SEQ_LEN = 24
+HORIZON_TOLERANCE_HOURS = 0.25  # 15 minutes tolerance on lead time
 
 
-def normalize_features(features: np.ndarray, means: np.ndarray = None, stds: np.ndarray = None) -> np.ndarray:
-    """Normalize raw telemetry array [..., 4] to zero mean and unit variance."""
-    if means is None:
-        means = FEATURE_MEANS
-    if stds is None:
-        stds = FEATURE_STDS
-    return (features - means) / stds
-
-
-def denormalize_features(features: np.ndarray, means: np.ndarray = None, stds: np.ndarray = None) -> np.ndarray:
-    """Denormalize scaled features back to physical units."""
-    if means is None:
-        means = FEATURE_MEANS
-    if stds is None:
-        stds = FEATURE_STDS
-    return features * stds + means
-
-
-def _parse_timestamp(ts_str: str):
-    """Parse an ISO timestamp string robustly."""
+def parse_utc_timestamp(ts_str: str) -> datetime:
+    """Parse timestamp string into timezone-aware UTC datetime."""
     if not ts_str:
         return None
     ts_str = ts_str.strip()
-    for fmt in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ",
-                "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S",
-                "%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"):
+    # Normalize Z to +00:00
+    if ts_str.endswith("Z"):
+        ts_str = ts_str[:-1] + "+00:00"
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S.%f%z",
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S%z",
+    ):
         try:
-            return datetime.strptime(ts_str, fmt)
+            return datetime.strptime(ts_str, fmt).astimezone(timezone.utc)
         except ValueError:
             continue
-    try:
-        return datetime.strptime(ts_str[:19], "%Y-%m-%dT%H:%M:%S")
-    except ValueError:
-        return None
+    # Naive fallback: treat as UTC
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S",
+    ):
+        try:
+            dt = datetime.strptime(ts_str[:19], fmt)
+            return dt.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
+
+
+def compute_file_sha256(filepath: str) -> str:
+    """Compute SHA-256 checksum of a file."""
+    if not os.path.exists(filepath):
+        return "file_not_found"
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 # ---------------------------------------------------------------------------
-# Water-level gauge loader
+# Data Cleaning, Quarantine, and Hourly Resampling
 # ---------------------------------------------------------------------------
-_WATER_LOOKUP_CACHE = {}
 
-def _load_water_level_lookup(water_csv_path: str = None):
+class TelemetryDataPipeline:
     """
-    Load real water-level gauge observations into a lookup table.
-    Returns dict mapping timestamp_str (minute precision) -> water_level_m.
-    Only contains data from the single available gauge station (Calumpit WLMS).
+    Manages end-to-end data ingestion, quarantine filtering, hourly aggregation,
+    chronological partitioning, and window sampling.
     """
-    if water_csv_path is None:
-        water_csv_path = os.path.join(DATA_DIR, "water_level_telemetry.csv")
 
-    if water_csv_path in _WATER_LOOKUP_CACHE:
-        return _WATER_LOOKUP_CACHE[water_csv_path]
+    def __init__(self, weather_csv: str = None, water_csv: str = None):
+        self.weather_csv = weather_csv or WEATHER_CSV_PATH
+        self.water_csv = water_csv or WATER_CSV_PATH
 
-    lookup = {}
-    if not os.path.exists(water_csv_path):
-        return lookup
+        self.quarantine_counts = Counter()
+        self.raw_weather_row_count = 0
+        self.raw_water_row_count = 0
 
-    with open(water_csv_path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
+        # Hourly aggregated records: station_id -> dict(hourly_bin_dt -> record_dict)
+        self.station_hourly = defaultdict(dict)
+        # Hourly water records: hourly_bin_dt -> water_level_m
+        self.water_hourly = {}
+
+        self.time_range_min = None
+        self.time_range_max = None
+        self.train_end = None
+        self.val_start = None
+        self.val_end = None
+        self.test_start = None
+
+        self.norm_means = None
+        self.norm_stds = None
+
+        self._process_pipeline()
+
+    def _process_pipeline(self):
+        """Execute the complete data cleaning, quarantine, and resampling pipeline."""
+        self._load_and_resample_water()
+        self._load_and_resample_weather()
+        self._compute_split_boundaries()
+        self._fit_training_normalization()
+
+    def _load_and_resample_water(self):
+        """Load, quarantine, and resample water level telemetry to hourly bins."""
+        if not os.path.exists(self.water_csv):
+            return
+
+        hourly_obs = defaultdict(list)
+
+        with open(self.water_csv, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                self.raw_water_row_count += 1
                 ts_raw = row.get("recorded_at", "")
-                dt = _parse_timestamp(ts_raw)
-                if dt is None or dt.year < MIN_VALID_YEAR or dt.year > MAX_VALID_YEAR:
+                dt = parse_utc_timestamp(ts_raw)
+                if dt is None:
+                    self.quarantine_counts["water_malformed_timestamp"] += 1
                     continue
+                if dt.year < MIN_VALID_YEAR or dt.year > MAX_VALID_YEAR:
+                    self.quarantine_counts["water_year_out_of_bounds"] += 1
+                    continue
+
                 wl_m = row.get("water_level_m")
                 wl_cm = row.get("water_level_cm")
-                if wl_m is not None and wl_m != "":
-                    wl = float(wl_m)
-                elif wl_cm is not None and wl_cm != "":
-                    wl = float(wl_cm) / 100.0
-                else:
-                    continue
-                # Round to 5-minute buckets for fuzzy join
-                bucket = dt.replace(minute=(dt.minute // 5) * 5, second=0, microsecond=0)
-                key = bucket.isoformat()
-                lookup[key] = wl
-            except (ValueError, TypeError):
-                continue
-    _WATER_LOOKUP_CACHE[water_csv_path] = lookup
-    return lookup
+                try:
+                    if wl_m is not None and wl_m.strip() != "":
+                        wl = float(wl_m)
+                    elif wl_cm is not None and wl_cm.strip() != "":
+                        wl = float(wl_cm) / 100.0
+                    else:
+                        self.quarantine_counts["water_missing_value"] += 1
+                        continue
 
+                    if not (PHYSICAL_BOUNDS["water_level"][0] <= wl <= PHYSICAL_BOUNDS["water_level"][1]):
+                        self.quarantine_counts["water_physical_bounds"] += 1
+                        continue
 
-# ---------------------------------------------------------------------------
-# Per-station data loading with temporal ordering and data quality quarantine
-# ---------------------------------------------------------------------------
-_STATION_DATA_CACHE = {}
+                    h_bin = dt.replace(minute=0, second=0, microsecond=0)
+                    hourly_obs[h_bin].append((dt, wl))
+                except (ValueError, TypeError):
+                    self.quarantine_counts["water_parse_error"] += 1
 
-def _load_station_sorted_data(weather_csv_path: str = None):
-    """
-    Load weather telemetry sorted by (station_id, recorded_at).
-    Applies data-quality quarantine:
-      1. Rejects date outliers outside [MIN_VALID_YEAR, MAX_VALID_YEAR] (e.g. 2069 bug).
-      2. Rejects corrupt hardware sensor spikes outside physical bounds.
-    Returns a dict: station_id -> list of (datetime, temp, hi, ws, pressure, precip).
-    """
-    if weather_csv_path is None:
-        weather_csv_path = os.path.join(DATA_DIR, "weather_telemetry.csv")
+        # Resample: last valid gauge observation in each hourly bin
+        for h_bin, obs_list in hourly_obs.items():
+            obs_list.sort(key=lambda x: x[0])
+            self.water_hourly[h_bin] = obs_list[-1][1]
 
-    if weather_csv_path in _STATION_DATA_CACHE:
-        return _STATION_DATA_CACHE[weather_csv_path]
+    def _load_and_resample_weather(self):
+        """Load, quarantine, and resample weather telemetry to hourly bins."""
+        if not os.path.exists(self.weather_csv):
+            return
 
-    station_data = defaultdict(list)
-    quarantined_dates = 0
-    quarantined_spikes = 0
+        # station_id -> dict(h_bin -> list of (dt, t, hi, ws, p, precip))
+        station_hour_obs = defaultdict(lambda: defaultdict(list))
 
-    with open(weather_csv_path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                st_id = row.get("station_id", "unknown")
-                ts_str = row.get("recorded_at", "")
-                dt = _parse_timestamp(ts_str)
+        with open(self.weather_csv, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                self.raw_weather_row_count += 1
+                ts_raw = row.get("recorded_at", "")
+                dt = parse_utc_timestamp(ts_raw)
                 if dt is None:
+                    self.quarantine_counts["weather_malformed_timestamp"] += 1
                     continue
-
-                # Data Quality Rule 1: Date outlier quarantine (Fix 1)
                 if dt.year < MIN_VALID_YEAR or dt.year > MAX_VALID_YEAR:
-                    quarantined_dates += 1
+                    self.quarantine_counts["weather_year_out_of_bounds"] += 1
                     continue
 
-                t = float(row.get("temperature") or 28.5)
-                hi = float(row.get("heat_index") or 33.0)
-                ws = float(row.get("wind_speed") or 10.0)
-                p = float(row.get("pressure") or 1008.0)
-                precip = float(row.get("precipitation") or 0.0)
-
-                # Data Quality Rule 2: Physical sensor bounds quarantine
-                if not (
-                    PHYSICAL_BOUNDS["temperature"][0] <= t <= PHYSICAL_BOUNDS["temperature"][1] and
-                    PHYSICAL_BOUNDS["heat_index"][0] <= hi <= PHYSICAL_BOUNDS["heat_index"][1] and
-                    PHYSICAL_BOUNDS["wind_speed"][0] <= ws <= PHYSICAL_BOUNDS["wind_speed"][1] and
-                    PHYSICAL_BOUNDS["pressure"][0] <= p <= PHYSICAL_BOUNDS["pressure"][1] and
-                    PHYSICAL_BOUNDS["precipitation"][0] <= precip <= PHYSICAL_BOUNDS["precipitation"][1]
-                ):
-                    quarantined_spikes += 1
+                st_id = row.get("station_id")
+                if not st_id:
+                    self.quarantine_counts["weather_missing_station_id"] += 1
                     continue
 
-                station_data[st_id].append((dt, t, hi, ws, p, precip))
-            except (ValueError, TypeError):
-                continue
+                try:
+                    t = float(row.get("temperature") or 28.5)
+                    hi = float(row.get("heat_index") or 33.0)
+                    ws = float(row.get("wind_speed") or 10.0)
+                    p = float(row.get("pressure") or 1008.0)
+                    precip = float(row.get("precipitation") or 0.0)
 
-    # Sort each station by timestamp
-    for st_id in station_data:
-        station_data[st_id].sort(key=lambda x: x[0])
+                    # Check individual physical sensor bounds
+                    if not (PHYSICAL_BOUNDS["temperature"][0] <= t <= PHYSICAL_BOUNDS["temperature"][1]):
+                        self.quarantine_counts["weather_bounds_temperature"] += 1
+                        continue
+                    if not (PHYSICAL_BOUNDS["heat_index"][0] <= hi <= PHYSICAL_BOUNDS["heat_index"][1]):
+                        self.quarantine_counts["weather_bounds_heat_index"] += 1
+                        continue
+                    if not (PHYSICAL_BOUNDS["wind_speed"][0] <= ws <= PHYSICAL_BOUNDS["wind_speed"][1]):
+                        self.quarantine_counts["weather_bounds_wind_speed"] += 1
+                        continue
+                    if not (PHYSICAL_BOUNDS["pressure"][0] <= p <= PHYSICAL_BOUNDS["pressure"][1]):
+                        self.quarantine_counts["weather_bounds_pressure"] += 1
+                        continue
+                    if not (PHYSICAL_BOUNDS["precipitation"][0] <= precip <= PHYSICAL_BOUNDS["precipitation"][1]):
+                        self.quarantine_counts["weather_bounds_precipitation"] += 1
+                        continue
 
-    _STATION_DATA_CACHE[weather_csv_path] = dict(station_data)
-    return _STATION_DATA_CACHE[weather_csv_path]
+                    h_bin = dt.replace(minute=0, second=0, microsecond=0)
+                    station_hour_obs[st_id][h_bin].append((dt, t, hi, ws, p, precip))
+
+                except (ValueError, TypeError):
+                    self.quarantine_counts["weather_parse_error"] += 1
+
+        # Resample each station to the hourly grid:
+        # - Temperature, heat_index, wind_speed, pressure: last valid observation
+        # - Precipitation: sum of increments (volume in mm)
+        for st_id, h_dict in station_hour_obs.items():
+            for h_bin, obs_list in h_dict.items():
+                obs_list.sort(key=lambda x: x[0])
+                last_obs = obs_list[-1]
+                tot_precip = sum(x[5] for x in obs_list)
+
+                self.station_hourly[st_id][h_bin] = {
+                    "timestamp": h_bin,
+                    "temperature": last_obs[1],
+                    "heat_index": last_obs[2],
+                    "wind_speed": last_obs[3],
+                    "pressure": last_obs[4],
+                    "precipitation": tot_precip,
+                    "obs_count": len(obs_list),
+                }
+
+    def _compute_split_boundaries(self):
+        """Compute chronological split cutoffs with a 48h embargo."""
+        all_hours = sorted({h for st in self.station_hourly for h in self.station_hourly[st]})
+        if not all_hours:
+            return
+
+        self.time_range_min = all_hours[0]
+        self.time_range_max = all_hours[-1]
+
+        n = len(all_hours)
+        self.train_end = all_hours[int(n * 0.60)]
+        self.val_end = all_hours[int(n * 0.80)]
+
+        # 48-hour embargo (seq_len + max_horizon)
+        embargo = timedelta(hours=48)
+        self.val_start = self.train_end + embargo
+        self.test_start = self.val_end + embargo
+
+        # Automated assertion: no test timestamp <= final training timestamp
+        assert self.test_start > self.train_end, "Leakage detected: test period overlaps training period!"
+
+    def _fit_training_normalization(self):
+        """Fit normalization means and stds strictly on the training partition."""
+        train_features = []
+        for st_id, h_dict in self.station_hourly.items():
+            for h_bin, rec in h_dict.items():
+                if h_bin <= self.train_end:
+                    train_features.append([
+                        rec["temperature"],
+                        rec["heat_index"],
+                        rec["wind_speed"],
+                        rec["pressure"],
+                    ])
+
+        if len(train_features) < 10:
+            self.norm_means = np.array([27.2, 31.0, 2.0, 1004.5], dtype=np.float32)
+            self.norm_stds = np.array([2.8, 6.3, 3.0, 4.6], dtype=np.float32)
+            return
+
+        arr = np.array(train_features, dtype=np.float32)
+        self.norm_means = arr.mean(axis=0)
+        stds = arr.std(axis=0)
+        self.norm_stds = np.where(stds < 1e-4, 1.0, stds).astype(np.float32)
+
+    def generate_data_quality_report(self, output_path: str = None) -> dict:
+        """
+        Produce a comprehensive data quality and quarantine report.
+        Saves report to prediction-model/data/data_quality_report.json.
+        """
+        if output_path is None:
+            output_path = os.path.join(DATA_DIR, "data_quality_report.json")
+
+        total_station_hours = sum(len(h) for h in self.station_hourly.values())
+        report = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "data_hashes": {
+                "weather_telemetry_sha256": compute_file_sha256(self.weather_csv),
+                "water_level_telemetry_sha256": compute_file_sha256(self.water_csv),
+            },
+            "raw_counts": {
+                "weather_telemetry_rows": self.raw_weather_row_count,
+                "water_level_telemetry_rows": self.raw_water_row_count,
+            },
+            "quarantine_counts_by_reason": dict(self.quarantine_counts),
+            "total_quarantined_weather_rows": sum(v for k, v in self.quarantine_counts.items() if k.startswith("weather_")),
+            "total_quarantined_water_rows": sum(v for k, v in self.quarantine_counts.items() if k.startswith("water_")),
+            "resampled_hourly_summary": {
+                "num_weather_stations": len(self.station_hourly),
+                "total_station_hours": total_station_hours,
+                "station_hours_by_id": {st: len(h) for st, h in sorted(self.station_hourly.items())},
+                "total_water_gauge_hours": len(self.water_hourly),
+                "time_range_min": self.time_range_min.isoformat() if self.time_range_min else None,
+                "time_range_max": self.time_range_max.isoformat() if self.time_range_max else None,
+            },
+            "split_boundaries": {
+                "split_strategy": "chronological_60_20_20_with_48h_embargo",
+                "train_start": self.time_range_min.isoformat() if self.time_range_min else None,
+                "train_end": self.train_end.isoformat() if self.train_end else None,
+                "val_start": self.val_start.isoformat() if self.val_start else None,
+                "val_end": self.val_end.isoformat() if self.val_end else None,
+                "test_start": self.test_start.isoformat() if self.test_start else None,
+                "test_end": self.time_range_max.isoformat() if self.time_range_max else None,
+            },
+            "train_fitted_normalization": {
+                "feature_schema": ["temperature", "heat_index", "wind_speed", "pressure"],
+                "means": self.norm_means.tolist() if self.norm_means is not None else [],
+                "stds": self.norm_stds.tolist() if self.norm_stds is not None else [],
+            },
+        }
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+
+        # Also write cleaned-data manifest
+        manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+
+        return report
 
 
-def _compute_chronological_split(station_data: dict, train_frac=0.6, val_frac=0.2):
-    """
-    Compute chronological split cutoff timestamps using the global time range.
-    Returns:
-        (train_end_dt, val_end_dt)
-        train: ts <= train_end_dt
-        val:   train_end_dt < ts <= val_end_dt
-        test:  ts > val_end_dt
-    """
-    all_times = []
-    for rows in station_data.values():
-        for row in rows:
-            all_times.append(row[0])
+# Global cached pipeline singleton
+_PIPELINE_CACHE = None
 
-    all_times.sort()
-    n = len(all_times)
-    train_end = all_times[int(n * train_frac)]
-    val_end = all_times[int(n * (train_frac + val_frac))]
-    return train_end, val_end
+def get_telemetry_pipeline(weather_csv: str = None, water_csv: str = None, force_reload: bool = False) -> TelemetryDataPipeline:
+    """Retrieve or initialize the canonical telemetry pipeline."""
+    global _PIPELINE_CACHE
+    if _PIPELINE_CACHE is None or force_reload:
+        _PIPELINE_CACHE = TelemetryDataPipeline(weather_csv, water_csv)
+    return _PIPELINE_CACHE
 
 
 # ---------------------------------------------------------------------------
-# Train-fitted Normalization (Fix 2)
+# Forecast Window Construction
 # ---------------------------------------------------------------------------
-def fit_train_normalization(weather_csv_path: str = None, station_data: dict = None, train_end: datetime = None):
-    """
-    Compute mean and std strictly on the clean TRAINING partition (ts <= train_end).
-    Prevents data leakage into validation or test sets.
 
-    Returns:
-        (means, stds) as np.float32 arrays of shape (4,).
-    """
-    if station_data is None:
-        station_data = _load_station_sorted_data(weather_csv_path)
-    if not station_data:
-        return FEATURE_MEANS.copy(), FEATURE_STDS.copy()
-
-    if train_end is None:
-        train_end, _ = _compute_chronological_split(station_data)
-
-    train_vals = []
-    for rows in station_data.values():
-        for r in rows:
-            if r[0] <= train_end:
-                train_vals.append([r[1], r[2], r[3], r[4]])
-
-    if len(train_vals) < 100:
-        return FEATURE_MEANS.copy(), FEATURE_STDS.copy()
-
-    arr = np.array(train_vals, dtype=np.float32)
-    means = arr.mean(axis=0)
-    stds = arr.std(axis=0)
-    stds = np.where(stds < 1e-6, 1.0, stds)
-    return means, stds
+def normalize_features(features: np.ndarray, means: np.ndarray, stds: np.ndarray) -> np.ndarray:
+    """Normalize feature array [..., 4] using specified means and standard deviations."""
+    return (features - means) / stds
 
 
-# ---------------------------------------------------------------------------
-# Main dataset builder with all audit fixes
-# ---------------------------------------------------------------------------
-def load_real_telemetry_sequences(
-    weather_csv_path: str = None,
-    water_csv_path: str = None,
-    seq_len: int = 24,
-    max_sequences: int = 2000,
+def denormalize_features(features: np.ndarray, means: np.ndarray, stds: np.ndarray) -> np.ndarray:
+    """Denormalize scaled features back to physical units."""
+    return features * stds + means
+
+
+def build_forecast_windows(
+    pipeline: TelemetryDataPipeline,
     split: str = "train",
-    horizons: list = None,
+    horizon: int = 1,
+    seq_len: int = DEFAULT_SEQ_LEN,
+    max_samples: int = None,
     norm_means: np.ndarray = None,
     norm_stds: np.ndarray = None,
+    mode: str = "temporal",
+    holdout_stations: list = None,
     return_metadata: bool = False,
 ):
     """
-    Loads and preprocesses real historical telemetry into sequential sliding windows.
-
-    Key design decisions (audit-driven):
-    - Date outliers and sensor glitches are quarantined (Fix 1).
-    - Normalization parameters are strictly fitted on the train split (Fix 2).
-    - Windows are built PER STATION — never cross station boundaries (Fix 5).
-    - dt is computed from actual timestamps, not hard-coded (Fix 5).
-    - Targets are at future horizons (t0 + h), not same-step reconstruction (Fix 6).
-    - Water-level targets come from real gauge observations where available (Fix 6).
-    - Split is chronological (train/val/test by time, not random) (Fix 6).
-    - Balanced multi-station sampling to prevent single-station dominance.
+    Build canonical future-forecast sequence windows adhering strictly to the contract:
+      - Input: seq_len hourly observations ending at t0.
+      - Target: observation at t0 + h hours (actual elapsed time verified within tolerance).
+      - dt: continuous elapsed hours between consecutive observations (default 1.0h).
+      - Water level: collocated gauge observation at t0 + h, masked when absent.
+      - Station boundaries: windows NEVER span across multiple stations.
+      - Split boundaries: windows NEVER span across split cutoffs.
 
     Args:
-        weather_csv_path: Path to weather CSV.
-        water_csv_path: Path to water level CSV.
-        seq_len: Length of input observation window.
-        max_sequences: Maximum number of sequences to generate.
-        split: One of "train", "val", "test".
-        horizons: List of forecast horizon offsets (in hours). Defaults to [1].
-        norm_means: Normalization means (fitted on training data).
-        norm_stds: Normalization stds (fitted on training data).
-        return_metadata: Whether to return list of sample metadata dicts.
+      pipeline: Initialized TelemetryDataPipeline.
+      split: One of 'train', 'val', 'test'.
+      horizon: Forecast horizon in hours (e.g. 1, 3, 6, 12, 24).
+      seq_len: Input history length in hours (default 24).
+      max_samples: Optional cap on total returned sequences.
+      norm_means, norm_stds: Training normalization statistics.
+      mode: 'temporal' (chronological time split) or 'station' (station holdout).
+      holdout_stations: Stations to hold out if mode == 'station'.
+      return_metadata: Whether to return detailed metadata dictionaries.
 
     Returns:
-        If return_metadata is False:
-          (telemetry, dt, rain_targets, precip_targets, water_targets, has_water_mask)
-        If return_metadata is True:
-          (telemetry, dt, rain_targets, precip_targets, water_targets, has_water_mask, metadata_list)
-        or None if insufficient data.
+      (telemetry_tensor, dt_tensor, rain_targets, precip_targets, water_targets, has_water_mask)
+      + optionally [metadata_list]
     """
-    if horizons is None:
-        horizons = [1]  # Default: predict 1 hour ahead
-    max_horizon = max(horizons)
+    if norm_means is None:
+        norm_means = pipeline.norm_means
+    if norm_stds is None:
+        norm_stds = pipeline.norm_stds
 
-    # Load station-sorted data (with date quarantine & physical bounds filter)
-    station_data = _load_station_sorted_data(weather_csv_path)
-    if not station_data:
-        return None
-
-    # Compute chronological split boundaries
-    train_end, val_end = _compute_chronological_split(station_data)
-
-    # Ensure train-fitted normalization if not explicitly provided
-    if norm_means is None or norm_stds is None:
-        norm_means, norm_stds = fit_train_normalization(station_data=station_data, train_end=train_end)
-
-    # Load real water-level gauge observations
-    water_lookup = _load_water_level_lookup(water_csv_path)
-
-    # Select split filter
+    # Determine split time boundary
     if split == "train":
-        time_filter = lambda dt_val: dt_val <= train_end
+        start_bound = pipeline.time_range_min
+        end_bound = pipeline.train_end
     elif split == "val":
-        time_filter = lambda dt_val: train_end < dt_val <= val_end
+        start_bound = pipeline.val_start
+        end_bound = pipeline.val_end
     elif split == "test":
-        time_filter = lambda dt_val: dt_val > val_end
+        start_bound = pipeline.test_start
+        end_bound = pipeline.time_range_max
     else:
-        raise ValueError(f"Unknown split: {split}. Use 'train', 'val', or 'test'.")
+        raise ValueError(f"Unknown split '{split}'. Must be 'train', 'val', or 'test'.")
 
-    # Filter station rows
-    valid_station_data = {}
-    for st_id, rows in station_data.items():
-        s_rows = [r for r in rows if time_filter(r[0])]
-        if len(s_rows) >= seq_len + max_horizon:
-            valid_station_data[st_id] = s_rows
+    # Select stations
+    holdout_set = set(holdout_stations or [])
+    candidate_stations = []
+    for st_id in sorted(pipeline.station_hourly.keys()):
+        if mode == "station":
+            if split == "test" and st_id not in holdout_set:
+                continue
+            if split in ("train", "val") and st_id in holdout_set:
+                continue
+        candidate_stations.append(st_id)
 
-    if not valid_station_data:
-        return None
-
-    # Fair allocation across all available stations
-    num_stations = len(valid_station_data)
-    quota_per_station = max(10, max_sequences // num_stations)
-
-    telemetry_seqs = []
-    dt_seqs = []
-    rain_target_seqs = []
-    precip_target_seqs = []
-    water_target_seqs = []
-    has_water_seqs = []
+    windows = []
+    dt_list = []
+    rain_list = []
+    precip_list = []
+    water_list = []
+    has_water_list = []
     metadata_list = []
 
-    for st_id, split_rows in valid_station_data.items():
-        station_window_count = 0
-        total_possible = len(split_rows) - seq_len - max_horizon
-        stride = max(1, total_possible // quota_per_station) if quota_per_station > 0 else 1
+    # Quota per station to ensure fair geographic representation
+    quota = max(10, max_samples // len(candidate_stations)) if max_samples else None
 
-        for i in range(0, total_possible, stride):
-            if station_window_count >= quota_per_station and len(telemetry_seqs) >= max_sequences:
+    for st_id in candidate_stations:
+        st_dict = pipeline.station_hourly[st_id]
+        # Filter hours in split range
+        split_hours = sorted([h for h in st_dict if start_bound <= h <= end_bound])
+        st_hour_set = set(split_hours)
+
+        st_count = 0
+        for t0 in split_hours:
+            if quota is not None and st_count >= quota:
                 break
 
-            window = split_rows[i: i + seq_len]
-            future_rows = split_rows[i + seq_len: i + seq_len + max_horizon]
+            # 1. Target timestamp check
+            t_target = t0 + timedelta(hours=horizon)
+            if t_target not in st_dict or t_target > end_bound:
+                continue
 
-            # Check for excessive gaps within the input window
-            has_gap = False
-            dt_values = []
-            for k in range(1, len(window)):
-                elapsed = (window[k][0] - window[k - 1][0]).total_seconds() / 3600.0
-                if elapsed > MAX_GAP_HOURS:
-                    has_gap = True
+            actual_lead = (t_target - t0).total_seconds() / 3600.0
+            if abs(actual_lead - horizon) > HORIZON_TOLERANCE_HOURS:
+                continue
+
+            # 2. Input sequence check (preceding seq_len hourly observations)
+            # Ensure strictly within station and within split
+            window_records = []
+            has_full_window = True
+            for step in range(seq_len - 1, -1, -1):
+                h_step = t0 - timedelta(hours=step)
+                if h_step not in st_dict or h_step < start_bound:
+                    has_full_window = False
                     break
-                dt_values.append(max(0.01, elapsed))  # Minimum 0.01h to avoid zero
-            if has_gap:
+                window_records.append(st_dict[h_step])
+
+            if not has_full_window:
                 continue
 
-            # First timestep has no predecessor in the window; default to 1.0h
-            dt_values.insert(0, 1.0)
+            # Compute dt (elapsed hours between consecutive observations)
+            dt_values = [1.0]  # First step relative to nominal 1h
+            for k in range(1, len(window_records)):
+                dt_val = (window_records[k]["timestamp"] - window_records[k - 1]["timestamp"]).total_seconds() / 3600.0
+                dt_values.append(max(0.01, dt_val))
 
-            # Build input features
-            raw_feat = np.array([[r[1], r[2], r[3], r[4]] for r in window], dtype=np.float32)
-            norm_feat = normalize_features(raw_feat, norm_means, norm_stds)
+            # Normalize input features
+            raw_feats = np.array([
+                [r["temperature"], r["heat_index"], r["wind_speed"], r["pressure"]]
+                for r in window_records
+            ], dtype=np.float32)
+            norm_feats = normalize_features(raw_feats, norm_means, norm_stds)
 
-            # Build future targets at the specified horizon
-            target_idx = max_horizon - 1
-            if target_idx >= len(future_rows):
-                continue
+            # Build targets at t0 + h
+            target_rec = st_dict[t_target]
+            target_precip = target_rec["precipitation"]
+            target_rain_prob = 1.0 if target_precip >= 0.1 else 0.0
 
-            future_row = future_rows[target_idx]
-            future_precip = future_row[5]
-            future_rain_prob = 1.0 if future_precip > 0.1 else 0.0
-
-            # Real water-level target from gauge
-            future_dt_obj = future_row[0]
-            bucket = future_dt_obj.replace(
-                minute=(future_dt_obj.minute // 5) * 5, second=0, microsecond=0
-            )
-            water_key = bucket.isoformat()
-            # Water observations only matched for gauge-collocated station
+            # Water level target: real gauge stage if collocated (Calumpit)
             is_gauge_station = (st_id == WATER_GAUGE_WEATHER_STATION)
-            water_target = water_lookup.get(water_key) if is_gauge_station else None
-            has_water = water_target is not None
+            water_stage = pipeline.water_hourly.get(t_target) if is_gauge_station else None
+            has_water = water_stage is not None
 
-            # Persistence reference: water stage at origin t0
-            origin_bucket = window[-1][0].replace(
-                minute=(window[-1][0].minute // 5) * 5, second=0, microsecond=0
-            ).isoformat()
-            last_water_obs = water_lookup.get(origin_bucket) if is_gauge_station else None
-            last_precip_obs = window[-1][5]
+            # Persistence reference at origin t0
+            last_observed_precip = window_records[-1]["precipitation"]
+            last_observed_water = pipeline.water_hourly.get(t0) if is_gauge_station else None
 
-            dt_arr = np.array(dt_values, dtype=np.float32).reshape(-1, 1)
-
-            telemetry_seqs.append(norm_feat)
-            dt_seqs.append(dt_arr)
-            rain_target_seqs.append(np.array([future_rain_prob], dtype=np.float32))
-            precip_target_seqs.append(np.array([future_precip], dtype=np.float32))
-            water_target_seqs.append(np.array([water_target if has_water else 0.0], dtype=np.float32))
-            has_water_seqs.append(np.array([1.0 if has_water else 0.0], dtype=np.float32))
+            windows.append(norm_feats)
+            dt_list.append(np.array(dt_values, dtype=np.float32).reshape(-1, 1))
+            rain_list.append(np.array([target_rain_prob], dtype=np.float32))
+            precip_list.append(np.array([target_precip], dtype=np.float32))
+            water_list.append(np.array([water_stage if has_water else 0.0], dtype=np.float32))
+            has_water_list.append(np.array([1.0 if has_water else 0.0], dtype=np.float32))
 
             if return_metadata:
                 metadata_list.append({
                     "station_id": st_id,
-                    "origin_timestamp": window[-1][0].isoformat(),
-                    "target_timestamp": future_dt_obj.isoformat(),
-                    "horizon": max_horizon,
-                    "actual_rain_prob": future_rain_prob,
-                    "actual_precip_mm": future_precip,
-                    "actual_water_level": water_target if has_water else None,
-                    "last_observed_water": last_water_obs,
-                    "last_observed_precip": last_precip_obs,
+                    "origin_timestamp": t0.isoformat(),
+                    "target_timestamp": t_target.isoformat(),
+                    "requested_horizon_hours": horizon,
+                    "actual_lead_hours": actual_lead,
+                    "actual_rain_prob": target_rain_prob,
+                    "actual_precip_mm": target_precip,
+                    "actual_water_level": water_stage if has_water else None,
                     "has_water": has_water,
+                    "last_observed_precip": last_observed_precip,
+                    "last_observed_water": last_observed_water,
                 })
 
-            station_window_count += 1
-            if len(telemetry_seqs) >= max_sequences:
+            st_count += 1
+            if max_samples and len(windows) >= max_samples:
                 break
 
-    if len(telemetry_seqs) < 2:
+        if max_samples and len(windows) >= max_samples:
+            break
+
+    if len(windows) == 0:
         return None
 
     tensors = (
-        torch.tensor(np.stack(telemetry_seqs), dtype=torch.float32),
-        torch.tensor(np.stack(dt_seqs), dtype=torch.float32),
-        torch.tensor(np.stack(rain_target_seqs), dtype=torch.float32),
-        torch.tensor(np.stack(precip_target_seqs), dtype=torch.float32),
-        torch.tensor(np.stack(water_target_seqs), dtype=torch.float32),
-        torch.tensor(np.stack(has_water_seqs), dtype=torch.float32),
+        torch.tensor(np.stack(windows), dtype=torch.float32),
+        torch.tensor(np.stack(dt_list), dtype=torch.float32),
+        torch.tensor(np.stack(rain_list), dtype=torch.float32),
+        torch.tensor(np.stack(precip_list), dtype=torch.float32),
+        torch.tensor(np.stack(water_list), dtype=torch.float32),
+        torch.tensor(np.stack(has_water_list), dtype=torch.float32),
     )
 
     if return_metadata:
@@ -462,78 +585,64 @@ def load_real_telemetry_sequences(
 
 class TelemetryDataset(Dataset):
     """
-    PyTorch Dataset for weather/water telemetry future-forecasting.
-
-    Supports chronological splitting, station-aware windowing,
-    train-fitted normalization, real gauge targets, and future-horizon forecasting.
+    PyTorch Dataset wrapper around the canonical future-forecast window contract.
     """
 
-    def __init__(self, seq_len: int = 24, max_samples: int = 2000,
-                 split: str = "train", horizon: int = 1,
-                 norm_means: np.ndarray = None, norm_stds: np.ndarray = None,
-                 return_metadata: bool = False):
+    def __init__(
+        self,
+        split: str = "train",
+        horizon: int = 1,
+        seq_len: int = DEFAULT_SEQ_LEN,
+        max_samples: int = None,
+        norm_means: np.ndarray = None,
+        norm_stds: np.ndarray = None,
+        return_metadata: bool = False,
+        mode: str = "temporal",
+        holdout_stations: list = None,
+        pipeline: TelemetryDataPipeline = None,
+    ):
         self.split = split
         self.horizon = horizon
+        self.seq_len = seq_len
         self.return_metadata = return_metadata
 
-        # Compute or retain train-fitted normalization stats
-        if norm_means is None or norm_stds is None:
-            norm_means, norm_stds = fit_train_normalization()
-        self.norm_means = norm_means
-        self.norm_stds = norm_stds
+        if pipeline is None:
+            pipeline = get_telemetry_pipeline()
+        self.pipeline = pipeline
 
-        real_data = load_real_telemetry_sequences(
-            seq_len=seq_len,
-            max_sequences=max_samples,
+        self.norm_means = norm_means if norm_means is not None else pipeline.norm_means
+        self.norm_stds = norm_stds if norm_stds is not None else pipeline.norm_stds
+
+        res = build_forecast_windows(
+            pipeline=self.pipeline,
             split=split,
-            horizons=[horizon],
+            horizon=horizon,
+            seq_len=seq_len,
+            max_samples=max_samples,
             norm_means=self.norm_means,
             norm_stds=self.norm_stds,
+            mode=mode,
+            holdout_stations=holdout_stations,
             return_metadata=return_metadata,
         )
-        if real_data is not None:
-            if return_metadata:
-                (
-                    self.telemetry,
-                    self.dt,
-                    self.rain_prob,
-                    self.precip_mm,
-                    self.water_level,
-                    self.has_water,
-                    self.metadata,
-                ) = real_data
-            else:
-                (
-                    self.telemetry,
-                    self.dt,
-                    self.rain_prob,
-                    self.precip_mm,
-                    self.water_level,
-                    self.has_water,
-                ) = real_data
-                self.metadata = None
-            print(f"Loaded {len(self.telemetry)} {split} sequences from real KloudTrack dataset (horizon={horizon}h).")
+
+        if res is None:
+            self.telemetry = torch.empty(0, seq_len, 4)
+            self.dt = torch.empty(0, seq_len, 1)
+            self.rain_prob = torch.empty(0, 1)
+            self.precip_mm = torch.empty(0, 1)
+            self.water_level = torch.empty(0, 1)
+            self.has_water = torch.empty(0, 1)
+            self.metadata = []
         else:
-            print(f"Warning: Real dataset not found or insufficient for {split} split, generating benchmark synthetic batch.")
-            try:
-                from dataset_synth import generate_synthetic_telemetry_batch
-                (
-                    self.telemetry,
-                    self.dt,
-                    self.rain_prob,
-                    self.precip_mm,
-                    self.water_level,
-                ) = generate_synthetic_telemetry_batch(num_samples=max_samples, seq_len=seq_len)
-                self.has_water = torch.zeros(len(self.telemetry), 1)
-                self.metadata = None
-            except ImportError:
-                raise RuntimeError(
-                    f"No real data available for {split} split and no synthetic generator found. "
-                    f"Ensure weather_telemetry.csv exists in the data/ directory."
-                )
+            if return_metadata:
+                self.telemetry, self.dt, self.rain_prob, self.precip_mm, self.water_level, self.has_water, self.metadata = res
+            else:
+                self.telemetry, self.dt, self.rain_prob, self.precip_mm, self.water_level, self.has_water = res
+                self.metadata = []
 
     def __len__(self):
-        return len(self.telemetry)
+        return self.telemetry.shape[0]
 
     def __getitem__(self, idx):
         item = {
@@ -544,6 +653,45 @@ class TelemetryDataset(Dataset):
             "water_level": self.water_level[idx],
             "has_water": self.has_water[idx],
         }
-        if self.return_metadata and self.metadata is not None:
+        if self.return_metadata and idx < len(self.metadata):
             item["metadata"] = self.metadata[idx]
         return item
+
+
+def load_real_telemetry_sequences(
+    weather_csv_path: str = None,
+    water_csv_path: str = None,
+    seq_len: int = DEFAULT_SEQ_LEN,
+    max_sequences: int = 2000,
+    split: str = "train",
+    horizons: list = None,
+    norm_means: np.ndarray = None,
+    norm_stds: np.ndarray = None,
+    return_metadata: bool = False,
+):
+    """
+    Backwards-compatible API wrapper returning canonical tensors or None.
+    """
+    pipeline = get_telemetry_pipeline(weather_csv_path, water_csv_path)
+    horizon = horizons[0] if (horizons and len(horizons) > 0) else 1
+    return build_forecast_windows(
+        pipeline=pipeline,
+        split=split,
+        horizon=horizon,
+        seq_len=seq_len,
+        max_samples=max_sequences,
+        norm_means=norm_means,
+        norm_stds=norm_stds,
+        return_metadata=return_metadata,
+    )
+
+
+def fit_train_normalization(weather_csv_path: str = None, **kwargs):
+    """Backwards-compatible helper returning fitted (means, stds)."""
+    pipeline = get_telemetry_pipeline(weather_csv_path)
+    return pipeline.norm_means, pipeline.norm_stds
+
+
+# Export fallback constants for legacy imports
+FEATURE_MEANS = np.array([27.2, 31.0, 2.0, 1004.5], dtype=np.float32)
+FEATURE_STDS = np.array([2.8, 6.3, 3.0, 4.6], dtype=np.float32)

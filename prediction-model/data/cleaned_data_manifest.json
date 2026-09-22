@@ -1,0 +1,74 @@
+{
+  "generated_at": "2026-09-22T02:57:53.152030+00:00",
+  "data_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "raw_counts": {
+    "weather_telemetry_rows": 756156,
+    "water_level_telemetry_rows": 43883
+  },
+  "quarantine_counts_by_reason": {
+    "water_physical_bounds": 12,
+    "weather_bounds_wind_speed": 183,
+    "weather_bounds_temperature": 6634,
+    "weather_bounds_pressure": 16134,
+    "weather_year_out_of_bounds": 2
+  },
+  "total_quarantined_weather_rows": 22953,
+  "total_quarantined_water_rows": 12,
+  "resampled_hourly_summary": {
+    "num_weather_stations": 16,
+    "total_station_hours": 12537,
+    "station_hours_by_id": {
+      "03pqkGAj": 665,
+      "1Zb102pg": 836,
+      "2Dpo5DAK": 469,
+      "3nzr48bG": 835,
+      "3nzr8bGo": 838,
+      "4VAl2p9k": 836,
+      "95pM7BAV": 469,
+      "Bkpj1zRO": 861,
+      "QgbGldAY": 837,
+      "Rjz2dbXW": 835,
+      "VEpdDpBK": 764,
+      "lMAZe9b3": 992,
+      "nDby4YpR": 837,
+      "nDbyYbR1": 813,
+      "rqAkmpKG": 815,
+      "wkAWLzlm": 835
+    },
+    "total_water_gauge_hours": 2690,
+    "time_range_min": "2026-06-20T10:00:00+00:00",
+    "time_range_max": "2026-08-26T02:00:00+00:00"
+  },
+  "split_boundaries": {
+    "split_strategy": "chronological_60_20_20_with_48h_embargo",
+    "train_start": "2026-06-20T10:00:00+00:00",
+    "train_end": "2026-08-01T18:00:00+00:00",
+    "val_start": "2026-08-03T18:00:00+00:00",
+    "val_end": "2026-08-13T22:00:00+00:00",
+    "test_start": "2026-08-15T22:00:00+00:00",
+    "test_end": "2026-08-26T02:00:00+00:00"
+  },
+  "train_fitted_normalization": {
+    "feature_schema": [
+      "temperature",
+      "heat_index",
+      "wind_speed",
+      "pressure"
+    ],
+    "means": [
+      27.907407760620117,
+      32.218406677246094,
+      1.5926493406295776,
+      1005.7548217773438
+    ],
+    "stds": [
+      3.200087070465088,
+      7.033414840698242,
+      3.6234092712402344,
+      4.506224155426025
+    ]
+  }
+}
