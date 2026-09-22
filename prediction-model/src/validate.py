@@ -83,15 +83,15 @@ class StandaloneLNNRunner:
         self.W_rain = weights.get("W_rain", [])
         self.b_rain = weights.get("b_rain", 0.0)
         self.W_water = weights.get("W_water", [])
-        self.b_water = weights.get("b_water", 2.50)
+        self.b_water = weights.get("b_water", 0.0)
         self.in_features = len(self.W_in)
 
-    def predict_window(self, telemetry_arr: np.ndarray, dt_arr: np.ndarray):
+    def predict_window(self, telemetry_arr: np.ndarray, dt_arr: np.ndarray, initial_water: float = None):
         """Unroll window with fresh hidden state h=0 (zero cross-window leakage)."""
         seq_len = telemetry_arr.shape[0]
         h = [0.0] * self.hidden_dim
         pred_rain = 0.0
-        pred_water = self.b_water
+        delta_water = self.b_water
 
         for t in range(seq_len):
             x = telemetry_arr[t].tolist()
@@ -107,7 +107,8 @@ class StandaloneLNNRunner:
 
         rain_logit = self.b_rain + sum(h[j] * self.W_rain[j] for j in range(self.hidden_dim))
         pred_rain = sigmoid(rain_logit)
-        pred_water = self.b_water + sum(h[j] * self.W_water[j] for j in range(self.hidden_dim))
+        delta_water = self.b_water + sum(h[j] * self.W_water[j] for j in range(self.hidden_dim))
+        pred_water = (initial_water + delta_water) if initial_water is not None else delta_water
         return pred_rain, pred_water
 
 
@@ -252,6 +253,52 @@ def compute_water_metrics(pred_levels: list, true_levels: list, persist_levels: 
     }
 
 
+def train_and_predict_logistic_regression(train_res, test_res) -> list:
+    """Train a reproducible logistic regression baseline on train split t0 features and predict on test split."""
+    if train_res is None or len(train_res[0]) == 0 or test_res is None or len(test_res[0]) == 0:
+        return [0.0] * (len(test_res[0]) if test_res else 0)
+
+    tr_telemetry, _, tr_rain, _, _, _, tr_meta = train_res
+    te_telemetry, _, _, _, _, _, te_meta = test_res
+
+    X_tr = []
+    y_tr = []
+    for i, m in enumerate(tr_meta):
+        x_base = tr_telemetry[i, -1].numpy()
+        p0 = float(m.get("last_observed_precip", 0.0) or 0.0)
+        r3 = float(m.get("rolling_3h_precip", p0) or 0.0)
+        r6 = float(m.get("rolling_6h_precip", p0) or 0.0)
+        X_tr.append(np.append(x_base, [p0, r3, r6]))
+        y_tr.append(float(tr_rain[i, 0]))
+
+    X_te = []
+    for i, m in enumerate(te_meta):
+        x_base = te_telemetry[i, -1].numpy()
+        p0 = float(m.get("last_observed_precip", 0.0) or 0.0)
+        r3 = float(m.get("rolling_3h_precip", p0) or 0.0)
+        r6 = float(m.get("rolling_6h_precip", p0) or 0.0)
+        X_te.append(np.append(x_base, [p0, r3, r6]))
+
+    X_tr_t = torch.tensor(np.array(X_tr), dtype=torch.float32)
+    y_tr_t = torch.tensor(np.array(y_tr), dtype=torch.float32).unsqueeze(-1)
+    X_te_t = torch.tensor(np.array(X_te), dtype=torch.float32)
+
+    torch.manual_seed(42)
+    model = torch.nn.Linear(X_tr_t.shape[1], 1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.02, weight_decay=1e-3)
+    loss_fn = torch.nn.BCEWithLogitsLoss()
+
+    for _ in range(80):
+        optimizer.zero_grad()
+        loss = loss_fn(model(X_tr_t), y_tr_t)
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        preds = torch.sigmoid(model(X_te_t)).squeeze(-1).tolist()
+    return preds
+
+
 def evaluate_horizon(
     pipeline,
     horizon: int,
@@ -264,7 +311,15 @@ def evaluate_horizon(
     """Run comprehensive independent evaluation for a single horizon."""
     print(f"\nEvaluating Horizon +{horizon}h...")
 
-    # 1. Load calibration split (val) for conformal quantile calibration
+    # 1. Load train split for statistical baselines (Logistic Regression)
+    train_res = build_forecast_windows(
+        pipeline=pipeline,
+        split="train",
+        horizon=horizon,
+        seq_len=DEFAULT_SEQ_LEN,
+        return_metadata=True,
+    )
+    # 2. Load calibration split (val) for conformal quantile calibration
     calib_res = build_forecast_windows(
         pipeline=pipeline,
         split="val",
@@ -272,7 +327,7 @@ def evaluate_horizon(
         seq_len=DEFAULT_SEQ_LEN,
         return_metadata=True,
     )
-    # 2. Load untouched test split
+    # 3. Load untouched test split
     test_res = build_forecast_windows(
         pipeline=pipeline,
         split="test",
@@ -300,7 +355,11 @@ def evaluate_horizon(
         with torch.no_grad():
             c_t = calib_telemetry.to(device)
             c_dt = calib_dt.to(device)
-            _, _, c_w_pred = mf1_model(c_t, c_dt)
+            c_last_w = torch.tensor(
+                [[float(m["last_observed_water"] or 0.0)] if (m["has_water"] and m["last_observed_water"] is not None) else [0.0] for m in calib_meta],
+                dtype=torch.float32, device=device
+            )
+            _, _, c_w_pred = mf1_model(c_t, c_dt, initial_water=c_last_w)
             c_w_pred = c_w_pred[:, -1, 0].cpu().numpy()
 
             for i in range(n_calib):
@@ -311,7 +370,8 @@ def evaluate_horizon(
     if mf2_runner is not None:
         for i in range(n_calib):
             if calib_has_water[i, 0].item() > 0.5:
-                _, w_pred = mf2_runner.predict_window(calib_telemetry[i].numpy(), calib_dt[i].numpy())
+                w_init = float(calib_meta[i]["last_observed_water"] or 0.0)
+                _, w_pred = mf2_runner.predict_window(calib_telemetry[i].numpy(), calib_dt[i].numpy(), initial_water=w_init)
                 w_true = calib_water[i, 0].item()
                 mf2_calib_water_resids.append(abs(w_pred - w_true))
 
@@ -329,7 +389,11 @@ def evaluate_horizon(
         with torch.no_grad():
             t_t = test_telemetry.to(device)
             t_dt = test_dt.to(device)
-            p_rain, p_precip, p_water = mf1_model(t_t, t_dt)
+            t_last_w = torch.tensor(
+                [[float(m["last_observed_water"] or 0.0)] if (m["has_water"] and m["last_observed_water"] is not None) else [0.0] for m in test_meta],
+                dtype=torch.float32, device=device
+            )
+            p_rain, p_precip, p_water = mf1_model(t_t, t_dt, initial_water=t_last_w)
             mf1_test_rain_probs = p_rain[:, -1, 0].cpu().tolist()
             mf1_test_precip_vols = p_precip[:, -1, 0].cpu().tolist()
             mf1_test_water_preds = p_water[:, -1, 0].cpu().tolist()
@@ -342,7 +406,8 @@ def evaluate_horizon(
     mf2_test_water_preds = []
     for i in range(n_test):
         if mf2_runner is not None:
-            r_p, w_p = mf2_runner.predict_window(test_telemetry[i].numpy(), test_dt[i].numpy())
+            w_init = float(test_meta[i]["last_observed_water"] or 0.0) if test_meta[i]["has_water"] else None
+            r_p, w_p = mf2_runner.predict_window(test_telemetry[i].numpy(), test_dt[i].numpy(), initial_water=w_init)
             mf2_test_rain_probs.append(r_p)
             mf2_test_water_preds.append(w_p)
         else:
@@ -353,6 +418,9 @@ def evaluate_horizon(
     true_rain = [float(test_rain[i, 0]) for i in range(n_test)]
     true_precip = [float(test_precip[i, 0]) for i in range(n_test)]
     persist_rain = [1.0 if sample["last_observed_precip"] >= 0.1 else 0.0 for sample in test_meta]
+    recent_3h_rain = [1.0 if sample.get("rolling_3h_precip", 0.0) >= 0.2 else 0.0 for sample in test_meta]
+    recent_6h_rain = [1.0 if sample.get("rolling_6h_precip", 0.0) >= 0.2 else 0.0 for sample in test_meta]
+    logreg_test_rain_probs = train_and_predict_logistic_regression(train_res, test_res)
     climatology_rain = [climatology_rain_prior] * n_test
 
     # Gauge target subsets
@@ -366,8 +434,12 @@ def evaluate_horizon(
     mf1_rain_metrics = compute_rain_metrics(mf1_test_rain_probs, true_rain)
     mf2_rain_metrics = compute_rain_metrics(mf2_test_rain_probs, true_rain)
     persist_rain_metrics = compute_rain_metrics(persist_rain, true_rain)
+    recent_3h_rain_metrics = compute_rain_metrics(recent_3h_rain, true_rain)
+    recent_6h_rain_metrics = compute_rain_metrics(recent_6h_rain, true_rain)
+    logreg_rain_metrics = compute_rain_metrics(logreg_test_rain_probs, true_rain)
     clim_rain_metrics = compute_rain_metrics(climatology_rain, true_rain)
 
+    persist_water_metrics = compute_water_metrics(persist_water_gauge, true_water_gauge, persist_water_gauge, climatology_water_stage)
     mf1_water_metrics = compute_water_metrics(mf1_water_gauge, true_water_gauge, persist_water_gauge, climatology_water_stage)
     mf2_water_metrics = compute_water_metrics(mf2_water_gauge, true_water_gauge, persist_water_gauge, climatology_water_stage)
 
@@ -470,6 +542,9 @@ def evaluate_horizon(
             "mf2_rain_prob": round(mf2_test_rain_probs[i], 4),
             "mf2_water_level": round(mf2_test_water_preds[i], 4) if meta["has_water"] else None,
             "persist_rain": persist_rain[i],
+            "recent_3h_rain": recent_3h_rain[i],
+            "recent_6h_rain": recent_6h_rain[i],
+            "logreg_rain_prob": round(logreg_test_rain_probs[i], 4),
             "persist_water": meta["last_observed_water"],
             "climatology_rain": round(climatology_rain_prior, 4),
             "climatology_water": round(climatology_water_stage, 4),
@@ -484,11 +559,15 @@ def evaluate_horizon(
             "mf1_pytorch": mf1_rain_metrics,
             "mf2_standalone": mf2_rain_metrics,
             "persistence": persist_rain_metrics,
+            "recent_3h_majority": recent_3h_rain_metrics,
+            "recent_6h_majority": recent_6h_rain_metrics,
+            "logistic_regression": logreg_rain_metrics,
             "climatology": clim_rain_metrics,
         },
         "water_metrics": {
             "mf1_pytorch": mf1_water_metrics,
             "mf2_standalone": mf2_water_metrics,
+            "persistence": persist_water_metrics,
         },
         "conformal_uncertainty": conformal_coverage,
         "intensity_breakdown": intensity_breakdown,
@@ -592,7 +671,8 @@ def run_full_validation(horizons: list = None):
         "actual_rain", "actual_precip_mm", "actual_water_level", "has_water",
         "mf1_rain_prob", "mf1_precip_mm", "mf1_water_level",
         "mf2_rain_prob", "mf2_water_level",
-        "persist_rain", "persist_water", "climatology_rain", "climatology_water",
+        "persist_rain", "recent_3h_rain", "recent_6h_rain", "logreg_rain_prob",
+        "persist_water", "climatology_rain", "climatology_water",
     ]
     with open(PREDICTIONS_LOG_PATH, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -605,10 +685,12 @@ def run_full_validation(horizons: list = None):
     mf1_h1_f1 = h1_metrics.get("rain_metrics", {}).get("mf1_pytorch", {}).get("f1_score_pct", 0.0)
     mf2_h1_f1 = h1_metrics.get("rain_metrics", {}).get("mf2_standalone", {}).get("f1_score_pct", 0.0)
     p_h1_f1 = h1_metrics.get("rain_metrics", {}).get("persistence", {}).get("f1_score_pct", 0.0)
+    r3_h1_f1 = h1_metrics.get("rain_metrics", {}).get("recent_3h_majority", {}).get("f1_score_pct", 0.0)
+    logreg_h1_f1 = h1_metrics.get("rain_metrics", {}).get("logistic_regression", {}).get("f1_score_pct", 0.0)
 
     mf1_h1_mae = h1_metrics.get("water_metrics", {}).get("mf1_pytorch", {}).get("mae_meters", float("inf"))
     mf2_h1_mae = h1_metrics.get("water_metrics", {}).get("mf2_standalone", {}).get("mae_meters", float("inf"))
-    p_h1_mae = h1_metrics.get("water_metrics", {}).get("mf1_pytorch", {}).get("persistence_mae_meters", 0.0)
+    p_h1_mae = h1_metrics.get("water_metrics", {}).get("persistence", {}).get("mae_meters", 0.0)
 
     beats_rain_persistence = bool(mf1_h1_f1 > p_h1_f1 or mf2_h1_f1 > p_h1_f1)
     beats_water_persistence = bool(mf1_h1_mae < p_h1_mae or mf2_h1_mae < p_h1_mae)
@@ -628,6 +710,8 @@ def run_full_validation(horizons: list = None):
         },
         "summary_findings": {
             "horizon_1h_persistence_rain_f1_pct": p_h1_f1,
+            "horizon_1h_logreg_rain_f1_pct": logreg_h1_f1,
+            "horizon_1h_recent_3h_rain_f1_pct": r3_h1_f1,
             "horizon_1h_mf1_rain_f1_pct": mf1_h1_f1,
             "horizon_1h_mf2_rain_f1_pct": mf2_h1_f1,
             "horizon_1h_persistence_water_mae_meters": p_h1_mae,
@@ -665,11 +749,11 @@ def run_full_validation(horizons: list = None):
     print(f"Saved full scorecard to: {SCORECARD_PATH}")
 
     # Print executive summary table
-    print("\n" + "=" * 90)
-    print("EXECUTIVE SCORECARD SUMMARY ACROSS HORIZONS")
-    print("=" * 90)
-    print(f"{'Horizon':<8} | {'MF-1 F1':<10} | {'MF-2 F1':<10} | {'Persist F1':<10} | {'MF-1 W-MAE':<12} | {'MF-2 W-MAE':<12} | {'Persist W-MAE':<12}")
-    print("-" * 90)
+    print("\n" + "=" * 115)
+    print("EXECUTIVE SCORECARD SUMMARY ACROSS HORIZONS (WITH STRONGER BASELINES)")
+    print("=" * 115)
+    print(f"{'Horizon':<8} | {'MF-1 F1':<9} | {'MF-2 F1':<9} | {'LogReg F1':<10} | {'Rec-3h F1':<10} | {'Persist F1':<11} | {'MF-1 W-MAE':<11} | {'MF-2 W-MAE':<11} | {'Persist W-MAE':<13}")
+    print("-" * 115)
     for h in horizons:
         h_k = f"horizon_{h}h"
         res = all_horizon_results.get(h_k, {})
@@ -678,14 +762,16 @@ def run_full_validation(horizons: list = None):
 
         f1_1 = f"{rm.get('mf1_pytorch', {}).get('f1_score_pct', 0.0):.1f}%"
         f1_2 = f"{rm.get('mf2_standalone', {}).get('f1_score_pct', 0.0):.1f}%"
+        f1_lr = f"{rm.get('logistic_regression', {}).get('f1_score_pct', 0.0):.1f}%"
+        f1_r3 = f"{rm.get('recent_3h_majority', {}).get('f1_score_pct', 0.0):.1f}%"
         f1_p = f"{rm.get('persistence', {}).get('f1_score_pct', 0.0):.1f}%"
 
         w_1 = f"{wm.get('mf1_pytorch', {}).get('mae_meters', float('nan')):.4f}m"
         w_2 = f"{wm.get('mf2_standalone', {}).get('mae_meters', float('nan')):.4f}m"
-        w_p = f"{wm.get('mf1_pytorch', {}).get('persistence_mae_meters', float('nan')):.4f}m"
+        w_p = f"{wm.get('persistence', {}).get('mae_meters', float('nan')):.4f}m"
 
-        print(f"+{h:02d}h     | {f1_1:<10} | {f1_2:<10} | {f1_p:<10} | {w_1:<12} | {w_2:<12} | {w_p:<12}")
-    print("=" * 90)
+        print(f"+{h:02d}h     | {f1_1:<9} | {f1_2:<9} | {f1_lr:<10} | {f1_r3:<10} | {f1_p:<11} | {w_1:<11} | {w_2:<11} | {w_p:<13}")
+    print("=" * 115)
     print(f"Recommendation: {scorecard['summary_findings']['operational_recommendation']}")
     print("=" * 90)
 

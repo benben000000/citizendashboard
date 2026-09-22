@@ -33,6 +33,7 @@ from dataset import (
     WEATHER_CSV_PATH,
     WATER_CSV_PATH,
     DEFAULT_SEQ_LEN,
+    DEFAULT_FEATURE_SCHEMA,
 )
 
 DEFAULT_SEED = 42
@@ -49,7 +50,7 @@ def tanh(x: float) -> float:
 class ContinuousLNNCell:
     """Standalone continuous-time recurrent liquid cell."""
 
-    def __init__(self, in_features: int = 4, hidden_dim: int = 8, seed: int = DEFAULT_SEED):
+    def __init__(self, in_features: int = 8, hidden_dim: int = 8, seed: int = DEFAULT_SEED):
         random.seed(seed)
         self.in_features = in_features
         self.hidden_dim = hidden_dim
@@ -64,7 +65,7 @@ class ContinuousLNNCell:
         self.b_rain = 0.0
 
         self.W_water = [random.uniform(-scale, scale) for _ in range(hidden_dim)]
-        self.b_water = 2.50  # Prior centered around mean river stage (2.5m)
+        self.b_water = 0.0  # Zero prior for hydrological stage delta (meters)
 
     def forward_step(self, x: list, h_prev: list, dt: float = 1.0):
         """Single-step continuous ODE transition."""
@@ -81,23 +82,24 @@ class ContinuousLNNCell:
         rain_logit = self.b_rain + sum(h_next[j] * self.W_rain[j] for j in range(self.hidden_dim))
         rain_prob = sigmoid(rain_logit)
 
-        water_pred = self.b_water + sum(h_next[j] * self.W_water[j] for j in range(self.hidden_dim))
-        return h_next, rain_prob, water_pred
+        delta_water = self.b_water + sum(h_next[j] * self.W_water[j] for j in range(self.hidden_dim))
+        return h_next, rain_prob, delta_water
 
-    def unroll_window(self, telemetry_arr: np.ndarray, dt_arr: np.ndarray):
+    def unroll_window(self, telemetry_arr: np.ndarray, dt_arr: np.ndarray, initial_water: float = None):
         """Unroll entire sequence window starting from fresh hidden state h=0."""
         seq_len = telemetry_arr.shape[0]
         h = [0.0] * self.hidden_dim
         history_h = []
         pred_rain = 0.0
-        pred_water = self.b_water
+        delta_water = 0.0
 
         for t in range(seq_len):
             x = telemetry_arr[t].tolist()
             dt_val = float(dt_arr[t, 0])
-            h, pred_rain, pred_water = self.forward_step(x, h, dt=dt_val)
+            h, pred_rain, delta_water = self.forward_step(x, h, dt=dt_val)
             history_h.append(h)
 
+        pred_water = (initial_water + delta_water) if initial_water is not None else delta_water
         return history_h, pred_rain, pred_water
 
     def copy_weights(self):
@@ -154,6 +156,7 @@ def train_mf2_model(
         horizon=horizon,
         seq_len=DEFAULT_SEQ_LEN,
         max_samples=max_train_samples,
+        return_metadata=True,
     )
     val_res = build_forecast_windows(
         pipeline=pipeline,
@@ -161,20 +164,21 @@ def train_mf2_model(
         horizon=horizon,
         seq_len=DEFAULT_SEQ_LEN,
         max_samples=max_train_samples // 3 if max_train_samples else None,
+        return_metadata=True,
     )
 
     if train_res is None or val_res is None:
         raise RuntimeError("Failed to build canonical windows for MF-2 training!")
 
-    train_telemetry, train_dt, train_rain, train_precip, train_water, train_has_water = train_res
-    val_telemetry, val_dt, val_rain, val_precip, val_water, val_has_water = val_res
+    train_telemetry, train_dt, train_rain, train_precip, train_water, train_has_water, train_meta = train_res
+    val_telemetry, val_dt, val_rain, val_precip, val_water, val_has_water, val_meta = val_res
 
     num_train = train_telemetry.shape[0]
     num_val = val_telemetry.shape[0]
     print(f"  Training samples:   {num_train}")
     print(f"  Validation samples: {num_val}")
 
-    model = ContinuousLNNCell(in_features=4, hidden_dim=8, seed=seed)
+    model = ContinuousLNNCell(in_features=8, hidden_dim=8, seed=seed)
 
     best_val_loss = float("inf")
     best_epoch = 0
@@ -193,9 +197,10 @@ def train_mf2_model(
             target_rain = float(train_rain[idx, 0])
             target_water = float(train_water[idx, 0])
             has_water = bool(train_has_water[idx, 0] > 0.5)
+            last_water = float(train_meta[idx].get("last_observed_water") or 0.0) if has_water else 0.0
 
-            # Unroll window with fresh hidden state h=0
-            history_h, pred_rain, pred_water = model.unroll_window(telemetry_arr, dt_arr)
+            # Unroll window with fresh hidden state h=0 and initial water level
+            history_h, pred_rain, pred_water = model.unroll_window(telemetry_arr, dt_arr, initial_water=last_water)
             h_final = history_h[-1]
             h_prev = history_h[-2] if len(history_h) > 1 else [0.0] * model.hidden_dim
             x_final = telemetry_arr[-1].tolist()
@@ -213,7 +218,7 @@ def train_mf2_model(
                 loss_water = 0.0
                 d_water = 0.0
 
-            total_loss = loss_rain + 0.5 * loss_water
+            total_loss = loss_rain + 1.0 * loss_water
             train_loss += total_loss
 
             # Gradient updates for output heads
@@ -251,8 +256,9 @@ def train_mf2_model(
             v_rain_true = float(val_rain[v_idx, 0])
             v_water_true = float(val_water[v_idx, 0])
             v_has_water = bool(val_has_water[v_idx, 0] > 0.5)
+            v_last_water = float(val_meta[v_idx].get("last_observed_water") or 0.0) if v_has_water else 0.0
 
-            _, v_pred_rain, v_pred_water = model.unroll_window(v_telemetry, v_dt)
+            _, v_pred_rain, v_pred_water = model.unroll_window(v_telemetry, v_dt, initial_water=v_last_water)
 
             v_l_rain = -(v_rain_true * math.log(max(1e-7, v_pred_rain)) + (1.0 - v_rain_true) * math.log(max(1e-7, 1.0 - v_pred_rain)))
             if v_has_water:
@@ -263,7 +269,7 @@ def train_mf2_model(
             else:
                 v_l_water = 0.0
 
-            val_loss_sum += v_l_rain + 0.5 * v_l_water
+            val_loss_sum += v_l_rain + 1.0 * v_l_water
 
         avg_val_loss = val_loss_sum / max(1, num_val)
         avg_val_rmse = math.sqrt(val_water_sq_sum / val_water_count) if val_water_count > 0 else float("nan")
@@ -298,10 +304,10 @@ def train_mf2_model(
         "training_date": datetime.now(timezone.utc).isoformat(),
         "seed": seed,
         "forecast_horizon_hours": horizon,
-        "feature_schema": ["temperature", "heat_index", "wind_speed", "pressure"],
+        "feature_schema": list(DEFAULT_FEATURE_SCHEMA),
         "input_sequence_length_hours": DEFAULT_SEQ_LEN,
         "resampling_rule": "UTC hourly bins: last valid temp/hi/ws/pressure, sum of precip volume (mm), last valid water stage (m)",
-        "model_config": {"in_features": 4, "hidden_dim": model.hidden_dim},
+        "model_config": {"in_features": 8, "hidden_dim": model.hidden_dim},
         "split_boundaries": {
             "strategy": "chronological_60_20_20_with_48h_embargo",
             "train_start": pipeline.time_range_min.isoformat() if pipeline.time_range_min else None,

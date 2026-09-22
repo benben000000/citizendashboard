@@ -51,10 +51,12 @@ def run_smoke_test():
     has_water = batch["has_water"]
     print(f"   Batch shapes: telemetry={telemetry.shape}, dt={dt.shape}, rain={rain_prob.shape}")
 
+    in_features = telemetry.shape[-1]
+
     # 3. Model Family 1: PyTorch WeatherWaterLNN
     print("3. Testing MF-1 (WeatherWaterLNN) Forward + Backward...")
     device = torch.device("cpu")
-    model = WeatherWaterLNN(input_dim=4, hidden_dim=16).to(device)
+    model = WeatherWaterLNN(input_dim=in_features, hidden_dim=16).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=0.01)
     bce_loss_fn = nn.BCELoss()
     mse_loss_fn = nn.MSELoss()
@@ -68,7 +70,7 @@ def run_smoke_test():
 
     # 4. Model Family 2: Standalone ContinuousLNNCell
     print("4. Testing MF-2 (ContinuousLNNCell) Standalone Unroll + Update...")
-    cell = ContinuousLNNCell(in_features=4, hidden_dim=8, seed=42)
+    cell = ContinuousLNNCell(in_features=in_features, hidden_dim=8, seed=42)
     sample_feat = telemetry[0].numpy()
     sample_dt = dt[0].numpy()
     target_rain_val = float(rain_prob[0, 0])

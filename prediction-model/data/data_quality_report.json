@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-22T03:19:03.078905+00:00",
-  "code_commit": "44fba37dfdfe7d563e02a993e8ddc5fc9b87359f",
+  "generated_at": "2026-09-22T04:44:57.545692+00:00",
+  "code_commit": "28d71589390984d566137456b11ddca3476cf5e7",
   "data_hashes": {
     "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
     "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
@@ -13,10 +13,12 @@
     "water_physical_bounds": 12,
     "weather_bounds_wind_speed": 183,
     "weather_bounds_temperature": 6634,
-    "weather_bounds_pressure": 16134,
-    "weather_year_out_of_bounds": 2
+    "weather_bounds_pressure": 16133,
+    "weather_year_out_of_bounds": 2,
+    "weather_bounds_precipitation": 2,
+    "weather_bounds_humidity": 1
   },
-  "total_quarantined_weather_rows": 22953,
+  "total_quarantined_weather_rows": 22955,
   "total_quarantined_water_rows": 12,
   "resampled_hourly_summary": {
     "num_weather_stations": 16,
@@ -56,20 +58,32 @@
     "feature_schema": [
       "temperature",
       "heat_index",
+      "humidity",
+      "pressure",
       "wind_speed",
-      "pressure"
+      "wind_sin",
+      "wind_cos",
+      "precipitation"
     ],
     "means": [
       27.907407760620117,
       32.218406677246094,
+      86.1355972290039,
+      1005.7548217773438,
       1.5926493406295776,
-      1005.7548217773438
+      0.07907973974943161,
+      -0.0017931798938661814,
+      0.5021592974662781
     ],
     "stds": [
       3.200087070465088,
       7.033414840698242,
+      12.564970970153809,
+      4.506224155426025,
       3.6234092712402344,
-      4.506224155426025
+      0.7434014081954956,
+      0.6641515493392944,
+      2.836988687515259
     ]
   }
 }

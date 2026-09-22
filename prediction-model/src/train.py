@@ -35,6 +35,7 @@ from dataset import (
     WEATHER_CSV_PATH,
     WATER_CSV_PATH,
     DEFAULT_SEQ_LEN,
+    DEFAULT_FEATURE_SCHEMA,
 )
 from model import WeatherWaterLNN
 
@@ -82,7 +83,7 @@ def build_checkpoint_manifest(
         "training_date": datetime.now(timezone.utc).isoformat(),
         "seed": seed,
         "forecast_horizon_hours": horizon,
-        "feature_schema": ["temperature", "heat_index", "wind_speed", "pressure"],
+        "feature_schema": list(DEFAULT_FEATURE_SCHEMA),
         "input_sequence_length_hours": DEFAULT_SEQ_LEN,
         "resampling_rule": "UTC hourly bins: last valid temp/hi/ws/pressure, sum of precip volume (mm), last valid water stage (m)",
         "model_config": model_config,
@@ -168,7 +169,7 @@ def train_mf1_model(
 
     # Initialize model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model_config = {"input_dim": 4, "hidden_dim": 32}
+    model_config = {"input_dim": 8, "hidden_dim": 32}
     model = WeatherWaterLNN(**model_config).to(device)
 
     # Multi-task loss functions
@@ -193,11 +194,12 @@ def train_mf1_model(
             target_rain = batch["rain_prob"].to(device)
             target_precip = batch["precip_mm"].to(device)
             target_water = batch["water_level"].to(device)
+            last_water = batch["last_water"].to(device)
             has_water = batch["has_water"].to(device)
 
             optimizer.zero_grad()
 
-            pred_rain, pred_precip, pred_water = model(telemetry, dt)
+            pred_rain, pred_precip, pred_water = model(telemetry, dt, initial_water=last_water)
 
             # Target is evaluated at forecast origin t0 + h (final step in window)
             pred_rain_final = pred_rain[:, -1, :]
@@ -215,7 +217,7 @@ def train_mf1_model(
             else:
                 loss_water = torch.tensor(0.0, device=device)
 
-            total_loss = loss_rain + 0.1 * loss_precip + 0.5 * loss_water
+            total_loss = loss_rain + 0.1 * loss_precip + 1.0 * loss_water
             total_loss.backward()
 
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -238,9 +240,10 @@ def train_mf1_model(
                 target_rain = batch["rain_prob"].to(device)
                 target_precip = batch["precip_mm"].to(device)
                 target_water = batch["water_level"].to(device)
+                last_water = batch["last_water"].to(device)
                 has_water = batch["has_water"].to(device)
 
-                pred_rain, pred_precip, pred_water = model(telemetry, dt)
+                pred_rain, pred_precip, pred_water = model(telemetry, dt, initial_water=last_water)
                 pred_rain_final = pred_rain[:, -1, :]
                 pred_precip_final = pred_precip[:, -1, :]
                 pred_water_final = pred_water[:, -1, :]
@@ -260,7 +263,7 @@ def train_mf1_model(
                 else:
                     loss_water = torch.tensor(0.0, device=device)
 
-                val_loss = loss_rain + 0.1 * loss_precip + 0.5 * loss_water
+                val_loss = loss_rain + 0.1 * loss_precip + 1.0 * loss_water
                 total_val_loss += val_loss.item()
 
         avg_val_loss = total_val_loss / max(1, len(val_loader))

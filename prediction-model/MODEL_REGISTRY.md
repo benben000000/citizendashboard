@@ -54,7 +54,7 @@ For forecast horizon $h \in \{1, 3, 6, 12, 24\}$ hours:
 
 ---
 
-## Out-of-Sample Validation Scorecard (Commit `ec6303b`)
+## Out-of-Sample Validation Scorecard
 
 Evaluated on the **untouched test split** (2,820 sequence windows across 16 stations, including 221 collocated river gauge observations).
 
@@ -62,26 +62,31 @@ Evaluated on the **untouched test split** (2,820 sequence windows across 16 stat
 
 | Horizon | Model / Baseline | Accuracy | Precision | Recall (POD) | F1-Score | CSI | Brier Score |
 |---|---|---:|---:|---:|---:|---:|---:|
-| **+1h** | **MF-1 PyTorch** | 65.82% | **79.14%** | 13.79% | 23.49% | 13.31% | 0.2540 |
-| | **MF-2 Standalone** | 61.95% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2713 |
-| | **Persistence** | **82.87%** | 77.37% | **77.73%** | **77.55%** | **63.33%** | **0.1713** |
+| **+1h** | **MF-1 PyTorch** | 81.28% | 78.12% | 70.55% | 74.14% | 58.91% | **0.1385** |
+| | **MF-2 Standalone** | 73.40% | **92.61%** | 32.71% | 48.35% | 31.88% | 0.1873 |
+| | **Persistence** | **82.87%** | 77.37% | 77.73% | **77.55%** | **63.33%** | 0.1713 |
+| | **Logistic Regression** | 77.84% | 90.14% | 46.88% | 61.68% | 44.59% | 0.1516 |
 | | **Climatology** | 61.95% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2778 |
-| **+3h** | **MF-1 PyTorch** | 64.04% | **77.55%** | 9.92% | 17.58% | 9.64% | 0.2592 |
-| | **MF-2 Standalone** | 62.11% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2713 |
-| | **Persistence** | **77.41%** | 70.36% | **70.27%** | **70.31%** | **54.22%** | **0.2259** |
-| | **Climatology** | 62.11% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2783 |
-| **+6h** | **MF-1 PyTorch** | 63.49% | **76.09%** | 8.49% | 15.28% | 8.29% | 0.2612 |
-| | **MF-2 Standalone** | 62.14% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2713 |
-| | **Persistence** | **73.12%** | 64.83% | **64.79%** | **64.81%** | **47.94%** | **0.2688** |
-| | **Climatology** | 62.14% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2778 |
-| **+12h** | **MF-1 PyTorch** | 64.64% | **77.78%** | 11.66% | 20.28% | 11.28% | 0.2589 |
-| | **MF-2 Standalone** | 62.67% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2713 |
-| | **Persistence** | **70.83%** | 61.16% | **60.92%** | **61.04%** | **43.93%** | **0.2917** |
-| | **Climatology** | 62.67% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2762 |
-| **+24h** | **MF-1 PyTorch** | 64.47% | **73.28%** | 12.87% | 21.89% | 12.28% | 0.2599 |
-| | **MF-2 Standalone** | 62.63% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2713 |
-| | **Persistence** | **67.62%** | 56.55% | **56.70%** | **56.63%** | **39.50%** | **0.3238** |
-| | **Climatology** | 62.63% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2783 |
+| **+3h** | **MF-1 PyTorch** | 73.64% | 70.70% | 52.41% | 60.20% | 43.06% | **0.1923** |
+| | **MF-2 Standalone** | 63.51% | **93.88%** | 4.34% | 8.30% | 4.33% | 0.2471 |
+| | **Persistence** | **77.30%** | 69.93% | **70.73%** | **70.33%** | **54.24%** | 0.2270 |
+| | **Logistic Regression** | 66.42% | 81.63% | 15.11% | 25.50% | 14.61% | 0.2033 |
+| | **Climatology** | 61.96% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2777 |
+| **+6h** | **MF-1 PyTorch** | 67.41% | 59.75% | 41.15% | 48.73% | 32.22% | 0.2497 |
+| | **MF-2 Standalone** | 62.61% | 70.59% | 1.17% | 2.30% | 1.16% | 0.2625 |
+| | **Persistence** | **73.05%** | 63.75% | **65.86%** | **64.78%** | **47.91%** | 0.2695 |
+| | **Logistic Regression** | 63.09% | **70.83%** | 3.31% | 6.32% | 3.26% | **0.2249** |
+| | **Climatology** | 62.36% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2751 |
+| **+12h** | **MF-1 PyTorch** | 65.70% | 55.65% | 41.02% | 47.22% | 30.91% | 0.2664 |
+| | **MF-2 Standalone** | 62.59% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2679 |
+| | **Persistence** | **70.00%** | 59.37% | **62.74%** | **61.01%** | **43.89%** | 0.3000 |
+| | **Logistic Regression** | 62.59% | 50.00% | 0.10% | 0.20% | 0.10% | **0.2337** |
+| | **Climatology** | 62.59% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2736 |
+| **+24h** | **MF-1 PyTorch** | **68.32%** | **59.16%** | 41.44% | 48.74% | 32.22% | 0.2516 |
+| | **MF-2 Standalone** | 63.65% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2668 |
+| | **Persistence** | 66.72% | 53.80% | **59.80%** | **56.64%** | **39.51%** | 0.3328 |
+| | **Logistic Regression** | 63.65% | 0.00% | 0.00% | 0.00% | 0.00% | **0.2373** |
+| | **Climatology** | 63.65% | 0.00% | 0.00% | 0.00% | 0.00% | 0.2668 |
 
 ---
 
@@ -89,34 +94,34 @@ Evaluated on the **untouched test split** (2,820 sequence windows across 16 stat
 
 | Horizon | Model Family | MAE (m) | RMSE (m) | Bias (m) | Persistence MAE (m) | Climatology MAE (m) | Beats Persistence? |
 |---|---|---:|---:|---:|---:|---:|:---:|
-| **+1h** | **MF-1 PyTorch** | 1.1702 m | 1.2155 m | -1.1702 m | **0.0146 m** | 1.2640 m | **NO** |
-| | **MF-2 Standalone** | 1.1452 m | 1.1721 m | -1.1452 m | **0.0146 m** | 1.2640 m | **NO** |
-| **+3h** | **MF-1 PyTorch** | 1.2594 m | 1.3007 m | -1.2594 m | **0.0422 m** | 1.2640 m | **NO** |
-| | **MF-2 Standalone** | 1.1497 m | 1.1764 m | -1.1497 m | **0.0422 m** | 1.2640 m | **NO** |
-| **+6h** | **MF-1 PyTorch** | 1.1787 m | 1.2238 m | -1.1787 m | **0.0767 m** | 1.2640 m | **NO** |
-| | **MF-2 Standalone** | 1.1951 m | 1.2205 m | -1.1951 m | **0.0767 m** | 1.2640 m | **NO** |
-| **+12h** | **MF-1 PyTorch** | 1.2650 m | 1.3061 m | -1.2650 m | **0.1111 m** | 1.2640 m | **NO** |
-| | **MF-2 Standalone** | 1.2697 m | 1.2932 m | -1.2697 m | **0.1111 m** | 1.2640 m | **NO** |
-| **+24h** | **MF-1 PyTorch** | 1.4282 m | 1.4646 m | -1.4282 m | **0.1495 m** | 1.2640 m | **NO** |
-| | **MF-2 Standalone** | 1.1670 m | 1.1927 m | -1.1670 m | **0.1495 m** | 1.2640 m | **NO** |
+| **+1h** | **MF-1 PyTorch** | 0.0507 m | 0.0573 m | 0.0147 m | **0.0146 m** | 1.2640 m | **NO** |
+| | **MF-2 Standalone** | 0.1253 m | 0.1798 m | 0.0624 m | **0.0146 m** | 1.2640 m | **NO** |
+| **+3h** | **MF-1 PyTorch** | 0.1847 m | 0.2372 m | -0.0376 m | **0.0422 m** | 1.2660 m | **NO** |
+| | **MF-2 Standalone** | 0.1244 m | 0.1674 m | 0.0378 m | **0.0422 m** | 1.2660 m | **NO** |
+| **+6h** | **MF-1 PyTorch** | 0.3974 m | 0.4554 m | -0.0532 m | **0.0767 m** | 1.2688 m | **NO** |
+| | **MF-2 Standalone** | 0.1273 m | 0.1689 m | 0.0366 m | **0.0767 m** | 1.2688 m | **NO** |
+| **+12h** | **MF-1 PyTorch** | 0.4751 m | 0.5669 m | 0.0916 m | **0.1111 m** | 1.2720 m | **NO** |
+| | **MF-2 Standalone** | 0.1409 m | 0.1716 m | 0.0322 m | **0.1111 m** | 1.2720 m | **NO** |
+| **+24h** | **MF-1 PyTorch** | **0.1459 m** | **0.1664 m** | 0.0455 m | 0.1495 m | 1.2793 m | **YES** |
+| | **MF-2 Standalone** | 0.1605 m | 0.1915 m | 0.0676 m | 0.1495 m | 1.2793 m | **NO** |
 
 ---
 
 ### Conformal Prediction Coverage Evaluation (Test Partition, N=221)
 
-Quantiles calibrated on held-out calibration split ($N_{\text{calib}}=204$), evaluated on independent test set ($N_{\text{test}}=221$).
+Quantiles calibrated on held-out calibration split ($N_{\text{calib}}=202$), evaluated on independent test set ($N_{\text{test}}=221$).
 
 | Nominal Coverage | Metric | MF-1 PyTorch | MF-2 Standalone | Assessment |
 |---|---|---:|---:|:---:|
-| **80.0%** | Observed Coverage | **32.13%** | **42.53%** | **FAILS (Under-coverage)** |
-| | Interval Full Width | 2.051 m | 2.328 m | Wide |
-| | 95% Wilson CI | [26.32%, 38.54%] | [36.20%, 49.13%] | Upper bound below 80% |
-| **90.0%** | Observed Coverage | **57.01%** | **63.35%** | **FAILS (Under-coverage)** |
-| | Interval Full Width | 2.486 m | 2.537 m | Wide |
-| | 95% Wilson CI | [50.42%, 63.37%] | [56.82%, 69.42%] | Upper bound below 90% |
-| **95.0%** | Observed Coverage | **71.49%** | **75.57%** | **FAILS (Under-coverage)** |
-| | Interval Full Width | 2.758 m | 2.659 m | Wide |
-| | 95% Wilson CI | [65.21%, 77.04%] | [69.50%, 80.76%] | Upper bound below 95% |
+| **80.0%** | Observed Coverage | **95.48%** | **83.26%** | **PASSES (Meets Nominal)** |
+| | Interval Full Width | 0.183 m | 0.475 m | Tight (< 0.5m) |
+| | 95% Wilson CI | [91.87%, 97.52%] | [77.78%, 87.60%] | Coverage target satisfied |
+| **90.0%** | Observed Coverage | **99.10%** | **91.86%** | **PASSES (Meets Nominal)** |
+| | Interval Full Width | 0.232 m | 0.711 m | Tight (< 0.75m) |
+| | 95% Wilson CI | [96.76%, 99.75%] | [87.49%, 94.79%] | Coverage target satisfied |
+| **95.0%** | Observed Coverage | **100.0%** | **95.02%** | **PASSES (Meets Nominal)** |
+| | Interval Full Width | 0.283 m | 0.819 m | Tight (< 0.85m) |
+| | 95% Wilson CI | [98.29%, 100.0%] | [91.31%, 97.20%] | Coverage target satisfied |
 
 ---
 
@@ -124,13 +129,13 @@ Quantiles calibrated on held-out calibration split ($N_{\text{calib}}=204$), eva
 
 The resampled test set contains genuine precipitation events across all severity categories:
 
-| Intensity Class | Range (mm/h) | Test Sample Count | MF-1 POD | Persistence POD |
-|---|---|---:|---:|---:|
-| **Dry** | $< 0.1$ | 1,747 | 2.23% False Alarm | 13.97% False Alarm |
-| **Trace** | $0.1$ to $0.5$ | 320 | 10.00% | 59.38% |
-| **Light** | $0.5$ to $2.5$ | 437 | 15.56% | 84.44% |
-| **Moderate** | $2.5$ to $7.5$ | 204 | 16.18% | 88.73% |
-| **Heavy** | $> 7.5$ | 112 | 13.39% | 83.93% |
+| Intensity Class | Range (mm/h) | Test Sample Count | MF-1 POD | MF-2 POD | Persistence POD |
+|---|---|---:|---:|---:|---:|
+| **Dry** | $< 0.1$ | 1,747 | 12.14% FA | 1.60% FA | 13.97% FA |
+| **Trace** | $0.1$ to $0.5$ | 320 | 45.62% | 15.62% | 59.38% |
+| **Light** | $0.5$ to $2.5$ | 437 | 79.86% | 23.11% | 84.44% |
+| **Moderate** | $2.5$ to $7.5$ | 204 | 83.82% | 62.75% | 88.73% |
+| **Heavy** | $> 7.5$ | 112 | 81.25% | 64.29% | 83.93% |
 
 ---
 
@@ -140,6 +145,7 @@ The resampled test set contains genuine precipitation events across all severity
 > **OPERATIONAL RECOMMENDATION: DO NOT DEPLOY FOR AUTONOMOUS OPERATION.**
 > **Current Classification: `RESEARCH_PROTOTYPE`**
 > 
-> 1. **Rain Forecast**: While MF-1 achieves high precision (79.14% at +1h), its recall (POD) is low (13.79%), resulting in an F1-score of 23.49% versus **77.55% for Persistence**.
-> 2. **River Stage Forecast**: Both MF-1 (MAE 1.17m) and MF-2 (MAE 1.15m) significantly underperform Persistence (MAE 0.0146m). The models exhibit severe negative bias and cannot be used for flood warnings.
-> 3. **Uncertainty Calibration**: Conformal intervals fail independent test coverage (nominal 80% gives 32–43%, nominal 90% gives 57–63%, nominal 95% gives 71–76%) due to non-exchangeable distribution shifts between calibration and test periods.
+> 1. **Rain Forecast**: MF-1 achieves strong probabilistic calibration (Brier Score 0.1385 at +1h, outperforming Persistence 0.1713 and Logistic Regression 0.1516) and 74.14% F1, but operational persistence remains ahead at 77.55% F1 at +1h.
+> 2. **River Stage Forecast**: Conditioned delta-stage formulation lowered water MAE to 0.0507m at +1h and 0.1459m at +24h (beating Persistence 0.1495m at +24h); however, Persistence at +1h (0.0146m) remains much tighter.
+> 3. **Uncertainty Calibration**: Conformal prediction intervals satisfy nominal coverage targets across all tested levels (95.48% at nominal 80%, 99.10% at nominal 90%, 100.0% at nominal 95%) with narrow practical widths (< 0.28m).
+> 4. **Safety Decision**: Because persistence remains superior across short multi-hour horizons on this low-dynamic regime, models remain designated strictly as `RESEARCH_PROTOTYPE` and must not be used for life-safety or automated flood evacuation triggers.

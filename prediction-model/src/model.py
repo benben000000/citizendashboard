@@ -67,7 +67,7 @@ class WeatherWaterLNN(nn.Module):
     Complete Continuous-time Liquid Neural Network Model.
     Processes sequential weather telemetry across arbitrary lead horizons.
     """
-    def __init__(self, input_dim: int = 4, hidden_dim: int = 32):
+    def __init__(self, input_dim: int = 8, hidden_dim: int = 32):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -89,22 +89,23 @@ class WeatherWaterLNN(nn.Module):
             nn.Linear(16, 2)  # [rain_logit, precipitation_mm]
         )
 
-        # Output Head 2: Hydrological Water Level (Meters)
+        # Output Head 2: Hydrological Water Level Delta (meters change relative to t0)
         self.water_head = nn.Sequential(
             nn.Linear(hidden_dim, 16),
             nn.SiLU(),
-            nn.Linear(16, 1)  # [predicted_water_level_m]
+            nn.Linear(16, 1)  # [delta_water_level_m]
         )
 
-    def forward(self, telemetry_seq: torch.Tensor, dt_seq: torch.Tensor):
+    def forward(self, telemetry_seq: torch.Tensor, dt_seq: torch.Tensor, initial_water: torch.Tensor = None):
         """
-        telemetry_seq: [batch, seq_len, 4] -> (temp, heat_index, wind_speed, pressure)
+        telemetry_seq: [batch, seq_len, 8] -> (temp, heat_index, humidity, pressure, wind_speed, wind_sin, wind_cos, precip)
         dt_seq: [batch, seq_len, 1] -> (elapsed hours between measurements)
+        initial_water: Optional [batch, 1] -> water stage at origin t0 to reconstruct absolute stage
         
         Returns:
           rain_prob: [batch, seq_len, 1] (0.0 to 1.0)
           precipitation_mm: [batch, seq_len, 1] (>= 0)
-          water_level_m: [batch, seq_len, 1] (meters)
+          water_level: [batch, seq_len, 1] (meters absolute if initial_water provided, else delta)
         """
         batch_size, seq_len, _ = telemetry_seq.shape
         h = torch.zeros(batch_size, self.hidden_dim, device=telemetry_seq.device)
@@ -128,11 +129,15 @@ class WeatherWaterLNN(nn.Module):
             rain_prob = torch.sigmoid(rain_out[:, 0:1])
             precip_mm = F.relu(rain_out[:, 1:2])
 
-            water_level = self.water_head(h)
+            delta_water = self.water_head(h)
+            if initial_water is not None:
+                water_stage = initial_water + delta_water
+            else:
+                water_stage = delta_water
 
             rain_probs.append(rain_prob)
             precip_vols.append(precip_mm)
-            water_levels.append(water_level)
+            water_levels.append(water_stage)
 
         return (
             torch.stack(rain_probs, dim=1),

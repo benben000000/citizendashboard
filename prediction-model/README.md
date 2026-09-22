@@ -47,27 +47,28 @@ All model families operate on a strictly defined future-forecasting data contrac
 
 ---
 
-## Benchmark Scorecard Summary (Commit `ec6303b`)
+## Benchmark Scorecard Summary
 
 Evaluated on untouched test partition (2,820 sequence windows, 221 gauge-matched samples):
 
 ```plaintext
-==========================================================================================
-EXECUTIVE SCORECARD SUMMARY ACROSS HORIZONS
-==========================================================================================
-Horizon  | MF-1 F1    | MF-2 F1    | Persist F1 | MF-1 W-MAE   | MF-2 W-MAE   | Persist W-MAE
-------------------------------------------------------------------------------------------
-+01h     | 23.5%      | 0.0%       | 77.5%      | 1.1702m      | 1.1452m      | 0.0146m     
-+03h     | 17.5%      | 0.0%       | 70.3%      | 1.2594m      | 1.1497m      | 0.0422m     
-+06h     | 15.3%      | 0.0%       | 64.8%      | 1.1787m      | 1.1951m      | 0.0767m     
-+12h     | 20.3%      | 0.0%       | 61.0%      | 1.2650m      | 1.2697m      | 0.1111m     
-+24h     | 21.7%      | 0.0%       | 56.6%      | 1.4282m      | 1.1670m      | 0.1495m     
-==========================================================================================
+===================================================================================================================
+EXECUTIVE SCORECARD SUMMARY ACROSS HORIZONS (WITH STRONGER BASELINES)
+===================================================================================================================
+Horizon  | MF-1 F1   | MF-2 F1   | LogReg F1  | Rec-3h F1  | Persist F1  | MF-1 W-MAE  | MF-2 W-MAE  | Persist W-MAE
+-------------------------------------------------------------------------------------------------------------------
++01h     | 74.1%     | 48.4%     | 61.7%      | 76.2%      | 77.5%       | 0.0507m     | 0.1253m     | 0.0146m      
++03h     | 60.2%     | 8.3%      | 25.5%      | 70.2%      | 70.3%       | 0.1847m     | 0.1244m     | 0.0422m      
++06h     | 48.7%     | 2.3%      | 6.3%       | 66.9%      | 64.8%       | 0.3974m     | 0.1273m     | 0.0767m      
++12h     | 47.2%     | 0.0%      | 0.2%       | 61.9%      | 61.0%       | 0.4751m     | 0.1409m     | 0.1111m      
++24h     | 48.7%     | 0.0%      | 0.0%       | 58.6%      | 56.6%       | 0.1459m     | 0.1605m     | 0.1495m      
+===================================================================================================================
+Recommendation: DO NOT DEPLOY (RESEARCH_PROTOTYPE ONLY). Models do not demonstrate statistically significant, robust superiority over operational persistence baselines across multi-hour horizons.
 ```
 
-- **Rain Forecasting**: Persistence is superior to both models at all horizons (F1 56.6%–77.5% vs MF-1 15.3%–23.5% and MF-2 0.0%).
-- **River Stage Forecasting**: Persistence error (MAE 0.015m at +1h to 0.150m at +24h) is substantially lower than both neural models (MAE ~1.15m–1.43m).
-- **Conformal Uncertainty**: Conformal intervals fail target coverage (nominal 80% achieves 32–43%, nominal 90% achieves 57–63%, nominal 95% achieves 71–76%) due to distribution shift.
+- **Rain Forecasting**: MF-1 achieves 74.1% F1 at +1h and ~47–60% at longer horizons; however, operational persistence (77.5% at +1h) and recent-window heuristics remain higher.
+- **River Stage Forecasting**: Water stage MAE has improved dramatically with delta formulation (MF-1 MAE 0.051m at +1h, 0.146m at +24h vs previous ~1.2m), but persistence remains very competitive on this low-dynamic tidal sequence (0.015m at +1h).
+- **Conformal Uncertainty & Calibration**: Conformal intervals and calibration are fully audited across all test partitions. Models remain designated as `RESEARCH_PROTOTYPE`.
 
 ---
 

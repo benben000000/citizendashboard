@@ -215,6 +215,55 @@ class TestCanonicalForecastingContract(unittest.TestCase):
             test_embargo_hours = (pipeline.test_start - pipeline.val_end).total_seconds() / 3600.0
             self.assertGreaterEqual(test_embargo_hours, 48.0, f"Embargo between val and test is only {test_embargo_hours}h, expected >= 48h")
 
+    def test_precipitation_incremental_hourly_sum(self):
+        """
+        Verify that raw minute telemetry precipitation is treated as discrete
+        incremental volume (e.g. tipping-bucket tips of 0.1099 mm) and summed
+        to form the hourly accumulation (mm/h).
+        Also verify that extreme single-minute spikes (>50 mm/min) are quarantined.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            weather_csv = os.path.join(tmp_dir, "test_precip_semantics.csv")
+            water_csv = os.path.join(tmp_dir, "empty_water.csv")
+
+            with open(water_csv, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["station_id", "station_name", "location", "recorded_at", "water_level_cm", "water_level_m"])
+
+            base_time = datetime(2026, 7, 1, 0, 0, 0, tzinfo=timezone.utc)
+            rows = []
+            # In hour 0: 10 minutes have 1 tip each (0.1099 mm). Expected hourly sum = 1.099 mm.
+            for m in range(60):
+                ts = base_time + timedelta(minutes=m)
+                precip = 0.1099 if m < 10 else 0.0
+                rows.append(["ST_PRECIP", "Precip Station", "Loc", ts.isoformat(), 28.0, 32.0, 75.0, 1008.0, 5.0, 180.0, precip, 1.0, 100.0])
+
+            # In hour 1: minute 5 has a corrupted spike (7202.0 mm), rest are 0.
+            for m in range(60):
+                ts = base_time + timedelta(hours=1, minutes=m)
+                precip = 7202.0 if m == 5 else 0.0
+                rows.append(["ST_PRECIP", "Precip Station", "Loc", ts.isoformat(), 28.0, 32.0, 75.0, 1008.0, 5.0, 180.0, precip, 1.0, 100.0])
+
+            with open(weather_csv, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["station_id", "station_name", "location", "recorded_at", "temperature", "heat_index", "humidity", "pressure", "wind_speed", "wind_direction", "precipitation", "uv_index", "light_intensity"])
+                writer.writerows(rows)
+
+            pipeline = TelemetryDataPipeline(weather_csv=weather_csv, water_csv=water_csv)
+
+            # Hour 0 should have sum = 1.099 mm
+            h0_data = pipeline.station_hourly["ST_PRECIP"][base_time]
+            self.assertAlmostEqual(h0_data["precipitation"], 1.099, places=3,
+                                   msg="Incremental minute tips were not correctly summed to hourly volume!")
+
+            # Hour 1 should have quarantined the 7202 mm spike
+            self.assertEqual(pipeline.quarantine_counts["weather_bounds_precipitation"], 1,
+                             "Extreme 7202 mm/min spike was not quarantined!")
+            h1_bin = base_time + timedelta(hours=1)
+            h1_data = pipeline.station_hourly["ST_PRECIP"][h1_bin]
+            self.assertAlmostEqual(h1_data["precipitation"], 0.0, places=3,
+                                   msg="Quarantined spike leaked into hourly precipitation total!")
+
 
 if __name__ == "__main__":
     unittest.main()

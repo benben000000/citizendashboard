@@ -34,6 +34,7 @@ Key Specifications:
 
 import os
 import csv
+import math
 import hashlib
 import json
 from datetime import datetime, timezone, timedelta
@@ -55,11 +56,26 @@ MAX_VALID_YEAR = 2027
 PHYSICAL_BOUNDS = {
     "temperature": (10.0, 50.0),    # Celsius
     "heat_index": (10.0, 70.0),     # Celsius
+    "humidity": (10.0, 100.0),      # Relative humidity % (drops below 10% are sensor disconnects/outages)
     "wind_speed": (0.0, 180.0),     # km/h
+    "wind_direction": (0.0, 360.0), # degrees
     "pressure": (900.0, 1050.0),    # hPa
-    "precipitation": (0.0, 300.0),  # mm/h or mm per minute record
+    "precipitation": (0.0, 50.0),   # mm per 1-minute record (incremental tipping bucket; tropical cloudburst limit)
     "water_level": (0.0, 15.0),     # meters
 }
+
+# Canonical feature schema: 8 physical surface meteorology features
+DEFAULT_FEATURE_SCHEMA = [
+    "temperature",
+    "heat_index",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_sin",
+    "wind_cos",
+    "precipitation",
+]
+NUM_FEATURES = len(DEFAULT_FEATURE_SCHEMA)
 
 # Collocated gauge and weather station IDs in Calumpit, Bulacan
 WATER_GAUGE_STATION_ID = "O3z0j5bG"       # Calumpit WLMS
@@ -228,7 +244,9 @@ class TelemetryDataPipeline:
                 try:
                     t = float(row.get("temperature") or 28.5)
                     hi = float(row.get("heat_index") or 33.0)
+                    hum = float(row.get("humidity") or 75.0)
                     ws = float(row.get("wind_speed") or 10.0)
+                    wd = float(row.get("wind_direction") or 0.0)
                     p = float(row.get("pressure") or 1008.0)
                     precip = float(row.get("precipitation") or 0.0)
 
@@ -239,8 +257,14 @@ class TelemetryDataPipeline:
                     if not (PHYSICAL_BOUNDS["heat_index"][0] <= hi <= PHYSICAL_BOUNDS["heat_index"][1]):
                         self.quarantine_counts["weather_bounds_heat_index"] += 1
                         continue
+                    if not (PHYSICAL_BOUNDS["humidity"][0] <= hum <= PHYSICAL_BOUNDS["humidity"][1]):
+                        self.quarantine_counts["weather_bounds_humidity"] += 1
+                        continue
                     if not (PHYSICAL_BOUNDS["wind_speed"][0] <= ws <= PHYSICAL_BOUNDS["wind_speed"][1]):
                         self.quarantine_counts["weather_bounds_wind_speed"] += 1
+                        continue
+                    if not (PHYSICAL_BOUNDS["wind_direction"][0] <= wd <= PHYSICAL_BOUNDS["wind_direction"][1]):
+                        self.quarantine_counts["weather_bounds_wind_direction"] += 1
                         continue
                     if not (PHYSICAL_BOUNDS["pressure"][0] <= p <= PHYSICAL_BOUNDS["pressure"][1]):
                         self.quarantine_counts["weather_bounds_pressure"] += 1
@@ -250,26 +274,31 @@ class TelemetryDataPipeline:
                         continue
 
                     h_bin = dt.replace(minute=0, second=0, microsecond=0)
-                    station_hour_obs[st_id][h_bin].append((dt, t, hi, ws, p, precip))
+                    station_hour_obs[st_id][h_bin].append((dt, t, hi, hum, ws, wd, p, precip))
 
                 except (ValueError, TypeError):
                     self.quarantine_counts["weather_parse_error"] += 1
 
         # Resample each station to the hourly grid:
-        # - Temperature, heat_index, wind_speed, pressure: last valid observation
+        # - Temperature, heat_index, humidity, wind_speed, wind_direction, pressure: last valid observation
+        # - Wind direction: transformed to sin and cos continuous components
         # - Precipitation: sum of increments (volume in mm)
         for st_id, h_dict in station_hour_obs.items():
             for h_bin, obs_list in h_dict.items():
                 obs_list.sort(key=lambda x: x[0])
                 last_obs = obs_list[-1]
-                tot_precip = sum(x[5] for x in obs_list)
+                tot_precip = sum(x[7] for x in obs_list)
+                rad = math.radians(last_obs[5] % 360.0)
 
                 self.station_hourly[st_id][h_bin] = {
                     "timestamp": h_bin,
                     "temperature": last_obs[1],
                     "heat_index": last_obs[2],
-                    "wind_speed": last_obs[3],
-                    "pressure": last_obs[4],
+                    "humidity": last_obs[3],
+                    "pressure": last_obs[6],
+                    "wind_speed": last_obs[4],
+                    "wind_sin": math.sin(rad),
+                    "wind_cos": math.cos(rad),
                     "precipitation": tot_precip,
                     "obs_count": len(obs_list),
                 }
@@ -296,7 +325,7 @@ class TelemetryDataPipeline:
         assert self.test_start > self.train_end, "Leakage detected: test period overlaps training period!"
 
     def _fit_training_normalization(self):
-        """Fit normalization means and stds strictly on the training partition."""
+        """Fit normalization means and stds strictly on the training partition for all 8 features."""
         train_features = []
         for st_id, h_dict in self.station_hourly.items():
             for h_bin, rec in h_dict.items():
@@ -304,13 +333,17 @@ class TelemetryDataPipeline:
                     train_features.append([
                         rec["temperature"],
                         rec["heat_index"],
-                        rec["wind_speed"],
+                        rec["humidity"],
                         rec["pressure"],
+                        rec["wind_speed"],
+                        rec["wind_sin"],
+                        rec["wind_cos"],
+                        rec["precipitation"],
                     ])
 
         if len(train_features) < 10:
-            self.norm_means = np.array([27.2, 31.0, 2.0, 1004.5], dtype=np.float32)
-            self.norm_stds = np.array([2.8, 6.3, 3.0, 4.6], dtype=np.float32)
+            self.norm_means = FEATURE_MEANS.copy()
+            self.norm_stds = FEATURE_STDS.copy()
             return
 
         arr = np.array(train_features, dtype=np.float32)
@@ -370,7 +403,7 @@ class TelemetryDataPipeline:
                 "test_end": self.time_range_max.isoformat() if self.time_range_max else None,
             },
             "train_fitted_normalization": {
-                "feature_schema": ["temperature", "heat_index", "wind_speed", "pressure"],
+                "feature_schema": list(DEFAULT_FEATURE_SCHEMA),
                 "means": self.norm_means.tolist() if self.norm_means is not None else [],
                 "stds": self.norm_stds.tolist() if self.norm_stds is not None else [],
             },
@@ -528,9 +561,18 @@ def build_forecast_windows(
                 dt_val = (window_records[k]["timestamp"] - window_records[k - 1]["timestamp"]).total_seconds() / 3600.0
                 dt_values.append(max(0.01, dt_val))
 
-            # Normalize input features
+            # Normalize input features (8 canonical features)
             raw_feats = np.array([
-                [r["temperature"], r["heat_index"], r["wind_speed"], r["pressure"]]
+                [
+                    r["temperature"],
+                    r["heat_index"],
+                    r["humidity"],
+                    r["pressure"],
+                    r["wind_speed"],
+                    r["wind_sin"],
+                    r["wind_cos"],
+                    r["precipitation"],
+                ]
                 for r in window_records
             ], dtype=np.float32)
             norm_feats = normalize_features(raw_feats, norm_means, norm_stds)
@@ -543,11 +585,14 @@ def build_forecast_windows(
             # Water level target: real gauge stage if collocated (Calumpit)
             is_gauge_station = (st_id == WATER_GAUGE_WEATHER_STATION)
             water_stage = pipeline.water_hourly.get(t_target) if is_gauge_station else None
-            has_water = water_stage is not None
-
-            # Persistence reference at origin t0
-            last_observed_precip = window_records[-1]["precipitation"]
             last_observed_water = pipeline.water_hourly.get(t0) if is_gauge_station else None
+            has_water = bool(water_stage is not None and last_observed_water is not None)
+            water_delta = (water_stage - last_observed_water) if has_water else 0.0
+
+            # Persistence & rolling rain reference at origin t0
+            last_observed_precip = window_records[-1]["precipitation"]
+            rolling_3h_precip = sum(r["precipitation"] for r in window_records[-3:])
+            rolling_6h_precip = sum(r["precipitation"] for r in window_records[-6:])
 
             windows.append(norm_feats)
             dt_list.append(np.array(dt_values, dtype=np.float32).reshape(-1, 1))
@@ -566,8 +611,11 @@ def build_forecast_windows(
                     "actual_rain_prob": target_rain_prob,
                     "actual_precip_mm": target_precip,
                     "actual_water_level": water_stage if has_water else None,
+                    "actual_water_delta": round(water_delta, 4) if has_water else None,
                     "has_water": has_water,
                     "last_observed_precip": last_observed_precip,
+                    "rolling_3h_precip": round(rolling_3h_precip, 4),
+                    "rolling_6h_precip": round(rolling_6h_precip, 4),
                     "last_observed_water": last_observed_water,
                 })
 
@@ -635,11 +683,11 @@ class TelemetryDataset(Dataset):
             norm_stds=self.norm_stds,
             mode=mode,
             holdout_stations=holdout_stations,
-            return_metadata=return_metadata,
+            return_metadata=True,
         )
 
         if res is None:
-            self.telemetry = torch.empty(0, seq_len, 4)
+            self.telemetry = torch.empty(0, seq_len, NUM_FEATURES)
             self.dt = torch.empty(0, seq_len, 1)
             self.rain_prob = torch.empty(0, 1)
             self.precip_mm = torch.empty(0, 1)
@@ -647,26 +695,29 @@ class TelemetryDataset(Dataset):
             self.has_water = torch.empty(0, 1)
             self.metadata = []
         else:
-            if return_metadata:
-                self.telemetry, self.dt, self.rain_prob, self.precip_mm, self.water_level, self.has_water, self.metadata = res
-            else:
-                self.telemetry, self.dt, self.rain_prob, self.precip_mm, self.water_level, self.has_water = res
-                self.metadata = []
+            self.telemetry, self.dt, self.rain_prob, self.precip_mm, self.water_level, self.has_water, self.metadata = res
 
     def __len__(self):
         return self.telemetry.shape[0]
 
     def __getitem__(self, idx):
+        has_w = bool(self.has_water[idx, 0].item() > 0.5)
+        meta = self.metadata[idx] if (self.metadata and idx < len(self.metadata)) else None
+        last_w = meta["last_observed_water"] if (meta and meta.get("last_observed_water") is not None) else 0.0
+        w_delta = meta["actual_water_delta"] if (meta and meta.get("actual_water_delta") is not None) else 0.0
+
         item = {
             "telemetry": self.telemetry[idx],
             "dt": self.dt[idx],
             "rain_prob": self.rain_prob[idx],
             "precip_mm": self.precip_mm[idx],
             "water_level": self.water_level[idx],
+            "last_water": torch.tensor([last_w if has_w else 0.0], dtype=torch.float32),
+            "water_delta": torch.tensor([w_delta if has_w else 0.0], dtype=torch.float32),
             "has_water": self.has_water[idx],
         }
-        if self.return_metadata and idx < len(self.metadata):
-            item["metadata"] = self.metadata[idx]
+        if self.return_metadata and meta is not None:
+            item["metadata"] = meta
         return item
 
 
@@ -704,6 +755,6 @@ def fit_train_normalization(weather_csv_path: str = None, **kwargs):
     return pipeline.norm_means, pipeline.norm_stds
 
 
-# Export fallback constants for legacy imports
-FEATURE_MEANS = np.array([27.2, 31.0, 2.0, 1004.5], dtype=np.float32)
-FEATURE_STDS = np.array([2.8, 6.3, 3.0, 4.6], dtype=np.float32)
+# Export fallback constants for legacy imports (8 canonical features)
+FEATURE_MEANS = np.array([27.91, 32.22, 86.14, 1005.75, 1.59, 0.079, -0.002, 0.50], dtype=np.float32)
+FEATURE_STDS = np.array([3.20, 7.03, 12.56, 4.51, 3.62, 0.74, 0.66, 2.84], dtype=np.float32)

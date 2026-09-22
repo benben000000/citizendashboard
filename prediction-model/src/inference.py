@@ -103,8 +103,25 @@ class LNNServerlessPredictor:
             and target timestamp.
         """
         telemetry_arr = np.asarray(telemetry_sequence, dtype=np.float32)
-        if telemetry_arr.ndim != 2 or telemetry_arr.shape[1] != 4:
-            raise ValueError(f"Expected telemetry_sequence shape [seq_len, 4], got {telemetry_arr.shape}")
+        if telemetry_arr.ndim != 2:
+            raise ValueError(f"Expected telemetry_sequence shape [seq_len, 8] or [seq_len, 4], got {telemetry_arr.shape}")
+
+        # If legacy 4 features are provided, expand to canonical 8 features
+        if telemetry_arr.shape[1] == 4:
+            # Legacy: [temp, heat_index, wind_speed, pressure]
+            seq_len = telemetry_arr.shape[0]
+            expanded = np.zeros((seq_len, 8), dtype=np.float32)
+            expanded[:, 0] = telemetry_arr[:, 0]  # temp
+            expanded[:, 1] = telemetry_arr[:, 1]  # heat_index
+            expanded[:, 2] = 75.0                 # default humidity %
+            expanded[:, 3] = telemetry_arr[:, 3]  # pressure
+            expanded[:, 4] = telemetry_arr[:, 2]  # wind_speed
+            expanded[:, 5] = 0.0                  # wind_sin
+            expanded[:, 6] = 1.0                  # wind_cos
+            expanded[:, 7] = 0.0                  # precipitation mm
+            telemetry_arr = expanded
+        elif telemetry_arr.shape[1] != 8:
+            raise ValueError(f"Expected telemetry_sequence with 8 features (or 4 legacy), got {telemetry_arr.shape[1]}")
 
         seq_len = telemetry_arr.shape[0]
 
@@ -118,6 +135,7 @@ class LNNServerlessPredictor:
         norm_features = self._normalize(telemetry_arr)
         x_tensor = torch.tensor(norm_features[np.newaxis, :, :], dtype=torch.float32)
         dt_tensor = torch.tensor(dt_arr[np.newaxis, :, :], dtype=torch.float32)
+        init_water_tensor = torch.tensor([[current_water_level]], dtype=torch.float32) if 'current_water_level' in locals() and current_water_level is not None else None
 
         with torch.no_grad():
             rain_prob, precip_mm, water_level = self.model(x_tensor, dt_tensor)
@@ -170,24 +188,27 @@ class LNNServerlessPredictor:
         for h in range(1, seq_len + 1):
             temp_step = current_temp + _diurnal_perturb(h)
             heat_step = current_heat_index + _diurnal_perturb(h) * 1.2
-            wind_step = max(0.5, current_wind_speed + np.sin(h / 3.0) * 1.5)
+            hum_step = 75.0 - _diurnal_perturb(h) * 3.0
             press_step = current_pressure - (0.3 if current_wind_speed > 15 else -0.1)
+            wind_step = max(0.5, current_wind_speed + np.sin(h / 3.0) * 1.5)
+            wind_sin = float(np.sin(np.radians(45.0)))
+            wind_cos = float(np.cos(np.radians(45.0)))
+            precip_step = 0.0
 
-            feat = np.array([temp_step, heat_step, wind_step, press_step], dtype=np.float32)
+            feat = np.array([temp_step, heat_step, hum_step, press_step, wind_step, wind_sin, wind_cos, precip_step], dtype=np.float32)
             features.append(self._normalize(feat))
             dt_seq.append([1.0])
 
         x_tensor = torch.tensor(np.stack([features]), dtype=torch.float32)
         dt_tensor = torch.tensor(np.stack([dt_seq]), dtype=torch.float32)
+        init_water_t = torch.tensor([[current_water_level]], dtype=torch.float32)
 
         with torch.no_grad():
-            rain_prob, precip_mm, water_level = self.model(x_tensor, dt_tensor)
+            rain_prob, precip_mm, water_level = self.model(x_tensor, dt_tensor, initial_water=init_water_t)
 
         final_rain_prob = float(rain_prob[0, -1, 0].item())
         final_precip_mm = float(precip_mm[0, -1, 0].item())
-        predicted_water = float(
-            current_water_level + (water_level[0, -1, 0].item() - water_level[0, 0, 0].item())
-        )
+        predicted_water = float(water_level[0, -1, 0].item())
 
         trajectory = []
         for step in range(seq_len):
@@ -196,10 +217,7 @@ class LNNServerlessPredictor:
                 "rain_probability": round(float(rain_prob[0, step, 0].item()) * 100, 1),
                 "precipitation_mm": round(float(precip_mm[0, step, 0].item()), 2),
                 "predicted_water_level": round(
-                    float(
-                        current_water_level
-                        + (water_level[0, step, 0].item() - water_level[0, 0, 0].item())
-                    ),
+                    float(water_level[0, step, 0].item()),
                     2,
                 ),
             })
@@ -233,15 +251,25 @@ def _diurnal_perturb(step_hour: int) -> float:
 if __name__ == "__main__":
     try:
         predictor = LNNServerlessPredictor()
-        # Test operational observed sequence forecast API
-        dummy_seq = np.array([[28.0, 32.0, 5.0, 1010.0]] * 24, dtype=np.float32)
+        # Test operational observed sequence forecast API with 8 canonical features
+        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
         op_result = predictor.predict_from_observed_sequence(
             telemetry_sequence=dummy_seq,
             forecast_origin_timestamp="2026-08-01T12:00:00",
             horizon_hours=1,
         )
-        print("Operational API Result:")
+        print("Operational API Result (8-feature input):")
         print(json.dumps(op_result, indent=2))
+
+        # Test operational observed sequence forecast API with 4 legacy features
+        dummy_seq_4 = np.array([[28.0, 32.0, 5.0, 1010.0]] * 24, dtype=np.float32)
+        op_result_4 = predictor.predict_from_observed_sequence(
+            telemetry_sequence=dummy_seq_4,
+            forecast_origin_timestamp="2026-08-01T12:00:00",
+            horizon_hours=1,
+        )
+        print("\nOperational API Result (4-feature legacy input):")
+        print(json.dumps(op_result_4, indent=2))
 
         print("\nResearch Scenario API Result:")
         res_result = predictor.research_projected_sequence(
