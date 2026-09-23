@@ -128,6 +128,51 @@ def compute_file_sha256(filepath: str) -> str:
     return h.hexdigest()
 
 
+def compute_noaa_heat_index(temp_c: float, humidity_rh: float) -> float:
+    """
+    Standard NOAA National Weather Service Rothfusz heat index algorithm.
+    Takes Temp in Celsius and Relative Humidity in % (0-100).
+    Returns Heat Index in Celsius.
+    """
+    t_f = temp_c * 9.0 / 5.0 + 32.0
+    rh = max(0.0, min(100.0, humidity_rh))
+    if t_f < 80.0:
+        hi_f = 0.5 * (t_f + 61.0 + ((t_f - 68.0) * 1.2) + (rh * 0.094))
+        if hi_f < 80.0:
+            return (hi_f - 32.0) * 5.0 / 9.0
+
+    c1 = -42.379
+    c2 = 2.04901523
+    c3 = 10.14333127
+    c4 = -0.22475541
+    c5 = -0.00683783
+    c6 = -0.05481717
+    c7 = 0.00122874
+    c8 = 0.00085282
+    c9 = -0.00000199
+
+    hi_f = (
+        c1 + c2 * t_f + c3 * rh + c4 * t_f * rh
+        + c5 * (t_f ** 2) + c6 * (rh ** 2)
+        + c7 * (t_f ** 2) * rh + c8 * t_f * (rh ** 2)
+        + c9 * (t_f ** 2) * (rh ** 2)
+    )
+    if rh < 13.0 and 80.0 <= t_f <= 112.0:
+        adj = ((13.0 - rh) / 4.0) * math.sqrt(max(0.0, (17.0 - abs(t_f - 95.0)) / 17.0))
+        hi_f -= adj
+    elif rh > 85.0 and 80.0 <= t_f <= 87.0:
+        adj = ((rh - 85.0) / 10.0) * ((87.0 - t_f) / 5.0)
+        hi_f += adj
+
+    return (hi_f - 32.0) * 5.0 / 9.0
+
+
+def circular_direction_error_deg(theta_pred_deg: float, theta_true_deg: float) -> float:
+    """Compute shortest angular distance between two wind directions in degrees."""
+    diff = abs(theta_pred_deg - theta_true_deg) % 360.0
+    return min(diff, 360.0 - diff)
+
+
 # ---------------------------------------------------------------------------
 # Data Cleaning, Quarantine, and Hourly Resampling
 # ---------------------------------------------------------------------------
@@ -602,6 +647,25 @@ def build_forecast_windows(
             has_water_list.append(np.array([1.0 if has_water else 0.0], dtype=np.float32))
 
             if return_metadata:
+                target_temp = float(target_rec["temperature"])
+                target_humidity = float(target_rec["humidity"])
+                target_pressure = float(target_rec["pressure"])
+                target_wind_speed = float(target_rec["wind_speed"])
+                target_wind_u = float(target_rec["wind_cos"])
+                target_wind_v = float(target_rec["wind_sin"])
+                target_wind_deg = round(math.degrees(math.atan2(target_wind_v, target_wind_u)) % 360.0, 2)
+                target_heat_index = float(target_rec["heat_index"])
+
+                origin_rec = window_records[-1]
+                origin_temp = float(origin_rec["temperature"])
+                origin_humidity = float(origin_rec["humidity"])
+                origin_pressure = float(origin_rec["pressure"])
+                origin_wind_speed = float(origin_rec["wind_speed"])
+                origin_wind_u = float(origin_rec["wind_cos"])
+                origin_wind_v = float(origin_rec["wind_sin"])
+                origin_wind_deg = round(math.degrees(math.atan2(origin_wind_v, origin_wind_u)) % 360.0, 2)
+                origin_heat_index = float(origin_rec["heat_index"])
+
                 metadata_list.append({
                     "station_id": st_id,
                     "origin_timestamp": t0.isoformat(),
@@ -617,6 +681,24 @@ def build_forecast_windows(
                     "rolling_3h_precip": round(rolling_3h_precip, 4),
                     "rolling_6h_precip": round(rolling_6h_precip, 4),
                     "last_observed_water": last_observed_water,
+                    # Weather target fields (at t0 + h)
+                    "target_temperature": target_temp,
+                    "target_humidity": target_humidity,
+                    "target_pressure": target_pressure,
+                    "target_wind_speed": target_wind_speed,
+                    "target_wind_u": target_wind_u,
+                    "target_wind_v": target_wind_v,
+                    "target_wind_deg": target_wind_deg,
+                    "target_heat_index": target_heat_index,
+                    # Origin observations (at t0 for persistence)
+                    "origin_temperature": origin_temp,
+                    "origin_humidity": origin_humidity,
+                    "origin_pressure": origin_pressure,
+                    "origin_wind_speed": origin_wind_speed,
+                    "origin_wind_u": origin_wind_u,
+                    "origin_wind_v": origin_wind_v,
+                    "origin_wind_deg": origin_wind_deg,
+                    "origin_heat_index": origin_heat_index,
                 })
 
             st_count += 1
@@ -706,6 +788,24 @@ class TelemetryDataset(Dataset):
         last_w = meta["last_observed_water"] if (meta and meta.get("last_observed_water") is not None) else 0.0
         w_delta = meta["actual_water_delta"] if (meta and meta.get("actual_water_delta") is not None) else 0.0
 
+        orig_w = [
+            meta["origin_temperature"],
+            meta["origin_humidity"],
+            meta["origin_pressure"],
+            meta["origin_wind_speed"],
+            meta["origin_wind_u"],
+            meta["origin_wind_v"],
+        ] if meta and "origin_temperature" in meta else [0.0] * 6
+
+        tgt_w = [
+            meta["target_temperature"],
+            meta["target_humidity"],
+            meta["target_pressure"],
+            meta["target_wind_speed"],
+            meta["target_wind_u"],
+            meta["target_wind_v"],
+        ] if meta and "target_temperature" in meta else [0.0] * 6
+
         item = {
             "telemetry": self.telemetry[idx],
             "dt": self.dt[idx],
@@ -715,6 +815,14 @@ class TelemetryDataset(Dataset):
             "last_water": torch.tensor([last_w if has_w else 0.0], dtype=torch.float32),
             "water_delta": torch.tensor([w_delta if has_w else 0.0], dtype=torch.float32),
             "has_water": self.has_water[idx],
+            "origin_weather": torch.tensor(orig_w, dtype=torch.float32),
+            "target_weather": torch.tensor(tgt_w, dtype=torch.float32),
+            "target_temp": torch.tensor([tgt_w[0]], dtype=torch.float32),
+            "target_humidity": torch.tensor([tgt_w[1]], dtype=torch.float32),
+            "target_pressure": torch.tensor([tgt_w[2]], dtype=torch.float32),
+            "target_wind_speed": torch.tensor([tgt_w[3]], dtype=torch.float32),
+            "target_wind_u": torch.tensor([tgt_w[4]], dtype=torch.float32),
+            "target_wind_v": torch.tensor([tgt_w[5]], dtype=torch.float32),
         }
         if self.return_metadata and meta is not None:
             item["metadata"] = meta

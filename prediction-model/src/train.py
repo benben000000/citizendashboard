@@ -1,10 +1,10 @@
 """
-Training Pipeline for Continuous-Time CfC/LNN Weather & Hydrological Forecasting (Model Family 1).
+Training Pipeline for Continuous-Time CfC/LNN Weather Telemetry Forecasting (Model Family 1).
 
-Trains PyTorch WeatherWaterLNN strictly on canonical future-window forecast samples:
-  - Input: [batch, seq_len, 4] normalized hourly telemetry.
+Trains PyTorch GarciaWeatherLNN strictly on canonical future-window forecast samples:
+  - Input: [batch, seq_len, 8] normalized hourly telemetry.
   - dt: [batch, seq_len, 1] actual elapsed hours between measurements.
-  - Targets: rain_prob, precip_mm, and water_level at future horizon t0 + h.
+  - Targets: temperature, humidity, pressure, wind_speed, wind (u, v), rain_prob, precip_mm, and water_level at future horizon t0 + h.
   - Partitioning: Train split only for parameter updates; Validation split only for checkpoint selection.
   - Test split is NEVER inspected during training (evaluated strictly by independent validator).
   - Checkpoint includes complete reproducibility manifest with hashes, normalization, and parameters.
@@ -37,7 +37,7 @@ from dataset import (
     DEFAULT_SEQ_LEN,
     DEFAULT_FEATURE_SCHEMA,
 )
-from model import WeatherWaterLNN
+from model import GarciaWeatherLNN, WeatherWaterLNN
 
 DEFAULT_SEED = 42
 
@@ -78,14 +78,28 @@ def build_checkpoint_manifest(
 
     return {
         "model_family": model_family,
+        "product_name": "Garcia Weather Telemetry Forecast Engine",
+        "commercial_scope": "Weather telemetry monitoring, trends, and probabilistic guidance",
+        "water_status": "INTERNAL_EXPERIMENT_BETA (not_for_life_safety: true)",
         "model_status": "RESEARCH_PROTOTYPE",
         "code_commit": git_commit,
         "training_date": datetime.now(timezone.utc).isoformat(),
         "seed": seed,
         "forecast_horizon_hours": horizon,
         "feature_schema": list(DEFAULT_FEATURE_SCHEMA),
+        "target_schema": [
+            "temperature",
+            "humidity",
+            "pressure",
+            "wind_speed",
+            "wind_u",
+            "wind_v",
+            "precipitation_occurrence",
+            "precipitation_amount",
+            "water_level",
+        ],
         "input_sequence_length_hours": DEFAULT_SEQ_LEN,
-        "resampling_rule": "UTC hourly bins: last valid temp/hi/ws/pressure, sum of precip volume (mm), last valid water stage (m)",
+        "resampling_rule": "UTC hourly bins: last valid temp/hi/ws/pressure, circular wind components, sum of precip volume (mm), last valid water stage (m)",
         "model_config": model_config,
         "split_boundaries": {
             "strategy": "chronological_60_20_20_with_48h_embargo",
@@ -121,7 +135,7 @@ def build_checkpoint_manifest(
 
 def train_mf1_model(
     horizon: int = 1,
-    epochs: int = 20,
+    epochs: int = 15,
     batch_size: int = 32,
     lr: float = 0.003,
     seed: int = DEFAULT_SEED,
@@ -129,10 +143,10 @@ def train_mf1_model(
     save_path: str = None,
 ):
     """
-    Train Model Family 1 (PyTorch WeatherWaterLNN) on canonical future-window dataset.
+    Train Model Family 1 (PyTorch GarciaWeatherLNN) on canonical future-window dataset.
     """
     print("=" * 70)
-    print(f"Training Model Family 1 (PyTorch WeatherWaterLNN) | Horizon: +{horizon}h")
+    print(f"Training Model Family 1 (GarciaWeatherLNN) | Horizon: +{horizon}h")
     print("=" * 70)
 
     set_reproducibility_seed(seed)
@@ -170,11 +184,10 @@ def train_mf1_model(
     # Initialize model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_config = {"input_dim": 8, "hidden_dim": 32}
-    model = WeatherWaterLNN(**model_config).to(device)
+    model = GarciaWeatherLNN(**model_config).to(device)
 
     # Multi-task loss functions
     bce_loss_fn = nn.BCELoss()
-    mse_loss_fn = nn.MSELoss(reduction="none")
     huber_loss_fn = nn.SmoothL1Loss(reduction="none")
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
@@ -196,18 +209,19 @@ def train_mf1_model(
             target_water = batch["water_level"].to(device)
             last_water = batch["last_water"].to(device)
             has_water = batch["has_water"].to(device)
+            origin_w = batch["origin_weather"].to(device)
+            target_w = batch["target_weather"].to(device)
 
             optimizer.zero_grad()
 
-            pred_rain, pred_precip, pred_water = model(telemetry, dt, initial_water=last_water)
+            out = model(telemetry, dt, initial_water=last_water, origin_weather=origin_w, return_dict=True)
 
-            # Target is evaluated at forecast origin t0 + h (final step in window)
-            pred_rain_final = pred_rain[:, -1, :]
-            pred_precip_final = pred_precip[:, -1, :]
-            pred_water_final = pred_water[:, -1, :]
+            pred_rain_final = out["rain_prob"]
+            pred_precip_final = out["precipitation_mm"]
+            pred_water_final = out["water_level"]
 
             loss_rain = bce_loss_fn(pred_rain_final, target_rain)
-            loss_precip = mse_loss_fn(pred_precip_final, target_precip).mean()
+            loss_precip = huber_loss_fn(pred_precip_final, target_precip).mean()
 
             # Water loss: only backpropagate when a real gauge observation is present
             water_diff = huber_loss_fn(pred_water_final, target_water)
@@ -217,7 +231,31 @@ def train_mf1_model(
             else:
                 loss_water = torch.tensor(0.0, device=device)
 
-            total_loss = loss_rain + 0.1 * loss_precip + 1.0 * loss_water
+            # Continuous weather losses
+            loss_temp = huber_loss_fn(out["temperature"], target_w[:, 0:1]).mean()
+            loss_rh = 0.1 * huber_loss_fn(out["humidity"], target_w[:, 1:2]).mean()
+            loss_p = 0.5 * huber_loss_fn(out["pressure"], target_w[:, 2:3]).mean()
+            loss_ws = 0.2 * huber_loss_fn(out["wind_speed"], target_w[:, 3:4]).mean()
+
+            # Circular wind direction vector loss
+            cos_sim = out["wind_u"] * target_w[:, 4:5] + out["wind_v"] * target_w[:, 5:6]
+            calm_mask = (target_w[:, 3:4] >= 1.0).float()
+            calm_count = calm_mask.sum()
+            if calm_count > 0:
+                loss_wv = 0.2 * (((1.0 - cos_sim) * calm_mask).sum() / calm_count)
+            else:
+                loss_wv = torch.tensor(0.0, device=device)
+
+            total_loss = (
+                loss_rain
+                + 0.1 * loss_precip
+                + 0.2 * loss_water
+                + loss_temp
+                + loss_rh
+                + loss_p
+                + loss_ws
+                + loss_wv
+            )
             total_loss.backward()
 
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -242,14 +280,17 @@ def train_mf1_model(
                 target_water = batch["water_level"].to(device)
                 last_water = batch["last_water"].to(device)
                 has_water = batch["has_water"].to(device)
+                origin_w = batch["origin_weather"].to(device)
+                target_w = batch["target_weather"].to(device)
 
-                pred_rain, pred_precip, pred_water = model(telemetry, dt, initial_water=last_water)
-                pred_rain_final = pred_rain[:, -1, :]
-                pred_precip_final = pred_precip[:, -1, :]
-                pred_water_final = pred_water[:, -1, :]
+                out = model(telemetry, dt, initial_water=last_water, origin_weather=origin_w, return_dict=True)
+
+                pred_rain_final = out["rain_prob"]
+                pred_precip_final = out["precipitation_mm"]
+                pred_water_final = out["water_level"]
 
                 loss_rain = bce_loss_fn(pred_rain_final, target_rain)
-                loss_precip = mse_loss_fn(pred_precip_final, target_precip).mean()
+                loss_precip = huber_loss_fn(pred_precip_final, target_precip).mean()
 
                 water_diff = huber_loss_fn(pred_water_final, target_water)
                 water_count = has_water.sum()
@@ -263,7 +304,29 @@ def train_mf1_model(
                 else:
                     loss_water = torch.tensor(0.0, device=device)
 
-                val_loss = loss_rain + 0.1 * loss_precip + 1.0 * loss_water
+                loss_temp = huber_loss_fn(out["temperature"], target_w[:, 0:1]).mean()
+                loss_rh = 0.1 * huber_loss_fn(out["humidity"], target_w[:, 1:2]).mean()
+                loss_p = 0.5 * huber_loss_fn(out["pressure"], target_w[:, 2:3]).mean()
+                loss_ws = 0.2 * huber_loss_fn(out["wind_speed"], target_w[:, 3:4]).mean()
+
+                cos_sim = out["wind_u"] * target_w[:, 4:5] + out["wind_v"] * target_w[:, 5:6]
+                calm_mask = (target_w[:, 3:4] >= 1.0).float()
+                calm_count = calm_mask.sum()
+                if calm_count > 0:
+                    loss_wv = 0.2 * (((1.0 - cos_sim) * calm_mask).sum() / calm_count)
+                else:
+                    loss_wv = torch.tensor(0.0, device=device)
+
+                val_loss = (
+                    loss_rain
+                    + 0.1 * loss_precip
+                    + 0.2 * loss_water
+                    + loss_temp
+                    + loss_rh
+                    + loss_p
+                    + loss_ws
+                    + loss_wv
+                )
                 total_val_loss += val_loss.item()
 
         avg_val_loss = total_val_loss / max(1, len(val_loader))
@@ -278,11 +341,11 @@ def train_mf1_model(
             best_val_loss = avg_val_loss
             best_epoch = epoch
             best_water_rmse = avg_water_rmse
-            best_model_state = model.state_dict()
+            best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
 
     # Save best checkpoint with complete manifest
     manifest = build_checkpoint_manifest(
-        model_family="MF-1: PyTorch WeatherWaterLNN",
+        model_family="GarciaWeatherLNN",
         seed=seed,
         horizon=horizon,
         epoch=best_epoch,
@@ -314,14 +377,13 @@ def train_mf1_model(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train MF-1 WeatherWaterLNN on canonical future windows.")
+    parser = argparse.ArgumentParser(description="Train MF-1 GarciaWeatherLNN on canonical future windows.")
     parser.add_argument("--horizon", type=int, default=1, help="Forecast horizon in hours (default: 1)")
-    parser.add_argument("--epochs", type=int, default=20, help="Training epochs (default: 20)")
+    parser.add_argument("--epochs", type=int, default=15, help="Training epochs (default: 15)")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size (default: 32)")
     parser.add_argument("--lr", type=float, default=0.003, help="Learning rate (default: 0.003)")
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed (default: 42)")
-    parser.add_argument("--max_samples", type=int, default=None, help="Cap training samples (for smoke test)")
-    parser.add_argument("--save_path", type=str, default=None, help="Path to save checkpoint")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument("--max_samples", type=int, default=None, help="Cap train samples")
     args = parser.parse_args()
 
     train_mf1_model(
@@ -331,5 +393,4 @@ if __name__ == "__main__":
         lr=args.lr,
         seed=args.seed,
         max_train_samples=args.max_samples,
-        save_path=args.save_path,
     )

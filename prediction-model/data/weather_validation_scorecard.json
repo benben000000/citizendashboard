@@ -1,0 +1,4324 @@
+{
+  "evaluation_timestamp": "2026-09-23T04:15:53.185710+00:00",
+  "code_commit": "b5039f83e082558094557eb77328af13bdec1c1c",
+  "product_name": "Garcia Weather Telemetry Forecast Engine",
+  "dataset_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "model_status": "RESEARCH_PROTOTYPE",
+  "tested_horizons_hours": [
+    1,
+    3,
+    6,
+    12,
+    24
+  ],
+  "climatology_baselines": {
+    "train_rain_prevalence_pct": 17.54,
+    "train_mean_temperature_c": 27.91,
+    "train_mean_humidity_pct": 86.14,
+    "train_mean_pressure_hpa": 1005.76,
+    "train_mean_wind_speed_kmh": 1.59,
+    "train_mean_heat_index_c": 32.22,
+    "train_mean_river_stage_meters": 2.3896
+  },
+  "operational_recommendation": "DEPLOY_HYBRID_GUIDANCE. Use learned model where validation skill is positive; fallback to persistence where persistence error is lower. Use calibrated probability for rain outlooks. DO NOT use water level for automated flood triggers (BETA only).",
+  "horizons": {
+    "horizon_1h": {
+      "test_samples_total": 2820,
+      "calibration_samples_total": 2900,
+      "small_sample_warning": 0,
+      "temperature": {
+        "sample_count": 2820,
+        "mae": 0.5079,
+        "rmse": 0.8204,
+        "bias": 0.0172,
+        "persistence_mae": 0.4926,
+        "persistence_rmse": 0.8565,
+        "climatology_mae": 1.612,
+        "climatology_rmse": 2.0121,
+        "skill_vs_persistence": -0.031,
+        "beats_persistence": 0,
+        "linear_regression_mae": 0.5142,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 0.4926
+      },
+      "humidity": {
+        "sample_count": 2820,
+        "mae": 1.4665,
+        "rmse": 2.6917,
+        "bias": 0.0338,
+        "persistence_mae": 1.3988,
+        "persistence_rmse": 2.8339,
+        "climatology_mae": 9.843,
+        "climatology_rmse": 10.6574,
+        "skill_vs_persistence": -0.0484,
+        "beats_persistence": 0,
+        "linear_regression_mae": 1.7897,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 1.3988
+      },
+      "pressure": {
+        "sample_count": 2820,
+        "mae": 0.3288,
+        "rmse": 0.4248,
+        "bias": 0.0535,
+        "persistence_mae": 0.3312,
+        "persistence_rmse": 0.4381,
+        "climatology_mae": 3.1629,
+        "climatology_rmse": 3.7169,
+        "skill_vs_persistence": 0.0073,
+        "beats_persistence": 1,
+        "linear_regression_mae": 0.3686,
+        "pressure_tendency": {
+          "sample_count": 2820,
+          "tendency_threshold_hpa": 0.5,
+          "accuracy_pct": 73.58
+        },
+        "selected_source": "learned_model",
+        "hybrid_mae": 0.3288
+      },
+      "wind_speed": {
+        "sample_count": 2820,
+        "mae": 0.8548,
+        "rmse": 1.545,
+        "bias": -0.2576,
+        "persistence_mae": 0.8474,
+        "persistence_rmse": 1.5424,
+        "climatology_mae": 2.3007,
+        "climatology_rmse": 3.3461,
+        "skill_vs_persistence": -0.0087,
+        "beats_persistence": 0,
+        "linear_regression_mae": 2.0448,
+        "strong_wind_recall": {
+          "threshold_kmh": 15.0,
+          "strong_event_count": 2,
+          "recall_pod_pct": 0.0
+        },
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 0.8474
+      },
+      "wind_direction": {
+        "model_circular": {
+          "valid_sample_count": 1442,
+          "calm_sample_count": 1378,
+          "calm_coverage_pct": 48.87,
+          "circular_mae_deg": 42.12
+        },
+        "persistence_circular": {
+          "valid_sample_count": 1442,
+          "calm_sample_count": 1378,
+          "calm_coverage_pct": 48.87,
+          "circular_mae_deg": 39.42
+        },
+        "beats_persistence": 0,
+        "skill_vs_persistence": -0.0685
+      },
+      "heat_index": {
+        "sample_count": 2820,
+        "mae": 1.4889,
+        "rmse": 2.3299,
+        "bias": 0.298,
+        "persistence_mae": 1.5184,
+        "persistence_rmse": 2.3985,
+        "climatology_mae": 4.0857,
+        "climatology_rmse": 5.1898,
+        "skill_vs_persistence": 0.0194,
+        "beats_persistence": 1,
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+      },
+      "rain_occurrence": {
+        "fixed_threshold_05": {
+          "threshold": 0.5,
+          "accuracy_pct": 83.58,
+          "recall_pod_pct": 69.43,
+          "precision_pct": 84.66,
+          "f1_score_pct": 76.29,
+          "false_alarm_ratio_pct": 15.34,
+          "critical_success_index_pct": 61.67,
+          "brier_score": 0.1249,
+          "expected_calibration_error": 0.0365,
+          "confusion_matrix": {
+            "tp": 745,
+            "fp": 135,
+            "tn": 1612,
+            "fn": 328
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1482,
+              "mean_pred_prob": 0.0749,
+              "observed_frequency": 0.1289
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 384,
+              "mean_pred_prob": 0.2863,
+              "observed_frequency": 0.276
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 139,
+              "mean_pred_prob": 0.4919,
+              "observed_frequency": 0.4317
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 139,
+              "mean_pred_prob": 0.7042,
+              "observed_frequency": 0.6763
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 676,
+              "mean_pred_prob": 0.9101,
+              "observed_frequency": 0.9201
+            }
+          ]
+        },
+        "frozen_operational_threshold": {
+          "threshold": 0.3,
+          "metrics": {
+            "threshold": 0.3,
+            "accuracy_pct": 82.02,
+            "recall_pod_pct": 77.63,
+            "precision_pct": 75.73,
+            "f1_score_pct": 76.67,
+            "false_alarm_ratio_pct": 24.27,
+            "critical_success_index_pct": 62.16,
+            "brier_score": 0.1249,
+            "expected_calibration_error": 0.0365,
+            "confusion_matrix": {
+              "tp": 833,
+              "fp": 267,
+              "tn": 1480,
+              "fn": 240
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1482,
+                "mean_pred_prob": 0.0749,
+                "observed_frequency": 0.1289
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 384,
+                "mean_pred_prob": 0.2863,
+                "observed_frequency": 0.276
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 139,
+                "mean_pred_prob": 0.4919,
+                "observed_frequency": 0.4317
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 139,
+                "mean_pred_prob": 0.7042,
+                "observed_frequency": 0.6763
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 676,
+                "mean_pred_prob": 0.9101,
+                "observed_frequency": 0.9201
+              }
+            ]
+          }
+        },
+        "hybrid_blend": {
+          "frozen_model_weight": 0.8,
+          "frozen_persistence_weight": 0.2,
+          "metrics": {
+            "threshold": 0.5,
+            "accuracy_pct": 84.22,
+            "recall_pod_pct": 71.11,
+            "precision_pct": 84.97,
+            "f1_score_pct": 77.42,
+            "false_alarm_ratio_pct": 15.03,
+            "critical_success_index_pct": 63.16,
+            "brier_score": 0.1219,
+            "expected_calibration_error": 0.0339,
+            "confusion_matrix": {
+              "tp": 763,
+              "fp": 135,
+              "tn": 1612,
+              "fn": 310
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1475,
+                "mean_pred_prob": 0.0661,
+                "observed_frequency": 0.1173
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 364,
+                "mean_pred_prob": 0.2779,
+                "observed_frequency": 0.2775
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 130,
+                "mean_pred_prob": 0.4847,
+                "observed_frequency": 0.4846
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 139,
+                "mean_pred_prob": 0.7123,
+                "observed_frequency": 0.6403
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 712,
+                "mean_pred_prob": 0.9226,
+                "observed_frequency": 0.9087
+              }
+            ]
+          }
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 82.87,
+          "recall_pod_pct": 77.73,
+          "precision_pct": 77.37,
+          "f1_score_pct": 77.55,
+          "false_alarm_ratio_pct": 22.63,
+          "critical_success_index_pct": 63.33,
+          "brier_score": 0.1713,
+          "expected_calibration_error": 0.1713,
+          "confusion_matrix": {
+            "tp": 834,
+            "fp": 244,
+            "tn": 1503,
+            "fn": 239
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1742,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.1372
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1078,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.7737
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 77.84,
+          "recall_pod_pct": 46.88,
+          "precision_pct": 90.14,
+          "f1_score_pct": 61.68,
+          "false_alarm_ratio_pct": 9.86,
+          "critical_success_index_pct": 44.59,
+          "brier_score": 0.1516,
+          "expected_calibration_error": 0.0596,
+          "confusion_matrix": {
+            "tp": 503,
+            "fp": 55,
+            "tn": 1692,
+            "fn": 570
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 775,
+              "mean_pred_prob": 0.1615,
+              "observed_frequency": 0.1006
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1325,
+              "mean_pred_prob": 0.2697,
+              "observed_frequency": 0.274
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 264,
+              "mean_pred_prob": 0.4867,
+              "observed_frequency": 0.803
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 170,
+              "mean_pred_prob": 0.6962,
+              "observed_frequency": 0.8824
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 286,
+              "mean_pred_prob": 0.9447,
+              "observed_frequency": 0.9441
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 61.95,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2778,
+          "expected_calibration_error": 0.2051,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1747,
+            "fn": 1073
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2820,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3805
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "beats_persistence_f1": 0,
+        "beats_persistence_brier": 1
+      },
+      "precipitation_amount": {
+        "overall_samples": 2820,
+        "overall_mae_mm": 0.9549,
+        "overall_rmse_mm": 3.1963,
+        "overall_bias_mm": -0.7348,
+        "rainy_hour_samples": 1073,
+        "rainy_hour_mae_mm": 2.3747,
+        "rainy_hour_rmse_mm": 5.1727,
+        "rainy_hour_bias_mm": -2.0662
+      },
+      "solar_status": {
+        "uv_index": {
+          "status": "BLOCKED_BY_SENSOR_CALIBRATION",
+          "reason": "Uncalibrated sensor reports up to 11.0 index during nighttime (00:00-04:00 local). Must not be scored without hardware recalibration."
+        },
+        "light_intensity": {
+          "status": "SECONDARY_BETA_DAYLIGHT_ONLY",
+          "reason": "Photometric lux readings available for monitoring daylight cycle; uncalibrated for solar irradiance forecast."
+        }
+      },
+      "water_level_beta": {
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1,
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 221,
+          "mae_meters": 0.0338,
+          "rmse_meters": 0.0428,
+          "bias_meters": -0.0065,
+          "persistence_mae_meters": 0.0146,
+          "persistence_rmse_meters": 0.0193,
+          "climatology_mae_meters": 1.264,
+          "climatology_rmse_meters": 1.2874,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 221,
+          "mae_meters": 0.1253,
+          "rmse_meters": 0.1798,
+          "bias_meters": 0.0624,
+          "persistence_mae_meters": 0.0146,
+          "persistence_rmse_meters": 0.0193,
+          "climatology_mae_meters": 1.264,
+          "climatology_rmse_meters": 1.2874,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 221,
+          "mae_meters": 0.0146,
+          "rmse_meters": 0.0193,
+          "bias_meters": 0.0001,
+          "persistence_mae_meters": 0.0146,
+          "persistence_rmse_meters": 0.0193,
+          "climatology_mae_meters": 1.264,
+          "climatology_rmse_meters": 1.2874,
+          "beats_persistence_mae": 0
+        },
+        "conformal_uncertainty": {
+          "nominal_80": {
+            "nominal_level": 0.8,
+            "test_gauge_samples": 221,
+            "observed_coverage_pct": 90.5,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.15379999577999115,
+            "coverage_95_ci": [
+              85.91,
+              93.7
+            ]
+          },
+          "nominal_90": {
+            "nominal_level": 0.9,
+            "test_gauge_samples": 221,
+            "observed_coverage_pct": 95.02,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.18889999389648438,
+            "coverage_95_ci": [
+              91.31,
+              97.2
+            ]
+          },
+          "nominal_95": {
+            "nominal_level": 0.95,
+            "test_gauge_samples": 221,
+            "observed_coverage_pct": 99.1,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.21439999341964722,
+            "coverage_95_ci": [
+              96.76,
+              99.75
+            ]
+          }
+        }
+      },
+      "intensity_breakdown": {
+        "dry": {
+          "sample_count": 1747,
+          "mf1_detection_rate_pct": 7.73,
+          "persistence_detection_rate_pct": 13.97
+        },
+        "trace": {
+          "sample_count": 320,
+          "mf1_detection_rate_pct": 46.56,
+          "persistence_detection_rate_pct": 59.38
+        },
+        "light": {
+          "sample_count": 437,
+          "mf1_detection_rate_pct": 77.35,
+          "persistence_detection_rate_pct": 84.44
+        },
+        "moderate": {
+          "sample_count": 204,
+          "mf1_detection_rate_pct": 83.33,
+          "persistence_detection_rate_pct": 88.73
+        },
+        "heavy": {
+          "sample_count": 112,
+          "mf1_detection_rate_pct": 78.57,
+          "persistence_detection_rate_pct": 83.93
+        }
+      },
+      "rain_metrics": {
+        "mf1_pytorch": {
+          "threshold": 0.5,
+          "accuracy_pct": 83.58,
+          "recall_pod_pct": 69.43,
+          "precision_pct": 84.66,
+          "f1_score_pct": 76.29,
+          "false_alarm_ratio_pct": 15.34,
+          "critical_success_index_pct": 61.67,
+          "brier_score": 0.1249,
+          "expected_calibration_error": 0.0365,
+          "confusion_matrix": {
+            "tp": 745,
+            "fp": 135,
+            "tn": 1612,
+            "fn": 328
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1482,
+              "mean_pred_prob": 0.0749,
+              "observed_frequency": 0.1289
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 384,
+              "mean_pred_prob": 0.2863,
+              "observed_frequency": 0.276
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 139,
+              "mean_pred_prob": 0.4919,
+              "observed_frequency": 0.4317
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 139,
+              "mean_pred_prob": 0.7042,
+              "observed_frequency": 0.6763
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 676,
+              "mean_pred_prob": 0.9101,
+              "observed_frequency": 0.9201
+            }
+          ]
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 82.87,
+          "recall_pod_pct": 77.73,
+          "precision_pct": 77.37,
+          "f1_score_pct": 77.55,
+          "false_alarm_ratio_pct": 22.63,
+          "critical_success_index_pct": 63.33,
+          "brier_score": 0.1713,
+          "expected_calibration_error": 0.1713,
+          "confusion_matrix": {
+            "tp": 834,
+            "fp": 244,
+            "tn": 1503,
+            "fn": 239
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1742,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.1372
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1078,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.7737
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 61.95,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2778,
+          "expected_calibration_error": 0.2051,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1747,
+            "fn": 1073
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2820,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3805
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 77.84,
+          "recall_pod_pct": 46.88,
+          "precision_pct": 90.14,
+          "f1_score_pct": 61.68,
+          "false_alarm_ratio_pct": 9.86,
+          "critical_success_index_pct": 44.59,
+          "brier_score": 0.1516,
+          "expected_calibration_error": 0.0596,
+          "confusion_matrix": {
+            "tp": 503,
+            "fp": 55,
+            "tn": 1692,
+            "fn": 570
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 775,
+              "mean_pred_prob": 0.1615,
+              "observed_frequency": 0.1006
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1325,
+              "mean_pred_prob": 0.2697,
+              "observed_frequency": 0.274
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 264,
+              "mean_pred_prob": 0.4867,
+              "observed_frequency": 0.803
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 170,
+              "mean_pred_prob": 0.6962,
+              "observed_frequency": 0.8824
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 286,
+              "mean_pred_prob": 0.9447,
+              "observed_frequency": 0.9441
+            }
+          ]
+        },
+        "hybrid_blend": {
+          "threshold": 0.5,
+          "accuracy_pct": 84.22,
+          "recall_pod_pct": 71.11,
+          "precision_pct": 84.97,
+          "f1_score_pct": 77.42,
+          "false_alarm_ratio_pct": 15.03,
+          "critical_success_index_pct": 63.16,
+          "brier_score": 0.1219,
+          "expected_calibration_error": 0.0339,
+          "confusion_matrix": {
+            "tp": 763,
+            "fp": 135,
+            "tn": 1612,
+            "fn": 310
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1475,
+              "mean_pred_prob": 0.0661,
+              "observed_frequency": 0.1173
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 364,
+              "mean_pred_prob": 0.2779,
+              "observed_frequency": 0.2775
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 130,
+              "mean_pred_prob": 0.4847,
+              "observed_frequency": 0.4846
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 139,
+              "mean_pred_prob": 0.7123,
+              "observed_frequency": 0.6403
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 712,
+              "mean_pred_prob": 0.9226,
+              "observed_frequency": 0.9087
+            }
+          ]
+        }
+      },
+      "water_metrics": {
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 221,
+          "mae_meters": 0.0338,
+          "rmse_meters": 0.0428,
+          "bias_meters": -0.0065,
+          "persistence_mae_meters": 0.0146,
+          "persistence_rmse_meters": 0.0193,
+          "climatology_mae_meters": 1.264,
+          "climatology_rmse_meters": 1.2874,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 221,
+          "mae_meters": 0.1253,
+          "rmse_meters": 0.1798,
+          "bias_meters": 0.0624,
+          "persistence_mae_meters": 0.0146,
+          "persistence_rmse_meters": 0.0193,
+          "climatology_mae_meters": 1.264,
+          "climatology_rmse_meters": 1.2874,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 221,
+          "mae_meters": 0.0146,
+          "rmse_meters": 0.0193,
+          "bias_meters": 0.0001,
+          "persistence_mae_meters": 0.0146,
+          "persistence_rmse_meters": 0.0193,
+          "climatology_mae_meters": 1.264,
+          "climatology_rmse_meters": 1.2874,
+          "beats_persistence_mae": 0
+        },
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1
+      },
+      "conformal_uncertainty": {
+        "nominal_80": {
+          "nominal_level": 0.8,
+          "test_gauge_samples": 221,
+          "observed_coverage_pct": 90.5,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.15379999577999115,
+          "coverage_95_ci": [
+            85.91,
+            93.7
+          ]
+        },
+        "nominal_90": {
+          "nominal_level": 0.9,
+          "test_gauge_samples": 221,
+          "observed_coverage_pct": 95.02,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.18889999389648438,
+          "coverage_95_ci": [
+            91.31,
+            97.2
+          ]
+        },
+        "nominal_95": {
+          "nominal_level": 0.95,
+          "test_gauge_samples": 221,
+          "observed_coverage_pct": 99.1,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.21439999341964722,
+          "coverage_95_ci": [
+            96.76,
+            99.75
+          ]
+        }
+      }
+    },
+    "horizon_3h": {
+      "test_samples_total": 2784,
+      "calibration_samples_total": 2867,
+      "small_sample_warning": 0,
+      "temperature": {
+        "sample_count": 2784,
+        "mae": 0.9981,
+        "rmse": 1.3934,
+        "bias": -0.0549,
+        "persistence_mae": 0.9554,
+        "persistence_rmse": 1.4877,
+        "climatology_mae": 1.6068,
+        "climatology_rmse": 2.0077,
+        "skill_vs_persistence": -0.0447,
+        "beats_persistence": 0,
+        "linear_regression_mae": 1.0008,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 0.9554
+      },
+      "humidity": {
+        "sample_count": 2784,
+        "mae": 3.0381,
+        "rmse": 4.7787,
+        "bias": 0.2324,
+        "persistence_mae": 2.7546,
+        "persistence_rmse": 5.0977,
+        "climatology_mae": 9.8267,
+        "climatology_rmse": 10.6452,
+        "skill_vs_persistence": -0.1029,
+        "beats_persistence": 0,
+        "linear_regression_mae": 3.8676,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 2.7546
+      },
+      "pressure": {
+        "sample_count": 2784,
+        "mae": 0.6719,
+        "rmse": 0.8638,
+        "bias": 0.0692,
+        "persistence_mae": 0.7834,
+        "persistence_rmse": 1.0009,
+        "climatology_mae": 3.1677,
+        "climatology_rmse": 3.7232,
+        "skill_vs_persistence": 0.1423,
+        "beats_persistence": 1,
+        "linear_regression_mae": 0.8892,
+        "pressure_tendency": {
+          "sample_count": 2784,
+          "tendency_threshold_hpa": 0.5,
+          "accuracy_pct": 54.53
+        },
+        "selected_source": "learned_model",
+        "hybrid_mae": 0.6719
+      },
+      "wind_speed": {
+        "sample_count": 2784,
+        "mae": 1.0827,
+        "rmse": 1.8654,
+        "bias": -0.4449,
+        "persistence_mae": 1.0628,
+        "persistence_rmse": 1.875,
+        "climatology_mae": 2.2949,
+        "climatology_rmse": 3.3348,
+        "skill_vs_persistence": -0.0187,
+        "beats_persistence": 0,
+        "linear_regression_mae": 2.0492,
+        "strong_wind_recall": {
+          "threshold_kmh": 15.0,
+          "strong_event_count": 2,
+          "recall_pod_pct": 0.0
+        },
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 1.0628
+      },
+      "wind_direction": {
+        "model_circular": {
+          "valid_sample_count": 1420,
+          "calm_sample_count": 1364,
+          "calm_coverage_pct": 48.99,
+          "circular_mae_deg": 71.88
+        },
+        "persistence_circular": {
+          "valid_sample_count": 1420,
+          "calm_sample_count": 1364,
+          "calm_coverage_pct": 48.99,
+          "circular_mae_deg": 46.95
+        },
+        "beats_persistence": 0,
+        "skill_vs_persistence": -0.531
+      },
+      "heat_index": {
+        "sample_count": 2784,
+        "mae": 2.6214,
+        "rmse": 3.7128,
+        "bias": 0.0588,
+        "persistence_mae": 2.658,
+        "persistence_rmse": 3.9081,
+        "climatology_mae": 4.079,
+        "climatology_rmse": 5.1847,
+        "skill_vs_persistence": 0.0138,
+        "beats_persistence": 1,
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+      },
+      "rain_occurrence": {
+        "fixed_threshold_05": {
+          "threshold": 0.5,
+          "accuracy_pct": 73.74,
+          "recall_pod_pct": 50.24,
+          "precision_pct": 72.28,
+          "f1_score_pct": 59.28,
+          "false_alarm_ratio_pct": 27.72,
+          "critical_success_index_pct": 42.12,
+          "brier_score": 0.1844,
+          "expected_calibration_error": 0.0454,
+          "confusion_matrix": {
+            "tp": 532,
+            "fp": 204,
+            "tn": 1521,
+            "fn": 527
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1204,
+              "mean_pred_prob": 0.1087,
+              "observed_frequency": 0.1777
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 633,
+              "mean_pred_prob": 0.2891,
+              "observed_frequency": 0.3302
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 403,
+              "mean_pred_prob": 0.4981,
+              "observed_frequency": 0.5087
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 315,
+              "mean_pred_prob": 0.7032,
+              "observed_frequency": 0.7429
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 229,
+              "mean_pred_prob": 0.8621,
+              "observed_frequency": 0.8603
+            }
+          ]
+        },
+        "frozen_operational_threshold": {
+          "threshold": 0.1,
+          "metrics": {
+            "threshold": 0.1,
+            "accuracy_pct": 53.23,
+            "recall_pod_pct": 93.2,
+            "precision_pct": 44.52,
+            "f1_score_pct": 60.26,
+            "false_alarm_ratio_pct": 55.48,
+            "critical_success_index_pct": 43.12,
+            "brier_score": 0.1844,
+            "expected_calibration_error": 0.0454,
+            "confusion_matrix": {
+              "tp": 987,
+              "fp": 1230,
+              "tn": 495,
+              "fn": 72
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1204,
+                "mean_pred_prob": 0.1087,
+                "observed_frequency": 0.1777
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 633,
+                "mean_pred_prob": 0.2891,
+                "observed_frequency": 0.3302
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 403,
+                "mean_pred_prob": 0.4981,
+                "observed_frequency": 0.5087
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 315,
+                "mean_pred_prob": 0.7032,
+                "observed_frequency": 0.7429
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 229,
+                "mean_pred_prob": 0.8621,
+                "observed_frequency": 0.8603
+              }
+            ]
+          }
+        },
+        "hybrid_blend": {
+          "frozen_model_weight": 0.6,
+          "frozen_persistence_weight": 0.4,
+          "metrics": {
+            "threshold": 0.5,
+            "accuracy_pct": 77.37,
+            "recall_pod_pct": 65.44,
+            "precision_pct": 72.41,
+            "f1_score_pct": 68.75,
+            "false_alarm_ratio_pct": 27.59,
+            "critical_success_index_pct": 52.38,
+            "brier_score": 0.167,
+            "expected_calibration_error": 0.0543,
+            "confusion_matrix": {
+              "tp": 693,
+              "fp": 264,
+              "tn": 1461,
+              "fn": 366
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1393,
+                "mean_pred_prob": 0.0856,
+                "observed_frequency": 0.1651
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 302,
+                "mean_pred_prob": 0.2702,
+                "observed_frequency": 0.2616
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 279,
+                "mean_pred_prob": 0.5056,
+                "observed_frequency": 0.4946
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 382,
+                "mean_pred_prob": 0.7042,
+                "observed_frequency": 0.6597
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 428,
+                "mean_pred_prob": 0.8824,
+                "observed_frequency": 0.8411
+              }
+            ]
+          }
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 77.3,
+          "recall_pod_pct": 70.73,
+          "precision_pct": 69.93,
+          "f1_score_pct": 70.33,
+          "false_alarm_ratio_pct": 30.07,
+          "critical_success_index_pct": 54.24,
+          "brier_score": 0.227,
+          "expected_calibration_error": 0.227,
+          "confusion_matrix": {
+            "tp": 749,
+            "fp": 322,
+            "tn": 1403,
+            "fn": 310
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1713,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.181
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1071,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.6993
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 66.42,
+          "recall_pod_pct": 15.11,
+          "precision_pct": 81.63,
+          "f1_score_pct": 25.5,
+          "false_alarm_ratio_pct": 18.37,
+          "critical_success_index_pct": 14.61,
+          "brier_score": 0.2033,
+          "expected_calibration_error": 0.0991,
+          "confusion_matrix": {
+            "tp": 160,
+            "fp": 36,
+            "tn": 1689,
+            "fn": 899
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 635,
+              "mean_pred_prob": 0.1673,
+              "observed_frequency": 0.1339
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1762,
+              "mean_pred_prob": 0.285,
+              "observed_frequency": 0.3734
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 265,
+              "mean_pred_prob": 0.4681,
+              "observed_frequency": 0.8113
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 69,
+              "mean_pred_prob": 0.6981,
+              "observed_frequency": 0.7971
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 53,
+              "mean_pred_prob": 0.8859,
+              "observed_frequency": 0.8679
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 61.96,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2777,
+          "expected_calibration_error": 0.205,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1725,
+            "fn": 1059
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2784,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3804
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "beats_persistence_f1": 0,
+        "beats_persistence_brier": 1
+      },
+      "precipitation_amount": {
+        "overall_samples": 2784,
+        "overall_mae_mm": 1.0804,
+        "overall_rmse_mm": 3.3488,
+        "overall_bias_mm": -0.8369,
+        "rainy_hour_samples": 1059,
+        "rainy_hour_mae_mm": 2.5758,
+        "rainy_hour_rmse_mm": 5.4187,
+        "rainy_hour_bias_mm": -2.4645
+      },
+      "solar_status": {
+        "uv_index": {
+          "status": "BLOCKED_BY_SENSOR_CALIBRATION",
+          "reason": "Uncalibrated sensor reports up to 11.0 index during nighttime (00:00-04:00 local). Must not be scored without hardware recalibration."
+        },
+        "light_intensity": {
+          "status": "SECONDARY_BETA_DAYLIGHT_ONLY",
+          "reason": "Photometric lux readings available for monitoring daylight cycle; uncalibrated for solar irradiance forecast."
+        }
+      },
+      "water_level_beta": {
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1,
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 219,
+          "mae_meters": 0.104,
+          "rmse_meters": 0.1285,
+          "bias_meters": -0.0091,
+          "persistence_mae_meters": 0.0422,
+          "persistence_rmse_meters": 0.0543,
+          "climatology_mae_meters": 1.266,
+          "climatology_rmse_meters": 1.2894,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 219,
+          "mae_meters": 0.1244,
+          "rmse_meters": 0.1674,
+          "bias_meters": 0.0378,
+          "persistence_mae_meters": 0.0422,
+          "persistence_rmse_meters": 0.0543,
+          "climatology_mae_meters": 1.266,
+          "climatology_rmse_meters": 1.2894,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 219,
+          "mae_meters": 0.0422,
+          "rmse_meters": 0.0543,
+          "bias_meters": 0.0004,
+          "persistence_mae_meters": 0.0422,
+          "persistence_rmse_meters": 0.0543,
+          "climatology_mae_meters": 1.266,
+          "climatology_rmse_meters": 1.2894,
+          "beats_persistence_mae": 0
+        },
+        "conformal_uncertainty": {
+          "nominal_80": {
+            "nominal_level": 0.8,
+            "test_gauge_samples": 219,
+            "observed_coverage_pct": 96.35,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.5281999707221985,
+            "coverage_95_ci": [
+              92.96,
+              98.14
+            ]
+          },
+          "nominal_90": {
+            "nominal_level": 0.9,
+            "test_gauge_samples": 219,
+            "observed_coverage_pct": 98.63,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.6333000063896179,
+            "coverage_95_ci": [
+              96.05,
+              99.53
+            ]
+          },
+          "nominal_95": {
+            "nominal_level": 0.95,
+            "test_gauge_samples": 219,
+            "observed_coverage_pct": 100.0,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.7246000170707703,
+            "coverage_95_ci": [
+              98.28,
+              100.0
+            ]
+          }
+        }
+      },
+      "intensity_breakdown": {
+        "dry": {
+          "sample_count": 1725,
+          "mf1_detection_rate_pct": 11.83,
+          "persistence_detection_rate_pct": 18.67
+        },
+        "trace": {
+          "sample_count": 315,
+          "mf1_detection_rate_pct": 30.16,
+          "persistence_detection_rate_pct": 56.51
+        },
+        "light": {
+          "sample_count": 428,
+          "mf1_detection_rate_pct": 58.88,
+          "persistence_detection_rate_pct": 76.4
+        },
+        "moderate": {
+          "sample_count": 203,
+          "mf1_detection_rate_pct": 54.68,
+          "persistence_detection_rate_pct": 71.92
+        },
+        "heavy": {
+          "sample_count": 113,
+          "mf1_detection_rate_pct": 65.49,
+          "persistence_detection_rate_pct": 86.73
+        }
+      },
+      "rain_metrics": {
+        "mf1_pytorch": {
+          "threshold": 0.5,
+          "accuracy_pct": 73.74,
+          "recall_pod_pct": 50.24,
+          "precision_pct": 72.28,
+          "f1_score_pct": 59.28,
+          "false_alarm_ratio_pct": 27.72,
+          "critical_success_index_pct": 42.12,
+          "brier_score": 0.1844,
+          "expected_calibration_error": 0.0454,
+          "confusion_matrix": {
+            "tp": 532,
+            "fp": 204,
+            "tn": 1521,
+            "fn": 527
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1204,
+              "mean_pred_prob": 0.1087,
+              "observed_frequency": 0.1777
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 633,
+              "mean_pred_prob": 0.2891,
+              "observed_frequency": 0.3302
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 403,
+              "mean_pred_prob": 0.4981,
+              "observed_frequency": 0.5087
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 315,
+              "mean_pred_prob": 0.7032,
+              "observed_frequency": 0.7429
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 229,
+              "mean_pred_prob": 0.8621,
+              "observed_frequency": 0.8603
+            }
+          ]
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 77.3,
+          "recall_pod_pct": 70.73,
+          "precision_pct": 69.93,
+          "f1_score_pct": 70.33,
+          "false_alarm_ratio_pct": 30.07,
+          "critical_success_index_pct": 54.24,
+          "brier_score": 0.227,
+          "expected_calibration_error": 0.227,
+          "confusion_matrix": {
+            "tp": 749,
+            "fp": 322,
+            "tn": 1403,
+            "fn": 310
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1713,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.181
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1071,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.6993
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 61.96,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2777,
+          "expected_calibration_error": 0.205,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1725,
+            "fn": 1059
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2784,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3804
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 66.42,
+          "recall_pod_pct": 15.11,
+          "precision_pct": 81.63,
+          "f1_score_pct": 25.5,
+          "false_alarm_ratio_pct": 18.37,
+          "critical_success_index_pct": 14.61,
+          "brier_score": 0.2033,
+          "expected_calibration_error": 0.0991,
+          "confusion_matrix": {
+            "tp": 160,
+            "fp": 36,
+            "tn": 1689,
+            "fn": 899
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 635,
+              "mean_pred_prob": 0.1673,
+              "observed_frequency": 0.1339
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1762,
+              "mean_pred_prob": 0.285,
+              "observed_frequency": 0.3734
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 265,
+              "mean_pred_prob": 0.4681,
+              "observed_frequency": 0.8113
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 69,
+              "mean_pred_prob": 0.6981,
+              "observed_frequency": 0.7971
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 53,
+              "mean_pred_prob": 0.8859,
+              "observed_frequency": 0.8679
+            }
+          ]
+        },
+        "hybrid_blend": {
+          "threshold": 0.5,
+          "accuracy_pct": 77.37,
+          "recall_pod_pct": 65.44,
+          "precision_pct": 72.41,
+          "f1_score_pct": 68.75,
+          "false_alarm_ratio_pct": 27.59,
+          "critical_success_index_pct": 52.38,
+          "brier_score": 0.167,
+          "expected_calibration_error": 0.0543,
+          "confusion_matrix": {
+            "tp": 693,
+            "fp": 264,
+            "tn": 1461,
+            "fn": 366
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1393,
+              "mean_pred_prob": 0.0856,
+              "observed_frequency": 0.1651
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 302,
+              "mean_pred_prob": 0.2702,
+              "observed_frequency": 0.2616
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 279,
+              "mean_pred_prob": 0.5056,
+              "observed_frequency": 0.4946
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 382,
+              "mean_pred_prob": 0.7042,
+              "observed_frequency": 0.6597
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 428,
+              "mean_pred_prob": 0.8824,
+              "observed_frequency": 0.8411
+            }
+          ]
+        }
+      },
+      "water_metrics": {
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 219,
+          "mae_meters": 0.104,
+          "rmse_meters": 0.1285,
+          "bias_meters": -0.0091,
+          "persistence_mae_meters": 0.0422,
+          "persistence_rmse_meters": 0.0543,
+          "climatology_mae_meters": 1.266,
+          "climatology_rmse_meters": 1.2894,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 219,
+          "mae_meters": 0.1244,
+          "rmse_meters": 0.1674,
+          "bias_meters": 0.0378,
+          "persistence_mae_meters": 0.0422,
+          "persistence_rmse_meters": 0.0543,
+          "climatology_mae_meters": 1.266,
+          "climatology_rmse_meters": 1.2894,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 219,
+          "mae_meters": 0.0422,
+          "rmse_meters": 0.0543,
+          "bias_meters": 0.0004,
+          "persistence_mae_meters": 0.0422,
+          "persistence_rmse_meters": 0.0543,
+          "climatology_mae_meters": 1.266,
+          "climatology_rmse_meters": 1.2894,
+          "beats_persistence_mae": 0
+        },
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1
+      },
+      "conformal_uncertainty": {
+        "nominal_80": {
+          "nominal_level": 0.8,
+          "test_gauge_samples": 219,
+          "observed_coverage_pct": 96.35,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.5281999707221985,
+          "coverage_95_ci": [
+            92.96,
+            98.14
+          ]
+        },
+        "nominal_90": {
+          "nominal_level": 0.9,
+          "test_gauge_samples": 219,
+          "observed_coverage_pct": 98.63,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.6333000063896179,
+          "coverage_95_ci": [
+            96.05,
+            99.53
+          ]
+        },
+        "nominal_95": {
+          "nominal_level": 0.95,
+          "test_gauge_samples": 219,
+          "observed_coverage_pct": 100.0,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.7246000170707703,
+          "coverage_95_ci": [
+            98.28,
+            100.0
+          ]
+        }
+      }
+    },
+    "horizon_6h": {
+      "test_samples_total": 2731,
+      "calibration_samples_total": 2820,
+      "small_sample_warning": 0,
+      "temperature": {
+        "sample_count": 2731,
+        "mae": 1.4767,
+        "rmse": 1.9267,
+        "bias": -0.7767,
+        "persistence_mae": 1.4413,
+        "persistence_rmse": 2.1035,
+        "climatology_mae": 1.6062,
+        "climatology_rmse": 2.0086,
+        "skill_vs_persistence": -0.0245,
+        "beats_persistence": 0,
+        "linear_regression_mae": 1.4411,
+        "selected_source": "learned_model",
+        "hybrid_mae": 1.4767
+      },
+      "humidity": {
+        "sample_count": 2731,
+        "mae": 4.8622,
+        "rmse": 6.8134,
+        "bias": 2.3019,
+        "persistence_mae": 4.1798,
+        "persistence_rmse": 7.1261,
+        "climatology_mae": 9.7974,
+        "climatology_rmse": 10.6245,
+        "skill_vs_persistence": -0.1632,
+        "beats_persistence": 0,
+        "linear_regression_mae": 5.9839,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 4.1798
+      },
+      "pressure": {
+        "sample_count": 2731,
+        "mae": 1.1035,
+        "rmse": 1.383,
+        "bias": 0.3987,
+        "persistence_mae": 1.1118,
+        "persistence_rmse": 1.4217,
+        "climatology_mae": 3.174,
+        "climatology_rmse": 3.732,
+        "skill_vs_persistence": 0.0075,
+        "beats_persistence": 1,
+        "linear_regression_mae": 1.3198,
+        "pressure_tendency": {
+          "sample_count": 2731,
+          "tendency_threshold_hpa": 0.5,
+          "accuracy_pct": 47.53
+        },
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 1.1118
+      },
+      "wind_speed": {
+        "sample_count": 2731,
+        "mae": 1.3197,
+        "rmse": 2.1378,
+        "bias": -0.6755,
+        "persistence_mae": 1.2852,
+        "persistence_rmse": 2.2269,
+        "climatology_mae": 2.2847,
+        "climatology_rmse": 3.316,
+        "skill_vs_persistence": -0.0268,
+        "beats_persistence": 0,
+        "linear_regression_mae": 2.1017,
+        "strong_wind_recall": {
+          "threshold_kmh": 15.0,
+          "strong_event_count": 2,
+          "recall_pod_pct": 0.0
+        },
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 1.2852
+      },
+      "wind_direction": {
+        "model_circular": {
+          "valid_sample_count": 1386,
+          "calm_sample_count": 1345,
+          "calm_coverage_pct": 49.25,
+          "circular_mae_deg": 87.69
+        },
+        "persistence_circular": {
+          "valid_sample_count": 1386,
+          "calm_sample_count": 1345,
+          "calm_coverage_pct": 49.25,
+          "circular_mae_deg": 53.2
+        },
+        "beats_persistence": 0,
+        "skill_vs_persistence": -0.6483
+      },
+      "heat_index": {
+        "sample_count": 2731,
+        "mae": 3.8092,
+        "rmse": 5.003,
+        "bias": -1.8097,
+        "persistence_mae": 3.8584,
+        "persistence_rmse": 5.4289,
+        "climatology_mae": 4.0918,
+        "climatology_rmse": 5.2002,
+        "skill_vs_persistence": 0.0128,
+        "beats_persistence": 1,
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+      },
+      "rain_occurrence": {
+        "fixed_threshold_05": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.27,
+          "recall_pod_pct": 5.35,
+          "precision_pct": 64.71,
+          "f1_score_pct": 9.88,
+          "false_alarm_ratio_pct": 35.29,
+          "critical_success_index_pct": 5.2,
+          "brier_score": 0.2415,
+          "expected_calibration_error": 0.1226,
+          "confusion_matrix": {
+            "tp": 55,
+            "fp": 30,
+            "tn": 1673,
+            "fn": 973
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1014,
+              "mean_pred_prob": 0.1171,
+              "observed_frequency": 0.3107
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1262,
+              "mean_pred_prob": 0.2885,
+              "observed_frequency": 0.3542
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 455,
+              "mean_pred_prob": 0.4625,
+              "observed_frequency": 0.5846
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "frozen_operational_threshold": {
+          "threshold": 0.1,
+          "metrics": {
+            "threshold": 0.1,
+            "accuracy_pct": 43.79,
+            "recall_pod_pct": 89.2,
+            "precision_pct": 39.17,
+            "f1_score_pct": 54.44,
+            "false_alarm_ratio_pct": 60.83,
+            "critical_success_index_pct": 37.4,
+            "brier_score": 0.2415,
+            "expected_calibration_error": 0.1226,
+            "confusion_matrix": {
+              "tp": 917,
+              "fp": 1424,
+              "tn": 279,
+              "fn": 111
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1014,
+                "mean_pred_prob": 0.1171,
+                "observed_frequency": 0.3107
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 1262,
+                "mean_pred_prob": 0.2885,
+                "observed_frequency": 0.3542
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 455,
+                "mean_pred_prob": 0.4625,
+                "observed_frequency": 0.5846
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 0,
+                "mean_pred_prob": 0.7,
+                "observed_frequency": 0.0
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 0,
+                "mean_pred_prob": 0.9,
+                "observed_frequency": 0.0
+              }
+            ]
+          }
+        },
+        "hybrid_blend": {
+          "frozen_model_weight": 0.45,
+          "frozen_persistence_weight": 0.55,
+          "metrics": {
+            "threshold": 0.5,
+            "accuracy_pct": 73.05,
+            "recall_pod_pct": 65.86,
+            "precision_pct": 63.75,
+            "f1_score_pct": 64.78,
+            "false_alarm_ratio_pct": 36.25,
+            "critical_success_index_pct": 47.91,
+            "brier_score": 0.2005,
+            "expected_calibration_error": 0.0908,
+            "confusion_matrix": {
+              "tp": 677,
+              "fp": 385,
+              "tn": 1318,
+              "fn": 351
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1599,
+                "mean_pred_prob": 0.0923,
+                "observed_frequency": 0.2101
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 70,
+                "mean_pred_prob": 0.2178,
+                "observed_frequency": 0.2143
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 101,
+                "mean_pred_prob": 0.5851,
+                "observed_frequency": 0.4752
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 948,
+                "mean_pred_prob": 0.7001,
+                "observed_frequency": 0.6508
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 13,
+                "mean_pred_prob": 0.8041,
+                "observed_frequency": 0.9231
+              }
+            ]
+          }
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 73.05,
+          "recall_pod_pct": 65.86,
+          "precision_pct": 63.75,
+          "f1_score_pct": 64.78,
+          "false_alarm_ratio_pct": 36.25,
+          "critical_success_index_pct": 47.91,
+          "brier_score": 0.2695,
+          "expected_calibration_error": 0.2695,
+          "confusion_matrix": {
+            "tp": 677,
+            "fp": 385,
+            "tn": 1318,
+            "fn": 351
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1669,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.2103
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1062,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.6375
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.09,
+          "recall_pod_pct": 3.31,
+          "precision_pct": 70.83,
+          "f1_score_pct": 6.32,
+          "false_alarm_ratio_pct": 29.17,
+          "critical_success_index_pct": 3.26,
+          "brier_score": 0.2249,
+          "expected_calibration_error": 0.119,
+          "confusion_matrix": {
+            "tp": 34,
+            "fp": 14,
+            "tn": 1689,
+            "fn": 994
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 520,
+              "mean_pred_prob": 0.1714,
+              "observed_frequency": 0.1423
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 2082,
+              "mean_pred_prob": 0.2795,
+              "observed_frequency": 0.4131
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 116,
+              "mean_pred_prob": 0.4635,
+              "observed_frequency": 0.7328
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 13,
+              "mean_pred_prob": 0.6521,
+              "observed_frequency": 0.6923
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.36,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2751,
+          "expected_calibration_error": 0.201,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1703,
+            "fn": 1028
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2731,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3764
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "beats_persistence_f1": 0,
+        "beats_persistence_brier": 1
+      },
+      "precipitation_amount": {
+        "overall_samples": 2731,
+        "overall_mae_mm": 1.1496,
+        "overall_rmse_mm": 3.5067,
+        "overall_bias_mm": -0.9675,
+        "rainy_hour_samples": 1028,
+        "rainy_hour_mae_mm": 2.8259,
+        "rainy_hour_rmse_mm": 5.7107,
+        "rainy_hour_bias_mm": -2.7983
+      },
+      "solar_status": {
+        "uv_index": {
+          "status": "BLOCKED_BY_SENSOR_CALIBRATION",
+          "reason": "Uncalibrated sensor reports up to 11.0 index during nighttime (00:00-04:00 local). Must not be scored without hardware recalibration."
+        },
+        "light_intensity": {
+          "status": "SECONDARY_BETA_DAYLIGHT_ONLY",
+          "reason": "Photometric lux readings available for monitoring daylight cycle; uncalibrated for solar irradiance forecast."
+        }
+      },
+      "water_level_beta": {
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1,
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 216,
+          "mae_meters": 0.1684,
+          "rmse_meters": 0.2082,
+          "bias_meters": 0.0125,
+          "persistence_mae_meters": 0.0767,
+          "persistence_rmse_meters": 0.0981,
+          "climatology_mae_meters": 1.2688,
+          "climatology_rmse_meters": 1.2923,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 216,
+          "mae_meters": 0.1273,
+          "rmse_meters": 0.1689,
+          "bias_meters": 0.0366,
+          "persistence_mae_meters": 0.0767,
+          "persistence_rmse_meters": 0.0981,
+          "climatology_mae_meters": 1.2688,
+          "climatology_rmse_meters": 1.2923,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 216,
+          "mae_meters": 0.0767,
+          "rmse_meters": 0.0981,
+          "bias_meters": 0.0025,
+          "persistence_mae_meters": 0.0767,
+          "persistence_rmse_meters": 0.0981,
+          "climatology_mae_meters": 1.2688,
+          "climatology_rmse_meters": 1.2923,
+          "beats_persistence_mae": 0
+        },
+        "conformal_uncertainty": {
+          "nominal_80": {
+            "nominal_level": 0.8,
+            "test_gauge_samples": 216,
+            "observed_coverage_pct": 96.3,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.8712000250816345,
+            "coverage_95_ci": [
+              92.86,
+              98.11
+            ]
+          },
+          "nominal_90": {
+            "nominal_level": 0.9,
+            "test_gauge_samples": 216,
+            "observed_coverage_pct": 100.0,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 1.0872999429702759,
+            "coverage_95_ci": [
+              98.25,
+              100.0
+            ]
+          },
+          "nominal_95": {
+            "nominal_level": 0.95,
+            "test_gauge_samples": 216,
+            "observed_coverage_pct": 100.0,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 1.2458000183105469,
+            "coverage_95_ci": [
+              98.25,
+              100.0
+            ]
+          }
+        }
+      },
+      "intensity_breakdown": {
+        "dry": {
+          "sample_count": 1703,
+          "mf1_detection_rate_pct": 1.76,
+          "persistence_detection_rate_pct": 22.61
+        },
+        "trace": {
+          "sample_count": 308,
+          "mf1_detection_rate_pct": 0.97,
+          "persistence_detection_rate_pct": 55.19
+        },
+        "light": {
+          "sample_count": 410,
+          "mf1_detection_rate_pct": 4.39,
+          "persistence_detection_rate_pct": 71.95
+        },
+        "moderate": {
+          "sample_count": 197,
+          "mf1_detection_rate_pct": 13.71,
+          "persistence_detection_rate_pct": 63.96
+        },
+        "heavy": {
+          "sample_count": 113,
+          "mf1_detection_rate_pct": 6.19,
+          "persistence_detection_rate_pct": 76.11
+        }
+      },
+      "rain_metrics": {
+        "mf1_pytorch": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.27,
+          "recall_pod_pct": 5.35,
+          "precision_pct": 64.71,
+          "f1_score_pct": 9.88,
+          "false_alarm_ratio_pct": 35.29,
+          "critical_success_index_pct": 5.2,
+          "brier_score": 0.2415,
+          "expected_calibration_error": 0.1226,
+          "confusion_matrix": {
+            "tp": 55,
+            "fp": 30,
+            "tn": 1673,
+            "fn": 973
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1014,
+              "mean_pred_prob": 0.1171,
+              "observed_frequency": 0.3107
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1262,
+              "mean_pred_prob": 0.2885,
+              "observed_frequency": 0.3542
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 455,
+              "mean_pred_prob": 0.4625,
+              "observed_frequency": 0.5846
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 73.05,
+          "recall_pod_pct": 65.86,
+          "precision_pct": 63.75,
+          "f1_score_pct": 64.78,
+          "false_alarm_ratio_pct": 36.25,
+          "critical_success_index_pct": 47.91,
+          "brier_score": 0.2695,
+          "expected_calibration_error": 0.2695,
+          "confusion_matrix": {
+            "tp": 677,
+            "fp": 385,
+            "tn": 1318,
+            "fn": 351
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1669,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.2103
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1062,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.6375
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.36,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2751,
+          "expected_calibration_error": 0.201,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1703,
+            "fn": 1028
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2731,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3764
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.09,
+          "recall_pod_pct": 3.31,
+          "precision_pct": 70.83,
+          "f1_score_pct": 6.32,
+          "false_alarm_ratio_pct": 29.17,
+          "critical_success_index_pct": 3.26,
+          "brier_score": 0.2249,
+          "expected_calibration_error": 0.119,
+          "confusion_matrix": {
+            "tp": 34,
+            "fp": 14,
+            "tn": 1689,
+            "fn": 994
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 520,
+              "mean_pred_prob": 0.1714,
+              "observed_frequency": 0.1423
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 2082,
+              "mean_pred_prob": 0.2795,
+              "observed_frequency": 0.4131
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 116,
+              "mean_pred_prob": 0.4635,
+              "observed_frequency": 0.7328
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 13,
+              "mean_pred_prob": 0.6521,
+              "observed_frequency": 0.6923
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "hybrid_blend": {
+          "threshold": 0.5,
+          "accuracy_pct": 73.05,
+          "recall_pod_pct": 65.86,
+          "precision_pct": 63.75,
+          "f1_score_pct": 64.78,
+          "false_alarm_ratio_pct": 36.25,
+          "critical_success_index_pct": 47.91,
+          "brier_score": 0.2005,
+          "expected_calibration_error": 0.0908,
+          "confusion_matrix": {
+            "tp": 677,
+            "fp": 385,
+            "tn": 1318,
+            "fn": 351
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1599,
+              "mean_pred_prob": 0.0923,
+              "observed_frequency": 0.2101
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 70,
+              "mean_pred_prob": 0.2178,
+              "observed_frequency": 0.2143
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 101,
+              "mean_pred_prob": 0.5851,
+              "observed_frequency": 0.4752
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 948,
+              "mean_pred_prob": 0.7001,
+              "observed_frequency": 0.6508
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 13,
+              "mean_pred_prob": 0.8041,
+              "observed_frequency": 0.9231
+            }
+          ]
+        }
+      },
+      "water_metrics": {
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 216,
+          "mae_meters": 0.1684,
+          "rmse_meters": 0.2082,
+          "bias_meters": 0.0125,
+          "persistence_mae_meters": 0.0767,
+          "persistence_rmse_meters": 0.0981,
+          "climatology_mae_meters": 1.2688,
+          "climatology_rmse_meters": 1.2923,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 216,
+          "mae_meters": 0.1273,
+          "rmse_meters": 0.1689,
+          "bias_meters": 0.0366,
+          "persistence_mae_meters": 0.0767,
+          "persistence_rmse_meters": 0.0981,
+          "climatology_mae_meters": 1.2688,
+          "climatology_rmse_meters": 1.2923,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 216,
+          "mae_meters": 0.0767,
+          "rmse_meters": 0.0981,
+          "bias_meters": 0.0025,
+          "persistence_mae_meters": 0.0767,
+          "persistence_rmse_meters": 0.0981,
+          "climatology_mae_meters": 1.2688,
+          "climatology_rmse_meters": 1.2923,
+          "beats_persistence_mae": 0
+        },
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1
+      },
+      "conformal_uncertainty": {
+        "nominal_80": {
+          "nominal_level": 0.8,
+          "test_gauge_samples": 216,
+          "observed_coverage_pct": 96.3,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.8712000250816345,
+          "coverage_95_ci": [
+            92.86,
+            98.11
+          ]
+        },
+        "nominal_90": {
+          "nominal_level": 0.9,
+          "test_gauge_samples": 216,
+          "observed_coverage_pct": 100.0,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 1.0872999429702759,
+          "coverage_95_ci": [
+            98.25,
+            100.0
+          ]
+        },
+        "nominal_95": {
+          "nominal_level": 0.95,
+          "test_gauge_samples": 216,
+          "observed_coverage_pct": 100.0,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 1.2458000183105469,
+          "coverage_95_ci": [
+            98.25,
+            100.0
+          ]
+        }
+      }
+    },
+    "horizon_12h": {
+      "test_samples_total": 2633,
+      "calibration_samples_total": 2732,
+      "small_sample_warning": 0,
+      "temperature": {
+        "sample_count": 2633,
+        "mae": 1.5612,
+        "rmse": 2.0027,
+        "bias": -0.4403,
+        "persistence_mae": 1.8301,
+        "persistence_rmse": 2.5324,
+        "climatology_mae": 1.616,
+        "climatology_rmse": 2.0248,
+        "skill_vs_persistence": 0.147,
+        "beats_persistence": 1,
+        "linear_regression_mae": 1.7914,
+        "selected_source": "learned_model",
+        "hybrid_mae": 1.5612
+      },
+      "humidity": {
+        "sample_count": 2633,
+        "mae": 5.1015,
+        "rmse": 7.0446,
+        "bias": 0.7577,
+        "persistence_mae": 5.4079,
+        "persistence_rmse": 8.5711,
+        "climatology_mae": 9.784,
+        "climatology_rmse": 10.6302,
+        "skill_vs_persistence": 0.0567,
+        "beats_persistence": 1,
+        "linear_regression_mae": 7.3985,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 5.4079
+      },
+      "pressure": {
+        "sample_count": 2633,
+        "mae": 0.7897,
+        "rmse": 1.09,
+        "bias": 0.0568,
+        "persistence_mae": 0.6865,
+        "persistence_rmse": 0.9393,
+        "climatology_mae": 3.1836,
+        "climatology_rmse": 3.7344,
+        "skill_vs_persistence": -0.1503,
+        "beats_persistence": 0,
+        "linear_regression_mae": 0.8816,
+        "pressure_tendency": {
+          "sample_count": 2633,
+          "tendency_threshold_hpa": 0.5,
+          "accuracy_pct": 48.31
+        },
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 0.6865
+      },
+      "wind_speed": {
+        "sample_count": 2633,
+        "mae": 1.3469,
+        "rmse": 2.2368,
+        "bias": -0.589,
+        "persistence_mae": 1.5221,
+        "persistence_rmse": 2.5642,
+        "climatology_mae": 2.2656,
+        "climatology_rmse": 3.286,
+        "skill_vs_persistence": 0.1151,
+        "beats_persistence": 1,
+        "linear_regression_mae": 2.1213,
+        "strong_wind_recall": {
+          "threshold_kmh": 15.0,
+          "strong_event_count": 2,
+          "recall_pod_pct": 0.0
+        },
+        "selected_source": "learned_model",
+        "hybrid_mae": 1.3469
+      },
+      "wind_direction": {
+        "model_circular": {
+          "valid_sample_count": 1331,
+          "calm_sample_count": 1302,
+          "calm_coverage_pct": 49.45,
+          "circular_mae_deg": 81.9
+        },
+        "persistence_circular": {
+          "valid_sample_count": 1331,
+          "calm_sample_count": 1302,
+          "calm_coverage_pct": 49.45,
+          "circular_mae_deg": 57.05
+        },
+        "beats_persistence": 0,
+        "skill_vs_persistence": -0.4356
+      },
+      "heat_index": {
+        "sample_count": 2633,
+        "mae": 4.0227,
+        "rmse": 5.1744,
+        "bias": -0.9146,
+        "persistence_mae": 4.8045,
+        "persistence_rmse": 6.5007,
+        "climatology_mae": 4.1305,
+        "climatology_rmse": 5.2457,
+        "skill_vs_persistence": 0.1627,
+        "beats_persistence": 1,
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+      },
+      "rain_occurrence": {
+        "fixed_threshold_05": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.55,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 100.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2538,
+          "expected_calibration_error": 0.1783,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 1,
+            "tn": 1647,
+            "fn": 985
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1463,
+              "mean_pred_prob": 0.1349,
+              "observed_frequency": 0.2679
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1109,
+              "mean_pred_prob": 0.263,
+              "observed_frequency": 0.505
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 61,
+              "mean_pred_prob": 0.4334,
+              "observed_frequency": 0.541
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "frozen_operational_threshold": {
+          "threshold": 0.1,
+          "metrics": {
+            "threshold": 0.1,
+            "accuracy_pct": 48.08,
+            "recall_pod_pct": 94.52,
+            "precision_pct": 41.49,
+            "f1_score_pct": 57.66,
+            "false_alarm_ratio_pct": 58.51,
+            "critical_success_index_pct": 40.51,
+            "brier_score": 0.2538,
+            "expected_calibration_error": 0.1783,
+            "confusion_matrix": {
+              "tp": 931,
+              "fp": 1313,
+              "tn": 335,
+              "fn": 54
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1463,
+                "mean_pred_prob": 0.1349,
+                "observed_frequency": 0.2679
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 1109,
+                "mean_pred_prob": 0.263,
+                "observed_frequency": 0.505
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 61,
+                "mean_pred_prob": 0.4334,
+                "observed_frequency": 0.541
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 0,
+                "mean_pred_prob": 0.7,
+                "observed_frequency": 0.0
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 0,
+                "mean_pred_prob": 0.9,
+                "observed_frequency": 0.0
+              }
+            ]
+          }
+        },
+        "hybrid_blend": {
+          "frozen_model_weight": 0.45,
+          "frozen_persistence_weight": 0.55,
+          "metrics": {
+            "threshold": 0.5,
+            "accuracy_pct": 70.0,
+            "recall_pod_pct": 62.74,
+            "precision_pct": 59.37,
+            "f1_score_pct": 61.01,
+            "false_alarm_ratio_pct": 40.63,
+            "critical_success_index_pct": 43.89,
+            "brier_score": 0.2175,
+            "expected_calibration_error": 0.1201,
+            "confusion_matrix": {
+              "tp": 618,
+              "fp": 423,
+              "tn": 1225,
+              "fn": 367
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1590,
+                "mean_pred_prob": 0.0744,
+                "observed_frequency": 0.2302
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 2,
+                "mean_pred_prob": 0.2094,
+                "observed_frequency": 0.5
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 54,
+                "mean_pred_prob": 0.5928,
+                "observed_frequency": 0.4444
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 987,
+                "mean_pred_prob": 0.6624,
+                "observed_frequency": 0.6018
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 0,
+                "mean_pred_prob": 0.9,
+                "observed_frequency": 0.0
+              }
+            ]
+          }
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 70.0,
+          "recall_pod_pct": 62.74,
+          "precision_pct": 59.37,
+          "f1_score_pct": 61.01,
+          "false_alarm_ratio_pct": 40.63,
+          "critical_success_index_pct": 43.89,
+          "brier_score": 0.3,
+          "expected_calibration_error": 0.3,
+          "confusion_matrix": {
+            "tp": 618,
+            "fp": 423,
+            "tn": 1225,
+            "fn": 367
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1592,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.2305
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1041,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.5937
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.59,
+          "recall_pod_pct": 0.1,
+          "precision_pct": 50.0,
+          "f1_score_pct": 0.2,
+          "false_alarm_ratio_pct": 50.0,
+          "critical_success_index_pct": 0.1,
+          "brier_score": 0.2337,
+          "expected_calibration_error": 0.1156,
+          "confusion_matrix": {
+            "tp": 1,
+            "fp": 1,
+            "tn": 1647,
+            "fn": 984
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 479,
+              "mean_pred_prob": 0.1769,
+              "observed_frequency": 0.1628
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 2125,
+              "mean_pred_prob": 0.2809,
+              "observed_frequency": 0.4184
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 29,
+              "mean_pred_prob": 0.4302,
+              "observed_frequency": 0.6207
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.59,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2736,
+          "expected_calibration_error": 0.1987,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1648,
+            "fn": 985
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2633,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3741
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "beats_persistence_f1": 0,
+        "beats_persistence_brier": 1
+      },
+      "precipitation_amount": {
+        "overall_samples": 2633,
+        "overall_mae_mm": 1.0993,
+        "overall_rmse_mm": 3.3709,
+        "overall_bias_mm": -0.9238,
+        "rainy_hour_samples": 985,
+        "rainy_hour_mae_mm": 2.7136,
+        "rainy_hour_rmse_mm": 5.5079,
+        "rainy_hour_bias_mm": -2.6943
+      },
+      "solar_status": {
+        "uv_index": {
+          "status": "BLOCKED_BY_SENSOR_CALIBRATION",
+          "reason": "Uncalibrated sensor reports up to 11.0 index during nighttime (00:00-04:00 local). Must not be scored without hardware recalibration."
+        },
+        "light_intensity": {
+          "status": "SECONDARY_BETA_DAYLIGHT_ONLY",
+          "reason": "Photometric lux readings available for monitoring daylight cycle; uncalibrated for solar irradiance forecast."
+        }
+      },
+      "water_level_beta": {
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1,
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 210,
+          "mae_meters": 0.2422,
+          "rmse_meters": 0.3033,
+          "bias_meters": 0.0647,
+          "persistence_mae_meters": 0.1111,
+          "persistence_rmse_meters": 0.1456,
+          "climatology_mae_meters": 1.272,
+          "climatology_rmse_meters": 1.2959,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 210,
+          "mae_meters": 0.1409,
+          "rmse_meters": 0.1716,
+          "bias_meters": 0.0322,
+          "persistence_mae_meters": 0.1111,
+          "persistence_rmse_meters": 0.1456,
+          "climatology_mae_meters": 1.272,
+          "climatology_rmse_meters": 1.2959,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 210,
+          "mae_meters": 0.1111,
+          "rmse_meters": 0.1456,
+          "bias_meters": 0.0141,
+          "persistence_mae_meters": 0.1111,
+          "persistence_rmse_meters": 0.1456,
+          "climatology_mae_meters": 1.272,
+          "climatology_rmse_meters": 1.2959,
+          "beats_persistence_mae": 0
+        },
+        "conformal_uncertainty": {
+          "nominal_80": {
+            "nominal_level": 0.8,
+            "test_gauge_samples": 210,
+            "observed_coverage_pct": 88.1,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.9635000228881836,
+            "coverage_95_ci": [
+              83.02,
+              91.81
+            ]
+          },
+          "nominal_90": {
+            "nominal_level": 0.9,
+            "test_gauge_samples": 210,
+            "observed_coverage_pct": 96.67,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 1.2761000394821167,
+            "coverage_95_ci": [
+              93.28,
+              98.38
+            ]
+          },
+          "nominal_95": {
+            "nominal_level": 0.95,
+            "test_gauge_samples": 210,
+            "observed_coverage_pct": 100.0,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 1.4793000221252441,
+            "coverage_95_ci": [
+              98.2,
+              100.0
+            ]
+          }
+        }
+      },
+      "intensity_breakdown": {
+        "dry": {
+          "sample_count": 1648,
+          "mf1_detection_rate_pct": 0.06,
+          "persistence_detection_rate_pct": 25.67
+        },
+        "trace": {
+          "sample_count": 301,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 55.48
+        },
+        "light": {
+          "sample_count": 394,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 72.34
+        },
+        "moderate": {
+          "sample_count": 189,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 58.73
+        },
+        "heavy": {
+          "sample_count": 101,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 54.46
+        }
+      },
+      "rain_metrics": {
+        "mf1_pytorch": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.55,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 100.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2538,
+          "expected_calibration_error": 0.1783,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 1,
+            "tn": 1647,
+            "fn": 985
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1463,
+              "mean_pred_prob": 0.1349,
+              "observed_frequency": 0.2679
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1109,
+              "mean_pred_prob": 0.263,
+              "observed_frequency": 0.505
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 61,
+              "mean_pred_prob": 0.4334,
+              "observed_frequency": 0.541
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 70.0,
+          "recall_pod_pct": 62.74,
+          "precision_pct": 59.37,
+          "f1_score_pct": 61.01,
+          "false_alarm_ratio_pct": 40.63,
+          "critical_success_index_pct": 43.89,
+          "brier_score": 0.3,
+          "expected_calibration_error": 0.3,
+          "confusion_matrix": {
+            "tp": 618,
+            "fp": 423,
+            "tn": 1225,
+            "fn": 367
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1592,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.2305
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 1041,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.5937
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.59,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2736,
+          "expected_calibration_error": 0.1987,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1648,
+            "fn": 985
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2633,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3741
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 62.59,
+          "recall_pod_pct": 0.1,
+          "precision_pct": 50.0,
+          "f1_score_pct": 0.2,
+          "false_alarm_ratio_pct": 50.0,
+          "critical_success_index_pct": 0.1,
+          "brier_score": 0.2337,
+          "expected_calibration_error": 0.1156,
+          "confusion_matrix": {
+            "tp": 1,
+            "fp": 1,
+            "tn": 1647,
+            "fn": 984
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 479,
+              "mean_pred_prob": 0.1769,
+              "observed_frequency": 0.1628
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 2125,
+              "mean_pred_prob": 0.2809,
+              "observed_frequency": 0.4184
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 29,
+              "mean_pred_prob": 0.4302,
+              "observed_frequency": 0.6207
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "hybrid_blend": {
+          "threshold": 0.5,
+          "accuracy_pct": 70.0,
+          "recall_pod_pct": 62.74,
+          "precision_pct": 59.37,
+          "f1_score_pct": 61.01,
+          "false_alarm_ratio_pct": 40.63,
+          "critical_success_index_pct": 43.89,
+          "brier_score": 0.2175,
+          "expected_calibration_error": 0.1201,
+          "confusion_matrix": {
+            "tp": 618,
+            "fp": 423,
+            "tn": 1225,
+            "fn": 367
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1590,
+              "mean_pred_prob": 0.0744,
+              "observed_frequency": 0.2302
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 2,
+              "mean_pred_prob": 0.2094,
+              "observed_frequency": 0.5
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 54,
+              "mean_pred_prob": 0.5928,
+              "observed_frequency": 0.4444
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 987,
+              "mean_pred_prob": 0.6624,
+              "observed_frequency": 0.6018
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        }
+      },
+      "water_metrics": {
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 210,
+          "mae_meters": 0.2422,
+          "rmse_meters": 0.3033,
+          "bias_meters": 0.0647,
+          "persistence_mae_meters": 0.1111,
+          "persistence_rmse_meters": 0.1456,
+          "climatology_mae_meters": 1.272,
+          "climatology_rmse_meters": 1.2959,
+          "beats_persistence_mae": 0
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 210,
+          "mae_meters": 0.1409,
+          "rmse_meters": 0.1716,
+          "bias_meters": 0.0322,
+          "persistence_mae_meters": 0.1111,
+          "persistence_rmse_meters": 0.1456,
+          "climatology_mae_meters": 1.272,
+          "climatology_rmse_meters": 1.2959,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 210,
+          "mae_meters": 0.1111,
+          "rmse_meters": 0.1456,
+          "bias_meters": 0.0141,
+          "persistence_mae_meters": 0.1111,
+          "persistence_rmse_meters": 0.1456,
+          "climatology_mae_meters": 1.272,
+          "climatology_rmse_meters": 1.2959,
+          "beats_persistence_mae": 0
+        },
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1
+      },
+      "conformal_uncertainty": {
+        "nominal_80": {
+          "nominal_level": 0.8,
+          "test_gauge_samples": 210,
+          "observed_coverage_pct": 88.1,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.9635000228881836,
+          "coverage_95_ci": [
+            83.02,
+            91.81
+          ]
+        },
+        "nominal_90": {
+          "nominal_level": 0.9,
+          "test_gauge_samples": 210,
+          "observed_coverage_pct": 96.67,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 1.2761000394821167,
+          "coverage_95_ci": [
+            93.28,
+            98.38
+          ]
+        },
+        "nominal_95": {
+          "nominal_level": 0.95,
+          "test_gauge_samples": 210,
+          "observed_coverage_pct": 100.0,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 1.4793000221252441,
+          "coverage_95_ci": [
+            98.2,
+            100.0
+          ]
+        }
+      }
+    },
+    "horizon_24h": {
+      "test_samples_total": 2443,
+      "calibration_samples_total": 2556,
+      "small_sample_warning": 0,
+      "temperature": {
+        "sample_count": 2443,
+        "mae": 1.2304,
+        "rmse": 1.6585,
+        "bias": -0.0243,
+        "persistence_mae": 1.2104,
+        "persistence_rmse": 1.8234,
+        "climatology_mae": 1.5594,
+        "climatology_rmse": 1.9745,
+        "skill_vs_persistence": -0.0166,
+        "beats_persistence": 0,
+        "linear_regression_mae": 1.1094,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 1.2104
+      },
+      "humidity": {
+        "sample_count": 2443,
+        "mae": 3.9682,
+        "rmse": 6.1677,
+        "bias": 0.7163,
+        "persistence_mae": 3.8096,
+        "persistence_rmse": 6.5807,
+        "climatology_mae": 9.6194,
+        "climatology_rmse": 10.499,
+        "skill_vs_persistence": -0.0416,
+        "beats_persistence": 0,
+        "linear_regression_mae": 4.768,
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 3.8096
+      },
+      "pressure": {
+        "sample_count": 2443,
+        "mae": 0.9576,
+        "rmse": 1.2609,
+        "bias": -0.0637,
+        "persistence_mae": 0.9437,
+        "persistence_rmse": 1.3238,
+        "climatology_mae": 3.2046,
+        "climatology_rmse": 3.741,
+        "skill_vs_persistence": -0.0147,
+        "beats_persistence": 0,
+        "linear_regression_mae": 0.9465,
+        "pressure_tendency": {
+          "sample_count": 2443,
+          "tendency_threshold_hpa": 0.5,
+          "accuracy_pct": 38.8
+        },
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 0.9437
+      },
+      "wind_speed": {
+        "sample_count": 2443,
+        "mae": 1.2646,
+        "rmse": 2.172,
+        "bias": -0.2123,
+        "persistence_mae": 1.2381,
+        "persistence_rmse": 2.1896,
+        "climatology_mae": 2.251,
+        "climatology_rmse": 3.2452,
+        "skill_vs_persistence": -0.0214,
+        "beats_persistence": 0,
+        "linear_regression_mae": 2.0256,
+        "strong_wind_recall": {
+          "threshold_kmh": 15.0,
+          "strong_event_count": 2,
+          "recall_pod_pct": 0.0
+        },
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 1.2381
+      },
+      "wind_direction": {
+        "model_circular": {
+          "valid_sample_count": 1229,
+          "calm_sample_count": 1214,
+          "calm_coverage_pct": 49.69,
+          "circular_mae_deg": 92.98
+        },
+        "persistence_circular": {
+          "valid_sample_count": 1229,
+          "calm_sample_count": 1214,
+          "calm_coverage_pct": 49.69,
+          "circular_mae_deg": 54.33
+        },
+        "beats_persistence": 0,
+        "skill_vs_persistence": -0.7114
+      },
+      "heat_index": {
+        "sample_count": 2443,
+        "mae": 3.2862,
+        "rmse": 4.4132,
+        "bias": 0.3768,
+        "persistence_mae": 3.1664,
+        "persistence_rmse": 4.7203,
+        "climatology_mae": 4.038,
+        "climatology_rmse": 5.1735,
+        "skill_vs_persistence": -0.0378,
+        "beats_persistence": 0,
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+      },
+      "rain_occurrence": {
+        "fixed_threshold_05": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.65,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2473,
+          "expected_calibration_error": 0.1502,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1555,
+            "fn": 888
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1326,
+              "mean_pred_prob": 0.1582,
+              "observed_frequency": 0.3137
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1107,
+              "mean_pred_prob": 0.2771,
+              "observed_frequency": 0.4201
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 10,
+              "mean_pred_prob": 0.4449,
+              "observed_frequency": 0.7
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "frozen_operational_threshold": {
+          "threshold": 0.1,
+          "metrics": {
+            "threshold": 0.1,
+            "accuracy_pct": 36.35,
+            "recall_pod_pct": 100.0,
+            "precision_pct": 36.35,
+            "f1_score_pct": 53.32,
+            "false_alarm_ratio_pct": 63.65,
+            "critical_success_index_pct": 36.35,
+            "brier_score": 0.2473,
+            "expected_calibration_error": 0.1502,
+            "confusion_matrix": {
+              "tp": 888,
+              "fp": 1555,
+              "tn": 0,
+              "fn": 0
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1326,
+                "mean_pred_prob": 0.1582,
+                "observed_frequency": 0.3137
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 1107,
+                "mean_pred_prob": 0.2771,
+                "observed_frequency": 0.4201
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 10,
+                "mean_pred_prob": 0.4449,
+                "observed_frequency": 0.7
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 0,
+                "mean_pred_prob": 0.7,
+                "observed_frequency": 0.0
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 0,
+                "mean_pred_prob": 0.9,
+                "observed_frequency": 0.0
+              }
+            ]
+          }
+        },
+        "hybrid_blend": {
+          "frozen_model_weight": 0.4,
+          "frozen_persistence_weight": 0.6,
+          "metrics": {
+            "threshold": 0.5,
+            "accuracy_pct": 66.72,
+            "recall_pod_pct": 59.8,
+            "precision_pct": 53.8,
+            "f1_score_pct": 56.64,
+            "false_alarm_ratio_pct": 46.2,
+            "critical_success_index_pct": 39.51,
+            "brier_score": 0.2327,
+            "expected_calibration_error": 0.1577,
+            "confusion_matrix": {
+              "tp": 531,
+              "fp": 456,
+              "tn": 1099,
+              "fn": 357
+            },
+            "reliability_bins": [
+              {
+                "bin_range": "0.0-0.2",
+                "sample_count": 1456,
+                "mean_pred_prob": 0.0829,
+                "observed_frequency": 0.2452
+              },
+              {
+                "bin_range": "0.2-0.4",
+                "sample_count": 0,
+                "mean_pred_prob": 0.3,
+                "observed_frequency": 0.0
+              },
+              {
+                "bin_range": "0.4-0.6",
+                "sample_count": 0,
+                "mean_pred_prob": 0.5,
+                "observed_frequency": 0.0
+              },
+              {
+                "bin_range": "0.6-0.8",
+                "sample_count": 987,
+                "mean_pred_prob": 0.6889,
+                "observed_frequency": 0.538
+              },
+              {
+                "bin_range": "0.8-1.0",
+                "sample_count": 0,
+                "mean_pred_prob": 0.9,
+                "observed_frequency": 0.0
+              }
+            ]
+          }
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 66.72,
+          "recall_pod_pct": 59.8,
+          "precision_pct": 53.8,
+          "f1_score_pct": 56.64,
+          "false_alarm_ratio_pct": 46.2,
+          "critical_success_index_pct": 39.51,
+          "brier_score": 0.3328,
+          "expected_calibration_error": 0.3328,
+          "confusion_matrix": {
+            "tp": 531,
+            "fp": 456,
+            "tn": 1099,
+            "fn": 357
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1456,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.2452
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 987,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.538
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.65,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2373,
+          "expected_calibration_error": 0.1149,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1555,
+            "fn": 888
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 495,
+              "mean_pred_prob": 0.1434,
+              "observed_frequency": 0.2586
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1934,
+              "mean_pred_prob": 0.2743,
+              "observed_frequency": 0.3868
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 14,
+              "mean_pred_prob": 0.4175,
+              "observed_frequency": 0.8571
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.65,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2668,
+          "expected_calibration_error": 0.1881,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1555,
+            "fn": 888
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2443,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3635
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "beats_persistence_f1": 0,
+        "beats_persistence_brier": 1
+      },
+      "precipitation_amount": {
+        "overall_samples": 2443,
+        "overall_mae_mm": 1.0123,
+        "overall_rmse_mm": 3.1403,
+        "overall_bias_mm": -0.8556,
+        "rainy_hour_samples": 888,
+        "rainy_hour_mae_mm": 2.5728,
+        "rainy_hour_rmse_mm": 5.2059,
+        "rainy_hour_bias_mm": -2.5658
+      },
+      "solar_status": {
+        "uv_index": {
+          "status": "BLOCKED_BY_SENSOR_CALIBRATION",
+          "reason": "Uncalibrated sensor reports up to 11.0 index during nighttime (00:00-04:00 local). Must not be scored without hardware recalibration."
+        },
+        "light_intensity": {
+          "status": "SECONDARY_BETA_DAYLIGHT_ONLY",
+          "reason": "Photometric lux readings available for monitoring daylight cycle; uncalibrated for solar irradiance forecast."
+        }
+      },
+      "water_level_beta": {
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1,
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 198,
+          "mae_meters": 0.1327,
+          "rmse_meters": 0.1565,
+          "bias_meters": 0.0695,
+          "persistence_mae_meters": 0.1495,
+          "persistence_rmse_meters": 0.1715,
+          "climatology_mae_meters": 1.2793,
+          "climatology_rmse_meters": 1.3042,
+          "beats_persistence_mae": 1
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 198,
+          "mae_meters": 0.1605,
+          "rmse_meters": 0.1915,
+          "bias_meters": 0.0676,
+          "persistence_mae_meters": 0.1495,
+          "persistence_rmse_meters": 0.1715,
+          "climatology_mae_meters": 1.2793,
+          "climatology_rmse_meters": 1.3042,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 198,
+          "mae_meters": 0.1495,
+          "rmse_meters": 0.1715,
+          "bias_meters": 0.0326,
+          "persistence_mae_meters": 0.1495,
+          "persistence_rmse_meters": 0.1715,
+          "climatology_mae_meters": 1.2793,
+          "climatology_rmse_meters": 1.3042,
+          "beats_persistence_mae": 0
+        },
+        "conformal_uncertainty": {
+          "nominal_80": {
+            "nominal_level": 0.8,
+            "test_gauge_samples": 198,
+            "observed_coverage_pct": 90.4,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.4875999987125397,
+            "coverage_95_ci": [
+              85.5,
+              93.77
+            ]
+          },
+          "nominal_90": {
+            "nominal_level": 0.9,
+            "test_gauge_samples": 198,
+            "observed_coverage_pct": 100.0,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 0.7820000052452087,
+            "coverage_95_ci": [
+              98.1,
+              100.0
+            ]
+          },
+          "nominal_95": {
+            "nominal_level": 0.95,
+            "test_gauge_samples": 198,
+            "observed_coverage_pct": 100.0,
+            "coverage_meets_nominal": 1,
+            "interval_full_width_meters": 1.3056999444961548,
+            "coverage_95_ci": [
+              98.1,
+              100.0
+            ]
+          }
+        }
+      },
+      "intensity_breakdown": {
+        "dry": {
+          "sample_count": 1555,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 29.32
+        },
+        "trace": {
+          "sample_count": 275,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 49.09
+        },
+        "light": {
+          "sample_count": 362,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 66.3
+        },
+        "moderate": {
+          "sample_count": 166,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 60.24
+        },
+        "heavy": {
+          "sample_count": 85,
+          "mf1_detection_rate_pct": 0.0,
+          "persistence_detection_rate_pct": 65.88
+        }
+      },
+      "rain_metrics": {
+        "mf1_pytorch": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.65,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2473,
+          "expected_calibration_error": 0.1502,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1555,
+            "fn": 888
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1326,
+              "mean_pred_prob": 0.1582,
+              "observed_frequency": 0.3137
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1107,
+              "mean_pred_prob": 0.2771,
+              "observed_frequency": 0.4201
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 10,
+              "mean_pred_prob": 0.4449,
+              "observed_frequency": 0.7
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "persistence": {
+          "threshold": 0.5,
+          "accuracy_pct": 66.72,
+          "recall_pod_pct": 59.8,
+          "precision_pct": 53.8,
+          "f1_score_pct": 56.64,
+          "false_alarm_ratio_pct": 46.2,
+          "critical_success_index_pct": 39.51,
+          "brier_score": 0.3328,
+          "expected_calibration_error": 0.3328,
+          "confusion_matrix": {
+            "tp": 531,
+            "fp": 456,
+            "tn": 1099,
+            "fn": 357
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1456,
+              "mean_pred_prob": 0.0,
+              "observed_frequency": 0.2452
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 987,
+              "mean_pred_prob": 1.0,
+              "observed_frequency": 0.538
+            }
+          ]
+        },
+        "climatology": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.65,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2668,
+          "expected_calibration_error": 0.1881,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1555,
+            "fn": 888
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 2443,
+              "mean_pred_prob": 0.1754,
+              "observed_frequency": 0.3635
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "logistic_regression": {
+          "threshold": 0.5,
+          "accuracy_pct": 63.65,
+          "recall_pod_pct": 0.0,
+          "precision_pct": 0.0,
+          "f1_score_pct": 0.0,
+          "false_alarm_ratio_pct": 0.0,
+          "critical_success_index_pct": 0.0,
+          "brier_score": 0.2373,
+          "expected_calibration_error": 0.1149,
+          "confusion_matrix": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 1555,
+            "fn": 888
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 495,
+              "mean_pred_prob": 0.1434,
+              "observed_frequency": 0.2586
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 1934,
+              "mean_pred_prob": 0.2743,
+              "observed_frequency": 0.3868
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 14,
+              "mean_pred_prob": 0.4175,
+              "observed_frequency": 0.8571
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 0,
+              "mean_pred_prob": 0.7,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        },
+        "hybrid_blend": {
+          "threshold": 0.5,
+          "accuracy_pct": 66.72,
+          "recall_pod_pct": 59.8,
+          "precision_pct": 53.8,
+          "f1_score_pct": 56.64,
+          "false_alarm_ratio_pct": 46.2,
+          "critical_success_index_pct": 39.51,
+          "brier_score": 0.2327,
+          "expected_calibration_error": 0.1577,
+          "confusion_matrix": {
+            "tp": 531,
+            "fp": 456,
+            "tn": 1099,
+            "fn": 357
+          },
+          "reliability_bins": [
+            {
+              "bin_range": "0.0-0.2",
+              "sample_count": 1456,
+              "mean_pred_prob": 0.0829,
+              "observed_frequency": 0.2452
+            },
+            {
+              "bin_range": "0.2-0.4",
+              "sample_count": 0,
+              "mean_pred_prob": 0.3,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.4-0.6",
+              "sample_count": 0,
+              "mean_pred_prob": 0.5,
+              "observed_frequency": 0.0
+            },
+            {
+              "bin_range": "0.6-0.8",
+              "sample_count": 987,
+              "mean_pred_prob": 0.6889,
+              "observed_frequency": 0.538
+            },
+            {
+              "bin_range": "0.8-1.0",
+              "sample_count": 0,
+              "mean_pred_prob": 0.9,
+              "observed_frequency": 0.0
+            }
+          ]
+        }
+      },
+      "water_metrics": {
+        "mf1_pytorch": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 198,
+          "mae_meters": 0.1327,
+          "rmse_meters": 0.1565,
+          "bias_meters": 0.0695,
+          "persistence_mae_meters": 0.1495,
+          "persistence_rmse_meters": 0.1715,
+          "climatology_mae_meters": 1.2793,
+          "climatology_rmse_meters": 1.3042,
+          "beats_persistence_mae": 1
+        },
+        "mf2_standalone": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 198,
+          "mae_meters": 0.1605,
+          "rmse_meters": 0.1915,
+          "bias_meters": 0.0676,
+          "persistence_mae_meters": 0.1495,
+          "persistence_rmse_meters": 0.1715,
+          "climatology_mae_meters": 1.2793,
+          "climatology_rmse_meters": 1.3042,
+          "beats_persistence_mae": 0
+        },
+        "persistence": {
+          "status": "INTERNAL_EXPERIMENT_BETA",
+          "not_for_life_safety": 1,
+          "sample_count": 198,
+          "mae_meters": 0.1495,
+          "rmse_meters": 0.1715,
+          "bias_meters": 0.0326,
+          "persistence_mae_meters": 0.1495,
+          "persistence_rmse_meters": 0.1715,
+          "climatology_mae_meters": 1.2793,
+          "climatology_rmse_meters": 1.3042,
+          "beats_persistence_mae": 0
+        },
+        "status": "INTERNAL_EXPERIMENT_BETA",
+        "not_for_life_safety": 1
+      },
+      "conformal_uncertainty": {
+        "nominal_80": {
+          "nominal_level": 0.8,
+          "test_gauge_samples": 198,
+          "observed_coverage_pct": 90.4,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.4875999987125397,
+          "coverage_95_ci": [
+            85.5,
+            93.77
+          ]
+        },
+        "nominal_90": {
+          "nominal_level": 0.9,
+          "test_gauge_samples": 198,
+          "observed_coverage_pct": 100.0,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 0.7820000052452087,
+          "coverage_95_ci": [
+            98.1,
+            100.0
+          ]
+        },
+        "nominal_95": {
+          "nominal_level": 0.95,
+          "test_gauge_samples": 198,
+          "observed_coverage_pct": 100.0,
+          "coverage_meets_nominal": 1,
+          "interval_full_width_meters": 1.3056999444961548,
+          "coverage_95_ci": [
+            98.1,
+            100.0
+          ]
+        }
+      }
+    }
+  }
+}

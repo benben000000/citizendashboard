@@ -18,6 +18,7 @@ This is Model Family 1 (PyTorch WeatherWaterLNN). See MODEL_REGISTRY.md.
 import sys
 import json
 import os
+import math
 from datetime import datetime, timedelta
 import numpy as np
 import torch
@@ -56,7 +57,7 @@ class LNNServerlessPredictor:
 
         # Load manifest metadata if available
         self.manifest = checkpoint.get("manifest", {})
-        model_config = self.manifest.get("model_config", {"input_dim": 4, "hidden_dim": 32})
+        model_config = self.manifest.get("model_config", {"input_dim": 8, "hidden_dim": 32})
 
         # Load normalization constants from checkpoint if available
         norm_info = self.manifest.get("normalization", {})
@@ -68,13 +69,21 @@ class LNNServerlessPredictor:
             self._norm_means = FEATURE_MEANS
             self._norm_stds = FEATURE_STDS
 
-        self.model = WeatherWaterLNN(**model_config)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
+        from model import GarciaWeatherLNN
+        state_dict = checkpoint["model_state_dict"]
+        has_weather_heads = any(k.startswith("temp_head") for k in state_dict.keys())
+
+        if has_weather_heads:
+            self.model = GarciaWeatherLNN(**model_config)
+        else:
+            self.model = WeatherWaterLNN(**model_config)
+
+        self.model.load_state_dict(state_dict)
         self.model.eval()
 
         training_date = self.manifest.get("training_date", "unknown")
         seed = self.manifest.get("seed", "unknown")
-        print(f"Loaded model checkpoint: trained={training_date}, seed={seed}")
+        print(f"Loaded model checkpoint: trained={training_date}, seed={seed}, weather_heads={has_weather_heads}")
 
     def _normalize(self, features: np.ndarray) -> np.ndarray:
         """Normalize using checkpoint-stored constants (not module globals)."""
@@ -86,42 +95,40 @@ class LNNServerlessPredictor:
         dt_sequence: np.ndarray = None,
         forecast_origin_timestamp: str = None,
         horizon_hours: int = 1,
+        current_water_level: float = None,
     ) -> dict:
         """
         Operational forecast endpoint using actual observed historical telemetry sequence.
 
         Args:
-            telemetry_sequence: Array of shape [seq_len, 4] with raw observations:
-                (temperature, heat_index, wind_speed, pressure).
+            telemetry_sequence: Array of shape [seq_len, 8] with raw observations:
+                (temperature, heat_index, humidity, pressure, wind_speed, wind_sin, wind_cos, precipitation).
             dt_sequence: Optional array of shape [seq_len, 1] or [seq_len] with elapsed
                 hours between measurements. Defaults to 1.0h per step if None.
             forecast_origin_timestamp: ISO timestamp string of the last observation t0.
             horizon_hours: Number of hours ahead to forecast.
+            current_water_level: Optional current river stage in meters.
 
         Returns:
             Dictionary containing prediction outcomes, forecast origin timestamp,
             and target timestamp.
         """
+        from dataset import compute_noaa_heat_index
+
         telemetry_arr = np.asarray(telemetry_sequence, dtype=np.float32)
         if telemetry_arr.ndim != 2:
-            raise ValueError(f"Expected telemetry_sequence shape [seq_len, 8] or [seq_len, 4], got {telemetry_arr.shape}")
+            raise ValueError(f"Expected telemetry_sequence shape [seq_len, 8], got {telemetry_arr.shape}")
 
-        # If legacy 4 features are provided, expand to canonical 8 features
-        if telemetry_arr.shape[1] == 4:
-            # Legacy: [temp, heat_index, wind_speed, pressure]
-            seq_len = telemetry_arr.shape[0]
-            expanded = np.zeros((seq_len, 8), dtype=np.float32)
-            expanded[:, 0] = telemetry_arr[:, 0]  # temp
-            expanded[:, 1] = telemetry_arr[:, 1]  # heat_index
-            expanded[:, 2] = 75.0                 # default humidity %
-            expanded[:, 3] = telemetry_arr[:, 3]  # pressure
-            expanded[:, 4] = telemetry_arr[:, 2]  # wind_speed
-            expanded[:, 5] = 0.0                  # wind_sin
-            expanded[:, 6] = 1.0                  # wind_cos
-            expanded[:, 7] = 0.0                  # precipitation mm
-            telemetry_arr = expanded
-        elif telemetry_arr.shape[1] != 8:
-            raise ValueError(f"Expected telemetry_sequence with 8 features (or 4 legacy), got {telemetry_arr.shape[1]}")
+        # Operational forecast strictly requires all 8 canonical features (fail-closed)
+        if telemetry_arr.shape[1] != 8:
+            raise ValueError(
+                f"Operational forecast requires all 8 canonical physical features "
+                f"['temperature', 'heat_index', 'humidity', 'pressure', 'wind_speed', 'wind_sin', 'wind_cos', 'precipitation'], "
+                f"got {telemetry_arr.shape[1]} features. For exploratory simulation with defaults, use research_projected_sequence."
+            )
+
+        if np.isnan(telemetry_arr).any() or np.isinf(telemetry_arr).any():
+            raise ValueError("Operational forecast input sequence contains NaN or infinite values (fail-closed).")
 
         seq_len = telemetry_arr.shape[0]
 
@@ -135,14 +142,74 @@ class LNNServerlessPredictor:
         norm_features = self._normalize(telemetry_arr)
         x_tensor = torch.tensor(norm_features[np.newaxis, :, :], dtype=torch.float32)
         dt_tensor = torch.tensor(dt_arr[np.newaxis, :, :], dtype=torch.float32)
-        init_water_tensor = torch.tensor([[current_water_level]], dtype=torch.float32) if 'current_water_level' in locals() and current_water_level is not None else None
+        init_water_tensor = torch.tensor([[current_water_level]], dtype=torch.float32) if current_water_level is not None else None
+
+        # Build origin weather tensor: [temp, humidity, pressure, wind_speed, wind_u, wind_v]
+        orig_temp = float(telemetry_arr[-1, 0])
+        orig_rh = float(telemetry_arr[-1, 2])
+        orig_p = float(telemetry_arr[-1, 3])
+        orig_ws = float(telemetry_arr[-1, 4])
+        orig_sin = float(telemetry_arr[-1, 5])
+        orig_cos = float(telemetry_arr[-1, 6])
+        orig_weather_tensor = torch.tensor([[orig_temp, orig_rh, orig_p, orig_ws, orig_cos, orig_sin]], dtype=torch.float32)
+
+        from model import GarciaWeatherLNN
+        is_garcia = isinstance(self.model, GarciaWeatherLNN)
 
         with torch.no_grad():
-            rain_prob, precip_mm, water_level = self.model(x_tensor, dt_tensor)
+            if is_garcia:
+                out = self.model(
+                    x_tensor,
+                    dt_tensor,
+                    initial_water=init_water_tensor,
+                    origin_weather=orig_weather_tensor,
+                    return_dict=True,
+                )
+                final_rain_prob = float(out["rain_prob"][0, 0].item())
+                final_precip_mm = float(out["precipitation_mm"][0, 0].item())
+                predicted_water = float(out["water_level"][0, 0].item())
+                pred_temp = float(out["temperature"][0, 0].item())
+                pred_rh = float(out["humidity"][0, 0].item())
+                pred_p = float(out["pressure"][0, 0].item())
+                pred_ws = float(out["wind_speed"][0, 0].item())
+                u_val = float(out["wind_u"][0, 0].item())
+                v_val = float(out["wind_v"][0, 0].item())
+                # Circular wind direction
+                pred_wind_dir = (math.degrees(math.atan2(v_val, u_val)) + 360.0) % 360.0
+                if pred_ws < 1.0:
+                    pred_wind_dir = None  # Calm wind
+            else:
+                rain_prob, precip_mm, water_level = self.model(x_tensor, dt_tensor, initial_water=init_water_tensor)
+                final_rain_prob = float(rain_prob[0, -1, 0].item())
+                final_precip_mm = float(precip_mm[0, -1, 0].item())
+                predicted_water = float(water_level[0, -1, 0].item())
+                pred_temp = orig_temp
+                pred_rh = orig_rh
+                pred_p = orig_p
+                pred_ws = orig_ws
+                pred_wind_dir = None
 
-        final_rain_prob = float(rain_prob[0, -1, 0].item())
-        final_precip_mm = float(precip_mm[0, -1, 0].item())
-        predicted_water = float(water_level[0, -1, 0].item())
+        # Derived Heat Index & Risk Category
+        derived_hi = compute_noaa_heat_index(pred_temp, pred_rh)
+        if derived_hi < 27.0:
+            hi_risk = "NORMAL"
+        elif derived_hi < 32.0:
+            hi_risk = "CAUTION"
+        elif derived_hi < 41.0:
+            hi_risk = "EXTREME CAUTION"
+        elif derived_hi < 54.0:
+            hi_risk = "DANGER"
+        else:
+            hi_risk = "EXTREME DANGER"
+
+        # Pressure Tendency
+        dp = pred_p - orig_p
+        if dp > 0.5:
+            p_tendency = "RISING"
+        elif dp < -0.5:
+            p_tendency = "FALLING"
+        else:
+            p_tendency = "STEADY"
 
         target_ts = None
         if forecast_origin_timestamp:
@@ -155,14 +222,32 @@ class LNNServerlessPredictor:
 
         return {
             "api_mode": "observed_sequence_forecast",
+            "product_name": "Garcia Weather Telemetry Forecast Engine",
             "model_version": self.manifest.get("training_date", "unknown"),
             "model_seed": self.manifest.get("seed", "unknown"),
             "model_status": "RESEARCH_PROTOTYPE",
+            "not_for_life_safety": True,
             "forecast_origin_timestamp": forecast_origin_timestamp,
             "target_timestamp": target_ts,
             "forecast_horizon": f"{horizon_hours}h",
+            # Core Commercial Weather Forecast
+            "temperature_c": round(pred_temp, 2),
+            "relative_humidity_pct": round(pred_rh, 1),
+            "pressure_hpa": round(pred_p, 2),
+            "pressure_tendency": p_tendency,
+            "wind_speed_kmh": round(pred_ws, 2),
+            "wind_direction_deg": round(pred_wind_dir, 1) if pred_wind_dir is not None else None,
+            "heat_index_c": round(derived_hi, 2),
+            "heat_index_risk_category": hi_risk,
             "chance_of_rain_pct": round(final_rain_prob * 100, 1),
             "expected_precipitation_mm": round(final_precip_mm, 2),
+            # Internal / Beta Research Module (Not for life safety)
+            "water_level_beta": {
+                "predicted_water_level_m": round(max(0.0, predicted_water), 2),
+                "status": "INTERNAL_EXPERIMENT_BETA",
+                "not_for_life_safety": True,
+            },
+            # Backwards Compatibility Aliases
             "predicted_water_level_m": round(max(0.0, predicted_water), 2),
         }
 
@@ -261,15 +346,17 @@ if __name__ == "__main__":
         print("Operational API Result (8-feature input):")
         print(json.dumps(op_result, indent=2))
 
-        # Test operational observed sequence forecast API with 4 legacy features
+        # Demonstrate operational forecast strictly fails closed if live features are missing
         dummy_seq_4 = np.array([[28.0, 32.0, 5.0, 1010.0]] * 24, dtype=np.float32)
-        op_result_4 = predictor.predict_from_observed_sequence(
-            telemetry_sequence=dummy_seq_4,
-            forecast_origin_timestamp="2026-08-01T12:00:00",
-            horizon_hours=1,
-        )
-        print("\nOperational API Result (4-feature legacy input):")
-        print(json.dumps(op_result_4, indent=2))
+        try:
+            predictor.predict_from_observed_sequence(
+                telemetry_sequence=dummy_seq_4,
+                forecast_origin_timestamp="2026-08-01T12:00:00",
+                horizon_hours=1,
+            )
+            print("ERROR: Missing features did not fail closed!")
+        except ValueError as e:
+            print(f"\n[PASS] Operational API correctly failed closed on missing features: {e}")
 
         print("\nResearch Scenario API Result:")
         res_result = predictor.research_projected_sequence(

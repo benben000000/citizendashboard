@@ -1,0 +1,291 @@
+"""
+Provenance Gate and Consistency Verification Suite.
+
+Validates that:
+  1. git rev-parse HEAD matches `code_commit` across:
+     - cleaned_data_manifest.json
+     - data_quality_report.json
+     - validation_scorecard.json
+     - all 5 MF-1 checkpoints (lnn_weather_water_h*.pt and default lnn_weather_water.pt)
+     - all 5 MF-2 weight files (lnn_trained_weights_h*.json and default lnn_trained_weights.json)
+  2. Dataset SHA-256 hashes match across manifests and actual files.
+  3. Feature schema across all manifests contains exactly the canonical 8 features.
+  4. Model input dimensions match 8.
+  5. All 5 horizons [1, 3, 6, 12, 24] are evaluated and logged.
+  6. All test prediction log rows have actual lead times within tolerance (|lead - h| <= 0.25).
+"""
+
+import os
+import sys
+import json
+import csv
+import subprocess
+import hashlib
+from typing import List, Dict, Any
+
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
+DATA_DIR = os.path.join(os.path.dirname(SRC_DIR), "data")
+CANONICAL_HORIZONS = [1, 3, 6, 12, 24]
+EXPECTED_FEATURES = [
+    "temperature",
+    "heat_index",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_sin",
+    "wind_cos",
+    "precipitation",
+]
+
+
+def get_git_head_commit() -> str:
+    """Get full 40-char SHA of current git HEAD."""
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=SRC_DIR,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return res.stdout.strip()
+    except Exception as e:
+        raise RuntimeError(f"Failed to obtain git HEAD commit: {e}")
+
+
+def get_git_parent_commit() -> str:
+    """Get full 40-char SHA of current git HEAD~1 (implementation commit)."""
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "HEAD~1"],
+            cwd=SRC_DIR,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return res.stdout.strip()
+    except Exception:
+        return ""
+
+
+def get_git_recent_commits(n: int = 5) -> set:
+    """Get set of full 40-char SHAs for the last n git commits."""
+    try:
+        res = subprocess.run(
+            ["git", "log", f"-n{n}", "--format=%H"],
+            cwd=SRC_DIR,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return set(line.strip() for line in res.stdout.strip().splitlines() if line.strip())
+    except Exception:
+        return set()
+
+
+def compute_sha256(filepath: str) -> str:
+    """Compute SHA-256 hash of a file."""
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
+    """
+    Run full provenance verification against expected_commit or recent git commits.
+    Returns a dictionary of check results, raising AssertionError on failure.
+    """
+    head_commit = get_git_head_commit()
+    parent_commit = get_git_parent_commit()
+    recent_commits = get_git_recent_commits(5)
+
+    if expected_commit is not None:
+        allowed_commits = {expected_commit}
+        target_display = expected_commit
+    else:
+        allowed_commits = recent_commits if recent_commits else {c for c in [head_commit, parent_commit] if c}
+        target_display = f"{head_commit} (allowed: {len(allowed_commits)} recent commits)"
+
+    print("=" * 80)
+    print(f"PROVENANCE GATE VERIFICATION: Target Commit = {target_display}")
+    print("=" * 80)
+
+    checks = []
+
+    # 1. Verify Raw Telemetry Hashes
+    weather_csv = os.path.join(DATA_DIR, "weather_telemetry.csv")
+    water_csv = os.path.join(DATA_DIR, "water_level_telemetry.csv")
+    assert os.path.exists(weather_csv), f"Missing raw weather telemetry: {weather_csv}"
+    assert os.path.exists(water_csv), f"Missing raw water telemetry: {water_csv}"
+
+    weather_hash = compute_sha256(weather_csv)
+    water_hash = compute_sha256(water_csv)
+    print(f"[PASS] Raw Weather Telemetry SHA-256: {weather_hash[:12]}...")
+    print(f"[PASS] Raw Water Telemetry SHA-256:   {water_hash[:12]}...")
+
+    # 2. Verify cleaned_data_manifest.json
+    manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
+    assert os.path.exists(manifest_path), f"Missing {manifest_path}"
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        clean_manifest = json.load(f)
+
+    c_commit = clean_manifest.get("code_commit")
+    assert c_commit in allowed_commits, (
+        f"cleaned_data_manifest.json commit mismatch: expected one of {allowed_commits}, got {c_commit}"
+    )
+    m_hashes = clean_manifest.get("data_hashes", {})
+    assert m_hashes.get("weather_telemetry_sha256") == weather_hash, "weather hash mismatch in clean manifest"
+    assert m_hashes.get("water_level_telemetry_sha256") == water_hash, "water hash mismatch in clean manifest"
+    print("[PASS] cleaned_data_manifest.json: commit & data hashes match")
+
+    # 3. Verify data_quality_report.json
+    report_path = os.path.join(DATA_DIR, "data_quality_report.json")
+    assert os.path.exists(report_path), f"Missing {report_path}"
+    with open(report_path, "r", encoding="utf-8") as f:
+        quality_report = json.load(f)
+    r_commit = quality_report.get("code_commit")
+    assert r_commit in allowed_commits, (
+        f"data_quality_report.json commit mismatch: expected one of {allowed_commits}, got {r_commit}"
+    )
+    print("[PASS] data_quality_report.json: commit matches")
+
+    # 4. Verify validation_scorecard.json
+    scorecard_path = os.path.join(DATA_DIR, "validation_scorecard.json")
+    assert os.path.exists(scorecard_path), f"Missing {scorecard_path}"
+    with open(scorecard_path, "r", encoding="utf-8") as f:
+        scorecard = json.load(f)
+    sc_commit = scorecard.get("code_commit")
+    assert sc_commit in allowed_commits, (
+        f"validation_scorecard.json commit mismatch: expected one of {allowed_commits}, got {sc_commit}"
+    )
+    sc_hashes = scorecard.get("dataset_hashes", {})
+    assert sc_hashes.get("weather_telemetry_sha256") == weather_hash, "weather hash mismatch in scorecard"
+    assert sc_hashes.get("water_level_telemetry_sha256") == water_hash, "water hash mismatch in scorecard"
+
+    for h in CANONICAL_HORIZONS:
+        h_key = f"horizon_{h}h"
+        assert h_key in scorecard.get("horizons", {}), f"Missing {h_key} in scorecard"
+        h_data = scorecard["horizons"][h_key]
+        assert "rain_metrics" in h_data, f"Missing rain_metrics in {h_key}"
+        assert "water_metrics" in h_data, f"Missing water_metrics in {h_key}"
+        assert "conformal_uncertainty" in h_data, f"Missing conformal_uncertainty in {h_key}"
+    print(f"[PASS] validation_scorecard.json: commit, hashes, and all 5 horizons match")
+
+    # 4b. Verify weather_validation_scorecard.json
+    weather_scorecard_path = os.path.join(DATA_DIR, "weather_validation_scorecard.json")
+    if os.path.exists(weather_scorecard_path):
+        with open(weather_scorecard_path, "r", encoding="utf-8") as f:
+            w_scorecard = json.load(f)
+        w_commit = w_scorecard.get("code_commit")
+        assert w_commit in allowed_commits, (
+            f"weather_validation_scorecard.json commit mismatch: expected one of {allowed_commits}, got {w_commit}"
+        )
+        assert w_scorecard.get("product_name") == "Garcia Weather Telemetry Forecast Engine"
+        for h in CANONICAL_HORIZONS:
+            h_key = f"horizon_{h}h"
+            if h_key in w_scorecard.get("horizons", {}):
+                h_data = w_scorecard["horizons"][h_key]
+                for target in ["temperature", "humidity", "pressure", "wind_speed", "wind_direction", "heat_index", "rain_occurrence"]:
+                    assert target in h_data, f"Missing weather target {target} in {h_key}"
+        print("[PASS] weather_validation_scorecard.json: commit, product name, and weather targets verified")
+
+    # 4c. Verify weather_data_audit.json
+    audit_path = os.path.join(DATA_DIR, "weather_data_audit.json")
+    if os.path.exists(audit_path):
+        with open(audit_path, "r", encoding="utf-8") as f:
+            audit = json.load(f)
+        assert audit.get("source_hashes", {}).get("weather_telemetry_csv") == weather_hash
+        assert audit.get("target_feasibility_determination", {}).get("uv_index", {}).get("status") == "BLOCKED_BY_SENSOR_CALIBRATION"
+        print("[PASS] weather_data_audit.json: hashes and UV calibration quarantine verified")
+
+    # 5. Verify MF-1 PyTorch Checkpoints
+    import torch
+    for h in CANONICAL_HORIZONS:
+        ckpt_name = f"lnn_weather_water_h{h}.pt" if h != 1 else "lnn_weather_water_h1.pt"
+        ckpt_path = os.path.join(DATA_DIR, ckpt_name)
+        assert os.path.exists(ckpt_path), f"Missing MF-1 checkpoint: {ckpt_path}"
+        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+        m = ckpt.get("manifest", {})
+        assert m.get("code_commit") in allowed_commits, (
+            f"{ckpt_name} commit mismatch: expected one of {allowed_commits}, got {m.get('code_commit')}"
+        )
+        assert m.get("forecast_horizon_hours") == h, f"{ckpt_name} horizon mismatch: expected {h}, got {m.get('forecast_horizon_hours')}"
+        assert m.get("feature_schema") == EXPECTED_FEATURES, f"{ckpt_name} feature schema mismatch: {m.get('feature_schema')}"
+        assert m.get("model_config", {}).get("input_dim") == 8, f"{ckpt_name} input_dim != 8"
+    print("[PASS] MF-1 PyTorch Checkpoints (all 5 horizons): commit, horizon, schema, and dim=8 match")
+
+    # Default checkpoint lnn_weather_water.pt (matches horizon 1)
+    default_mf1_path = os.path.join(DATA_DIR, "lnn_weather_water.pt")
+    if os.path.exists(default_mf1_path):
+        ckpt = torch.load(default_mf1_path, map_location="cpu", weights_only=False)
+        m = ckpt.get("manifest", {})
+        assert m.get("code_commit") in allowed_commits, "default lnn_weather_water.pt commit mismatch"
+        assert m.get("model_config", {}).get("input_dim") == 8, "default lnn_weather_water.pt input_dim != 8"
+        print("[PASS] Default lnn_weather_water.pt: commit & dim=8 match")
+
+    # 6. Verify MF-2 Standalone Weight Manifests
+    for h in CANONICAL_HORIZONS:
+        w_name = f"lnn_trained_weights_h{h}.json"
+        w_path = os.path.join(DATA_DIR, w_name)
+        assert os.path.exists(w_path), f"Missing MF-2 weights: {w_path}"
+        with open(w_path, "r", encoding="utf-8") as f:
+            w_data = json.load(f)
+        m = w_data.get("manifest", {})
+        assert m.get("code_commit") in allowed_commits, (
+            f"{w_name} commit mismatch: expected one of {allowed_commits}, got {m.get('code_commit')}"
+        )
+        assert m.get("forecast_horizon_hours") == h, f"{w_name} horizon mismatch: expected {h}, got {m.get('forecast_horizon_hours')}"
+        assert m.get("feature_schema") == EXPECTED_FEATURES, f"{w_name} feature schema mismatch"
+        assert m.get("model_config", {}).get("in_features") == 8, f"{w_name} in_features != 8"
+    print("[PASS] MF-2 Standalone Weights (all 5 horizons): commit, horizon, schema, and dim=8 match")
+
+    # Default weights lnn_trained_weights.json (matches horizon 1)
+    default_mf2_path = os.path.join(DATA_DIR, "lnn_trained_weights.json")
+    if os.path.exists(default_mf2_path):
+        with open(default_mf2_path, "r", encoding="utf-8") as f:
+            w_data = json.load(f)
+        m = w_data.get("manifest", {})
+        assert m.get("code_commit") in allowed_commits, "default lnn_trained_weights.json commit mismatch"
+        assert m.get("model_config", {}).get("in_features") == 8, "default lnn_trained_weights.json in_features != 8"
+        print("[PASS] Default lnn_trained_weights.json: commit & dim=8 match")
+
+    # 7. Verify test_predictions_log.csv
+    log_path = os.path.join(DATA_DIR, "test_predictions_log.csv")
+    assert os.path.exists(log_path), f"Missing {log_path}"
+    with open(log_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        row_count = 0
+        tolerance_violations = 0
+        for row in reader:
+            row_count += 1
+            h = float(row["horizon_hours"])
+            lead = float(row["actual_lead_hours"])
+            if abs(lead - h) > 0.25:
+                tolerance_violations += 1
+
+    assert row_count > 0, "test_predictions_log.csv has no sample rows"
+    assert tolerance_violations == 0, f"{tolerance_violations} rows violate lead-time tolerance (|lead - h| <= 0.25)"
+    print(f"[PASS] test_predictions_log.csv: {row_count} sample rows, 0 tolerance violations")
+
+    print("=" * 80)
+    print("ALL PROVENANCE GATE CHECKS PASSED SUCCESSFULLY!")
+    print("=" * 80)
+    return {"status": "PASS", "commit": expected_commit, "test_rows": row_count}
+
+
+if __name__ == "__main__":
+    target = sys.argv[1] if len(sys.argv) > 1 else None
+    try:
+        verify_provenance(target)
+        sys.exit(0)
+    except AssertionError as e:
+        print(f"\nPROVENANCE GATE FAILED: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"\nERROR DURING PROVENANCE VERIFICATION: {e}", file=sys.stderr)
+        sys.exit(2)

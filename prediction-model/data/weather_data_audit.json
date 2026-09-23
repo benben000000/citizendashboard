@@ -1,0 +1,253 @@
+{
+  "audit_timestamp_utc": "2026-09-23T03:43:07.193812+00:00",
+  "source_hashes": {
+    "weather_telemetry_csv": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_csv": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "weather_telemetry": {
+    "file_path": "C:\\Ben File\\beta-citizen-prediction\\prediction-model\\data\\weather_telemetry.csv",
+    "total_rows": 756156,
+    "total_stations": 16,
+    "station_ids": [
+      "03pqkGAj",
+      "1Zb102pg",
+      "2Dpo5DAK",
+      "3nzr48bG",
+      "3nzr8bGo",
+      "4VAl2p9k",
+      "95pM7BAV",
+      "Bkpj1zRO",
+      "QgbGldAY",
+      "Rjz2dbXW",
+      "VEpdDpBK",
+      "lMAZe9b3",
+      "nDby4YpR",
+      "nDbyYbR1",
+      "rqAkmpKG",
+      "wkAWLzlm"
+    ],
+    "time_range_min_utc": "2026-06-20T10:36:43+00:00",
+    "time_range_max_utc": "2026-08-26T02:06:16+00:00",
+    "field_summary": {
+      "station_id": {
+        "non_empty_count": 756154,
+        "coverage_pct": 100.0,
+        "numeric_count": 0,
+        "min_value": null,
+        "max_value": null,
+        "bounds_violations": 0
+      },
+      "station_name": {
+        "non_empty_count": 756154,
+        "coverage_pct": 100.0,
+        "numeric_count": 0,
+        "min_value": null,
+        "max_value": null,
+        "bounds_violations": 0
+      },
+      "location": {
+        "non_empty_count": 756154,
+        "coverage_pct": 100.0,
+        "numeric_count": 0,
+        "min_value": null,
+        "max_value": null,
+        "bounds_violations": 0
+      },
+      "recorded_at": {
+        "non_empty_count": 756154,
+        "coverage_pct": 100.0,
+        "numeric_count": 0,
+        "min_value": null,
+        "max_value": null,
+        "bounds_violations": 0
+      },
+      "temperature": {
+        "non_empty_count": 706347,
+        "coverage_pct": 93.41,
+        "numeric_count": 706347,
+        "min_value": -45.0,
+        "max_value": 196.67,
+        "bounds_violations": 6634
+      },
+      "heat_index": {
+        "non_empty_count": 705569,
+        "coverage_pct": 93.31,
+        "numeric_count": 705569,
+        "min_value": 14.3,
+        "max_value": 5624.06,
+        "bounds_violations": 5853
+      },
+      "humidity": {
+        "non_empty_count": 706347,
+        "coverage_pct": 93.41,
+        "numeric_count": 706347,
+        "min_value": 0.0,
+        "max_value": 100.0,
+        "bounds_violations": 68
+      },
+      "pressure": {
+        "non_empty_count": 702581,
+        "coverage_pct": 92.91,
+        "numeric_count": 702581,
+        "min_value": -1925.632,
+        "max_value": 288522.2,
+        "bounds_violations": 19522
+      },
+      "wind_speed": {
+        "non_empty_count": 697221,
+        "coverage_pct": 92.21,
+        "numeric_count": 697221,
+        "min_value": 0.0,
+        "max_value": 3069.117,
+        "bounds_violations": 446
+      },
+      "wind_direction": {
+        "non_empty_count": 732744,
+        "coverage_pct": 96.9,
+        "numeric_count": 732744,
+        "min_value": 0.0,
+        "max_value": 359.9994,
+        "bounds_violations": 0
+      },
+      "precipitation": {
+        "non_empty_count": 697221,
+        "coverage_pct": 92.21,
+        "numeric_count": 697221,
+        "min_value": 0.0,
+        "max_value": 7202.296,
+        "bounds_violations": 434
+      },
+      "uv_index": {
+        "non_empty_count": 542229,
+        "coverage_pct": 71.71,
+        "numeric_count": 542229,
+        "min_value": 0.0,
+        "max_value": 11.0,
+        "bounds_violations": 0
+      },
+      "light_intensity": {
+        "non_empty_count": 715384,
+        "coverage_pct": 94.61,
+        "numeric_count": 715384,
+        "min_value": 0.0,
+        "max_value": 54612.5,
+        "bounds_violations": 0
+      }
+    },
+    "solar_sensor_audit": {
+      "uv_index": {
+        "night_samples": 22000,
+        "night_mean": 0.0,
+        "night_max": 0.0,
+        "night_positive_pct": 0.0,
+        "day_samples": 26000,
+        "day_mean": 5.49,
+        "day_max": 11.0
+      },
+      "light_intensity": {
+        "night_samples": 22000,
+        "night_mean": 26.39,
+        "night_max": 2822.5,
+        "day_samples": 26000,
+        "day_mean": 20842.68,
+        "day_max": 54612.5
+      }
+    }
+  },
+  "water_telemetry": {
+    "file_path": "C:\\Ben File\\beta-citizen-prediction\\prediction-model\\data\\water_level_telemetry.csv",
+    "total_rows": 43883,
+    "total_stations": 1,
+    "station_ids": [
+      "O3z0j5bG"
+    ],
+    "time_range_min_utc": "2026-05-04T00:38:33.433000+00:00",
+    "time_range_max_utc": "2026-08-26T02:06:22.923000+00:00",
+    "bounds_violations": {
+      "water_level": 12
+    }
+  },
+  "target_feasibility_determination": {
+    "temperature": {
+      "status": "FEASIBLE",
+      "coverage_pct": 93.41,
+      "units": "Celsius",
+      "resampling": "last_valid_in_hour",
+      "quarantined_rows": 6634
+    },
+    "humidity": {
+      "status": "FEASIBLE",
+      "coverage_pct": 93.41,
+      "units": "Percent (%)",
+      "resampling": "last_valid_in_hour",
+      "quarantined_rows": 68
+    },
+    "pressure": {
+      "status": "FEASIBLE",
+      "coverage_pct": 92.91,
+      "units": "hPa",
+      "resampling": "last_valid_in_hour",
+      "quarantined_rows": 19522
+    },
+    "wind_speed": {
+      "status": "FEASIBLE",
+      "coverage_pct": 92.21,
+      "units": "km/h",
+      "resampling": "last_valid_in_hour",
+      "calm_percentage": 57.0,
+      "quarantined_rows": 446
+    },
+    "wind_direction": {
+      "status": "FEASIBLE_CIRCULAR",
+      "coverage_pct": 96.9,
+      "units": "Degrees (0-360) via circular (u, v) unit components",
+      "resampling": "circular_vector_last_valid",
+      "calm_handling": "speed < 1.0 km/h masked as calm",
+      "quarantined_rows": 0
+    },
+    "precipitation_occurrence": {
+      "status": "FEASIBLE",
+      "coverage_pct": 92.21,
+      "units": "Binary probability [0, 1] (threshold 0.1 mm/h)",
+      "resampling": "hourly_sum",
+      "quarantined_rows": 434
+    },
+    "precipitation_amount": {
+      "status": "FEASIBLE_TWO_STAGE",
+      "coverage_pct": 92.21,
+      "units": "mm (hourly accumulated volume)",
+      "resampling": "hourly_sum",
+      "quarantined_rows": 434
+    },
+    "heat_index": {
+      "status": "FEASIBLE_DERIVED",
+      "units": "Celsius",
+      "method": "NOAA Rothfusz regression derived from predicted temperature and humidity",
+      "quarantined_rows": 5853
+    },
+    "uv_index": {
+      "status": "BLOCKED_BY_SENSOR_CALIBRATION",
+      "coverage_pct": 71.71,
+      "units": "UV Index",
+      "night_positive_pct": 0.0,
+      "night_max_observed": 0.0,
+      "reason": "Sensor clock/calibration defect: UV index reports up to 11.0 during nighttime (00:00-04:00 local time). Must not be scored without verified calibration."
+    },
+    "light_intensity": {
+      "status": "SECONDARY_BETA_DAYLIGHT_ONLY",
+      "coverage_pct": 94.61,
+      "units": "lux",
+      "night_mean": 26.39,
+      "day_mean": 20842.68,
+      "reason": "Measurable daylight cycle, but uncalibrated photometric sensor lacking station orientation metadata. Kept as secondary/beta monitoring only."
+    },
+    "water_level": {
+      "status": "INTERNAL_EXPERIMENT_BETA",
+      "coverage_pct": 100.0,
+      "units": "Meters",
+      "station": "Calumpit WLMS (O3z0j5bG) collocated with Calumpit AWS (3nzr48bG)",
+      "quarantined_rows": 12,
+      "commercial_claim": "EXCLUDED from commercial core; not approved for autonomous flood or life-safety use."
+    }
+  }
+}

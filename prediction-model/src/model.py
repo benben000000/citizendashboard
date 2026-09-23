@@ -1,27 +1,33 @@
 """
-Continuous-Time CfC (Closed-form Continuous-time) Recurrent Neural Network
-for Weather Station Telemetry & Hydrological Prediction.
+Garcia Weather Telemetry Forecast Engine: Continuous-Time CfC/LNN Architecture.
 
-This is Model Family 1 (PyTorch WeatherWaterLNN). See MODEL_REGISTRY.md.
+Implements the multi-output Continuous-Time Closed-form Continuous (CfC) Neural ODE
+architecture for the Garcia Weather Telemetry Forecast Engine.
 
-Inputs:
-  - Temperature (C)
-  - Heat Index (C)
-  - Wind Speed (km/h)
-  - Atmospheric Pressure (hPa)
-  - Time Delta dt (hours)
+Capabilities:
+  - Surface Meteorology Heads:
+      * Temperature (Celsius)
+      * Relative Humidity (%)
+      * Atmospheric Pressure (hPa)
+      * Wind Speed (km/h)
+      * Wind Vector Components (u, v) & reconstructed circular angle (degrees)
+      * Derived Heat Index (Celsius, deterministic NOAA Rothfusz regression)
+  - Hydrometeorological Heads:
+      * Rain Occurrence Probability (calibrated [0, 1])
+      * Expected Rain Accumulation (hourly volume, mm)
+  - Secondary/Beta Module:
+      * Hydrological River Stage Delta (meters, Calumpit gauge benchmark)
 
-Outputs:
-  - Chance of Rain (%) & Expected Rain Accumulation (mm)
-  - Projected River Water Level (meters)
-
-Status: Research prototype. See prediction-model-audit.md for limitations.
+Status: Research prototype & probabilistic guidance engine. Not for life-safety or automated flood evacuation triggers.
 """
 
-
+import math
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from dataset import compute_noaa_heat_index
 
 
 class CfCCell(nn.Module):
@@ -64,7 +70,7 @@ class CfCCell(nn.Module):
 
 class WeatherWaterLNN(nn.Module):
     """
-    Complete Continuous-time Liquid Neural Network Model.
+    Continuous-time Liquid Neural Network Model (Legacy MF-1 Contract).
     Processes sequential weather telemetry across arbitrary lead horizons.
     """
     def __init__(self, input_dim: int = 8, hidden_dim: int = 32):
@@ -144,3 +150,189 @@ class WeatherWaterLNN(nn.Module):
             torch.stack(precip_vols, dim=1),
             torch.stack(water_levels, dim=1)
         )
+
+
+class GarciaWeatherLNN(WeatherWaterLNN):
+    """
+    Garcia Weather Telemetry Forecast Engine (Continuous-Time CfC/LNN).
+    Extends WeatherWaterLNN with full surface meteorology heads:
+      - Continuous Weather Heads: Temperature, Humidity, Pressure, Wind Speed, Wind Vector (u, v)
+      - Event Head: Rain Probability (sigmoid logit)
+      - Rain Amount Head: Non-negative Rain Accumulation (mm)
+      - Derived Output: Deterministic NOAA Heat Index from forecast (Temp, RH)
+      - Beta Head: Hydrological River Stage Delta (optional research/beta)
+    """
+    def __init__(self, input_dim: int = 8, hidden_dim: int = 32):
+        super().__init__(input_dim=input_dim, hidden_dim=hidden_dim)
+
+        # Core Weather Heads
+        self.temp_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta temperature (C)
+        )
+        self.rh_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta humidity (%)
+        )
+        self.pressure_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta pressure (hPa)
+        )
+        self.ws_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta wind speed (km/h)
+        )
+        self.wdir_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 2)  # circular unit components (u=cos, v=sin)
+        )
+
+    def forward(
+        self,
+        telemetry_seq: torch.Tensor,
+        dt_seq: torch.Tensor,
+        initial_water: torch.Tensor = None,
+        origin_weather: torch.Tensor = None,
+        return_dict: bool = False,
+    ):
+        """
+        telemetry_seq: [batch, seq_len, 8] -> (temp, heat_index, humidity, pressure, wind_speed, wind_sin, wind_cos, precip)
+        dt_seq: [batch, seq_len, 1] -> (elapsed hours between measurements)
+        initial_water: Optional [batch, 1] -> water stage at origin t0
+        origin_weather: Optional [batch, 6] -> (origin temp, humidity, pressure, wind_speed, wind_u, wind_v)
+        return_dict: If True, returns full dictionary of multi-target weather forecasts.
+                     If False, returns backwards-compatible 3-tuple (rain_prob, precip_mm, water_level).
+        """
+        batch_size, seq_len, _ = telemetry_seq.shape
+        h = torch.zeros(batch_size, self.hidden_dim, device=telemetry_seq.device)
+
+        rain_probs = []
+        precip_vols = []
+        water_levels = []
+
+        for t in range(seq_len):
+            x_t = telemetry_seq[:, t, :]
+            dt_t = dt_seq[:, t, :]
+
+            # Project input
+            feat = self.encoder(x_t)
+
+            # Continuous ODE state update
+            h = self.cfc_cell(feat, h, dt_t)
+
+            # Heads
+            rain_out = self.rain_head(h)
+            rain_prob = torch.sigmoid(rain_out[:, 0:1])
+            precip_mm = F.relu(rain_out[:, 1:2])
+
+            delta_water = self.water_head(h)
+            if initial_water is not None:
+                water_stage = initial_water + delta_water
+            else:
+                water_stage = delta_water
+
+            rain_probs.append(rain_prob)
+            precip_vols.append(precip_mm)
+            water_levels.append(water_stage)
+
+        rain_prob_seq = torch.stack(rain_probs, dim=1)
+        precip_mm_seq = torch.stack(precip_vols, dim=1)
+        water_level_seq = torch.stack(water_levels, dim=1)
+
+        if not return_dict:
+            return rain_prob_seq, precip_mm_seq, water_level_seq
+
+        # Compute final-step continuous weather predictions
+        d_temp = self.temp_head(h)
+        d_rh = self.rh_head(h)
+        d_p = self.pressure_head(h)
+        d_ws = self.ws_head(h)
+        raw_uv = self.wdir_head(h)
+        norm_uv = F.normalize(raw_uv, p=2, dim=-1)
+
+        if origin_weather is not None:
+            pred_temp = origin_weather[:, 0:1] + d_temp
+            pred_rh = torch.clamp(origin_weather[:, 1:2] + d_rh, 10.0, 100.0)
+            pred_p = origin_weather[:, 2:3] + d_p
+            pred_ws = F.relu(origin_weather[:, 3:4] + d_ws)
+        else:
+            pred_temp = d_temp
+            pred_rh = d_rh
+            pred_p = d_p
+            pred_ws = F.relu(d_ws)
+
+        return {
+            "rain_prob": rain_prob_seq[:, -1, :],
+            "precipitation_mm": precip_mm_seq[:, -1, :],
+            "water_level": water_level_seq[:, -1, :],
+            "temperature": pred_temp,
+            "humidity": pred_rh,
+            "pressure": pred_p,
+            "wind_speed": pred_ws,
+            "wind_u": norm_uv[:, 0:1],
+            "wind_v": norm_uv[:, 1:2],
+        }
+
+    def predict_weather(
+        self,
+        telemetry_seq: torch.Tensor,
+        dt_seq: torch.Tensor,
+        origin_weather: torch.Tensor = None,
+        initial_water: torch.Tensor = None,
+    ) -> dict:
+        """
+        Produce complete operational weather forecast dictionary for input sequence window.
+        """
+        self.eval()
+        with torch.no_grad():
+            res = self.forward(
+                telemetry_seq=telemetry_seq,
+                dt_seq=dt_seq,
+                initial_water=initial_water,
+                origin_weather=origin_weather,
+                return_dict=True,
+            )
+
+        # Convert tensors to python values / arrays
+        temp_val = res["temperature"].squeeze(-1).cpu().numpy()
+        rh_val = res["humidity"].squeeze(-1).cpu().numpy()
+        p_val = res["pressure"].squeeze(-1).cpu().numpy()
+        ws_val = res["wind_speed"].squeeze(-1).cpu().numpy()
+        u_val = res["wind_u"].squeeze(-1).cpu().numpy()
+        v_val = res["wind_v"].squeeze(-1).cpu().numpy()
+        r_prob = res["rain_prob"].squeeze(-1).cpu().numpy()
+        p_mm = res["precipitation_mm"].squeeze(-1).cpu().numpy()
+        w_lvl = res["water_level"].squeeze(-1).cpu().numpy()
+
+        # Reconstruct circular wind direction (degrees) and derived Heat Index
+        wind_dirs = []
+        heat_indices = []
+        t_arr = np.atleast_1d(temp_val)
+        rh_arr = np.atleast_1d(rh_val)
+        u_arr = np.atleast_1d(u_val)
+        v_arr = np.atleast_1d(v_val)
+
+        for i in range(len(t_arr)):
+            deg = math.degrees(math.atan2(float(v_arr[i]), float(u_arr[i]))) % 360.0
+            hi = compute_noaa_heat_index(float(t_arr[i]), float(rh_arr[i]))
+            wind_dirs.append(round(deg, 2))
+            heat_indices.append(round(hi, 2))
+
+        return {
+            "temperature": temp_val,
+            "humidity": rh_val,
+            "pressure": p_val,
+            "wind_speed": ws_val,
+            "wind_direction_deg": np.array(wind_dirs),
+            "wind_u": u_val,
+            "wind_v": v_val,
+            "heat_index": np.array(heat_indices),
+            "rain_probability": r_prob,
+            "precipitation_mm": p_mm,
+            "water_level_stage": w_lvl,
+        }
