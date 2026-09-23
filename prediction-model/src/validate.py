@@ -321,8 +321,8 @@ def compute_rain_metrics(pred_probs: list, targets: list, threshold: float = 0.5
     }
 
 
-def compute_rain_amount_metrics(pred_precip: list, true_precip: list) -> dict:
-    """Compute two-stage rain amount metrics: overall and rainy-hour only."""
+def compute_rain_amount_metrics(pred_precip: list, true_precip: list, persist_precip: list = None, clim_precip: float = 0.0) -> dict:
+    """Compute comprehensive rain amount metrics: overall, baselines, dry/rainy subsets, and heavy rain events."""
     n = len(true_precip)
     if n == 0:
         return {}
@@ -332,7 +332,33 @@ def compute_rain_amount_metrics(pred_precip: list, true_precip: list) -> dict:
     overall_rmse = math.sqrt(sum(e**2 for e in overall_errs) / n)
     overall_bias = sum(overall_errs) / n
 
+    # Baselines
+    if persist_precip is not None and len(persist_precip) == n:
+        persist_errs = [p - y for p, y in zip(persist_precip, true_precip)]
+        persist_mae = sum(abs(e) for e in persist_errs) / n
+        persist_rmse = math.sqrt(sum(e**2 for e in persist_errs) / n)
+        persist_bias = sum(persist_errs) / n
+        skill_vs_persist = 1.0 - (overall_mae / max(1e-4, persist_mae))
+        beats_persist = bool(overall_mae < persist_mae)
+    else:
+        persist_mae = persist_rmse = persist_bias = skill_vs_persist = beats_persist = None
+
+    clim_errs = [clim_precip - y for y in true_precip]
+    clim_mae = sum(abs(e) for e in clim_errs) / n
+    clim_rmse = math.sqrt(sum(e**2 for e in clim_errs) / n)
+
+    # Subsets: Dry-hour (< 0.1 mm) vs Rainy-hour (>= 0.1 mm)
+    dry_indices = [i for i, y in enumerate(true_precip) if y < 0.1]
     rainy_indices = [i for i, y in enumerate(true_precip) if y >= 0.1]
+
+    if dry_indices:
+        dry_errs = [pred_precip[i] - true_precip[i] for i in dry_indices]
+        dry_mae = sum(abs(e) for e in dry_errs) / len(dry_indices)
+        dry_rmse = math.sqrt(sum(e**2 for e in dry_errs) / len(dry_indices))
+        dry_bias = sum(dry_errs) / len(dry_indices)
+    else:
+        dry_mae = dry_rmse = dry_bias = None
+
     if rainy_indices:
         rainy_errs = [pred_precip[i] - true_precip[i] for i in rainy_indices]
         rainy_mae = sum(abs(e) for e in rainy_errs) / len(rainy_indices)
@@ -341,15 +367,57 @@ def compute_rain_amount_metrics(pred_precip: list, true_precip: list) -> dict:
     else:
         rainy_mae = rainy_rmse = rainy_bias = None
 
+    # Heavy-rain threshold events (2.5 mm, 5.0 mm, 10.0 mm)
+    heavy_thresholds = {
+        "threshold_2_5mm": 2.5,
+        "threshold_5_0mm": 5.0,
+        "threshold_10_0mm": 10.0,
+    }
+    threshold_metrics = {}
+    for key, thresh in heavy_thresholds.items():
+        obs_events = sum(1 for y in true_precip if y >= thresh)
+        pred_events = sum(1 for p in pred_precip if p >= thresh)
+        hits = sum(1 for p, y in zip(pred_precip, true_precip) if p >= thresh and y >= thresh)
+        prec = (hits / pred_events * 100.0) if pred_events > 0 else 0.0
+        rec = (hits / obs_events * 100.0) if obs_events > 0 else (100.0 if obs_events == 0 else 0.0)
+        csi = (hits / (obs_events + pred_events - hits) * 100.0) if (obs_events + pred_events - hits) > 0 else 0.0
+        threshold_metrics[key] = {
+            "threshold_mm": thresh,
+            "observed_event_count": obs_events,
+            "predicted_event_count": pred_events,
+            "hits": hits,
+            "precision_pct": round(prec, 2),
+            "recall_pod_pct": round(rec, 2),
+            "critical_success_index_pct": round(csi, 2),
+        }
+
     return {
         "overall_samples": n,
         "overall_mae_mm": round(overall_mae, 4),
         "overall_rmse_mm": round(overall_rmse, 4),
         "overall_bias_mm": round(overall_bias, 4),
+        "persistence_mae_mm": round(persist_mae, 4) if persist_mae is not None else None,
+        "persistence_rmse_mm": round(persist_rmse, 4) if persist_rmse is not None else None,
+        "persistence_bias_mm": round(persist_bias, 4) if persist_bias is not None else None,
+        "climatology_mae_mm": round(clim_mae, 4),
+        "climatology_rmse_mm": round(clim_rmse, 4),
+        "skill_vs_persistence": round(skill_vs_persist, 4) if skill_vs_persist is not None else None,
+        "beats_persistence": beats_persist,
+        "dry_hour_samples": len(dry_indices),
+        "dry_hour_mae_mm": round(dry_mae, 4) if dry_mae is not None else None,
+        "dry_hour_rmse_mm": round(dry_rmse, 4) if dry_rmse is not None else None,
+        "dry_hour_bias_mm": round(dry_bias, 4) if dry_bias is not None else None,
         "rainy_hour_samples": len(rainy_indices),
         "rainy_hour_mae_mm": round(rainy_mae, 4) if rainy_mae is not None else None,
         "rainy_hour_rmse_mm": round(rainy_rmse, 4) if rainy_rmse is not None else None,
         "rainy_hour_bias_mm": round(rainy_bias, 4) if rainy_bias is not None else None,
+        "heavy_rain_thresholds": threshold_metrics,
+        "uncertainty_intervals": {
+            "status": "UNAVAILABLE",
+            "coverage_pct": None,
+            "mean_interval_width_mm": None,
+            "reason": "Validated conformal intervals are only implemented for beta water level. Weather and precipitation intervals are unavailable.",
+        },
     }
 
 
@@ -542,6 +610,8 @@ def evaluate_horizon(
     c_pred_rh = []
     c_pred_p = []
     c_pred_ws = []
+    c_pred_u = []
+    c_pred_v = []
 
     if mf1_model is not None:
         mf1_model.eval()
@@ -558,6 +628,8 @@ def evaluate_horizon(
             c_pred_rh = c_out["humidity"][:, 0].cpu().tolist()
             c_pred_p = c_out["pressure"][:, 0].cpu().tolist()
             c_pred_ws = c_out["wind_speed"][:, 0].cpu().tolist()
+            c_pred_u = c_out["wind_u"][:, 0].cpu().tolist()
+            c_pred_v = c_out["wind_v"][:, 0].cpu().tolist()
 
             c_w_pred = c_out["water_level"][:, 0].cpu().numpy()
             for i in range(n_calib):
@@ -620,6 +692,35 @@ def evaluate_horizon(
                 "calib_skill_score": round(skill, 4),
                 "selected_source": "learned_model" if skill > 0 else "persistence_fallback",
             }
+
+        # Wind direction circular skill gate on calib split
+        if c_pred_u and c_pred_v:
+            c_pred_wind_deg = [round(math.degrees(math.atan2(v, u)) % 360.0, 2) for u, v in zip(c_pred_u, c_pred_v)]
+            c_true_wind_deg = [float(m["target_wind_deg"]) for m in calib_meta]
+            c_orig_wind_deg = [float(m["origin_wind_deg"]) for m in calib_meta]
+            c_ws = [float(m["target_wind_speed"]) for m in calib_meta]
+
+            calib_m_circ = compute_wind_direction_metrics(c_pred_wind_deg, c_true_wind_deg, c_ws)
+            calib_p_circ = compute_wind_direction_metrics(c_orig_wind_deg, c_true_wind_deg, c_ws)
+            c_m_cmae = calib_m_circ["circular_mae_deg"]
+            c_p_cmae = calib_p_circ["circular_mae_deg"]
+            c_circ_skill = round(1.0 - (c_m_cmae / max(1e-4, c_p_cmae)), 4)
+            calib_skill_gates["wind_direction"] = {
+                "calib_model_circular_mae": round(c_m_cmae, 2),
+                "calib_persist_circular_mae": round(c_p_cmae, 2),
+                "calib_skill_score": c_circ_skill,
+                "selected_source": "learned_model" if c_circ_skill > 0 else "persistence_fallback",
+            }
+        else:
+            calib_skill_gates["wind_direction"] = {
+                "selected_source": "persistence_fallback",
+            }
+
+        calib_skill_gates["heat_index"] = {
+            "derivation_rule": "derived_from_selected_temp_and_humidity",
+            "formula": "NOAA NWS Rothfusz regression",
+            "selected_source": "derived_from_selected_temp_and_humidity",
+        }
 
     # --- UNTOUCHED TEST SPLIT EVALUATION ---
     t_orig_list = [
@@ -760,10 +861,12 @@ def evaluate_horizon(
     p_circ_mae = wdir_metrics["persistence_circular"]["circular_mae_deg"]
     wdir_metrics["beats_persistence"] = bool(m_circ_mae < p_circ_mae)
     wdir_metrics["skill_vs_persistence"] = round(1.0 - (m_circ_mae / max(1e-4, p_circ_mae)), 4)
+    wdir_metrics["selected_source"] = calib_skill_gates.get("wind_direction", {}).get("selected_source", "persistence_fallback")
 
     # 6. Derived Heat Index
     hi_metrics = compute_continuous_metrics(derived_model_hi, true_hi, persist_hi, climatology_stats["heat_index"])
     hi_metrics["derivation_formula"] = "NOAA NWS Rothfusz regression from predicted (T, RH)"
+    hi_metrics["selected_source"] = calib_skill_gates.get("heat_index", {}).get("selected_source", "derived_from_selected_temp_and_humidity")
 
     # 7. Rain Occurrence
     rain_05_metrics = compute_rain_metrics(pred_rain_prob, true_rain, threshold=0.5)
@@ -774,7 +877,13 @@ def evaluate_horizon(
     clim_rain_metrics = compute_rain_metrics([climatology_stats["rain_prior"]] * n_test, true_rain, threshold=0.5)
 
     # 8. Rain Amount
-    precip_amount_metrics = compute_rain_amount_metrics(pred_precip_vol, true_precip)
+    persist_precip = [float(m["last_observed_precip"]) for m in test_meta]
+    precip_amount_metrics = compute_rain_amount_metrics(
+        pred_precip_vol,
+        true_precip,
+        persist_precip=persist_precip,
+        clim_precip=climatology_stats.get("precipitation", 0.0),
+    )
 
     # 9. Gauge stage (Internal/Beta)
     gauge_indices = [i for i in range(n_test) if test_has_water[i, 0].item() > 0.5]
@@ -860,6 +969,7 @@ def evaluate_horizon(
         "test_samples_total": n_test,
         "calibration_samples_total": n_calib,
         "small_sample_warning": bool(n_test < 200),
+        "calib_skill_gates": calib_skill_gates,
         "temperature": temp_metrics,
         "humidity": rh_metrics,
         "pressure": p_metrics,
@@ -867,6 +977,57 @@ def evaluate_horizon(
         "wind_direction": wdir_metrics,
         "heat_index": hi_metrics,
         "rain_occurrence": {
+            "probability_quality": {
+                "hybrid_brier_score": rain_hybrid_metrics.get("brier_score"),
+                "model_brier_score": rain_05_metrics.get("brier_score"),
+                "persistence_brier_score": persist_rain_metrics.get("brier_score"),
+                "climatology_brier_score": clim_rain_metrics.get("brier_score"),
+                "brier_skill_score_vs_persistence": round(1.0 - (rain_hybrid_metrics.get("brier_score", 1.0) / max(1e-4, persist_rain_metrics.get("brier_score", 1.0))), 4),
+                "hybrid_expected_calibration_error": rain_hybrid_metrics.get("expected_calibration_error"),
+                "model_expected_calibration_error": rain_05_metrics.get("expected_calibration_error"),
+            },
+            "event_classification": {
+                "fixed_threshold_05": {
+                    "f1_score_pct": rain_05_metrics.get("f1_score_pct"),
+                    "recall_pod_pct": rain_05_metrics.get("recall_pod_pct"),
+                    "precision_pct": rain_05_metrics.get("precision_pct"),
+                    "critical_success_index_pct": rain_05_metrics.get("critical_success_index_pct"),
+                    "false_alarm_ratio_pct": rain_05_metrics.get("false_alarm_ratio_pct"),
+                },
+                "frozen_operational_threshold": {
+                    "threshold": best_thresh,
+                    "f1_score_pct": rain_op_metrics.get("f1_score_pct"),
+                    "recall_pod_pct": rain_op_metrics.get("recall_pod_pct"),
+                    "precision_pct": rain_op_metrics.get("precision_pct"),
+                    "critical_success_index_pct": rain_op_metrics.get("critical_success_index_pct"),
+                    "false_alarm_ratio_pct": rain_op_metrics.get("false_alarm_ratio_pct"),
+                },
+                "hybrid_blend_05": {
+                    "f1_score_pct": rain_hybrid_metrics.get("f1_score_pct"),
+                    "recall_pod_pct": rain_hybrid_metrics.get("recall_pod_pct"),
+                    "precision_pct": rain_hybrid_metrics.get("precision_pct"),
+                    "critical_success_index_pct": rain_hybrid_metrics.get("critical_success_index_pct"),
+                    "false_alarm_ratio_pct": rain_hybrid_metrics.get("false_alarm_ratio_pct"),
+                },
+                "persistence_05": {
+                    "f1_score_pct": persist_rain_metrics.get("f1_score_pct"),
+                    "recall_pod_pct": persist_rain_metrics.get("recall_pod_pct"),
+                    "precision_pct": persist_rain_metrics.get("precision_pct"),
+                    "critical_success_index_pct": persist_rain_metrics.get("critical_success_index_pct"),
+                    "false_alarm_ratio_pct": persist_rain_metrics.get("false_alarm_ratio_pct"),
+                },
+            },
+            "operational_selection_objective": {
+                "objective": "Minimize Brier score on validation calibration split to produce calibrated probabilities for risk outlooks",
+                "weight_selection_metric": "Brier score on calibration split",
+                "threshold_selection_metric": "F1 score on calibration split",
+                "tradeoff_analysis": (
+                    "Hybrid probability blending consistently minimizes Brier score (probability error) across horizons, "
+                    "providing reliable probabilistic outlooks. However, for hard binary classification at 0.5 threshold, "
+                    "persistence achieves higher or comparable F1/recall on short horizons (1h/3h). Operational users "
+                    "seeking threshold alerts should use the calibrated operational threshold or persistence baseline accordingly."
+                ),
+            },
             "fixed_threshold_05": rain_05_metrics,
             "frozen_operational_threshold": {
                 "threshold": best_thresh,
@@ -945,6 +1106,7 @@ def run_full_validation(horizons: list = None):
     train_ws = []
     train_his = []
     train_water_vals = []
+    train_precips = []
 
     for st_id, h_dict in pipeline.station_hourly.items():
         for h, rec in h_dict.items():
@@ -957,6 +1119,7 @@ def run_full_validation(horizons: list = None):
                 train_pressures.append(rec["pressure"])
                 train_ws.append(rec["wind_speed"])
                 train_his.append(rec["heat_index"])
+                train_precips.append(rec["precipitation"])
                 if st_id == WATER_GAUGE_WEATHER_STATION and h in pipeline.water_hourly:
                     train_water_vals.append(pipeline.water_hourly[h])
 
@@ -967,6 +1130,7 @@ def run_full_validation(horizons: list = None):
         "pressure": float(np.mean(train_pressures)),
         "wind_speed": float(np.mean(train_ws)),
         "heat_index": float(np.mean(train_his)),
+        "precipitation": float(np.mean(train_precips)) if train_precips else 0.0,
         "water_stage": float(np.mean(train_water_vals)) if train_water_vals else 2.50,
     }
 
@@ -1068,8 +1232,12 @@ def run_full_validation(horizons: list = None):
         },
         "operational_recommendation": (
             "DEPLOY_HYBRID_GUIDANCE. Use learned model where validation skill is positive; "
-            "fallback to persistence where persistence error is lower. Use calibrated probability "
-            "for rain outlooks. DO NOT use water level for automated flood triggers (BETA only)."
+            "fallback to persistence where persistence error is lower. Hybrid rain probability blending "
+            "consistently improves probability quality (Brier score) for risk outlooks, but does not universally "
+            "dominate persistence in discrete event classification (F1/recall) at 1h/3h. "
+            "Weather variables do NOT have validated confidence intervals (uncertainty intervals unavailable). "
+            "Conformal prediction intervals apply ONLY to the internal beta water-level experiment. "
+            "DO NOT use water level for life-safety or automated flood warning triggers."
         ),
         "horizons": all_horizon_results,
     }
@@ -1097,6 +1265,46 @@ def run_full_validation(horizons: list = None):
 
     print(f"Saved weather scorecard to: {WEATHER_SCORECARD_PATH}")
     print(f"Saved canonical scorecard to: {SCORECARD_PATH}")
+
+    # Build and export operational inference policy
+    policy_horizons = {}
+    for h in horizons:
+        h_k = f"horizon_{h}h"
+        h_res = all_horizon_results.get(h_k, {})
+        h_rain = h_res.get("rain_occurrence", {})
+        h_hybrid = h_rain.get("hybrid_blend", {})
+        h_op_thresh = h_rain.get("frozen_operational_threshold", {})
+
+        policy_horizons[str(h)] = {
+            "selected_sources": {
+                "temperature": h_res.get("temperature", {}).get("selected_source", "persistence_fallback"),
+                "humidity": h_res.get("humidity", {}).get("selected_source", "persistence_fallback"),
+                "pressure": h_res.get("pressure", {}).get("selected_source", "persistence_fallback"),
+                "wind_speed": h_res.get("wind_speed", {}).get("selected_source", "persistence_fallback"),
+                "wind_direction": h_res.get("wind_direction", {}).get("selected_source", "persistence_fallback"),
+                "heat_index": "derived_from_selected_temp_and_humidity",
+            },
+            "rain_model_weight": float(h_hybrid.get("frozen_model_weight", 0.5)),
+            "rain_persistence_weight": float(h_hybrid.get("frozen_persistence_weight", 0.5)),
+            "operational_rain_threshold": float(h_op_thresh.get("threshold", 0.5)),
+            "calibration_code_commit": git_commit,
+        }
+
+    inference_policy = {
+        "policy_version": "1.0.0",
+        "policy_code_commit": git_commit,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dataset_hashes": {
+            "weather_telemetry_sha256": compute_file_sha256(WEATHER_CSV_PATH),
+            "water_level_telemetry_sha256": compute_file_sha256(WATER_CSV_PATH),
+        },
+        "horizons": policy_horizons,
+    }
+
+    policy_path = os.path.join(DATA_DIR, "inference_policy.json")
+    with open(policy_path, "w", encoding="utf-8") as f:
+        json.dump(to_serializable(inference_policy), f, indent=2)
+    print(f"Saved inference policy artifact to: {policy_path}")
 
     # Print summary tables to console
     print("\n" + "=" * 110)

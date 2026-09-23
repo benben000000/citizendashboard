@@ -53,30 +53,46 @@ This document records the classification of all files in prediction-model/, docu
 | prediction-model/docs/figures/fig3_tournament_benchmark.svg | Historical Research Documentation | Paper figure 3: Tournament benchmarks |
 | prediction-model/logs/continuous_3h_validation_log.json | External Integration / Active Service | Continuous 3h validation log cited in maintenance docs |
 | prediction-model/requirements.txt | Canonical Runtime / Test / Artifact | Project dependency specification |
+| prediction-model/data/inference_policy.json | Canonical Runtime / Test / Artifact | Versioned operational inference policy (Finding 1) |
 | prediction-model/src/audit_data_availability.py | Canonical Runtime / Test / Artifact | Target data availability & sensor calibration audit |
 | prediction-model/src/benchmark_performance.py | External Integration / Active Service | Performance benchmark referenced in developer guide |
 | prediction-model/src/dataset.py | Canonical Runtime / Test / Artifact | Canonical data pipeline & hourly resampler |
 | prediction-model/src/generate_comprehensive_audit_outputs.py | External Integration / Active Service | Historical comprehensive audit output generator |
-| prediction-model/src/generate_september_backtest_csv.py | External Integration / Active Service | Historical backtest generator cited in audit report |
+| prediction-model/src/generate_september_backtest_csv.py | Intentionally Retained Legacy (Disabled) | Historical backtest script; fails closed with deprecation RuntimeError |
 | prediction-model/src/inference.py | Canonical Runtime / Test / Artifact | Serverless inference engine (operational & research APIs) |
 | prediction-model/src/model.py | Canonical Runtime / Test / Artifact | PyTorch CfCCell and WeatherWaterLNN (MF-1) |
-| prediction-model/src/mqtt_pinn_live_streamer.py | External Integration / Active Service | AWS IoT MQTT edge daemon referenced in DEVELOPER_MAINTENANCE_GUIDE.md |
+| prediction-model/src/mqtt_pinn_live_streamer.py | Intentionally Retained Legacy (Disabled) | Historical MQTT edge daemon; fails closed with deprecation RuntimeError |
 | prediction-model/src/simulate_spatial_rain_imputation.py | External Integration / Active Service | Spatial IDW sensor reconstruction engine |
 | prediction-model/src/smoke_test.py | Canonical Runtime / Test / Artifact | Automated end-to-end smoke test |
-| prediction-model/src/station_adaptive_pinn_lnn.py | External Integration / Active Service | MF-3 StationAdaptivePINN engine implementation |
+| prediction-model/src/station_adaptive_pinn_lnn.py | Intentionally Retained Legacy (Disabled) | Historical StationAdaptivePINN; fails closed with deprecation RuntimeError |
 | prediction-model/src/test_aws_ca.py | External Integration / Active Service | AWS Root CA certificate validation utility |
 | prediction-model/src/test_aws_iot_connect.py | External Integration / Active Service | AWS IoT Core mTLS connection tester |
 | prediction-model/src/test_aws_iot_probe.py | External Integration / Active Service | AWS IoT endpoint topic probe utility |
 | prediction-model/src/test_canonical_contract.py | Canonical Runtime / Test / Artifact | Automated unit tests for data contract and fail-closed inference |
+| prediction-model/src/test_inference_contract.py | Canonical Runtime / Test / Artifact | Automated unit tests for operational inference policy contract |
+| prediction-model/src/test_provenance.py | Canonical Runtime / Test / Artifact | Automated unit tests for exact-HEAD provenance and path hygiene |
 | prediction-model/src/test_spatial_imputation.py | External Integration / Active Service | Spatial IDW sensor reconstruction unit test |
 | prediction-model/src/train.py | Canonical Runtime / Test / Artifact | MF-1 PyTorch training pipeline |
-| prediction-model/src/train_and_evaluate_all_models.py | External Integration / Active Service | Historical multi-agent benchmark orchestrator |
+| prediction-model/src/train_and_evaluate_all_models.py | Intentionally Retained Legacy (Disabled) | Historical benchmark script; fails closed with deprecation RuntimeError |
 | prediction-model/src/train_and_evaluate_canonical.py | Canonical Runtime / Test / Artifact | Canonical end-to-end master orchestrator |
 | prediction-model/src/train_standalone.py | Canonical Runtime / Test / Artifact | MF-2 Standalone ContinuousLNNCell trainer |
 | prediction-model/src/validate.py | Canonical Runtime / Test / Artifact | Independent validator and conformal evaluator |
 | prediction-model/src/validate_wmo_pagasa_alignment.py | External Integration / Active Service | PAGASA/WMO groundtruth validation script |
 
-## 2. Removed Legacy Files (Safely Preserved in Archive Branch)
+## 2. Updated and Resolved Legacy References (Finding 4)
+
+The cleanup process removed obsolete experimental artifacts. Four surviving scripts originally referenced these deleted files. They are outside the canonical training/evaluation pipeline and have been remediated so they fail closed immediately with a documented legacy deprecation message referencing the archive branch:
+
+| Script Path | Prior Deleted Artifact Reference | Remediated Status | Archive Location |
+|---|---|---|---|
+| `prediction-model/src/train_and_evaluate_all_models.py` | `data/audit_and_benchmark_metrics.json` | Fails closed with `RuntimeError` upon invocation | `cleanup/archive-before-remediation-20260922` |
+| `prediction-model/src/generate_september_backtest_csv.py` | `data/pinn_lnn_champion_weights.json` | Fails closed with `RuntimeError` upon invocation | `cleanup/archive-before-remediation-20260922` |
+| `prediction-model/src/mqtt_pinn_live_streamer.py` | `data/pinn_lnn_champion_weights.json` | Fails closed with `RuntimeError` upon invocation | `cleanup/archive-before-remediation-20260922` |
+| `prediction-model/src/station_adaptive_pinn_lnn.py` | `data/station_pinn_profiles.json`, `data/station_adaptive_minute_forecasts.csv` | Fails closed with `RuntimeError` upon invocation | `cleanup/archive-before-remediation-20260922` |
+
+No active canonical script references any deleted artifact.
+
+## 3. Removed Legacy Files (Safely Preserved in Archive Branch)
 
 | File Path | Category | Reason for Removal |
 |---|---|---|

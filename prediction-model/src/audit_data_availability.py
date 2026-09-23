@@ -347,7 +347,7 @@ def run_audit():
             "water_level_telemetry_csv": water_hash,
         },
         "weather_telemetry": {
-            "file_path": WEATHER_CSV,
+            "file_path": "prediction-model/data/weather_telemetry.csv",
             "total_rows": weather_total_rows,
             "total_stations": len(weather_stations),
             "station_ids": sorted(list(weather_stations.keys())),
@@ -385,7 +385,7 @@ def run_audit():
             }
         },
         "water_telemetry": {
-            "file_path": WATER_CSV,
+            "file_path": "prediction-model/data/water_level_telemetry.csv",
             "total_rows": water_total_rows,
             "total_stations": len(water_stations),
             "station_ids": sorted(list(water_stations.keys())),

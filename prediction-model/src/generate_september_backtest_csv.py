@@ -1,8 +1,24 @@
 """
-Production Exporter: Real September 1 to September 20, 2026 Historical Backtest CSV.
-100% Genuine Physical Sensor Telemetry & True Garcia PINN-LNN ODE Inference.
-Zero Synthetic or Benchmark-Generated Math.
+DEPRECATED / ARCHIVED LEGACY SCRIPT.
+
+This script references deleted artifacts (such as data/pinn_lnn_champion_weights.json).
+It is retained for historical provenance only and is not part of the canonical pipeline.
+
+Canonical training and validation are implemented in:
+  - prediction-model/src/train.py
+  - prediction-model/src/validate.py
+  - prediction-model/src/verify_provenance.py
+
+Historical artifacts are preserved in git branch:
+  cleanup/archive-before-remediation-20260922
 """
+
+raise RuntimeError(
+    "DEPRECATED_LEGACY_SCRIPT: generate_september_backtest_csv.py is a non-canonical legacy script "
+    "and references deleted artifacts (data/pinn_lnn_champion_weights.json). "
+    "Use canonical prediction-model/src/validate.py instead. "
+    "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
+)
 
 import os
 import sys
@@ -23,8 +39,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 PUBLIC_EXPORTS_DIR = os.path.join(PROJECT_ROOT, "public", "exports")
-os.makedirs(PUBLIC_EXPORTS_DIR, exist_ok=True)
-os.makedirs(os.path.join(DATA_DIR, "segregated"), exist_ok=True)
 
 CHAMPION_WEIGHTS_PATH = os.path.join(DATA_DIR, "pinn_lnn_champion_weights.json")
 

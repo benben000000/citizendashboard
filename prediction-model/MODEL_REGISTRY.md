@@ -17,10 +17,10 @@ The primary product is defined as the **Garcia Weather Telemetry Forecast Engine
 
 | Output Class | Variables / Capabilities | Permitted Operational Use | Governing Rule |
 |---|---|---|---|
-| **Core Commercial** | Current observations, rising/falling trends, temperature outlook, relative humidity outlook, barometric pressure tendency, wind speed & circular direction, calibrated rain probability, derived NOAA heat index | Commercial monitoring, agricultural and industrial planning, weather dashboards, with explicit confidence and probability labels | Deployed via hybrid guidance: learned model where skill is positive, persistence fallback where persistence error is lower |
+| **Core Commercial** | Current observations, rising/falling trends, temperature outlook, relative humidity outlook, barometric pressure tendency, wind speed & circular direction, calibrated rain probability, derived NOAA heat index | Commercial monitoring, agricultural and industrial planning, weather dashboards, with calibrated probability labels (conformal intervals apply strictly to beta water level; weather prediction intervals are unavailable) | Deployed via hybrid guidance: learned model where skill is positive, persistence fallback where persistence error is lower |
 | **Secondary / Beta** | Rain accumulation ranges (mm), light intensity (lux daylight cycle), river stage stage delta (meters) | Opt-in research and beta testing only; requires explicit beta flag | River stage carries mandatory `INTERNAL_EXPERIMENT_BETA` and `not_for_life_safety: true` metadata |
 | **Blocked by Data** | UV Index | Quarantined / not scored | Blocked due to raw sensor calibration defect (reporting up to 11.0 index during nighttime 00:00–04:00 local time) |
-| **Prohibited Claims** | Flood evacuation triggers, autonomous flood warnings, guaranteed rain/no-rain binary statements | **STRICTLY PROHIBITED** | Not supported by current telemetry evidence or model validation |
+| **Prohibited Claims** | Flood evacuation triggers, autonomous flood warnings, guaranteed rain/no-rain binary statements, unvalidated weather confidence bands | **STRICTLY PROHIBITED** | Not supported by current telemetry evidence or model validation |
 
 ---
 
@@ -118,7 +118,18 @@ Evaluated on the **untouched test split** (2,820 sequence windows across 16 stat
 
 ### 4.2 Rain Occurrence & Probabilistic Scorecard
 
-The learned model (`GarciaWeatherLNN`) demonstrates superior probabilistic calibration, beating persistence on Brier score across **ALL 5 HORIZONS**:
+### 4.2 Rain Occurrence & Probabilistic Scorecard
+
+The operational system evaluates both continuous **probability quality** (Brier score, reliability, calibration error) and discrete **event classification** (F1, recall/POD, precision, CSI):
+
+#### Probability Quality vs. Event Classification Tradeoff
+- **Probability Quality (Brier Score)**: Hybrid probability blending consistently minimizes Brier score across **ALL 5 HORIZONS**:
+  - +1h: Brier **0.1219** vs Persistence 0.1713 (**+28.84% skill**)
+  - +3h: Brier **0.1772** vs Persistence 0.2270 (**+21.94% skill**)
+  - +6h: Brier **0.2183** vs Persistence 0.2695 (**+18.99% skill**)
+  - +12h: Brier **0.2144** vs Persistence 0.3000 (**+28.53% skill**)
+  - +24h: Brier **0.2118** vs Persistence 0.3328 (**+36.4% skill**)
+- **Event Classification at 0.5 Fixed Threshold**: While hybrid blending minimizes probability error for risk outlooks, persistence achieves comparable or slightly higher F1/recall on short horizons (1h/3h). Operational users desiring hard alerts should utilize the calibrated operational decision threshold ($T_{op}$) or persistence baseline.
 
 | Horizon | Model / Strategy | Brier Score | Brier Skill vs Persist | Decision F1 | Accuracy | Recall (POD) | Precision | CSI |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
@@ -176,15 +187,25 @@ The learned model (`GarciaWeatherLNN`) demonstrates superior probabilistic calib
 
 ---
 
+### 4.4 Precipitation Amount Scorecard
+
+Evaluated on the test split (N=2,820 sequence windows across 16 stations):
+- **Baselines Evaluated**: Persistence baseline ($y_{t_0}$), Climatology prior baseline, and model skill vs. persistence.
+- **Subsets**: Dry-hour ($< 0.1$ mm) and Rainy-hour ($\ge 0.1$ mm) subsets evaluated separately.
+- **Heavy Rain Event Detection**: Threshold metrics evaluated at $2.5$ mm (moderate), $5.0$ mm (heavy), and $10.0$ mm (very heavy).
+- **Uncertainty Status**: Conformal prediction intervals for precipitation volume are explicitly **UNAVAILABLE**. No fabricated coverage claims are made.
+
+---
+
 ## 5. Operational Deployment Recommendation
 
 1. **Deploy Hybrid Weather Guidance**:
-   - For barometric pressure (+1h, +3h, +6h) and derived heat index (+1h to +12h), the learned model outperforms persistence and is used directly.
-   - For short-term temperature, humidity, and wind speed (+1h to +6h), operational persistence is used as fallback.
+   - For barometric pressure (+1h, +3h, +6h) and derived heat index (+1h to +12h), the learned model outperforms persistence and is selected by policy.
+   - For short-term temperature, humidity, and wind speed (+1h to +6h), operational persistence is selected as fallback.
    - At +12h, the learned model captures diurnal cycle shifts and outperforms persistence in temperature (MAE 1.56°C vs 1.83°C) and wind speed (MAE 1.35 vs 1.52 km/h).
 2. **Deploy Calibrated Rain Probabilities**:
-   - The learned model's continuous probability outputs are superior to persistence across all horizons (Brier score improvements of 10.4% to 28.8%).
-   - Customer-facing interfaces should display the **calibrated probability** alongside confidence bands rather than binary rain/no-rain claims.
+   - The learned model's continuous probability outputs are superior to persistence across all horizons (Brier score improvements of 10.4% to 36.4%).
+   - Customer-facing interfaces should display the **calibrated probability** rather than binary rain/no-rain claims. Note: Surface weather variables do NOT have validated confidence intervals (uncertainty intervals unavailable; conformal intervals apply ONLY to the beta river stage experiment).
 3. **Quarantine Solar UV Index**:
    - UV index output is marked `BLOCKED_BY_SENSOR_CALIBRATION` and withheld from automated scoring due to raw hardware calibration defects.
 4. **Isolate River Level as Beta**:

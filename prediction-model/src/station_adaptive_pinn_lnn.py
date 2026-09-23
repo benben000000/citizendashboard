@@ -1,16 +1,26 @@
 """
-KloudTrack Per-Station Adaptive Physics-Informed Liquid Neural Network (PINN-LNN) Engine.
+DEPRECATED / ARCHIVED LEGACY SCRIPT.
 
-Tailors the continuous-time PINN-LNN model individually to each of the 23 KloudTrack field stations:
-1. Microclimate Profiles:
-   - Coastal Marine Stations (Tidal damping, sea-breeze moisture)
-   - River Basin & Confluence Gauges (Pampanga River rating curves, catchment runoff continuity)
-   - Orographic Foothills & Sierra Madre (Mountain convective lift, low-altitude LCL condensation)
-   - Urban & Central Plains (Heat island effect, fast thermal dissipation)
-2. Isolated Continuous Hidden States h_station(t) and calibrated time-constants tau_station per station.
-3. Online Per-Station Adaptive BPTT Learning (improves each station independently based on telemetry residuals).
-4. Generates comprehensive per-station forecasts, JSON profiles, and documentation reports.
+This script references deleted artifacts (such as data/station_pinn_profiles.json
+and data/station_adaptive_minute_forecasts.csv).
+It is retained for historical provenance only and is not part of the canonical pipeline.
+
+Canonical training, validation, and inference are implemented in:
+  - prediction-model/src/train.py
+  - prediction-model/src/validate.py
+  - prediction-model/src/inference.py
+  - prediction-model/src/verify_provenance.py
+
+Historical artifacts are preserved in git branch:
+  cleanup/archive-before-remediation-20260922
 """
+
+raise RuntimeError(
+    "DEPRECATED_LEGACY_SCRIPT: station_adaptive_pinn_lnn.py is a non-canonical legacy script "
+    "and references deleted artifacts (station_pinn_profiles.json, station_adaptive_minute_forecasts.csv). "
+    "Use canonical prediction-model/src/train.py and validate.py instead. "
+    "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
+)
 
 import os
 import sys
@@ -37,9 +47,6 @@ STATION_NEEDS_PATH = os.path.join(MQTT_DIR, "mqtt-needs.txt")
 STATION_PROFILES_JSON = os.path.join(DATA_DIR, "station_pinn_profiles.json")
 CSV_STATION_FORECASTS = os.path.join(DATA_DIR, "station_adaptive_minute_forecasts.csv")
 REPORT_MD = os.path.join(DOCS_DIR, "station-adaptive-pinn-lnn-report.md")
-
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(DOCS_DIR, exist_ok=True)
 
 NORM_MEANS = [28.5, 33.0, 10.0, 1008.0]
 NORM_STDS = [4.5, 6.5, 8.0, 6.0]

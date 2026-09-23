@@ -14,10 +14,10 @@ The **Garcia Weather Telemetry Forecast Engine** converts real-time automated we
 
 | Output Class | Variables | Permitted Operational Use |
 |---|---|---|
-| **Core Commercial** | Current observations, rising/falling trends, temperature outlook, relative humidity outlook, barometric pressure tendency, wind speed & circular direction, calibrated rain probability, derived NOAA heat index | Commercial monitoring, agricultural/industrial planning, dashboard displays with confidence and probability labels |
+| **Core Commercial** | Current observations, rising/falling trends, temperature outlook, relative humidity outlook, barometric pressure tendency, wind speed & circular direction, calibrated rain probability, derived NOAA heat index | Commercial monitoring, agricultural/industrial planning, dashboard displays with calibrated probabilities. (Weather prediction intervals are unavailable; conformal prediction intervals apply ONLY to the beta water-level experiment.) |
 | **Secondary / Beta** | Rain accumulation ranges (mm), light intensity (lux daylight cycle), river stage delta (meters) | Opt-in research and beta testing only (`not_for_life_safety: true`) |
 | **Blocked by Data** | UV Index | Quarantined / not scored due to raw telemetry calibration defect (reporting up to 11.0 index at midnight) |
-| **Prohibited Claims** | Flood evacuation triggers, autonomous flood warnings, guaranteed rain statements | **STRICTLY PROHIBITED** |
+| **Prohibited Claims** | Flood evacuation triggers, autonomous flood warnings, guaranteed rain statements, uncalibrated weather confidence bands | **STRICTLY PROHIBITED** |
 
 ---
 
@@ -53,8 +53,10 @@ All models adhere to strict scientific governance preventing data leakage and be
    - Train (60%), Validation/Calibration (20%), and Test (20%) split strictly by timestamp.
    - 48-hour embargo ($\text{seq\_len} + \text{max\_horizon}$) between splits prevents boundary context leakage.
    - Normalization parameters fitted strictly on the training partition.
-5. **Frozen Calibration Split & Hybrid Selection**:
-   - Hybrid blend weights and operational alert thresholds are fitted exclusively on the calibration split and frozen prior to test evaluation.
+5. **Frozen Calibration Split & Operational Policy**:
+   - Operational inference policy (`data/inference_policy.json`) generated deterministically by validation.
+   - Hybrid rain blend weights and operational alert thresholds are fitted exclusively on the calibration split and frozen prior to test evaluation.
+   - Variable sources governed per horizon (`learned_model` vs `persistence_fallback`).
 
 ---
 
@@ -62,15 +64,18 @@ All models adhere to strict scientific governance preventing data leakage and be
 
 Evaluated on the **untouched test partition** (2,820 sequence windows, 13,411 sample records across 16 stations):
 
-- **Rain Probability Calibration (Brier Score)**:
-  `GarciaWeatherLNN` outperforms persistence across **ALL 5 HORIZONS**:
-  - +1h: Brier **0.1249** vs Persistence 0.1713 (**+27.1% skill**)
-  - +3h: Brier **0.1844** vs Persistence 0.2270 (**+18.8% skill**)
-  - +6h: Brier **0.2415** vs Persistence 0.2695 (**+10.4% skill**)
-  - +12h: Brier **0.2538** vs Persistence 0.3000 (**+15.4% skill**)
-  - +24h: Brier **0.2473** vs Persistence 0.3328 (**+25.7% skill**)
-- **Calibrated Rain Hybrid Blend**:
-  Achieves 77.4% F1 at +1h (matching persistence 77.5%) while reducing Brier score to 0.1219.
+- **Rain Probability Quality vs. Event Classification**:
+  - **Probability Quality (Brier Score)**: Hybrid probability blending consistently minimizes Brier score across **ALL 5 HORIZONS**:
+    - +1h: Brier **0.1219** vs Persistence 0.1713 (**+28.8% skill**)
+    - +3h: Brier **0.1772** vs Persistence 0.2270 (**+21.9% skill**)
+    - +6h: Brier **0.2183** vs Persistence 0.2695 (**+19.0% skill**)
+    - +12h: Brier **0.2144** vs Persistence 0.3000 (**+28.5% skill**)
+    - +24h: Brier **0.2118** vs Persistence 0.3328 (**+36.4% skill**)
+  - **Event Classification Tradeoff**: While hybrid blending minimizes probability error, persistence achieves comparable or slightly higher F1/recall on short horizons (1h/3h). Operational alert thresholds ($T_{op}$) are calibrated on held-out validation data to optimize decision utility.
+- **Precipitation Amount Baselines**:
+  - Scorecards report full baselines: persistence MAE/RMSE, climatology MAE/RMSE, model skill score vs. persistence, and dry-hour vs. rainy-hour breakdowns.
+  - Heavy-rain threshold events (2.5, 5.0, 10.0 mm/h) are evaluated with precision, POD/recall, and CSI.
+  - **Precipitation Uncertainty Status**: Conformal prediction intervals are **UNAVAILABLE** for precipitation and surface weather variables; intervals apply strictly to the beta water-level experiment.
 - **Surface Weather Accuracy**:
   - Barometric Pressure: beats persistence at +1h (0.33 hPa), +3h (0.67 vs 0.78 hPa, **+14.1% skill**), and +6h (1.10 vs 1.11 hPa).
   - Derived Heat Index (NOAA Rothfusz): beats persistence at +1h (1.49 vs 1.52°C), +3h (2.62 vs 2.66°C), +6h (3.81 vs 3.86°C), and +12h (4.02 vs 4.80°C, **+16.2% skill**).
@@ -94,13 +99,16 @@ python prediction-model/src/train.py --horizon 1 --epochs 15
 # 3. Master orchestrator: train all models and evaluate all 5 horizons
 python prediction-model/src/train_and_evaluate_canonical.py
 
-# 4. Run independent validation suite and generate scorecards
+# 4. Run independent validation suite, generate scorecards and inference policy
 python prediction-model/src/validate.py --horizons 1 3 6 12 24
 
-# 5. Run full unit test suite (11 unit tests)
-pytest prediction-model/src/test_canonical_contract.py
+# 5. Run contract, inference, and provenance test suites
+python prediction-model/src/test_canonical_contract.py
+python prediction-model/src/test_inference_contract.py
+python prediction-model/src/test_provenance.py
+python prediction-model/src/smoke_test.py
 
-# 6. Verify end-to-end artifact provenance and hash integrity
+# 6. Verify exact-HEAD end-to-end artifact provenance and hash integrity
 python prediction-model/src/verify_provenance.py
 
 # 7. Run operational inference on observed 8-feature sequence
@@ -122,6 +130,7 @@ prediction-model/
 │   ├── weather_data_audit.json       # Deterministic data availability audit
 │   ├── cleaned_data_manifest.json    # Data cleaning manifest with hashes & counts
 │   ├── data_quality_report.json      # Comprehensive quarantine audit report
+│   ├── inference_policy.json         # Versioned operational inference policy
 │   ├── lnn_weather_water_h*.pt       # MF-1 PyTorch checkpoints per horizon
 │   ├── lnn_trained_weights_h*.json   # MF-2 Standalone weights per horizon
 │   ├── weather_validation_scorecard.json # Dedicated commercial weather scorecard
@@ -137,6 +146,8 @@ prediction-model/
 │   ├── validate.py                   # Multi-horizon validator & conformal evaluator
 │   ├── inference.py                  # Serverless inference engine (operational & research APIs)
 │   ├── test_canonical_contract.py    # Automated unit tests for contract and isolation
+│   ├── test_inference_contract.py    # Unit tests for operational inference policy contract
+│   ├── test_provenance.py            # Unit tests for exact-HEAD provenance and path hygiene
 │   └── smoke_test.py                 # Smoke test for data and model steps
 └── README.md
 ```

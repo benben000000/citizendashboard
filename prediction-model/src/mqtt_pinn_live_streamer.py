@@ -1,17 +1,25 @@
 """
-KloudTrack Real-Time AWS IoT Core MQTT Stream Ingestion & PINN-LNN Live Prediction Engine.
+DEPRECATED / ARCHIVED LEGACY SCRIPT.
 
-Features:
-1. Secure AWS IoT Core mTLS (Mutual TLS) connection via AWS IoT Device SDK v2 (awscrt/awsiotsdk).
-2. Uses AmazonRootCA1.pem, client certificate, and private key.
-3. Subscribes passively (read-only, no publish) to wildcard topics:
-   - kloudtrack/+/data
-   - kloudtrack/#
-   - All 23 mapped KloudTrack stations.
-4. Continuous-Time Physics-Informed Liquid Neural Network (PINN-LNN) rolling prediction & state integration (25 μs per step).
-5. Exports live prediction payloads for Next.js dashboard consumption with zero REST API polling.
-6. Automatic resilient reconnection loop.
+This script references deleted artifacts (such as data/pinn_lnn_champion_weights.json).
+It is retained for historical provenance only and is not part of the canonical pipeline.
+
+Canonical training, validation, and inference are implemented in:
+  - prediction-model/src/train.py
+  - prediction-model/src/validate.py
+  - prediction-model/src/inference.py
+  - prediction-model/src/verify_provenance.py
+
+Historical artifacts are preserved in git branch:
+  cleanup/archive-before-remediation-20260922
 """
+
+raise RuntimeError(
+    "DEPRECATED_LEGACY_SCRIPT: mqtt_pinn_live_streamer.py is a non-canonical legacy script "
+    "and references deleted artifacts (data/pinn_lnn_champion_weights.json). "
+    "Use canonical prediction-model/src/inference.py instead. "
+    "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
+)
 
 import os
 import sys
@@ -21,8 +29,6 @@ import json
 import csv
 import threading
 from datetime import datetime
-from awscrt import io, mqtt
-from awsiot import mqtt_connection_builder
 
 # Ensure UTF-8 output on Windows terminal
 if hasattr(sys.stdout, "reconfigure"):
@@ -34,12 +40,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 MQTT_DIR = os.path.join(os.path.dirname(BASE_DIR), "mqtt")
 CHAMPION_WEIGHTS_PATH = os.path.join(DATA_DIR, "pinn_lnn_champion_weights.json")
-LIVE_PREDICTIONS_JSON = os.path.join(DATA_DIR, "mqtt_live_predictions.json")
-RAW_STREAM_CSV = os.path.join(DATA_DIR, "raw_mqtt_telemetry.csv")
-DENOISED_STREAM_CSV = os.path.join(DATA_DIR, "denoised_pinn_telemetry.csv")
-STATION_NEEDS_PATH = os.path.join(MQTT_DIR, "mqtt-needs.txt")
-
-os.makedirs(DATA_DIR, exist_ok=True)
 
 # Certificate & Key Paths
 CA_PATH = os.path.abspath(os.path.join(MQTT_DIR, "AmazonRootCA1.pem"))

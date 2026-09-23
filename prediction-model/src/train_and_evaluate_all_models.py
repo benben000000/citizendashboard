@@ -1,13 +1,25 @@
 """
-Complete ML Audit, Backtest & Model Improvement Pipeline for Kloudtrack
-- Strict Chronological Walk-Forward Backtest (Train / Val / Test)
-- Target-joined Out-of-Sample Evaluation: (station_id, t + h)
-- 6 Baselines: Persistence, Last-hour rain, Majority class, Diurnal climatology, Moving average, Lagged ML
-- Target evaluation: Continuous (Temp, Hum, Pres, Wind, Precip, Water Level) and Categorical (Rain, Rain Intensity, Flood Stage)
-- Quality-filtered vs Raw Outlier comparisons
-- Probability calibration, Brier score, ECE, Prediction Intervals
-- Output generation of corrected benchmark table & full metrics report
+DEPRECATED / ARCHIVED LEGACY SCRIPT.
+
+This script was part of an earlier exploratory backtest pipeline and references
+archived artifacts (such as data/audit_and_benchmark_metrics.json). It is retained
+for historical provenance only.
+
+Canonical training and validation are implemented in:
+  - prediction-model/src/train.py
+  - prediction-model/src/validate.py
+  - prediction-model/src/verify_provenance.py
+
+Historical artifacts are preserved in git branch:
+  cleanup/archive-before-remediation-20260922
 """
+
+raise RuntimeError(
+    "DEPRECATED_LEGACY_SCRIPT: train_and_evaluate_all_models.py is a non-canonical legacy script "
+    "and references deleted artifacts (e.g. data/audit_and_benchmark_metrics.json). "
+    "Use canonical prediction-model/src/train.py and validate.py instead. "
+    "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
+)
 
 import os
 import sys
@@ -18,7 +30,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 import numpy as np
 
-WORKSPACE_ROOT = r"c:\Ben File\beta-citizen-prediction"
+WORKSPACE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BENCHMARK_CSV = os.path.join(WORKSPACE_ROOT, "public", "exports", "Kloudtrack_Benchmark_Comparison_All_Stations_2026-09-01_to_2026-09-20_1h.csv")
 CLEAN_CONSOLIDATED_CSV = os.path.join(WORKSPACE_ROOT, "prediction-model", "data", "segregated", "clean_consolidated_2024_2026.csv")
 CORRECTED_BENCHMARK_EXPORT = os.path.join(WORKSPACE_ROOT, "public", "exports", "Kloudtrack_Corrected_Audited_Benchmark_2026-09-01_to_2026-09-20.csv")

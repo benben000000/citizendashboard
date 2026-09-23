@@ -97,19 +97,17 @@ def compute_sha256(filepath: str) -> str:
 
 def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     """
-    Run full provenance verification against expected_commit or recent git commits.
+    Run full provenance verification against expected_commit or exact HEAD commit.
     Returns a dictionary of check results, raising AssertionError on failure.
     """
     head_commit = get_git_head_commit()
-    parent_commit = get_git_parent_commit()
-    recent_commits = get_git_recent_commits(5)
 
     if expected_commit is not None:
         allowed_commits = {expected_commit}
-        target_display = expected_commit
+        target_display = f"{expected_commit} (explicit override)"
     else:
-        allowed_commits = recent_commits if recent_commits else {c for c in [head_commit, parent_commit] if c}
-        target_display = f"{head_commit} (allowed: {len(allowed_commits)} recent commits)"
+        allowed_commits = {head_commit}
+        target_display = f"{head_commit} (exact HEAD)"
 
     print("=" * 80)
     print(f"PROVENANCE GATE VERIFICATION: Target Commit = {target_display}")
@@ -203,6 +201,33 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
         assert audit.get("target_feasibility_determination", {}).get("uv_index", {}).get("status") == "BLOCKED_BY_SENSOR_CALIBRATION"
         print("[PASS] weather_data_audit.json: hashes and UV calibration quarantine verified")
 
+    # 4d. Verify inference_policy.json
+    policy_path = os.path.join(DATA_DIR, "inference_policy.json")
+    assert os.path.exists(policy_path), f"Missing inference policy artifact: {policy_path}"
+    with open(policy_path, "r", encoding="utf-8") as f:
+        pol = json.load(f)
+    pol_commit = pol.get("policy_code_commit")
+    assert pol_commit in allowed_commits, (
+        f"inference_policy.json commit mismatch: expected one of {allowed_commits}, got {pol_commit}"
+    )
+    pol_hashes = pol.get("dataset_hashes", {})
+    assert pol_hashes.get("weather_telemetry_sha256") == weather_hash, "weather hash mismatch in inference policy"
+    assert pol_hashes.get("water_level_telemetry_sha256") == water_hash, "water hash mismatch in inference policy"
+    assert "horizons" in pol, "inference_policy.json missing 'horizons'"
+    for h in CANONICAL_HORIZONS:
+        h_str = str(h)
+        assert h_str in pol["horizons"], f"inference_policy.json missing horizon {h_str}"
+        h_cfg = pol["horizons"][h_str]
+        assert "selected_sources" in h_cfg, f"inference_policy.json missing selected_sources for horizon {h_str}"
+        assert "rain_model_weight" in h_cfg, f"inference_policy.json missing rain_model_weight for horizon {h_str}"
+        assert "rain_persistence_weight" in h_cfg, f"inference_policy.json missing rain_persistence_weight for horizon {h_str}"
+        assert "operational_rain_threshold" in h_cfg, f"inference_policy.json missing operational_rain_threshold for horizon {h_str}"
+        cal_commit = h_cfg.get("calibration_code_commit")
+        assert cal_commit in allowed_commits, (
+            f"inference_policy.json horizon {h_str} calibration_code_commit mismatch: expected one of {allowed_commits}, got {cal_commit}"
+        )
+    print("[PASS] inference_policy.json: commit, hashes, and all 5 horizon policies verified")
+
     # 5. Verify MF-1 PyTorch Checkpoints
     import torch
     for h in CANONICAL_HORIZONS:
@@ -272,6 +297,59 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     assert tolerance_violations == 0, f"{tolerance_violations} rows violate lead-time tolerance (|lead - h| <= 0.25)"
     print(f"[PASS] test_predictions_log.csv: {row_count} sample rows, 0 tolerance violations")
 
+    # 8. Verify No Machine-Specific Paths in Committed Data Artifacts
+    import re
+    machine_path_regex = re.compile(r"([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
+    data_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".json") or f.endswith(".csv")]
+    path_violations = []
+    for df in data_files:
+        p = os.path.join(DATA_DIR, df)
+        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            for line_idx, line in enumerate(f, 1):
+                match = machine_path_regex.search(line)
+                if match:
+                    path_violations.append(f"{df}:{line_idx}: matched '{match.group(0)}'")
+    assert len(path_violations) == 0, (
+        f"Found {len(path_violations)} machine-specific path violation(s) in committed data artifacts:\n"
+        + "\n".join(path_violations[:5])
+    )
+    print(f"[PASS] Path Hygiene: 0 machine-specific paths across {len(data_files)} data artifacts")
+
+    # 9. Verify No Active Canonical Scripts Reference Deleted Artifacts
+    deleted_artifacts = [
+        "audit_and_benchmark_metrics.json",
+        "pinn_lnn_champion_weights.json",
+        "station_pinn_profiles.json",
+        "station_adaptive_minute_forecasts.csv",
+    ]
+    canonical_scripts = [
+        "train.py",
+        "train_standalone.py",
+        "train_and_evaluate_canonical.py",
+        "dataset.py",
+        "model.py",
+        "inference.py",
+        "validate.py",
+        "smoke_test.py",
+        "test_canonical_contract.py",
+        "test_inference_contract.py",
+        "audit_data_availability.py",
+    ]
+    script_violations = []
+    for s_name in canonical_scripts:
+        s_path = os.path.join(SRC_DIR, s_name)
+        if not os.path.exists(s_path):
+            continue
+        with open(s_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+            for da in deleted_artifacts:
+                if da in content:
+                    script_violations.append(f"{s_name} references deleted artifact {da}")
+    assert len(script_violations) == 0, (
+        f"Found active canonical script reference(s) to deleted artifacts:\n" + "\n".join(script_violations)
+    )
+    print("[PASS] Active Scripts: 0 active canonical scripts reference deleted artifacts")
+
     print("=" * 80)
     print("ALL PROVENANCE GATE CHECKS PASSED SUCCESSFULLY!")
     print("=" * 80)
@@ -279,7 +357,15 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else None
+    import argparse
+    parser = argparse.ArgumentParser(description="Provenance Gate and Consistency Verification Suite.")
+    parser.add_argument("--allow-commit", dest="allow_commit", type=str, default=None,
+                        help="Explicitly allow a specific historical commit SHA instead of requiring exact HEAD equality.")
+    parser.add_argument("positional_commit", nargs="?", default=None,
+                        help="Optional positional commit argument for backwards compatibility.")
+    args = parser.parse_args()
+
+    target = args.allow_commit if args.allow_commit else args.positional_commit
     try:
         verify_provenance(target)
         sys.exit(0)

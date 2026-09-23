@@ -28,7 +28,7 @@ from model import WeatherWaterLNN
 
 
 class LNNServerlessPredictor:
-    def __init__(self, model_weights_path: str = "lnn_weather_water.pt"):
+    def __init__(self, model_weights_path: str = "lnn_weather_water.pt", policy_path: str = None):
         self.device = torch.device("cpu")
 
         # Check current working directory, then data directory fallback
@@ -84,6 +84,47 @@ class LNNServerlessPredictor:
         training_date = self.manifest.get("training_date", "unknown")
         seed = self.manifest.get("seed", "unknown")
         print(f"Loaded model checkpoint: trained={training_date}, seed={seed}, weather_heads={has_weather_heads}")
+
+        # Locate and load operational inference policy (fail-closed)
+        if policy_path is None:
+            default_policy_name = "inference_policy.json"
+            if os.path.exists(default_policy_name):
+                policy_path = default_policy_name
+            else:
+                policy_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", default_policy_name
+                )
+        elif not os.path.isabs(policy_path) and not os.path.exists(policy_path):
+            fallback_pol = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", os.path.basename(policy_path)
+            )
+            if os.path.exists(fallback_pol):
+                policy_path = fallback_pol
+
+        if not os.path.exists(policy_path):
+            raise FileNotFoundError(
+                f"Operational inference policy not found at '{policy_path}'. "
+                f"Validation must be executed first to generate inference_policy.json. "
+                f"Inference fails closed without a valid operational policy."
+            )
+
+        try:
+            with open(policy_path, "r", encoding="utf-8") as f:
+                self.policy = json.load(f)
+        except Exception as e:
+            raise ValueError(f"Malformed operational inference policy at '{policy_path}': {e}")
+
+        if not isinstance(self.policy, dict) or "horizons" not in self.policy:
+            raise ValueError(f"Invalid operational inference policy at '{policy_path}': missing 'horizons' table.")
+
+        policy_commit = self.policy.get("policy_code_commit")
+        model_commit = self.manifest.get("code_commit")
+        if policy_commit and model_commit and policy_commit != "unknown" and model_commit != "unknown":
+            if policy_commit != model_commit:
+                raise ValueError(
+                    f"Operational policy commit mismatch (fail-closed): "
+                    f"policy commit '{policy_commit}' does not match model commit '{model_commit}'."
+                )
 
     def _normalize(self, features: np.ndarray) -> np.ndarray:
         """Normalize using checkpoint-stored constants (not module globals)."""
@@ -189,8 +230,42 @@ class LNNServerlessPredictor:
                 pred_ws = orig_ws
                 pred_wind_dir = None
 
-        # Derived Heat Index & Risk Category
-        derived_hi = compute_noaa_heat_index(pred_temp, pred_rh)
+        # Check and enforce operational inference policy for requested horizon (fail-closed)
+        h_key = str(horizon_hours)
+        horizons_table = self.policy.get("horizons", {})
+        if h_key not in horizons_table:
+            raise ValueError(
+                f"Requested horizon {horizon_hours}h is not supported in operational inference policy "
+                f"(supported: {list(horizons_table.keys())}). Fail closed; do not silently invent defaults or substitute 1h policy."
+            )
+        h_policy = horizons_table[h_key]
+        selected_sources = h_policy.get("selected_sources", {})
+        rain_model_weight = float(h_policy.get("rain_model_weight", 1.0))
+        rain_persistence_weight = float(h_policy.get("rain_persistence_weight", 0.0))
+        operational_rain_threshold = float(h_policy.get("operational_rain_threshold", 0.5))
+
+        # Origin persistence observations
+        last_observed_precip = float(telemetry_arr[-1, 7])
+        orig_wind_deg = (math.degrees(math.atan2(orig_sin, orig_cos)) + 360.0) % 360.0 if orig_ws >= 1.0 else None
+        persistence_rain_prob = 1.0 if last_observed_precip >= 0.1 else 0.0
+
+        # Continuous weather variable selection according to operational policy
+        temp_src = selected_sources.get("temperature", "persistence_fallback")
+        rh_src = selected_sources.get("humidity", "persistence_fallback")
+        p_src = selected_sources.get("pressure", "persistence_fallback")
+        ws_src = selected_sources.get("wind_speed", "persistence_fallback")
+        wd_src = selected_sources.get("wind_direction", "persistence_fallback")
+
+        op_temp = pred_temp if temp_src == "learned_model" else orig_temp
+        op_rh = pred_rh if rh_src == "learned_model" else orig_rh
+        op_p = pred_p if p_src == "learned_model" else orig_p
+        op_ws = pred_ws if ws_src == "learned_model" else orig_ws
+        op_wind_dir = pred_wind_dir if wd_src == "learned_model" else orig_wind_deg
+        if op_ws < 1.0:
+            op_wind_dir = None
+
+        # Derived Heat Index & Risk Category from operational values
+        derived_hi = compute_noaa_heat_index(op_temp, op_rh)
         if derived_hi < 27.0:
             hi_risk = "NORMAL"
         elif derived_hi < 32.0:
@@ -202,8 +277,12 @@ class LNNServerlessPredictor:
         else:
             hi_risk = "EXTREME DANGER"
 
-        # Pressure Tendency
-        dp = pred_p - orig_p
+        # Rain probability hybrid blending
+        blended_rain_prob = max(0.0, min(1.0, (rain_model_weight * final_rain_prob) + (rain_persistence_weight * persistence_rain_prob)))
+        rain_operational_alert = bool(blended_rain_prob >= operational_rain_threshold)
+
+        # Pressure Tendency from operational pressure vs origin
+        dp = op_p - orig_p
         if dp > 0.5:
             p_tendency = "RISING"
         elif dp < -0.5:
@@ -225,22 +304,65 @@ class LNNServerlessPredictor:
             "product_name": "Garcia Weather Telemetry Forecast Engine",
             "model_version": self.manifest.get("training_date", "unknown"),
             "model_seed": self.manifest.get("seed", "unknown"),
-            "model_status": "RESEARCH_PROTOTYPE",
+            "model_status": self.manifest.get("model_status", "RESEARCH_PROTOTYPE"),
             "not_for_life_safety": True,
             "forecast_origin_timestamp": forecast_origin_timestamp,
             "target_timestamp": target_ts,
             "forecast_horizon": f"{horizon_hours}h",
-            # Core Commercial Weather Forecast
-            "temperature_c": round(pred_temp, 2),
-            "relative_humidity_pct": round(pred_rh, 1),
-            "pressure_hpa": round(pred_p, 2),
+            # Core Operational Weather Forecast (Policy-Governed)
+            "temperature_c": round(op_temp, 2),
+            "relative_humidity_pct": round(op_rh, 1),
+            "pressure_hpa": round(op_p, 2),
             "pressure_tendency": p_tendency,
-            "wind_speed_kmh": round(pred_ws, 2),
-            "wind_direction_deg": round(pred_wind_dir, 1) if pred_wind_dir is not None else None,
+            "wind_speed_kmh": round(op_ws, 2),
+            "wind_direction_deg": round(op_wind_dir, 1) if op_wind_dir is not None else None,
             "heat_index_c": round(derived_hi, 2),
             "heat_index_risk_category": hi_risk,
-            "chance_of_rain_pct": round(final_rain_prob * 100, 1),
+            "chance_of_rain_pct": round(blended_rain_prob * 100, 1),
             "expected_precipitation_mm": round(final_precip_mm, 2),
+            # Operational Policy & Calibration Metadata
+            "selected_source_by_variable": {
+                "temperature": temp_src,
+                "humidity": rh_src,
+                "pressure": p_src,
+                "wind_speed": ws_src,
+                "wind_direction": wd_src,
+                "heat_index": selected_sources.get("heat_index", "derived_from_selected_temp_and_humidity"),
+            },
+            "rain_probability_source": "hybrid_blend" if (rain_model_weight > 0 and rain_persistence_weight > 0) else ("learned_model" if rain_model_weight >= 1.0 else "persistence"),
+            "rain_model_weight": rain_model_weight,
+            "rain_persistence_weight": rain_persistence_weight,
+            "rain_operational_threshold": operational_rain_threshold,
+            "rain_operational_alert": rain_operational_alert,
+            "policy_version": self.policy.get("policy_version", "unknown"),
+            "policy_code_commit": self.policy.get("policy_code_commit", "unknown"),
+            "model_code_commit": self.manifest.get("code_commit", "unknown"),
+            # Weather Uncertainty (Explicitly Unavailable)
+            "weather_uncertainty": {
+                "status": "UNAVAILABLE",
+                "reason": "Conformal prediction intervals apply ONLY to the internal beta water-level experiment. Weather prediction intervals are unavailable.",
+            },
+            # Diagnostics (Preserving raw model predictions & origin observations)
+            "diagnostics": {
+                "raw_learned_predictions": {
+                    "temperature_c": round(pred_temp, 2),
+                    "relative_humidity_pct": round(pred_rh, 1),
+                    "pressure_hpa": round(pred_p, 2),
+                    "wind_speed_kmh": round(pred_ws, 2),
+                    "wind_direction_deg": round(pred_wind_dir, 1) if pred_wind_dir is not None else None,
+                    "rain_probability": round(final_rain_prob, 4),
+                    "precipitation_mm": round(final_precip_mm, 2),
+                },
+                "persistence_observations": {
+                    "temperature_c": round(orig_temp, 2),
+                    "relative_humidity_pct": round(orig_rh, 1),
+                    "pressure_hpa": round(orig_p, 2),
+                    "wind_speed_kmh": round(orig_ws, 2),
+                    "wind_direction_deg": round(orig_wind_deg, 1) if orig_wind_deg is not None else None,
+                    "rain_probability": persistence_rain_prob,
+                    "precipitation_mm": round(last_observed_precip, 2),
+                },
+            },
             # Internal / Beta Research Module (Not for life safety)
             "water_level_beta": {
                 "predicted_water_level_m": round(max(0.0, predicted_water), 2),
