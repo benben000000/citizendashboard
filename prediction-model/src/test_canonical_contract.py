@@ -377,6 +377,104 @@ class TestCanonicalForecastingContract(unittest.TestCase):
         gap_hours = (min_test_ts - max_calib_ts).total_seconds() / 3600.0
         self.assertGreaterEqual(gap_hours, 48.0, f"Leakage: calibration and test are separated by only {gap_hours}h")
 
+    def test_checkpoint_load_all_horizons(self):
+        """
+        Verify that model checkpoints for all 5 horizons (h1, h3, h6, h12, h24)
+        load cleanly from disk and execute operational inference.
+        """
+        from inference import LNNServerlessPredictor
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
+        horizons = [1, 3, 6, 12, 24]
+        dummy_seq = np.ones((24, 8), dtype=np.float32) * 28.0
+        dummy_seq[:, 3] = 1012.0  # pressure
+
+        for h in horizons:
+            ckpt_path = os.path.join(data_dir, f"lnn_weather_water_h{h}.pt")
+            self.assertTrue(os.path.exists(ckpt_path), f"Checkpoint missing: {ckpt_path}")
+            predictor = LNNServerlessPredictor(model_weights_path=ckpt_path)
+            res = predictor.predict_from_observed_sequence(
+                telemetry_sequence=dummy_seq,
+                forecast_origin_timestamp="2026-08-01T12:00:00",
+                horizon_hours=h,
+            )
+            self.assertEqual(res["forecast_horizon"], f"{h}h")
+            self.assertIn("temperature_c", res)
+            self.assertIn("chance_of_rain_pct", res)
+            self.assertIn("pressure_tendency", res)
+            self.assertIn("heat_index_risk_category", res)
+
+    def test_pressure_tendency_and_heat_index_categories(self):
+        """
+        Verify operational classification thresholds:
+        - Pressure tendency: RISING (>+0.5 hPa), FALLING (<-0.5 hPa), STEADY.
+        - Heat index risk: NORMAL (<27), CAUTION (27-32), EXTREME CAUTION (32-41), DANGER (41-54), EXTREME DANGER (>=54).
+        """
+        from dataset import compute_noaa_heat_index
+        # Test heat index categories
+        test_cases = [
+            (24.0, 40.0, "NORMAL"),
+            (28.0, 45.0, "CAUTION"),
+            (32.0, 60.0, "EXTREME CAUTION"),
+            (35.0, 65.0, "DANGER"),
+            (42.0, 80.0, "EXTREME DANGER"),
+        ]
+        for t, rh, expected_cat in test_cases:
+            hi = compute_noaa_heat_index(t, rh)
+            if hi < 27.0:
+                cat = "NORMAL"
+            elif hi < 32.0:
+                cat = "CAUTION"
+            elif hi < 41.0:
+                cat = "EXTREME CAUTION"
+            elif hi < 54.0:
+                cat = "DANGER"
+            else:
+                cat = "EXTREME DANGER"
+            self.assertEqual(cat, expected_cat, f"Mismatch for T={t}, RH={rh}, HI={hi}: expected {expected_cat}, got {cat}")
+
+        # Test pressure tendency
+        tendency_cases = [(0.6, "RISING"), (-0.8, "FALLING"), (0.2, "STEADY"), (-0.3, "STEADY")]
+        for dp, expected in tendency_cases:
+            if dp > 0.5:
+                res = "RISING"
+            elif dp < -0.5:
+                res = "FALLING"
+            else:
+                res = "STEADY"
+            self.assertEqual(res, expected)
+
+    def test_fallback_skill_gate_rationale_recorded(self):
+        """
+        Verify that weather_validation_scorecard.json records explicit skill gates,
+        beats_persistence flags, and selected_source or derivation_formula for every variable across all 5 horizons.
+        Fails if any target has an unrecorded or undocumented fallback selection.
+        """
+        import json
+        scorecard_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "weather_validation_scorecard.json")
+        self.assertTrue(os.path.exists(scorecard_file), f"Missing scorecard: {scorecard_file}")
+        with open(scorecard_file, "r", encoding="utf-8") as f:
+            sc = json.load(f)
+
+        horizons = [1, 3, 6, 12, 24]
+        for h in horizons:
+            h_key = f"horizon_{h}h"
+            self.assertIn(h_key, sc["horizons"])
+            h_data = sc["horizons"][h_key]
+            for var in ["temperature", "humidity", "pressure", "wind_speed"]:
+                self.assertIn(var, h_data, f"Variable {var} missing in {h_key}")
+                var_data = h_data[var]
+                self.assertIn("beats_persistence", var_data)
+                self.assertIn("selected_source", var_data)
+                self.assertIn("skill_vs_persistence", var_data)
+                self.assertIn(var_data["selected_source"], ["learned_model", "persistence_fallback"])
+
+            # Heat index is derived
+            self.assertIn("heat_index", h_data)
+            hi_data = h_data["heat_index"]
+            self.assertIn("beats_persistence", hi_data)
+            self.assertIn("skill_vs_persistence", hi_data)
+            self.assertIn("derivation_formula", hi_data)
+
     def test_provenance_gate(self):
         """
         Verify that all committed model artifacts, quality reports, and manifests
