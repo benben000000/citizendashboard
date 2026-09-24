@@ -222,6 +222,9 @@ class TestProvenanceGate(unittest.TestCase):
             "smoke_test.py",
             "test_canonical_contract.py",
             "test_inference_contract.py",
+            "test_monitoring.py",
+            "test_predictive_quality.py",
+            "anomaly_detector.py",
             "audit_data_availability.py",
         ]
 

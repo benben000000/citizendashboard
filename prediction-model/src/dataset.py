@@ -188,6 +188,7 @@ class TelemetryDataPipeline:
         self.water_csv = water_csv or WATER_CSV_PATH
 
         self.quarantine_counts = Counter()
+        self.target_rejections = Counter()
         self.raw_weather_row_count = 0
         self.raw_water_row_count = 0
 
@@ -501,6 +502,135 @@ def denormalize_features(features: np.ndarray, means: np.ndarray, stds: np.ndarr
     return features * stds + means
 
 
+def extract_zero_leakage_features(
+    window_records: list,
+    t0_timestamp: datetime = None,
+    station_id: str = None,
+) -> dict:
+    """
+    Extract zero-leakage engineered features available strictly at or before forecast origin t0.
+
+    Guarantees:
+      - Uses ONLY observations with timestamp <= t0.
+      - Zero access to future observations (t > t0).
+      - Pure function of the provided historical window.
+
+    Engineered Features:
+      - Lags: t0 - 1h, 3h, 6h, 12h, 24h for temperature, humidity, pressure, wind_speed, precipitation.
+      - Rolling statistics (mean, std, min, max) over 3h, 6h, 12h, 24h.
+      - Barometric pressure tendency dp/dt (1h, 3h) and categorical tendency (RISING, STEADY, FALLING).
+      - Rain persistence duration (hours of consecutive rain >= 0.1 mm leading up to t0).
+      - Dry spell duration (hours of consecutive rain < 0.1 mm leading up to t0).
+      - Wind vector components u = ws * cos(theta), v = ws * sin(theta) and calm wind flag (ws < 1.0 km/h).
+      - Diurnal and seasonal cycle: sin/cos of solar hour and day of year.
+      - Daylight indicator based on local solar hour (6:00 to 18:00 PHT).
+    """
+    if not window_records:
+        return {}
+
+    # Sort window records chronologically and filter to strictly <= t0
+    records = list(window_records)
+    if t0_timestamp is not None:
+        records = [r for r in records if r["timestamp"] <= t0_timestamp]
+    if not records:
+        return {}
+
+    n = len(records)
+    t0_rec = records[-1]
+    t0_dt = t0_rec["timestamp"]
+
+    # Extract time series arrays for variables
+    temps = np.array([float(r["temperature"]) for r in records], dtype=np.float64)
+    rh = np.array([float(r["humidity"]) for r in records], dtype=np.float64)
+    pressures = np.array([float(r["pressure"]) for r in records], dtype=np.float64)
+    ws = np.array([float(r["wind_speed"]) for r in records], dtype=np.float64)
+    sin_w = np.array([float(r["wind_sin"]) for r in records], dtype=np.float64)
+    cos_w = np.array([float(r["wind_cos"]) for r in records], dtype=np.float64)
+    precip = np.array([float(r["precipitation"]) for r in records], dtype=np.float64)
+
+    feats = {}
+
+    # 1. Base values at t0
+    feats["t0_temperature"] = float(temps[-1])
+    feats["t0_humidity"] = float(rh[-1])
+    feats["t0_pressure"] = float(pressures[-1])
+    feats["t0_wind_speed"] = float(ws[-1])
+    feats["t0_precipitation"] = float(precip[-1])
+    feats["t0_wind_u"] = float(cos_w[-1] * ws[-1])
+    feats["t0_wind_v"] = float(sin_w[-1] * ws[-1])
+    feats["t0_calm_wind"] = 1.0 if ws[-1] < 1.0 else 0.0
+
+    # 2. Lagged features (t0 - 1h, 3h, 6h, 12h, 24h)
+    lag_steps = [1, 3, 6, 12, 24]
+    for lag in lag_steps:
+        idx = max(0, n - 1 - lag)
+        feats[f"temp_lag_{lag}h"] = float(temps[idx])
+        feats[f"humidity_lag_{lag}h"] = float(rh[idx])
+        feats[f"pressure_lag_{lag}h"] = float(pressures[idx])
+        feats[f"wind_speed_lag_{lag}h"] = float(ws[idx])
+        feats[f"precip_lag_{lag}h"] = float(precip[idx])
+
+    # 3. Rolling statistics over windows [3h, 6h, 12h, 24h]
+    rolling_windows = [3, 6, 12, 24]
+    for rw in rolling_windows:
+        sub_len = min(n, rw)
+        t_sub = temps[-sub_len:]
+        p_sub = pressures[-sub_len:]
+        rh_sub = rh[-sub_len:]
+        precip_sub = precip[-sub_len:]
+
+        feats[f"temp_mean_{rw}h"] = float(np.mean(t_sub))
+        feats[f"temp_std_{rw}h"] = float(np.std(t_sub)) if sub_len > 1 else 0.0
+        feats[f"temp_min_{rw}h"] = float(np.min(t_sub))
+        feats[f"temp_max_{rw}h"] = float(np.max(t_sub))
+
+        feats[f"pressure_mean_{rw}h"] = float(np.mean(p_sub))
+        feats[f"pressure_std_{rw}h"] = float(np.std(p_sub)) if sub_len > 1 else 0.0
+        feats[f"humidity_mean_{rw}h"] = float(np.mean(rh_sub))
+        feats[f"precip_sum_{rw}h"] = float(np.sum(precip_sub))
+
+    # 4. Pressure Tendency (dp/dt 1h and 3h)
+    dp_1h = float(pressures[-1] - (pressures[-2] if n >= 2 else pressures[-1]))
+    dp_3h = float(pressures[-1] - (pressures[-4] if n >= 4 else pressures[0]))
+    feats["pressure_dp_1h"] = dp_1h
+    feats["pressure_dp_3h"] = dp_3h
+    if dp_3h > 0.5:
+        feats["pressure_tendency_cat"] = 1.0  # Rising
+    elif dp_3h < -0.5:
+        feats["pressure_tendency_cat"] = -1.0 # Falling
+    else:
+        feats["pressure_tendency_cat"] = 0.0  # Steady
+
+    # 5. Rain persistence duration & Dry spell duration leading up to t0
+    rain_persist = 0
+    for k in range(n - 1, -1, -1):
+        if precip[k] >= 0.1:
+            rain_persist += 1
+        else:
+            break
+    feats["rain_persistence_hours"] = float(rain_persist)
+
+    dry_spell = 0
+    for k in range(n - 1, -1, -1):
+        if precip[k] < 0.1:
+            dry_spell += 1
+        else:
+            break
+    feats["dry_spell_hours"] = float(dry_spell)
+
+    # 6. Diurnal and seasonal cycle features
+    # Local Philippine time: UTC + 8
+    pht_hour = (t0_dt.hour + 8) % 24
+    doy = t0_dt.timetuple().tm_yday
+    feats["hour_sin"] = float(math.sin(2.0 * math.pi * pht_hour / 24.0))
+    feats["hour_cos"] = float(math.cos(2.0 * math.pi * pht_hour / 24.0))
+    feats["doy_sin"] = float(math.sin(2.0 * math.pi * doy / 365.25))
+    feats["doy_cos"] = float(math.cos(2.0 * math.pi * doy / 365.25))
+    feats["is_daylight"] = 1.0 if (6 <= pht_hour < 18) else 0.0
+
+    return feats
+
+
 def build_forecast_windows(
     pipeline: TelemetryDataPipeline,
     split: str = "train",
@@ -537,6 +667,11 @@ def build_forecast_windows(
       (telemetry_tensor, dt_tensor, rain_targets, precip_targets, water_targets, has_water_mask)
       + optionally [metadata_list]
     """
+    # Track target rejection reasons for auditability
+    rejections = Counter()
+    rejections["rejected_cross_station"] = 0
+    rejections["rejected_preceding_origin"] = 0
+
     if norm_means is None:
         norm_means = pipeline.norm_means
     if norm_stds is None:
@@ -590,11 +725,23 @@ def build_forecast_windows(
 
             # 1. Target timestamp check
             t_target = t0 + timedelta(hours=horizon)
-            if t_target not in st_dict or t_target > end_bound:
+
+            # Target precedence check
+            if t_target <= t0:
+                rejections["rejected_preceding_origin"] += 1
+                continue
+
+            if t_target > end_bound:
+                rejections["rejected_cross_split"] += 1
+                continue
+
+            if t_target not in st_dict:
+                rejections["rejected_target_missing"] += 1
                 continue
 
             actual_lead = (t_target - t0).total_seconds() / 3600.0
             if abs(actual_lead - horizon) > HORIZON_TOLERANCE_HOURS:
+                rejections["rejected_out_of_tolerance"] += 1
                 continue
 
             # 2. Input sequence check (preceding seq_len hourly observations)
@@ -609,6 +756,7 @@ def build_forecast_windows(
                 window_records.append(st_dict[h_step])
 
             if not has_full_window:
+                rejections["rejected_incomplete_window"] += 1
                 continue
 
             # Compute dt (elapsed hours between consecutive observations)
@@ -718,6 +866,9 @@ def build_forecast_windows(
 
         if max_samples and len(windows) >= max_samples:
             break
+
+    pipeline.last_target_rejections = rejections
+    pipeline.target_rejections.update(rejections)
 
     if len(windows) == 0:
         return None

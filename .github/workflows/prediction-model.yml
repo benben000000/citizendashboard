@@ -14,7 +14,7 @@ on:
 
 jobs:
   prediction-model-ci:
-    name: Prediction Model 14-Gate Verification
+    name: Prediction Model 15-Gate Verification
     runs-on: ubuntu-latest
 
     steps:
@@ -92,7 +92,12 @@ jobs:
           print('Gate 8 PASS: All 5 horizons evaluated with verified schema and metrics.')
           "
 
-      - name: Gate 9 - Path Hygiene Check
+      - name: Gate 9 - Predictive Quality & Physical Consistency Tests
+        run: |
+          python prediction-model/src/test_predictive_quality.py
+          python prediction-model/src/generate_manifests.py --check-only
+
+      - name: Gate 10 - Path Hygiene Check
         run: |
           python -c "
           import os, re, sys
@@ -108,10 +113,10 @@ jobs:
           if violations:
               print(f'Path hygiene failure: {len(violations)} violations found.')
               sys.exit(1)
-          print('Gate 9 PASS: 0 machine-specific paths found.')
+          print('Gate 10 PASS: 0 machine-specific paths found.')
           "
 
-      - name: Gate 10 - Deleted Artifact References Check
+      - name: Gate 11 - Deleted Artifact References Check
         run: |
           python -c "
           import os, sys
@@ -132,6 +137,9 @@ jobs:
               'smoke_test.py',
               'test_canonical_contract.py',
               'test_inference_contract.py',
+              'test_monitoring.py',
+              'test_predictive_quality.py',
+              'anomaly_detector.py',
               'audit_data_availability.py',
           ]
           src_dir = 'prediction-model/src'
@@ -147,19 +155,20 @@ jobs:
           if violations:
               print(f'Deleted-artifact reference failure: {violations}')
               sys.exit(1)
-          print('Gate 10 PASS: 0 active canonical scripts reference deleted artifacts.')
+          print('Gate 11 PASS: 0 active canonical scripts reference deleted artifacts.')
           "
 
-      - name: Gate 11 - Working-Tree Cleanliness Check (Read-Only Test Verification)
+      - name: Gate 12 - Working-Tree Cleanliness Check (Read-Only Test Verification)
         run: |
           git status --short
+          git diff --check
           git diff --exit-code prediction-model/data/
 
-      - name: Gate 12 - Exact / Bundle Provenance Verification
+      - name: Gate 13 - Exact / Bundle Provenance Verification
         run: |
           python prediction-model/src/verify_provenance.py
 
-      - name: Gate 13 - Five-Horizon Artifact Presence Check
+      - name: Gate 14 - Five-Horizon Artifact Presence Check
         run: |
           python -c "
           import os, sys
@@ -171,9 +180,9 @@ jobs:
                   if not os.path.exists(path):
                       print(f'Missing required artifact: {path}')
                       sys.exit(1)
-          print('Gate 13 PASS: All 5 horizon bundles present and complete.')
+          print('Gate 14 PASS: All 5 horizon bundles present and complete.')
           "
 
-      - name: Gate 14 - Real-Data Validation Job
+      - name: Gate 15 - Real-Data Validation Job
         run: |
           python prediction-model/src/validate.py --horizons 1 3 6 12 24

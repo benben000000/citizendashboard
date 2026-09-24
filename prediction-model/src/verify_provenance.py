@@ -429,6 +429,9 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         "smoke_test.py",
         "test_canonical_contract.py",
         "test_inference_contract.py",
+        "test_monitoring.py",
+        "test_predictive_quality.py",
+        "anomaly_detector.py",
         "audit_data_availability.py",
     ]
     script_violations = []

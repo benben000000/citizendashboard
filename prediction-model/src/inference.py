@@ -25,6 +25,7 @@ import torch
 
 from dataset import normalize_features, FEATURE_MEANS, FEATURE_STDS
 from model import WeatherWaterLNN
+from anomaly_detector import TelemetryAnomalyDetector
 
 
 def compute_sha256(filepath: str) -> str:
@@ -450,6 +451,13 @@ class LNNServerlessPredictor:
             except Exception:
                 target_ts = None
 
+        # Sequence anomaly audit using TelemetryAnomalyDetector
+        detector = TelemetryAnomalyDetector()
+        seq_anomaly_audit = detector.audit_sequence(
+            telemetry_sequence=telemetry_arr,
+            forecast_origin_timestamp=forecast_origin_timestamp,
+        )
+
         provenance_dict = {
             "implementation_commit": self.bundle_manifest.get("implementation_commit") or self.policy.get("policy_code_commit", "unknown"),
             "artifact_commit": self.bundle_manifest.get("artifact_commit") or self.manifest.get("artifact_commit", "unknown"),
@@ -479,10 +487,24 @@ class LNNServerlessPredictor:
             "pressure_tendency": p_tendency,
             "wind_speed_kmh": round(op_ws, 2),
             "wind_direction_deg": round(op_wind_dir, 1) if op_wind_dir is not None else None,
+            "wind_calm": bool(op_ws < 1.0),
             "heat_index_c": round(derived_hi, 2),
             "heat_index_risk_category": hi_risk,
             "chance_of_rain_pct": round(blended_rain_prob * 100, 1),
             "expected_precipitation_mm": round(final_precip_mm, 2),
+            # Feasibility Audited Targets (UV & Luminosity)
+            "uv_index": {
+                "status": "BLOCKED_BY_SENSOR_CALIBRATION",
+                "value": None,
+                "reason": "Nighttime calibration defect: raw telemetry reports non-zero readings up to 11.0 at night.",
+            },
+            "light_intensity": {
+                "status": "SECONDARY_BETA_DAYLIGHT_ONLY",
+                "value": None,
+                "reason": "Uncalibrated lux output across stations; designated secondary daylight proxy only.",
+            },
+            # Real-time Input Sequence Anomaly Status
+            "anomaly_status": seq_anomaly_audit,
             # Operational Policy & Calibration Metadata
             "selected_source_by_variable": {
                 "temperature": temp_src,
