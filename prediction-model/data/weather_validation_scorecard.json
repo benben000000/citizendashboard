@@ -1,6 +1,6 @@
 {
-  "evaluation_timestamp": "2026-09-23T04:15:53.185710+00:00",
-  "code_commit": "b5039f83e082558094557eb77328af13bdec1c1c",
+  "evaluation_timestamp": "2026-09-23T06:49:26.209697+00:00",
+  "code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
   "product_name": "Garcia Weather Telemetry Forecast Engine",
   "dataset_hashes": {
     "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
@@ -23,22 +23,59 @@
     "train_mean_heat_index_c": 32.22,
     "train_mean_river_stage_meters": 2.3896
   },
-  "operational_recommendation": "DEPLOY_HYBRID_GUIDANCE. Use learned model where validation skill is positive; fallback to persistence where persistence error is lower. Use calibrated probability for rain outlooks. DO NOT use water level for automated flood triggers (BETA only).",
+  "operational_recommendation": "DEPLOY_HYBRID_GUIDANCE. Use learned model where validation skill is positive; fallback to persistence where persistence error is lower. Hybrid rain probability blending consistently improves probability quality (Brier score) for risk outlooks, but does not universally dominate persistence in discrete event classification (F1/recall) at 1h/3h. Weather variables do NOT have validated confidence intervals (uncertainty intervals unavailable). Conformal prediction intervals apply ONLY to the internal beta water-level experiment. DO NOT use water level for life-safety or automated flood warning triggers.",
   "horizons": {
     "horizon_1h": {
       "test_samples_total": 2820,
       "calibration_samples_total": 2900,
       "small_sample_warning": 0,
+      "calib_skill_gates": {
+        "temperature": {
+          "calib_model_mae": 0.5461,
+          "calib_persist_mae": 0.5353,
+          "calib_skill_score": -0.0201,
+          "selected_source": "persistence_fallback"
+        },
+        "humidity": {
+          "calib_model_mae": 1.3444,
+          "calib_persist_mae": 1.2919,
+          "calib_skill_score": -0.0407,
+          "selected_source": "persistence_fallback"
+        },
+        "pressure": {
+          "calib_model_mae": 0.4673,
+          "calib_persist_mae": 0.4539,
+          "calib_skill_score": -0.0296,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_speed": {
+          "calib_model_mae": 1.0847,
+          "calib_persist_mae": 1.0686,
+          "calib_skill_score": -0.0151,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_direction": {
+          "calib_model_circular_mae": 40.34,
+          "calib_persist_circular_mae": 36.3,
+          "calib_skill_score": -0.1113,
+          "selected_source": "persistence_fallback"
+        },
+        "heat_index": {
+          "derivation_rule": "derived_from_selected_temp_and_humidity",
+          "formula": "NOAA NWS Rothfusz regression",
+          "selected_source": "derived_from_selected_temp_and_humidity"
+        }
+      },
       "temperature": {
         "sample_count": 2820,
-        "mae": 0.5079,
-        "rmse": 0.8204,
-        "bias": 0.0172,
+        "mae": 0.5217,
+        "rmse": 0.8244,
+        "bias": -0.0261,
         "persistence_mae": 0.4926,
         "persistence_rmse": 0.8565,
         "climatology_mae": 1.612,
         "climatology_rmse": 2.0121,
-        "skill_vs_persistence": -0.031,
+        "skill_vs_persistence": -0.0591,
         "beats_persistence": 0,
         "linear_regression_mae": 0.5142,
         "selected_source": "persistence_fallback",
@@ -46,14 +83,14 @@
       },
       "humidity": {
         "sample_count": 2820,
-        "mae": 1.4665,
-        "rmse": 2.6917,
-        "bias": 0.0338,
+        "mae": 1.5209,
+        "rmse": 2.725,
+        "bias": 0.0769,
         "persistence_mae": 1.3988,
         "persistence_rmse": 2.8339,
         "climatology_mae": 9.843,
         "climatology_rmse": 10.6574,
-        "skill_vs_persistence": -0.0484,
+        "skill_vs_persistence": -0.0872,
         "beats_persistence": 0,
         "linear_regression_mae": 1.7897,
         "selected_source": "persistence_fallback",
@@ -61,34 +98,34 @@
       },
       "pressure": {
         "sample_count": 2820,
-        "mae": 0.3288,
-        "rmse": 0.4248,
-        "bias": 0.0535,
+        "mae": 0.3342,
+        "rmse": 0.4223,
+        "bias": 0.0503,
         "persistence_mae": 0.3312,
         "persistence_rmse": 0.4381,
         "climatology_mae": 3.1629,
         "climatology_rmse": 3.7169,
-        "skill_vs_persistence": 0.0073,
-        "beats_persistence": 1,
+        "skill_vs_persistence": -0.0091,
+        "beats_persistence": 0,
         "linear_regression_mae": 0.3686,
         "pressure_tendency": {
           "sample_count": 2820,
           "tendency_threshold_hpa": 0.5,
-          "accuracy_pct": 73.58
+          "accuracy_pct": 72.73
         },
-        "selected_source": "learned_model",
-        "hybrid_mae": 0.3288
+        "selected_source": "persistence_fallback",
+        "hybrid_mae": 0.3312
       },
       "wind_speed": {
         "sample_count": 2820,
-        "mae": 0.8548,
-        "rmse": 1.545,
-        "bias": -0.2576,
+        "mae": 0.8809,
+        "rmse": 1.5504,
+        "bias": -0.3288,
         "persistence_mae": 0.8474,
         "persistence_rmse": 1.5424,
         "climatology_mae": 2.3007,
         "climatology_rmse": 3.3461,
-        "skill_vs_persistence": -0.0087,
+        "skill_vs_persistence": -0.0395,
         "beats_persistence": 0,
         "linear_regression_mae": 2.0448,
         "strong_wind_recall": {
@@ -104,7 +141,7 @@
           "valid_sample_count": 1442,
           "calm_sample_count": 1378,
           "calm_coverage_pct": 48.87,
-          "circular_mae_deg": 42.12
+          "circular_mae_deg": 40.34
         },
         "persistence_circular": {
           "valid_sample_count": 1442,
@@ -113,119 +150,167 @@
           "circular_mae_deg": 39.42
         },
         "beats_persistence": 0,
-        "skill_vs_persistence": -0.0685
+        "skill_vs_persistence": -0.0233,
+        "selected_source": "persistence_fallback"
       },
       "heat_index": {
         "sample_count": 2820,
-        "mae": 1.4889,
-        "rmse": 2.3299,
-        "bias": 0.298,
+        "mae": 1.5259,
+        "rmse": 2.3232,
+        "bias": 0.1718,
         "persistence_mae": 1.5184,
         "persistence_rmse": 2.3985,
         "climatology_mae": 4.0857,
         "climatology_rmse": 5.1898,
-        "skill_vs_persistence": 0.0194,
-        "beats_persistence": 1,
-        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+        "skill_vs_persistence": -0.005,
+        "beats_persistence": 0,
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)",
+        "selected_source": "derived_from_selected_temp_and_humidity"
       },
       "rain_occurrence": {
+        "probability_quality": {
+          "hybrid_brier_score": 0.1241,
+          "model_brier_score": 0.1269,
+          "persistence_brier_score": 0.1713,
+          "climatology_brier_score": 0.2778,
+          "brier_skill_score_vs_persistence": 0.2755,
+          "hybrid_expected_calibration_error": 0.0516,
+          "model_expected_calibration_error": 0.0534
+        },
+        "event_classification": {
+          "fixed_threshold_05": {
+            "f1_score_pct": 76.09,
+            "recall_pod_pct": 69.71,
+            "precision_pct": 83.76,
+            "critical_success_index_pct": 61.41,
+            "false_alarm_ratio_pct": 16.24
+          },
+          "frozen_operational_threshold": {
+            "threshold": 0.25,
+            "f1_score_pct": 75.32,
+            "recall_pod_pct": 78.38,
+            "precision_pct": 72.5,
+            "critical_success_index_pct": 60.42,
+            "false_alarm_ratio_pct": 27.5
+          },
+          "hybrid_blend_05": {
+            "f1_score_pct": 77.39,
+            "recall_pod_pct": 71.76,
+            "precision_pct": 83.97,
+            "critical_success_index_pct": 63.11,
+            "false_alarm_ratio_pct": 16.03
+          },
+          "persistence_05": {
+            "f1_score_pct": 77.55,
+            "recall_pod_pct": 77.73,
+            "precision_pct": 77.37,
+            "critical_success_index_pct": 63.33,
+            "false_alarm_ratio_pct": 22.63
+          }
+        },
+        "operational_selection_objective": {
+          "objective": "Minimize Brier score on validation calibration split to produce calibrated probabilities for risk outlooks",
+          "weight_selection_metric": "Brier score on calibration split",
+          "threshold_selection_metric": "F1 score on calibration split",
+          "tradeoff_analysis": "Hybrid probability blending consistently minimizes Brier score (probability error) across horizons, providing reliable probabilistic outlooks. However, for hard binary classification at 0.5 threshold, persistence achieves higher or comparable F1/recall on short horizons (1h/3h). Operational users seeking threshold alerts should use the calibrated operational threshold or persistence baseline accordingly."
+        },
         "fixed_threshold_05": {
           "threshold": 0.5,
-          "accuracy_pct": 83.58,
-          "recall_pod_pct": 69.43,
-          "precision_pct": 84.66,
-          "f1_score_pct": 76.29,
-          "false_alarm_ratio_pct": 15.34,
-          "critical_success_index_pct": 61.67,
-          "brier_score": 0.1249,
-          "expected_calibration_error": 0.0365,
+          "accuracy_pct": 83.33,
+          "recall_pod_pct": 69.71,
+          "precision_pct": 83.76,
+          "f1_score_pct": 76.09,
+          "false_alarm_ratio_pct": 16.24,
+          "critical_success_index_pct": 61.41,
+          "brier_score": 0.1269,
+          "expected_calibration_error": 0.0534,
           "confusion_matrix": {
-            "tp": 745,
-            "fp": 135,
-            "tn": 1612,
-            "fn": 328
+            "tp": 748,
+            "fp": 145,
+            "tn": 1602,
+            "fn": 325
           },
           "reliability_bins": [
             {
               "bin_range": "0.0-0.2",
-              "sample_count": 1482,
-              "mean_pred_prob": 0.0749,
-              "observed_frequency": 0.1289
+              "sample_count": 1550,
+              "mean_pred_prob": 0.0682,
+              "observed_frequency": 0.1284
             },
             {
               "bin_range": "0.2-0.4",
-              "sample_count": 384,
-              "mean_pred_prob": 0.2863,
-              "observed_frequency": 0.276
+              "sample_count": 282,
+              "mean_pred_prob": 0.2818,
+              "observed_frequency": 0.3156
             },
             {
               "bin_range": "0.4-0.6",
-              "sample_count": 139,
-              "mean_pred_prob": 0.4919,
-              "observed_frequency": 0.4317
+              "sample_count": 160,
+              "mean_pred_prob": 0.4916,
+              "observed_frequency": 0.4375
             },
             {
               "bin_range": "0.6-0.8",
-              "sample_count": 139,
-              "mean_pred_prob": 0.7042,
-              "observed_frequency": 0.6763
+              "sample_count": 129,
+              "mean_pred_prob": 0.7023,
+              "observed_frequency": 0.5814
             },
             {
               "bin_range": "0.8-1.0",
-              "sample_count": 676,
-              "mean_pred_prob": 0.9101,
-              "observed_frequency": 0.9201
+              "sample_count": 699,
+              "mean_pred_prob": 0.9493,
+              "observed_frequency": 0.9156
             }
           ]
         },
         "frozen_operational_threshold": {
-          "threshold": 0.3,
+          "threshold": 0.25,
           "metrics": {
-            "threshold": 0.3,
-            "accuracy_pct": 82.02,
-            "recall_pod_pct": 77.63,
-            "precision_pct": 75.73,
-            "f1_score_pct": 76.67,
-            "false_alarm_ratio_pct": 24.27,
-            "critical_success_index_pct": 62.16,
-            "brier_score": 0.1249,
-            "expected_calibration_error": 0.0365,
+            "threshold": 0.25,
+            "accuracy_pct": 80.46,
+            "recall_pod_pct": 78.38,
+            "precision_pct": 72.5,
+            "f1_score_pct": 75.32,
+            "false_alarm_ratio_pct": 27.5,
+            "critical_success_index_pct": 60.42,
+            "brier_score": 0.1269,
+            "expected_calibration_error": 0.0534,
             "confusion_matrix": {
-              "tp": 833,
-              "fp": 267,
-              "tn": 1480,
-              "fn": 240
+              "tp": 841,
+              "fp": 319,
+              "tn": 1428,
+              "fn": 232
             },
             "reliability_bins": [
               {
                 "bin_range": "0.0-0.2",
-                "sample_count": 1482,
-                "mean_pred_prob": 0.0749,
-                "observed_frequency": 0.1289
+                "sample_count": 1550,
+                "mean_pred_prob": 0.0682,
+                "observed_frequency": 0.1284
               },
               {
                 "bin_range": "0.2-0.4",
-                "sample_count": 384,
-                "mean_pred_prob": 0.2863,
-                "observed_frequency": 0.276
+                "sample_count": 282,
+                "mean_pred_prob": 0.2818,
+                "observed_frequency": 0.3156
               },
               {
                 "bin_range": "0.4-0.6",
-                "sample_count": 139,
-                "mean_pred_prob": 0.4919,
-                "observed_frequency": 0.4317
+                "sample_count": 160,
+                "mean_pred_prob": 0.4916,
+                "observed_frequency": 0.4375
               },
               {
                 "bin_range": "0.6-0.8",
-                "sample_count": 139,
-                "mean_pred_prob": 0.7042,
-                "observed_frequency": 0.6763
+                "sample_count": 129,
+                "mean_pred_prob": 0.7023,
+                "observed_frequency": 0.5814
               },
               {
                 "bin_range": "0.8-1.0",
-                "sample_count": 676,
-                "mean_pred_prob": 0.9101,
-                "observed_frequency": 0.9201
+                "sample_count": 699,
+                "mean_pred_prob": 0.9493,
+                "observed_frequency": 0.9156
               }
             ]
           }
@@ -235,50 +320,50 @@
           "frozen_persistence_weight": 0.2,
           "metrics": {
             "threshold": 0.5,
-            "accuracy_pct": 84.22,
-            "recall_pod_pct": 71.11,
-            "precision_pct": 84.97,
-            "f1_score_pct": 77.42,
-            "false_alarm_ratio_pct": 15.03,
-            "critical_success_index_pct": 63.16,
-            "brier_score": 0.1219,
-            "expected_calibration_error": 0.0339,
+            "accuracy_pct": 84.04,
+            "recall_pod_pct": 71.76,
+            "precision_pct": 83.97,
+            "f1_score_pct": 77.39,
+            "false_alarm_ratio_pct": 16.03,
+            "critical_success_index_pct": 63.11,
+            "brier_score": 0.1241,
+            "expected_calibration_error": 0.0516,
             "confusion_matrix": {
-              "tp": 763,
-              "fp": 135,
-              "tn": 1612,
-              "fn": 310
+              "tp": 770,
+              "fp": 147,
+              "tn": 1600,
+              "fn": 303
             },
             "reliability_bins": [
               {
                 "bin_range": "0.0-0.2",
-                "sample_count": 1475,
-                "mean_pred_prob": 0.0661,
-                "observed_frequency": 0.1173
+                "sample_count": 1529,
+                "mean_pred_prob": 0.06,
+                "observed_frequency": 0.1216
               },
               {
                 "bin_range": "0.2-0.4",
-                "sample_count": 364,
-                "mean_pred_prob": 0.2779,
-                "observed_frequency": 0.2775
+                "sample_count": 312,
+                "mean_pred_prob": 0.29,
+                "observed_frequency": 0.2885
               },
               {
                 "bin_range": "0.4-0.6",
-                "sample_count": 130,
-                "mean_pred_prob": 0.4847,
-                "observed_frequency": 0.4846
+                "sample_count": 116,
+                "mean_pred_prob": 0.4952,
+                "observed_frequency": 0.4914
               },
               {
                 "bin_range": "0.6-0.8",
-                "sample_count": 139,
-                "mean_pred_prob": 0.7123,
-                "observed_frequency": 0.6403
+                "sample_count": 125,
+                "mean_pred_prob": 0.7018,
+                "observed_frequency": 0.592
               },
               {
                 "bin_range": "0.8-1.0",
-                "sample_count": 712,
-                "mean_pred_prob": 0.9226,
-                "observed_frequency": 0.9087
+                "sample_count": 738,
+                "mean_pred_prob": 0.952,
+                "observed_frequency": 0.9024
               }
             ]
           }
@@ -435,13 +520,59 @@
       },
       "precipitation_amount": {
         "overall_samples": 2820,
-        "overall_mae_mm": 0.9549,
-        "overall_rmse_mm": 3.1963,
-        "overall_bias_mm": -0.7348,
+        "overall_mae_mm": 0.9421,
+        "overall_rmse_mm": 3.1596,
+        "overall_bias_mm": -0.7246,
+        "persistence_mae_mm": 1.0823,
+        "persistence_rmse_mm": 3.3942,
+        "persistence_bias_mm": 0.0027,
+        "climatology_mae_mm": 1.2793,
+        "climatology_rmse_mm": 3.3298,
+        "skill_vs_persistence": 0.1296,
+        "beats_persistence": 1,
+        "dry_hour_samples": 1747,
+        "dry_hour_mae_mm": 0.0737,
+        "dry_hour_rmse_mm": 0.224,
+        "dry_hour_bias_mm": 0.0737,
         "rainy_hour_samples": 1073,
-        "rainy_hour_mae_mm": 2.3747,
-        "rainy_hour_rmse_mm": 5.1727,
-        "rainy_hour_bias_mm": -2.0662
+        "rainy_hour_mae_mm": 2.3559,
+        "rainy_hour_rmse_mm": 5.1143,
+        "rainy_hour_bias_mm": -2.0244,
+        "heavy_rain_thresholds": {
+          "threshold_2_5mm": {
+            "threshold_mm": 2.5,
+            "observed_event_count": 316,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_5_0mm": {
+            "threshold_mm": 5.0,
+            "observed_event_count": 165,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_10_0mm": {
+            "threshold_mm": 10.0,
+            "observed_event_count": 74,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          }
+        },
+        "uncertainty_intervals": {
+          "status": "UNAVAILABLE",
+          "coverage_pct": null,
+          "mean_interval_width_mm": null,
+          "reason": "Validated conformal intervals are only implemented for beta water level. Weather and precipitation intervals are unavailable."
+        }
       },
       "solar_status": {
         "uv_index": {
@@ -460,9 +591,9 @@
           "status": "INTERNAL_EXPERIMENT_BETA",
           "not_for_life_safety": 1,
           "sample_count": 221,
-          "mae_meters": 0.0338,
-          "rmse_meters": 0.0428,
-          "bias_meters": -0.0065,
+          "mae_meters": 0.0565,
+          "rmse_meters": 0.0665,
+          "bias_meters": -0.0026,
           "persistence_mae_meters": 0.0146,
           "persistence_rmse_meters": 0.0193,
           "climatology_mae_meters": 1.264,
@@ -499,34 +630,34 @@
           "nominal_80": {
             "nominal_level": 0.8,
             "test_gauge_samples": 221,
-            "observed_coverage_pct": 90.5,
+            "observed_coverage_pct": 85.52,
             "coverage_meets_nominal": 1,
-            "interval_full_width_meters": 0.15379999577999115,
+            "interval_full_width_meters": 0.20020000636577606,
             "coverage_95_ci": [
-              85.91,
-              93.7
+              80.27,
+              89.55
             ]
           },
           "nominal_90": {
             "nominal_level": 0.9,
             "test_gauge_samples": 221,
-            "observed_coverage_pct": 95.02,
+            "observed_coverage_pct": 93.67,
             "coverage_meets_nominal": 1,
-            "interval_full_width_meters": 0.18889999389648438,
+            "interval_full_width_meters": 0.23440000414848328,
             "coverage_95_ci": [
-              91.31,
-              97.2
+              89.65,
+              96.19
             ]
           },
           "nominal_95": {
             "nominal_level": 0.95,
             "test_gauge_samples": 221,
-            "observed_coverage_pct": 99.1,
+            "observed_coverage_pct": 99.55,
             "coverage_meets_nominal": 1,
-            "interval_full_width_meters": 0.21439999341964722,
+            "interval_full_width_meters": 0.2784999907016754,
             "coverage_95_ci": [
-              96.76,
-              99.75
+              97.48,
+              99.92
             ]
           }
         }
@@ -534,17 +665,17 @@
       "intensity_breakdown": {
         "dry": {
           "sample_count": 1747,
-          "mf1_detection_rate_pct": 7.73,
+          "mf1_detection_rate_pct": 8.3,
           "persistence_detection_rate_pct": 13.97
         },
         "trace": {
           "sample_count": 320,
-          "mf1_detection_rate_pct": 46.56,
+          "mf1_detection_rate_pct": 48.12,
           "persistence_detection_rate_pct": 59.38
         },
         "light": {
           "sample_count": 437,
-          "mf1_detection_rate_pct": 77.35,
+          "mf1_detection_rate_pct": 76.89,
           "persistence_detection_rate_pct": 84.44
         },
         "moderate": {
@@ -561,50 +692,50 @@
       "rain_metrics": {
         "mf1_pytorch": {
           "threshold": 0.5,
-          "accuracy_pct": 83.58,
-          "recall_pod_pct": 69.43,
-          "precision_pct": 84.66,
-          "f1_score_pct": 76.29,
-          "false_alarm_ratio_pct": 15.34,
-          "critical_success_index_pct": 61.67,
-          "brier_score": 0.1249,
-          "expected_calibration_error": 0.0365,
+          "accuracy_pct": 83.33,
+          "recall_pod_pct": 69.71,
+          "precision_pct": 83.76,
+          "f1_score_pct": 76.09,
+          "false_alarm_ratio_pct": 16.24,
+          "critical_success_index_pct": 61.41,
+          "brier_score": 0.1269,
+          "expected_calibration_error": 0.0534,
           "confusion_matrix": {
-            "tp": 745,
-            "fp": 135,
-            "tn": 1612,
-            "fn": 328
+            "tp": 748,
+            "fp": 145,
+            "tn": 1602,
+            "fn": 325
           },
           "reliability_bins": [
             {
               "bin_range": "0.0-0.2",
-              "sample_count": 1482,
-              "mean_pred_prob": 0.0749,
-              "observed_frequency": 0.1289
+              "sample_count": 1550,
+              "mean_pred_prob": 0.0682,
+              "observed_frequency": 0.1284
             },
             {
               "bin_range": "0.2-0.4",
-              "sample_count": 384,
-              "mean_pred_prob": 0.2863,
-              "observed_frequency": 0.276
+              "sample_count": 282,
+              "mean_pred_prob": 0.2818,
+              "observed_frequency": 0.3156
             },
             {
               "bin_range": "0.4-0.6",
-              "sample_count": 139,
-              "mean_pred_prob": 0.4919,
-              "observed_frequency": 0.4317
+              "sample_count": 160,
+              "mean_pred_prob": 0.4916,
+              "observed_frequency": 0.4375
             },
             {
               "bin_range": "0.6-0.8",
-              "sample_count": 139,
-              "mean_pred_prob": 0.7042,
-              "observed_frequency": 0.6763
+              "sample_count": 129,
+              "mean_pred_prob": 0.7023,
+              "observed_frequency": 0.5814
             },
             {
               "bin_range": "0.8-1.0",
-              "sample_count": 676,
-              "mean_pred_prob": 0.9101,
-              "observed_frequency": 0.9201
+              "sample_count": 699,
+              "mean_pred_prob": 0.9493,
+              "observed_frequency": 0.9156
             }
           ]
         },
@@ -757,50 +888,50 @@
         },
         "hybrid_blend": {
           "threshold": 0.5,
-          "accuracy_pct": 84.22,
-          "recall_pod_pct": 71.11,
-          "precision_pct": 84.97,
-          "f1_score_pct": 77.42,
-          "false_alarm_ratio_pct": 15.03,
-          "critical_success_index_pct": 63.16,
-          "brier_score": 0.1219,
-          "expected_calibration_error": 0.0339,
+          "accuracy_pct": 84.04,
+          "recall_pod_pct": 71.76,
+          "precision_pct": 83.97,
+          "f1_score_pct": 77.39,
+          "false_alarm_ratio_pct": 16.03,
+          "critical_success_index_pct": 63.11,
+          "brier_score": 0.1241,
+          "expected_calibration_error": 0.0516,
           "confusion_matrix": {
-            "tp": 763,
-            "fp": 135,
-            "tn": 1612,
-            "fn": 310
+            "tp": 770,
+            "fp": 147,
+            "tn": 1600,
+            "fn": 303
           },
           "reliability_bins": [
             {
               "bin_range": "0.0-0.2",
-              "sample_count": 1475,
-              "mean_pred_prob": 0.0661,
-              "observed_frequency": 0.1173
+              "sample_count": 1529,
+              "mean_pred_prob": 0.06,
+              "observed_frequency": 0.1216
             },
             {
               "bin_range": "0.2-0.4",
-              "sample_count": 364,
-              "mean_pred_prob": 0.2779,
-              "observed_frequency": 0.2775
+              "sample_count": 312,
+              "mean_pred_prob": 0.29,
+              "observed_frequency": 0.2885
             },
             {
               "bin_range": "0.4-0.6",
-              "sample_count": 130,
-              "mean_pred_prob": 0.4847,
-              "observed_frequency": 0.4846
+              "sample_count": 116,
+              "mean_pred_prob": 0.4952,
+              "observed_frequency": 0.4914
             },
             {
               "bin_range": "0.6-0.8",
-              "sample_count": 139,
-              "mean_pred_prob": 0.7123,
-              "observed_frequency": 0.6403
+              "sample_count": 125,
+              "mean_pred_prob": 0.7018,
+              "observed_frequency": 0.592
             },
             {
               "bin_range": "0.8-1.0",
-              "sample_count": 712,
-              "mean_pred_prob": 0.9226,
-              "observed_frequency": 0.9087
+              "sample_count": 738,
+              "mean_pred_prob": 0.952,
+              "observed_frequency": 0.9024
             }
           ]
         }
@@ -810,9 +941,9 @@
           "status": "INTERNAL_EXPERIMENT_BETA",
           "not_for_life_safety": 1,
           "sample_count": 221,
-          "mae_meters": 0.0338,
-          "rmse_meters": 0.0428,
-          "bias_meters": -0.0065,
+          "mae_meters": 0.0565,
+          "rmse_meters": 0.0665,
+          "bias_meters": -0.0026,
           "persistence_mae_meters": 0.0146,
           "persistence_rmse_meters": 0.0193,
           "climatology_mae_meters": 1.264,
@@ -852,34 +983,34 @@
         "nominal_80": {
           "nominal_level": 0.8,
           "test_gauge_samples": 221,
-          "observed_coverage_pct": 90.5,
+          "observed_coverage_pct": 85.52,
           "coverage_meets_nominal": 1,
-          "interval_full_width_meters": 0.15379999577999115,
+          "interval_full_width_meters": 0.20020000636577606,
           "coverage_95_ci": [
-            85.91,
-            93.7
+            80.27,
+            89.55
           ]
         },
         "nominal_90": {
           "nominal_level": 0.9,
           "test_gauge_samples": 221,
-          "observed_coverage_pct": 95.02,
+          "observed_coverage_pct": 93.67,
           "coverage_meets_nominal": 1,
-          "interval_full_width_meters": 0.18889999389648438,
+          "interval_full_width_meters": 0.23440000414848328,
           "coverage_95_ci": [
-            91.31,
-            97.2
+            89.65,
+            96.19
           ]
         },
         "nominal_95": {
           "nominal_level": 0.95,
           "test_gauge_samples": 221,
-          "observed_coverage_pct": 99.1,
+          "observed_coverage_pct": 99.55,
           "coverage_meets_nominal": 1,
-          "interval_full_width_meters": 0.21439999341964722,
+          "interval_full_width_meters": 0.2784999907016754,
           "coverage_95_ci": [
-            96.76,
-            99.75
+            97.48,
+            99.92
           ]
         }
       }
@@ -888,6 +1019,43 @@
       "test_samples_total": 2784,
       "calibration_samples_total": 2867,
       "small_sample_warning": 0,
+      "calib_skill_gates": {
+        "temperature": {
+          "calib_model_mae": 1.02,
+          "calib_persist_mae": 0.9622,
+          "calib_skill_score": -0.0601,
+          "selected_source": "persistence_fallback"
+        },
+        "humidity": {
+          "calib_model_mae": 2.4333,
+          "calib_persist_mae": 2.1163,
+          "calib_skill_score": -0.1498,
+          "selected_source": "persistence_fallback"
+        },
+        "pressure": {
+          "calib_model_mae": 1.0265,
+          "calib_persist_mae": 1.031,
+          "calib_skill_score": 0.0044,
+          "selected_source": "learned_model"
+        },
+        "wind_speed": {
+          "calib_model_mae": 1.3553,
+          "calib_persist_mae": 1.3106,
+          "calib_skill_score": -0.034,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_direction": {
+          "calib_model_circular_mae": 66.15,
+          "calib_persist_circular_mae": 44.87,
+          "calib_skill_score": -0.4743,
+          "selected_source": "persistence_fallback"
+        },
+        "heat_index": {
+          "derivation_rule": "derived_from_selected_temp_and_humidity",
+          "formula": "NOAA NWS Rothfusz regression",
+          "selected_source": "derived_from_selected_temp_and_humidity"
+        }
+      },
       "temperature": {
         "sample_count": 2784,
         "mae": 0.9981,
@@ -972,7 +1140,8 @@
           "circular_mae_deg": 46.95
         },
         "beats_persistence": 0,
-        "skill_vs_persistence": -0.531
+        "skill_vs_persistence": -0.531,
+        "selected_source": "persistence_fallback"
       },
       "heat_index": {
         "sample_count": 2784,
@@ -985,9 +1154,56 @@
         "climatology_rmse": 5.1847,
         "skill_vs_persistence": 0.0138,
         "beats_persistence": 1,
-        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)",
+        "selected_source": "derived_from_selected_temp_and_humidity"
       },
       "rain_occurrence": {
+        "probability_quality": {
+          "hybrid_brier_score": 0.167,
+          "model_brier_score": 0.1844,
+          "persistence_brier_score": 0.227,
+          "climatology_brier_score": 0.2777,
+          "brier_skill_score_vs_persistence": 0.2643,
+          "hybrid_expected_calibration_error": 0.0543,
+          "model_expected_calibration_error": 0.0454
+        },
+        "event_classification": {
+          "fixed_threshold_05": {
+            "f1_score_pct": 59.28,
+            "recall_pod_pct": 50.24,
+            "precision_pct": 72.28,
+            "critical_success_index_pct": 42.12,
+            "false_alarm_ratio_pct": 27.72
+          },
+          "frozen_operational_threshold": {
+            "threshold": 0.1,
+            "f1_score_pct": 60.26,
+            "recall_pod_pct": 93.2,
+            "precision_pct": 44.52,
+            "critical_success_index_pct": 43.12,
+            "false_alarm_ratio_pct": 55.48
+          },
+          "hybrid_blend_05": {
+            "f1_score_pct": 68.75,
+            "recall_pod_pct": 65.44,
+            "precision_pct": 72.41,
+            "critical_success_index_pct": 52.38,
+            "false_alarm_ratio_pct": 27.59
+          },
+          "persistence_05": {
+            "f1_score_pct": 70.33,
+            "recall_pod_pct": 70.73,
+            "precision_pct": 69.93,
+            "critical_success_index_pct": 54.24,
+            "false_alarm_ratio_pct": 30.07
+          }
+        },
+        "operational_selection_objective": {
+          "objective": "Minimize Brier score on validation calibration split to produce calibrated probabilities for risk outlooks",
+          "weight_selection_metric": "Brier score on calibration split",
+          "threshold_selection_metric": "F1 score on calibration split",
+          "tradeoff_analysis": "Hybrid probability blending consistently minimizes Brier score (probability error) across horizons, providing reliable probabilistic outlooks. However, for hard binary classification at 0.5 threshold, persistence achieves higher or comparable F1/recall on short horizons (1h/3h). Operational users seeking threshold alerts should use the calibrated operational threshold or persistence baseline accordingly."
+        },
         "fixed_threshold_05": {
           "threshold": 0.5,
           "accuracy_pct": 73.74,
@@ -1297,10 +1513,56 @@
         "overall_mae_mm": 1.0804,
         "overall_rmse_mm": 3.3488,
         "overall_bias_mm": -0.8369,
+        "persistence_mae_mm": 1.343,
+        "persistence_rmse_mm": 3.8669,
+        "persistence_bias_mm": -0.005,
+        "climatology_mae_mm": 1.2935,
+        "climatology_rmse_mm": 3.3661,
+        "skill_vs_persistence": 0.1956,
+        "beats_persistence": 1,
+        "dry_hour_samples": 1725,
+        "dry_hour_mae_mm": 0.1623,
+        "dry_hour_rmse_mm": 0.2704,
+        "dry_hour_bias_mm": 0.1623,
         "rainy_hour_samples": 1059,
         "rainy_hour_mae_mm": 2.5758,
         "rainy_hour_rmse_mm": 5.4187,
-        "rainy_hour_bias_mm": -2.4645
+        "rainy_hour_bias_mm": -2.4645,
+        "heavy_rain_thresholds": {
+          "threshold_2_5mm": {
+            "threshold_mm": 2.5,
+            "observed_event_count": 316,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_5_0mm": {
+            "threshold_mm": 5.0,
+            "observed_event_count": 166,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_10_0mm": {
+            "threshold_mm": 10.0,
+            "observed_event_count": 75,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          }
+        },
+        "uncertainty_intervals": {
+          "status": "UNAVAILABLE",
+          "coverage_pct": null,
+          "mean_interval_width_mm": null,
+          "reason": "Validated conformal intervals are only implemented for beta water level. Weather and precipitation intervals are unavailable."
+        }
       },
       "solar_status": {
         "uv_index": {
@@ -1747,6 +2009,43 @@
       "test_samples_total": 2731,
       "calibration_samples_total": 2820,
       "small_sample_warning": 0,
+      "calib_skill_gates": {
+        "temperature": {
+          "calib_model_mae": 1.0712,
+          "calib_persist_mae": 1.3201,
+          "calib_skill_score": 0.1885,
+          "selected_source": "learned_model"
+        },
+        "humidity": {
+          "calib_model_mae": 3.0496,
+          "calib_persist_mae": 2.8109,
+          "calib_skill_score": -0.0849,
+          "selected_source": "persistence_fallback"
+        },
+        "pressure": {
+          "calib_model_mae": 1.5147,
+          "calib_persist_mae": 1.4107,
+          "calib_skill_score": -0.0737,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_speed": {
+          "calib_model_mae": 1.4778,
+          "calib_persist_mae": 1.438,
+          "calib_skill_score": -0.0277,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_direction": {
+          "calib_model_circular_mae": 84.01,
+          "calib_persist_circular_mae": 49.66,
+          "calib_skill_score": -0.6917,
+          "selected_source": "persistence_fallback"
+        },
+        "heat_index": {
+          "derivation_rule": "derived_from_selected_temp_and_humidity",
+          "formula": "NOAA NWS Rothfusz regression",
+          "selected_source": "derived_from_selected_temp_and_humidity"
+        }
+      },
       "temperature": {
         "sample_count": 2731,
         "mae": 1.4767,
@@ -1831,7 +2130,8 @@
           "circular_mae_deg": 53.2
         },
         "beats_persistence": 0,
-        "skill_vs_persistence": -0.6483
+        "skill_vs_persistence": -0.6483,
+        "selected_source": "persistence_fallback"
       },
       "heat_index": {
         "sample_count": 2731,
@@ -1844,9 +2144,56 @@
         "climatology_rmse": 5.2002,
         "skill_vs_persistence": 0.0128,
         "beats_persistence": 1,
-        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)",
+        "selected_source": "derived_from_selected_temp_and_humidity"
       },
       "rain_occurrence": {
+        "probability_quality": {
+          "hybrid_brier_score": 0.2005,
+          "model_brier_score": 0.2415,
+          "persistence_brier_score": 0.2695,
+          "climatology_brier_score": 0.2751,
+          "brier_skill_score_vs_persistence": 0.256,
+          "hybrid_expected_calibration_error": 0.0908,
+          "model_expected_calibration_error": 0.1226
+        },
+        "event_classification": {
+          "fixed_threshold_05": {
+            "f1_score_pct": 9.88,
+            "recall_pod_pct": 5.35,
+            "precision_pct": 64.71,
+            "critical_success_index_pct": 5.2,
+            "false_alarm_ratio_pct": 35.29
+          },
+          "frozen_operational_threshold": {
+            "threshold": 0.1,
+            "f1_score_pct": 54.44,
+            "recall_pod_pct": 89.2,
+            "precision_pct": 39.17,
+            "critical_success_index_pct": 37.4,
+            "false_alarm_ratio_pct": 60.83
+          },
+          "hybrid_blend_05": {
+            "f1_score_pct": 64.78,
+            "recall_pod_pct": 65.86,
+            "precision_pct": 63.75,
+            "critical_success_index_pct": 47.91,
+            "false_alarm_ratio_pct": 36.25
+          },
+          "persistence_05": {
+            "f1_score_pct": 64.78,
+            "recall_pod_pct": 65.86,
+            "precision_pct": 63.75,
+            "critical_success_index_pct": 47.91,
+            "false_alarm_ratio_pct": 36.25
+          }
+        },
+        "operational_selection_objective": {
+          "objective": "Minimize Brier score on validation calibration split to produce calibrated probabilities for risk outlooks",
+          "weight_selection_metric": "Brier score on calibration split",
+          "threshold_selection_metric": "F1 score on calibration split",
+          "tradeoff_analysis": "Hybrid probability blending consistently minimizes Brier score (probability error) across horizons, providing reliable probabilistic outlooks. However, for hard binary classification at 0.5 threshold, persistence achieves higher or comparable F1/recall on short horizons (1h/3h). Operational users seeking threshold alerts should use the calibrated operational threshold or persistence baseline accordingly."
+        },
         "fixed_threshold_05": {
           "threshold": 0.5,
           "accuracy_pct": 63.27,
@@ -2156,10 +2503,56 @@
         "overall_mae_mm": 1.1496,
         "overall_rmse_mm": 3.5067,
         "overall_bias_mm": -0.9675,
+        "persistence_mae_mm": 1.5367,
+        "persistence_rmse_mm": 4.2601,
+        "persistence_bias_mm": -0.0097,
+        "climatology_mae_mm": 1.3125,
+        "climatology_rmse_mm": 3.4358,
+        "skill_vs_persistence": 0.2519,
+        "beats_persistence": 1,
+        "dry_hour_samples": 1703,
+        "dry_hour_mae_mm": 0.1377,
+        "dry_hour_rmse_mm": 0.1848,
+        "dry_hour_bias_mm": 0.1377,
         "rainy_hour_samples": 1028,
         "rainy_hour_mae_mm": 2.8259,
         "rainy_hour_rmse_mm": 5.7107,
-        "rainy_hour_bias_mm": -2.7983
+        "rainy_hour_bias_mm": -2.7983,
+        "heavy_rain_thresholds": {
+          "threshold_2_5mm": {
+            "threshold_mm": 2.5,
+            "observed_event_count": 310,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_5_0mm": {
+            "threshold_mm": 5.0,
+            "observed_event_count": 165,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_10_0mm": {
+            "threshold_mm": 10.0,
+            "observed_event_count": 77,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          }
+        },
+        "uncertainty_intervals": {
+          "status": "UNAVAILABLE",
+          "coverage_pct": null,
+          "mean_interval_width_mm": null,
+          "reason": "Validated conformal intervals are only implemented for beta water level. Weather and precipitation intervals are unavailable."
+        }
       },
       "solar_status": {
         "uv_index": {
@@ -2606,6 +2999,43 @@
       "test_samples_total": 2633,
       "calibration_samples_total": 2732,
       "small_sample_warning": 0,
+      "calib_skill_gates": {
+        "temperature": {
+          "calib_model_mae": 1.3281,
+          "calib_persist_mae": 1.6317,
+          "calib_skill_score": 0.1861,
+          "selected_source": "learned_model"
+        },
+        "humidity": {
+          "calib_model_mae": 4.5618,
+          "calib_persist_mae": 3.4245,
+          "calib_skill_score": -0.3321,
+          "selected_source": "persistence_fallback"
+        },
+        "pressure": {
+          "calib_model_mae": 1.2123,
+          "calib_persist_mae": 0.974,
+          "calib_skill_score": -0.2446,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_speed": {
+          "calib_model_mae": 1.4489,
+          "calib_persist_mae": 1.5345,
+          "calib_skill_score": 0.0558,
+          "selected_source": "learned_model"
+        },
+        "wind_direction": {
+          "calib_model_circular_mae": 75.6,
+          "calib_persist_circular_mae": 49.71,
+          "calib_skill_score": -0.5208,
+          "selected_source": "persistence_fallback"
+        },
+        "heat_index": {
+          "derivation_rule": "derived_from_selected_temp_and_humidity",
+          "formula": "NOAA NWS Rothfusz regression",
+          "selected_source": "derived_from_selected_temp_and_humidity"
+        }
+      },
       "temperature": {
         "sample_count": 2633,
         "mae": 1.5612,
@@ -2690,7 +3120,8 @@
           "circular_mae_deg": 57.05
         },
         "beats_persistence": 0,
-        "skill_vs_persistence": -0.4356
+        "skill_vs_persistence": -0.4356,
+        "selected_source": "persistence_fallback"
       },
       "heat_index": {
         "sample_count": 2633,
@@ -2703,9 +3134,56 @@
         "climatology_rmse": 5.2457,
         "skill_vs_persistence": 0.1627,
         "beats_persistence": 1,
-        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)",
+        "selected_source": "derived_from_selected_temp_and_humidity"
       },
       "rain_occurrence": {
+        "probability_quality": {
+          "hybrid_brier_score": 0.2175,
+          "model_brier_score": 0.2538,
+          "persistence_brier_score": 0.3,
+          "climatology_brier_score": 0.2736,
+          "brier_skill_score_vs_persistence": 0.275,
+          "hybrid_expected_calibration_error": 0.1201,
+          "model_expected_calibration_error": 0.1783
+        },
+        "event_classification": {
+          "fixed_threshold_05": {
+            "f1_score_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "precision_pct": 0.0,
+            "critical_success_index_pct": 0.0,
+            "false_alarm_ratio_pct": 100.0
+          },
+          "frozen_operational_threshold": {
+            "threshold": 0.1,
+            "f1_score_pct": 57.66,
+            "recall_pod_pct": 94.52,
+            "precision_pct": 41.49,
+            "critical_success_index_pct": 40.51,
+            "false_alarm_ratio_pct": 58.51
+          },
+          "hybrid_blend_05": {
+            "f1_score_pct": 61.01,
+            "recall_pod_pct": 62.74,
+            "precision_pct": 59.37,
+            "critical_success_index_pct": 43.89,
+            "false_alarm_ratio_pct": 40.63
+          },
+          "persistence_05": {
+            "f1_score_pct": 61.01,
+            "recall_pod_pct": 62.74,
+            "precision_pct": 59.37,
+            "critical_success_index_pct": 43.89,
+            "false_alarm_ratio_pct": 40.63
+          }
+        },
+        "operational_selection_objective": {
+          "objective": "Minimize Brier score on validation calibration split to produce calibrated probabilities for risk outlooks",
+          "weight_selection_metric": "Brier score on calibration split",
+          "threshold_selection_metric": "F1 score on calibration split",
+          "tradeoff_analysis": "Hybrid probability blending consistently minimizes Brier score (probability error) across horizons, providing reliable probabilistic outlooks. However, for hard binary classification at 0.5 threshold, persistence achieves higher or comparable F1/recall on short horizons (1h/3h). Operational users seeking threshold alerts should use the calibrated operational threshold or persistence baseline accordingly."
+        },
         "fixed_threshold_05": {
           "threshold": 0.5,
           "accuracy_pct": 62.55,
@@ -3015,10 +3493,56 @@
         "overall_mae_mm": 1.0993,
         "overall_rmse_mm": 3.3709,
         "overall_bias_mm": -0.9238,
+        "persistence_mae_mm": 1.6113,
+        "persistence_rmse_mm": 4.3448,
+        "persistence_bias_mm": 0.0749,
+        "climatology_mae_mm": 1.2582,
+        "climatology_rmse_mm": 3.2922,
+        "skill_vs_persistence": 0.3178,
+        "beats_persistence": 1,
+        "dry_hour_samples": 1648,
+        "dry_hour_mae_mm": 0.1343,
+        "dry_hour_rmse_mm": 0.15,
+        "dry_hour_bias_mm": 0.1343,
         "rainy_hour_samples": 985,
         "rainy_hour_mae_mm": 2.7136,
         "rainy_hour_rmse_mm": 5.5079,
-        "rainy_hour_bias_mm": -2.6943
+        "rainy_hour_bias_mm": -2.6943,
+        "heavy_rain_thresholds": {
+          "threshold_2_5mm": {
+            "threshold_mm": 2.5,
+            "observed_event_count": 290,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_5_0mm": {
+            "threshold_mm": 5.0,
+            "observed_event_count": 151,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_10_0mm": {
+            "threshold_mm": 10.0,
+            "observed_event_count": 66,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          }
+        },
+        "uncertainty_intervals": {
+          "status": "UNAVAILABLE",
+          "coverage_pct": null,
+          "mean_interval_width_mm": null,
+          "reason": "Validated conformal intervals are only implemented for beta water level. Weather and precipitation intervals are unavailable."
+        }
       },
       "solar_status": {
         "uv_index": {
@@ -3465,6 +3989,43 @@
       "test_samples_total": 2443,
       "calibration_samples_total": 2556,
       "small_sample_warning": 0,
+      "calib_skill_gates": {
+        "temperature": {
+          "calib_model_mae": 1.5858,
+          "calib_persist_mae": 1.1304,
+          "calib_skill_score": -0.4029,
+          "selected_source": "persistence_fallback"
+        },
+        "humidity": {
+          "calib_model_mae": 3.4722,
+          "calib_persist_mae": 2.542,
+          "calib_skill_score": -0.3659,
+          "selected_source": "persistence_fallback"
+        },
+        "pressure": {
+          "calib_model_mae": 1.146,
+          "calib_persist_mae": 1.124,
+          "calib_skill_score": -0.0195,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_speed": {
+          "calib_model_mae": 1.4757,
+          "calib_persist_mae": 1.4712,
+          "calib_skill_score": -0.0031,
+          "selected_source": "persistence_fallback"
+        },
+        "wind_direction": {
+          "calib_model_circular_mae": 91.96,
+          "calib_persist_circular_mae": 51.19,
+          "calib_skill_score": -0.7964,
+          "selected_source": "persistence_fallback"
+        },
+        "heat_index": {
+          "derivation_rule": "derived_from_selected_temp_and_humidity",
+          "formula": "NOAA NWS Rothfusz regression",
+          "selected_source": "derived_from_selected_temp_and_humidity"
+        }
+      },
       "temperature": {
         "sample_count": 2443,
         "mae": 1.2304,
@@ -3549,7 +4110,8 @@
           "circular_mae_deg": 54.33
         },
         "beats_persistence": 0,
-        "skill_vs_persistence": -0.7114
+        "skill_vs_persistence": -0.7114,
+        "selected_source": "persistence_fallback"
       },
       "heat_index": {
         "sample_count": 2443,
@@ -3562,9 +4124,56 @@
         "climatology_rmse": 5.1735,
         "skill_vs_persistence": -0.0378,
         "beats_persistence": 0,
-        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)"
+        "derivation_formula": "NOAA NWS Rothfusz regression from predicted (T, RH)",
+        "selected_source": "derived_from_selected_temp_and_humidity"
       },
       "rain_occurrence": {
+        "probability_quality": {
+          "hybrid_brier_score": 0.2327,
+          "model_brier_score": 0.2473,
+          "persistence_brier_score": 0.3328,
+          "climatology_brier_score": 0.2668,
+          "brier_skill_score_vs_persistence": 0.3008,
+          "hybrid_expected_calibration_error": 0.1577,
+          "model_expected_calibration_error": 0.1502
+        },
+        "event_classification": {
+          "fixed_threshold_05": {
+            "f1_score_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "precision_pct": 0.0,
+            "critical_success_index_pct": 0.0,
+            "false_alarm_ratio_pct": 0.0
+          },
+          "frozen_operational_threshold": {
+            "threshold": 0.1,
+            "f1_score_pct": 53.32,
+            "recall_pod_pct": 100.0,
+            "precision_pct": 36.35,
+            "critical_success_index_pct": 36.35,
+            "false_alarm_ratio_pct": 63.65
+          },
+          "hybrid_blend_05": {
+            "f1_score_pct": 56.64,
+            "recall_pod_pct": 59.8,
+            "precision_pct": 53.8,
+            "critical_success_index_pct": 39.51,
+            "false_alarm_ratio_pct": 46.2
+          },
+          "persistence_05": {
+            "f1_score_pct": 56.64,
+            "recall_pod_pct": 59.8,
+            "precision_pct": 53.8,
+            "critical_success_index_pct": 39.51,
+            "false_alarm_ratio_pct": 46.2
+          }
+        },
+        "operational_selection_objective": {
+          "objective": "Minimize Brier score on validation calibration split to produce calibrated probabilities for risk outlooks",
+          "weight_selection_metric": "Brier score on calibration split",
+          "threshold_selection_metric": "F1 score on calibration split",
+          "tradeoff_analysis": "Hybrid probability blending consistently minimizes Brier score (probability error) across horizons, providing reliable probabilistic outlooks. However, for hard binary classification at 0.5 threshold, persistence achieves higher or comparable F1/recall on short horizons (1h/3h). Operational users seeking threshold alerts should use the calibrated operational threshold or persistence baseline accordingly."
+        },
         "fixed_threshold_05": {
           "threshold": 0.5,
           "accuracy_pct": 63.65,
@@ -3874,10 +4483,56 @@
         "overall_mae_mm": 1.0123,
         "overall_rmse_mm": 3.1403,
         "overall_bias_mm": -0.8556,
+        "persistence_mae_mm": 1.5525,
+        "persistence_rmse_mm": 4.1453,
+        "persistence_bias_mm": 0.1838,
+        "climatology_mae_mm": 1.179,
+        "climatology_rmse_mm": 3.0534,
+        "skill_vs_persistence": 0.348,
+        "beats_persistence": 1,
+        "dry_hour_samples": 1555,
+        "dry_hour_mae_mm": 0.1211,
+        "dry_hour_rmse_mm": 0.1265,
+        "dry_hour_bias_mm": 0.1211,
         "rainy_hour_samples": 888,
         "rainy_hour_mae_mm": 2.5728,
         "rainy_hour_rmse_mm": 5.2059,
-        "rainy_hour_bias_mm": -2.5658
+        "rainy_hour_bias_mm": -2.5658,
+        "heavy_rain_thresholds": {
+          "threshold_2_5mm": {
+            "threshold_mm": 2.5,
+            "observed_event_count": 251,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_5_0mm": {
+            "threshold_mm": 5.0,
+            "observed_event_count": 130,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          },
+          "threshold_10_0mm": {
+            "threshold_mm": 10.0,
+            "observed_event_count": 53,
+            "predicted_event_count": 0,
+            "hits": 0,
+            "precision_pct": 0.0,
+            "recall_pod_pct": 0.0,
+            "critical_success_index_pct": 0.0
+          }
+        },
+        "uncertainty_intervals": {
+          "status": "UNAVAILABLE",
+          "coverage_pct": null,
+          "mean_interval_width_mm": null,
+          "reason": "Validated conformal intervals are only implemented for beta water level. Weather and precipitation intervals are unavailable."
+        }
       },
       "solar_status": {
         "uv_index": {

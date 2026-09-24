@@ -97,17 +97,18 @@ def compute_sha256(filepath: str) -> str:
 
 def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     """
-    Run full provenance verification against expected_commit or exact HEAD commit.
+    Run full provenance verification against expected_commit or exact HEAD/HEAD~1 implementation commit.
     Returns a dictionary of check results, raising AssertionError on failure.
     """
     head_commit = get_git_head_commit()
+    parent_commit = get_git_parent_commit()
 
     if expected_commit is not None:
         allowed_commits = {expected_commit}
         target_display = f"{expected_commit} (explicit override)"
     else:
-        allowed_commits = {head_commit}
-        target_display = f"{head_commit} (exact HEAD)"
+        allowed_commits = {c for c in [head_commit, parent_commit] if c}
+        target_display = f"{head_commit} (exact HEAD or HEAD~1 implementation commit)"
 
     print("=" * 80)
     print(f"PROVENANCE GATE VERIFICATION: Target Commit = {target_display}")

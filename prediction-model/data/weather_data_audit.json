@@ -1,11 +1,11 @@
 {
-  "audit_timestamp_utc": "2026-09-23T03:43:07.193812+00:00",
+  "audit_timestamp_utc": "2026-09-23T06:49:58.253372+00:00",
   "source_hashes": {
     "weather_telemetry_csv": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
     "water_level_telemetry_csv": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
   },
   "weather_telemetry": {
-    "file_path": "C:\\Ben File\\beta-citizen-prediction\\prediction-model\\data\\weather_telemetry.csv",
+    "file_path": "prediction-model/data/weather_telemetry.csv",
     "total_rows": 756156,
     "total_stations": 16,
     "station_ids": [
@@ -155,7 +155,7 @@
     }
   },
   "water_telemetry": {
-    "file_path": "C:\\Ben File\\beta-citizen-prediction\\prediction-model\\data\\water_level_telemetry.csv",
+    "file_path": "prediction-model/data/water_level_telemetry.csv",
     "total_rows": 43883,
     "total_stations": 1,
     "station_ids": [

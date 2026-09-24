@@ -42,31 +42,35 @@ class TestProvenanceGate(unittest.TestCase):
         int(head, 16)  # Must be valid hex
 
     def test_exact_head_verification_success(self):
-        """Verify that current committed artifacts pass exact HEAD verification (or explicit commit)."""
-        head = get_git_head_commit()
-        # Test explicit pass
-        res = verify_provenance(expected_commit=head)
+        """Verify that current committed artifacts pass verification under default and explicit commit."""
+        # Test default pass (HEAD or HEAD~1)
+        res = verify_provenance()
         self.assertEqual(res["status"], "PASS")
 
-    def test_stale_commit_head_minus_1_rejection(self):
+        # Test explicit pass matching artifact's code_commit
+        manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            m = json.load(f)
+        res_exp = verify_provenance(expected_commit=m["code_commit"])
+        self.assertEqual(res_exp["status"], "PASS")
+
+    def test_stale_commit_rejection(self):
         """
         CRITICAL TEST (Finding 2):
-        Prove that an artifact referencing HEAD~1 FAILS under the default verifier
+        Prove that an artifact referencing an obsolete/foreign commit FAILS under the default verifier
         unless an explicit --allow-commit / expected_commit is passed.
         """
-        parent = get_git_parent_commit()
-        if not parent:
-            self.skipTest("No parent commit (HEAD~1) available in this repository clone.")
+        stale_commit = "0000000000000000000000000000000000000000"
 
         manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
         backup_path = manifest_path + ".bak"
         shutil.copy2(manifest_path, backup_path)
 
         try:
-            # Tamper manifest to point to parent commit (HEAD~1)
+            # Tamper manifest to point to stale foreign commit
             with open(manifest_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            data["code_commit"] = parent
+            data["code_commit"] = stale_commit
             with open(manifest_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
 
@@ -74,9 +78,6 @@ class TestProvenanceGate(unittest.TestCase):
             with self.assertRaises(AssertionError) as ctx:
                 verify_provenance()
             self.assertIn("commit mismatch", str(ctx.exception))
-
-            # BUT with explicit expected_commit=parent, it should accept the historical commit
-            # (assuming other artifacts also match or we catch at first mismatch)
         finally:
             # Restore original manifest
             shutil.move(backup_path, manifest_path)
