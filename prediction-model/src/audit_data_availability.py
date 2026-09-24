@@ -79,7 +79,9 @@ def parse_iso_utc(ts_str: str):
     return None
 
 
-def run_audit():
+def run_audit(output_json: str = None, write_to_disk: bool = True):
+    if output_json is None:
+        output_json = OUTPUT_JSON
     print("=" * 80)
     print("GARCIA WEATHER TELEMETRY FORECAST ENGINE: DATA AVAILABILITY AUDIT")
     print("=" * 80)
@@ -396,10 +398,11 @@ def run_audit():
         "target_feasibility_determination": feasibility,
     }
 
-    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2)
-
-    print(f"\nAudit completed successfully. Report written to:\n  {OUTPUT_JSON}\n")
+    if write_to_disk and output_json:
+        os.makedirs(os.path.dirname(os.path.abspath(output_json)), exist_ok=True)
+        with open(output_json, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+        print(f"\nAudit completed successfully. Report written to:\n  {output_json}\n")
     print(f"{'Target Field':<28} | {'Status':<30} | {'Units/Method':<35}")
     print("-" * 100)
     for tgt, info in feasibility.items():

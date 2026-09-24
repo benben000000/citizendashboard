@@ -258,6 +258,146 @@ class TestInferencePolicyContract(unittest.TestCase):
         with self.assertRaises(ValueError):
             predictor.predict_from_observed_sequence(inf_seq, horizon_hours=1)
 
+    def test_all_five_horizons_bundle_contract(self):
+        """
+        Phase 4 Requirement:
+        For every supported horizon:
+        1. Load the default operational bundle.
+        2. Build a valid 24-step eight-feature observed sequence.
+        3. Call predict_from_observed_sequence().
+        4. Verify returned policy version and provenance.
+        5. Verify selected sources match policy.
+        6. Verify API uses persistence for variables marked persistence_fallback.
+        7. Verify API uses model values for variables marked learned_model.
+        8. Independently recompute rain blending.
+        9. Compare independent value with API response.
+        10. Verify operational alert classification using frozen threshold.
+        11. Verify weather uncertainty is explicitly reported UNAVAILABLE.
+        12. Verify water-level output remains beta-only.
+        """
+        horizons = [1, 3, 6, 12, 24]
+        for h in horizons:
+            predictor = LNNServerlessPredictor(horizon_hours=h)
+            self.assertTrue(predictor.is_bundled, f"Predictor for {h}h was not loaded from bundle")
+
+            # Sequence with distinct values:
+            # temp=29.4, heat_idx=34.0, rh=72.0, press=1008.5, ws=9.5, wind_sin=0.6, wind_cos=0.8, precip=1.2
+            obs_row = [29.4, 34.0, 72.0, 1008.5, 9.5, 0.6, 0.8, 1.2]
+            valid_seq = np.array([obs_row] * 24, dtype=np.float32)
+
+            res = predictor.predict_from_observed_sequence(
+                telemetry_sequence=valid_seq,
+                forecast_origin_timestamp="2026-08-01T12:00:00",
+            )
+
+            # Metadata verification
+            self.assertEqual(res["forecast_horizon"], f"{h}h")
+            self.assertEqual(res["active_bundle_horizon"], f"{h}h")
+            self.assertIn("bundle_version", res)
+            self.assertIn("policy_version", res)
+            self.assertIn("provenance", res)
+            self.assertIn("implementation_commit", res["provenance"])
+            self.assertIn("artifact_commit", res["provenance"])
+            self.assertIn("checkpoint_sha256", res["provenance"])
+            self.assertIn("policy_sha256", res["provenance"])
+
+            # Verify policy sources
+            h_policy = predictor.policy["horizons"][str(h)]
+            sources = h_policy.get("selected_sources", {})
+            for var in ["temperature", "humidity", "pressure", "wind_speed", "wind_direction"]:
+                expected_src = sources.get(var, "persistence_fallback")
+                self.assertEqual(res["selected_source_by_variable"][var], expected_src)
+
+            # If temperature is persistence_fallback, output must equal origin 29.4
+            if sources.get("temperature") == "persistence_fallback":
+                self.assertEqual(res["temperature_c"], 29.4)
+
+            # If pressure is persistence_fallback, output must equal origin 1008.5
+            if sources.get("pressure") == "persistence_fallback":
+                self.assertEqual(res["pressure_hpa"], 1008.5)
+
+            # Independent rain blending recomputation
+            raw_model_prob = res["diagnostics"]["raw_learned_predictions"]["rain_probability"]
+            w_m = float(h_policy.get("rain_model_weight", 1.0))
+            w_p = float(h_policy.get("rain_persistence_weight", 0.0))
+            thresh = float(h_policy.get("operational_rain_threshold", 0.5))
+            persist_prob = 1.0 if obs_row[7] >= 0.1 else 0.0
+
+            independent_blend = max(0.0, min(1.0, (w_m * raw_model_prob) + (w_p * persist_prob)))
+            self.assertAlmostEqual(res["chance_of_rain_pct"] / 100.0, independent_blend, delta=0.01)
+            self.assertEqual(res["rain_operational_alert"], bool(independent_blend >= thresh))
+
+            # Uncertainty & Beta Safety
+            self.assertEqual(res["weather_uncertainty"]["status"], "UNAVAILABLE")
+            self.assertEqual(res["water_level_beta"]["not_for_life_safety"], True)
+            self.assertEqual(res["water_level_beta"]["status"], "INTERNAL_EXPERIMENT_BETA")
+
+    def test_bundle_security_fail_closed(self):
+        """Verify that tampered bundle hashes and missing files fail closed."""
+        import shutil
+
+        # 1. Tampered checkpoint hash in bundle
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            b_dir = os.path.join(tmp_dir, "h1")
+            shutil.copytree(os.path.join(DATA_DIR, "bundles", "h1"), b_dir)
+            bm_path = os.path.join(b_dir, "bundle_manifest.json")
+            with open(bm_path, "r", encoding="utf-8") as f:
+                bm = json.load(f)
+            bm["checkpoint_sha256"] = "0" * 64
+            with open(bm_path, "w", encoding="utf-8") as f:
+                json.dump(bm, f)
+
+            with self.assertRaises(ValueError) as ctx:
+                LNNServerlessPredictor(bundle_dir=b_dir, horizon_hours=1)
+            self.assertIn("checkpoint hash mismatch", str(ctx.exception))
+
+        # 2. Tampered policy hash in bundle
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            b_dir = os.path.join(tmp_dir, "h1")
+            shutil.copytree(os.path.join(DATA_DIR, "bundles", "h1"), b_dir)
+            bm_path = os.path.join(b_dir, "bundle_manifest.json")
+            with open(bm_path, "r", encoding="utf-8") as f:
+                bm = json.load(f)
+            bm["policy_sha256"] = "0" * 64
+            with open(bm_path, "w", encoding="utf-8") as f:
+                json.dump(bm, f)
+
+            with self.assertRaises(ValueError) as ctx:
+                LNNServerlessPredictor(bundle_dir=b_dir, horizon_hours=1)
+            self.assertIn("policy hash mismatch", str(ctx.exception))
+
+        # 3. Missing bundle file
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            b_dir = os.path.join(tmp_dir, "h1")
+            shutil.copytree(os.path.join(DATA_DIR, "bundles", "h1"), b_dir)
+            os.remove(os.path.join(b_dir, "checkpoint.pt"))
+
+            with self.assertRaises(FileNotFoundError) as ctx:
+                LNNServerlessPredictor(bundle_dir=b_dir, horizon_hours=1)
+            self.assertIn("Missing required bundle artifact", str(ctx.exception))
+
+        # 4. Horizon mismatch in bundle
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            b_dir = os.path.join(tmp_dir, "h1")
+            shutil.copytree(os.path.join(DATA_DIR, "bundles", "h1"), b_dir)
+
+            with self.assertRaises(ValueError) as ctx:
+                LNNServerlessPredictor(bundle_dir=b_dir, horizon_hours=3)
+            self.assertIn("Bundle horizon mismatch", str(ctx.exception))
+
+    def test_predict_horizon_mismatch_fails_closed(self):
+        """Verify calling predict_from_observed_sequence with mismatched horizon raises ValueError."""
+        predictor = LNNServerlessPredictor(horizon_hours=1)
+        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+
+        with self.assertRaises(ValueError) as ctx:
+            predictor.predict_from_observed_sequence(
+                telemetry_sequence=dummy_seq,
+                forecast_origin_timestamp="2026-08-01T12:00:00",
+                horizon_hours=3,
+            )
+        self.assertIn("Horizon mismatch", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

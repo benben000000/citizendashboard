@@ -211,3 +211,56 @@ Evaluated on the test split (N=2,820 sequence windows across 16 stations):
 4. **Isolate River Level as Beta**:
    - River level delta forecasts must retain explicit metadata: `status: "INTERNAL_EXPERIMENT_BETA"`, `not_for_life_safety: true`.
    - Never trigger automated sirens, alerts, or evacuation directives from this module.
+
+---
+
+## 6. Model-Policy Packaging & Provenance Architecture
+
+To eliminate operational drift and prevent API bypass of the validated inference policy, model weights and policies are packaged into deterministic, verified bundles:
+
+### 6.1 Bundle Structure
+
+```plaintext
+prediction-model/data/bundles/
+├── h1/   (checkpoint.pt, inference_policy.json, bundle_manifest.json, README.md)
+├── h3/   (checkpoint.pt, inference_policy.json, bundle_manifest.json, README.md)
+├── h6/   (checkpoint.pt, inference_policy.json, bundle_manifest.json, README.md)
+├── h12/  (checkpoint.pt, inference_policy.json, bundle_manifest.json, README.md)
+└── h24/  (checkpoint.pt, inference_policy.json, bundle_manifest.json, README.md)
+```
+
+Each `bundle_manifest.json` contains:
+- `bundle_version`
+- `horizon_hours`
+- `implementation_commit` (source code commit SHA)
+- `artifact_commit` (git commit containing the bundle artifacts)
+- `checkpoint_sha256` (cryptographic SHA-256 hash of `checkpoint.pt`)
+- `policy_sha256` (cryptographic SHA-256 hash of `inference_policy.json`)
+- `raw_weather_dataset_sha256` & `raw_water_dataset_sha256`
+- `feature_schema` (canonical 8 features)
+- `model_family` (`GarciaWeatherLNN`)
+
+### 6.2 Fail-Closed Cryptographic Verification
+During inference initialization, `LNNServerlessPredictor` validates all hashes against `bundle_manifest.json`. Any missing files, horizon mismatches, or tampered bytes immediately raise a fail-closed exception.
+
+---
+
+## 7. Experimental Two-Stage Precipitation & Monitoring
+
+### 7.1 Two-Stage Precipitation Architecture (Experimental)
+A decoupled two-stage precipitation architecture is available in `model.py` behind the explicit flag `use_two_stage_precipitation=True`:
+1. **Occurrence Head**: Binary classifier logit for $P(\text{Rain} > 0)$.
+2. **Conditional Amount Head**: Non-negative regression for $E[\text{Rain} \mid \text{Rain} > 0]$ via softplus activation.
+3. **Expected Value**: $E[Y] = P(Y > 0) \times E[Y \mid Y > 0]$.
+
+**Comparative Evaluation Results (Test Partition, N=908):**
+- Baseline Single-Head MAE: **1.6998 mm** (Dry-hour: 0.0869 mm, Rainy-hour: 3.2638 mm)
+- Experimental Two-Stage MAE: **2.0637 mm** (Dry-hour: 0.3020 mm, Rainy-hour: 3.7719 mm)
+- **Decision**: Retain baseline single-head as production default (`use_two_stage_precipitation=False`). The two-stage architecture remains fully integrated for research into custom Tweedie/focal loss functions.
+
+### 7.2 Post-Deployment Monitoring & Drift Detection
+The monitoring suite (`prediction-model/src/monitoring.py`) evaluates model telemetry across:
+- **Dimensions**: Horizon, station, rain/dry regime, heavy-rain regime (2.5, 5.0, 10.0 mm/h), calm/windy regime.
+- **Continuous Metrics**: MAE, RMSE, bias, persistence MAE, skill score, climatology MAE, missingness.
+- **Event Metrics**: Brier score, ECE calibration error, F1, precision, POD/recall, FAR, CSI, confusion matrix.
+- **Safeguards**: Bootstrap 95% confidence intervals, minimum sample count requirements, and feature distribution drift detection. Monitoring never mutates the frozen operational policy automatically.

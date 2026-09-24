@@ -54,33 +54,125 @@ class TestProvenanceGate(unittest.TestCase):
         res_exp = verify_provenance(expected_commit=m["code_commit"])
         self.assertEqual(res_exp["status"], "PASS")
 
+    def _create_isolated_data_dir(self, tmp_dir: str) -> str:
+        """Helper to create an isolated copy of data files for mutation testing."""
+        isolated = os.path.join(tmp_dir, "data")
+        shutil.copytree(DATA_DIR, isolated)
+        return isolated
+
     def test_stale_commit_rejection(self):
         """
         CRITICAL TEST (Finding 2):
         Prove that an artifact referencing an obsolete/foreign commit FAILS under the default verifier
-        unless an explicit --allow-commit / expected_commit is passed.
+        unless an explicit --allow-commit / expected_commit is passed. Uses isolated tempdir.
         """
         stale_commit = "0000000000000000000000000000000000000000"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            isolated_data = self._create_isolated_data_dir(tmp_dir)
+            manifest_path = os.path.join(isolated_data, "cleaned_data_manifest.json")
 
-        manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
-        backup_path = manifest_path + ".bak"
-        shutil.copy2(manifest_path, backup_path)
-
-        try:
-            # Tamper manifest to point to stale foreign commit
             with open(manifest_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             data["code_commit"] = stale_commit
             with open(manifest_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
 
-            # Default verify_provenance() MUST FAIL (reject stale artifact)
             with self.assertRaises(AssertionError) as ctx:
-                verify_provenance()
+                verify_provenance(data_dir=isolated_data)
             self.assertIn("commit mismatch", str(ctx.exception))
-        finally:
-            # Restore original manifest
-            shutil.move(backup_path, manifest_path)
+
+    def test_stale_bundle_implementation_commit_rejection(self):
+        """Verify that a bundle with stale implementation_commit fails verification."""
+        stale_commit = "0000000000000000000000000000000000000000"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            isolated_data = self._create_isolated_data_dir(tmp_dir)
+            bm_path = os.path.join(isolated_data, "bundles", "h1", "bundle_manifest.json")
+            with open(bm_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            data["implementation_commit"] = stale_commit
+            with open(bm_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            with self.assertRaises(AssertionError) as ctx:
+                verify_provenance(data_dir=isolated_data)
+            self.assertIn("implementation_commit mismatch", str(ctx.exception))
+
+    def test_stale_bundle_artifact_commit_rejection(self):
+        """Verify that a bundle with stale artifact_commit fails verification."""
+        stale_commit = "0000000000000000000000000000000000000000"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            isolated_data = self._create_isolated_data_dir(tmp_dir)
+            bm_path = os.path.join(isolated_data, "bundles", "h1", "bundle_manifest.json")
+            with open(bm_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            data["artifact_commit"] = stale_commit
+            with open(bm_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            with self.assertRaises(AssertionError) as ctx:
+                verify_provenance(data_dir=isolated_data)
+            self.assertIn("artifact_commit mismatch", str(ctx.exception))
+
+    def test_mismatched_bundle_checkpoint_hash_rejection(self):
+        """Verify that a bundle with tampered checkpoint hash fails verification."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            isolated_data = self._create_isolated_data_dir(tmp_dir)
+            bm_path = os.path.join(isolated_data, "bundles", "h1", "bundle_manifest.json")
+            with open(bm_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            data["checkpoint_sha256"] = "0" * 64
+            with open(bm_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            with self.assertRaises(AssertionError) as ctx:
+                verify_provenance(data_dir=isolated_data)
+            self.assertIn("checkpoint_sha256 mismatch", str(ctx.exception))
+
+    def test_mismatched_bundle_policy_hash_rejection(self):
+        """Verify that a bundle with tampered policy hash fails verification."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            isolated_data = self._create_isolated_data_dir(tmp_dir)
+            bm_path = os.path.join(isolated_data, "bundles", "h1", "bundle_manifest.json")
+            with open(bm_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            data["policy_sha256"] = "0" * 64
+            with open(bm_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            with self.assertRaises(AssertionError) as ctx:
+                verify_provenance(data_dir=isolated_data)
+            self.assertIn("policy_sha256 mismatch", str(ctx.exception))
+
+    def test_missing_required_bundle_field_rejection(self):
+        """Verify that a bundle missing required fields fails verification."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            isolated_data = self._create_isolated_data_dir(tmp_dir)
+            bm_path = os.path.join(isolated_data, "bundles", "h1", "bundle_manifest.json")
+            with open(bm_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            del data["model_family"]
+            with open(bm_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            with self.assertRaises(AssertionError) as ctx:
+                verify_provenance(data_dir=isolated_data)
+            self.assertIn("missing required field 'model_family'", str(ctx.exception))
+
+    def test_explicit_historical_override(self):
+        """Verify that explicit expected_commit / allow-commit allows matching historical commit."""
+        manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            m = json.load(f)
+        explicit_sha = m["code_commit"]
+        res = verify_provenance(expected_commit=explicit_sha)
+        self.assertEqual(res["status"], "PASS")
+
+    def test_read_only_worktree_preserved(self):
+        """Verify that running verification suite does not modify tracked repository files."""
+        res_before = subprocess.run(["git", "status", "--porcelain"], cwd=SRC_DIR, capture_output=True, text=True)
+        verify_provenance()
+        res_after = subprocess.run(["git", "status", "--porcelain"], cwd=SRC_DIR, capture_output=True, text=True)
+        self.assertEqual(res_before.stdout, res_after.stdout, "Running verify_provenance modified working tree files!")
 
     def test_path_hygiene_no_machine_specific_paths(self):
         """

@@ -1085,10 +1085,14 @@ def evaluate_horizon(
     return horizon_result, sample_records
 
 
-def run_full_validation(horizons: list = None):
+def run_full_validation(horizons: list = None, output_dir: str = None, write_to_disk: bool = False):
     """Execute complete independent validation suite across all horizons."""
     if horizons is None:
         horizons = DEFAULT_HORIZONS
+
+    out_dir = output_dir if output_dir is not None else DATA_DIR
+    if write_to_disk:
+        os.makedirs(out_dir, exist_ok=True)
 
     print("=" * 90)
     print("GARCIA WEATHER TELEMETRY FORECAST ENGINE: COMPREHENSIVE VALIDATION SUITE")
@@ -1204,11 +1208,13 @@ def run_full_validation(horizons: list = None):
         "persist_temp", "persist_humidity", "persist_pressure", "persist_wind_speed", "persist_rain",
         "actual_water_level", "mf1_water_level", "persist_water",
     ]
-    with open(PREDICTIONS_LOG_PATH, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(all_sample_records)
-    print(f"\nSaved {len(all_sample_records)} test sample predictions to: {PREDICTIONS_LOG_PATH}")
+    if write_to_disk:
+        out_log_path = os.path.join(out_dir, "test_predictions_log.csv")
+        with open(out_log_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(all_sample_records)
+        print(f"\nSaved {len(all_sample_records)} test sample predictions to: {out_log_path}")
 
     # Build master scorecard structure
     scorecard = {
@@ -1258,13 +1264,16 @@ def run_full_validation(horizons: list = None):
         return obj
 
     clean_scorecard = to_serializable(scorecard)
-    with open(WEATHER_SCORECARD_PATH, "w", encoding="utf-8") as f:
-        json.dump(clean_scorecard, f, indent=2)
-    with open(SCORECARD_PATH, "w", encoding="utf-8") as f:
-        json.dump(clean_scorecard, f, indent=2)
+    if write_to_disk:
+        out_weather_sc = os.path.join(out_dir, "weather_validation_scorecard.json")
+        out_canonical_sc = os.path.join(out_dir, "validation_scorecard.json")
+        with open(out_weather_sc, "w", encoding="utf-8") as f:
+            json.dump(clean_scorecard, f, indent=2)
+        with open(out_canonical_sc, "w", encoding="utf-8") as f:
+            json.dump(clean_scorecard, f, indent=2)
 
-    print(f"Saved weather scorecard to: {WEATHER_SCORECARD_PATH}")
-    print(f"Saved canonical scorecard to: {SCORECARD_PATH}")
+        print(f"Saved weather scorecard to: {out_weather_sc}")
+        print(f"Saved canonical scorecard to: {out_canonical_sc}")
 
     # Build and export operational inference policy
     policy_horizons = {}
@@ -1301,10 +1310,11 @@ def run_full_validation(horizons: list = None):
         "horizons": policy_horizons,
     }
 
-    policy_path = os.path.join(DATA_DIR, "inference_policy.json")
-    with open(policy_path, "w", encoding="utf-8") as f:
-        json.dump(to_serializable(inference_policy), f, indent=2)
-    print(f"Saved inference policy artifact to: {policy_path}")
+    if write_to_disk:
+        policy_path = os.path.join(out_dir, "inference_policy.json")
+        with open(policy_path, "w", encoding="utf-8") as f:
+            json.dump(to_serializable(inference_policy), f, indent=2)
+        print(f"Saved inference policy artifact to: {policy_path}")
 
     # Print summary tables to console
     print("\n" + "=" * 110)
@@ -1346,6 +1356,9 @@ def run_full_validation(horizons: list = None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Garcia Weather Telemetry Independent Multi-Horizon Validator.")
     parser.add_argument("--horizons", nargs="+", type=int, default=DEFAULT_HORIZONS, help="List of horizons (e.g. 1 3 6 12 24)")
+    parser.add_argument("--output-dir", default=None, help="Directory to output generated scorecards and policy (defaults to prediction-model/data)")
+    parser.add_argument("--write", action="store_true", help="Explicitly write scorecards and policy to disk (read-only by default)")
     args = parser.parse_args()
 
-    run_full_validation(horizons=args.horizons)
+    should_write = args.write or (args.output_dir is not None)
+    run_full_validation(horizons=args.horizons, output_dir=args.output_dir, write_to_disk=should_write)

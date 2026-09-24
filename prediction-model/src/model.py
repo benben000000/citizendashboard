@@ -152,6 +152,41 @@ class WeatherWaterLNN(nn.Module):
         )
 
 
+class TwoStagePrecipitationHead(nn.Module):
+    """
+    Experimental Two-Stage Precipitation Forecasting Architecture.
+    Stage 1: Rain Occurrence (binary classifier logit, evaluated for calibration & BCE).
+    Stage 2: Conditional Rain Amount (continuous non-negative volume given rain > 0).
+    Expected formulation:
+      E[Y] = P(Y > 0) * E[Y | Y > 0]
+    """
+    def __init__(self, hidden_dim: int = 32):
+        super().__init__()
+        self.occurrence_net = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # logit
+        )
+        self.conditional_amount_net = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # log-volume / softplus
+        )
+
+    def forward(self, h: torch.Tensor):
+        """
+        h: [batch, hidden_dim]
+        Returns:
+          rain_prob: [batch, 1] in [0, 1]
+          precip_mm: [batch, 1] non-negative expected volume in mm
+        """
+        logit = self.occurrence_net(h)
+        rain_prob = torch.sigmoid(logit)
+        cond_amount = F.softplus(self.conditional_amount_net(h))
+        expected_amount = rain_prob * cond_amount
+        return rain_prob, expected_amount
+
+
 class GarciaWeatherLNN(WeatherWaterLNN):
     """
     Garcia Weather Telemetry Forecast Engine (Continuous-Time CfC/LNN).
@@ -161,9 +196,18 @@ class GarciaWeatherLNN(WeatherWaterLNN):
       - Rain Amount Head: Non-negative Rain Accumulation (mm)
       - Derived Output: Deterministic NOAA Heat Index from forecast (Temp, RH)
       - Beta Head: Hydrological River Stage Delta (optional research/beta)
+      - Experimental: Two-Stage Precipitation Architecture (behind use_two_stage_precipitation flag)
     """
-    def __init__(self, input_dim: int = 8, hidden_dim: int = 32):
+    def __init__(
+        self,
+        input_dim: int = 8,
+        hidden_dim: int = 32,
+        use_two_stage_precipitation: bool = False,
+    ):
         super().__init__(input_dim=input_dim, hidden_dim=hidden_dim)
+        self.use_two_stage_precipitation = use_two_stage_precipitation
+        if self.use_two_stage_precipitation:
+            self.two_stage_rain_head = TwoStagePrecipitationHead(hidden_dim=hidden_dim)
 
         # Core Weather Heads
         self.temp_head = nn.Sequential(
@@ -226,9 +270,12 @@ class GarciaWeatherLNN(WeatherWaterLNN):
             h = self.cfc_cell(feat, h, dt_t)
 
             # Heads
-            rain_out = self.rain_head(h)
-            rain_prob = torch.sigmoid(rain_out[:, 0:1])
-            precip_mm = F.relu(rain_out[:, 1:2])
+            if self.use_two_stage_precipitation:
+                rain_prob, precip_mm = self.two_stage_rain_head(h)
+            else:
+                rain_out = self.rain_head(h)
+                rain_prob = torch.sigmoid(rain_out[:, 0:1])
+                precip_mm = F.relu(rain_out[:, 1:2])
 
             delta_water = self.water_head(h)
             if initial_water is not None:

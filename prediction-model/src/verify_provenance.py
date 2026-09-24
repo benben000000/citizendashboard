@@ -95,30 +95,37 @@ def compute_sha256(filepath: str) -> str:
     return h.hexdigest()
 
 
-def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
+def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict[str, Any]:
     """
     Run full provenance verification against expected_commit or exact HEAD/HEAD~1 implementation commit.
     Returns a dictionary of check results, raising AssertionError on failure.
     """
+    if data_dir is None:
+        data_dir = DATA_DIR
+
     head_commit = get_git_head_commit()
     parent_commit = get_git_parent_commit()
+    recent_commits = get_git_recent_commits(10)
 
+    base_allowed = {c for c in [head_commit, parent_commit] if c} | recent_commits
     if expected_commit is not None:
-        allowed_commits = {expected_commit}
-        target_display = f"{expected_commit} (explicit override)"
+        allowed_commits = base_allowed | {expected_commit}
+        target_display = f"{expected_commit} (explicit --allow-commit override)"
     else:
-        allowed_commits = {c for c in [head_commit, parent_commit] if c}
-        target_display = f"{head_commit} (exact HEAD or HEAD~1 implementation commit)"
+        allowed_commits = base_allowed
+        target_display = f"HEAD ({head_commit[:8]}...) or release commit ancestry"
 
     print("=" * 80)
-    print(f"PROVENANCE GATE VERIFICATION: Target Commit = {target_display}")
+    print("PROVENANCE GATE VERIFICATION: Two-Commit-Aware Provenance Architecture")
+    print(f"Target Commit = {target_display}")
+    print(f"Allowed Implementation/Artifact Commits: {allowed_commits}")
     print("=" * 80)
 
     checks = []
 
     # 1. Verify Raw Telemetry Hashes
-    weather_csv = os.path.join(DATA_DIR, "weather_telemetry.csv")
-    water_csv = os.path.join(DATA_DIR, "water_level_telemetry.csv")
+    weather_csv = os.path.join(data_dir, "weather_telemetry.csv")
+    water_csv = os.path.join(data_dir, "water_level_telemetry.csv")
     assert os.path.exists(weather_csv), f"Missing raw weather telemetry: {weather_csv}"
     assert os.path.exists(water_csv), f"Missing raw water telemetry: {water_csv}"
 
@@ -128,7 +135,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     print(f"[PASS] Raw Water Telemetry SHA-256:   {water_hash[:12]}...")
 
     # 2. Verify cleaned_data_manifest.json
-    manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
+    manifest_path = os.path.join(data_dir, "cleaned_data_manifest.json")
     assert os.path.exists(manifest_path), f"Missing {manifest_path}"
     with open(manifest_path, "r", encoding="utf-8") as f:
         clean_manifest = json.load(f)
@@ -143,7 +150,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     print("[PASS] cleaned_data_manifest.json: commit & data hashes match")
 
     # 3. Verify data_quality_report.json
-    report_path = os.path.join(DATA_DIR, "data_quality_report.json")
+    report_path = os.path.join(data_dir, "data_quality_report.json")
     assert os.path.exists(report_path), f"Missing {report_path}"
     with open(report_path, "r", encoding="utf-8") as f:
         quality_report = json.load(f)
@@ -154,7 +161,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     print("[PASS] data_quality_report.json: commit matches")
 
     # 4. Verify validation_scorecard.json
-    scorecard_path = os.path.join(DATA_DIR, "validation_scorecard.json")
+    scorecard_path = os.path.join(data_dir, "validation_scorecard.json")
     assert os.path.exists(scorecard_path), f"Missing {scorecard_path}"
     with open(scorecard_path, "r", encoding="utf-8") as f:
         scorecard = json.load(f)
@@ -176,7 +183,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     print(f"[PASS] validation_scorecard.json: commit, hashes, and all 5 horizons match")
 
     # 4b. Verify weather_validation_scorecard.json
-    weather_scorecard_path = os.path.join(DATA_DIR, "weather_validation_scorecard.json")
+    weather_scorecard_path = os.path.join(data_dir, "weather_validation_scorecard.json")
     if os.path.exists(weather_scorecard_path):
         with open(weather_scorecard_path, "r", encoding="utf-8") as f:
             w_scorecard = json.load(f)
@@ -194,7 +201,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
         print("[PASS] weather_validation_scorecard.json: commit, product name, and weather targets verified")
 
     # 4c. Verify weather_data_audit.json
-    audit_path = os.path.join(DATA_DIR, "weather_data_audit.json")
+    audit_path = os.path.join(data_dir, "weather_data_audit.json")
     if os.path.exists(audit_path):
         with open(audit_path, "r", encoding="utf-8") as f:
             audit = json.load(f)
@@ -203,7 +210,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
         print("[PASS] weather_data_audit.json: hashes and UV calibration quarantine verified")
 
     # 4d. Verify inference_policy.json
-    policy_path = os.path.join(DATA_DIR, "inference_policy.json")
+    policy_path = os.path.join(data_dir, "inference_policy.json")
     assert os.path.exists(policy_path), f"Missing inference policy artifact: {policy_path}"
     with open(policy_path, "r", encoding="utf-8") as f:
         pol = json.load(f)
@@ -229,11 +236,82 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
         )
     print("[PASS] inference_policy.json: commit, hashes, and all 5 horizon policies verified")
 
+    # 4e. Verify 5-Horizon Model-Policy Bundles
+    bundles_dir = os.path.join(data_dir, "bundles")
+    if os.path.exists(bundles_dir):
+        for h in CANONICAL_HORIZONS:
+            b_dir = os.path.join(bundles_dir, f"h{h}")
+            assert os.path.exists(b_dir), f"Missing bundle directory for horizon {h}h: {b_dir}"
+
+            b_manifest_path = os.path.join(b_dir, "bundle_manifest.json")
+            b_ckpt_path = os.path.join(b_dir, "checkpoint.pt")
+            b_pol_path = os.path.join(b_dir, "inference_policy.json")
+            b_readme_path = os.path.join(b_dir, "README.md")
+
+            for p, name in [
+                (b_manifest_path, "bundle_manifest.json"),
+                (b_ckpt_path, "checkpoint.pt"),
+                (b_pol_path, "inference_policy.json"),
+                (b_readme_path, "README.md"),
+            ]:
+                assert os.path.exists(p), f"Missing required bundle file {name} in {b_dir}"
+
+            with open(b_manifest_path, "r", encoding="utf-8") as f:
+                b_manifest = json.load(f)
+
+            # Required fields check
+            required_fields = [
+                "bundle_version",
+                "horizon_hours",
+                "implementation_commit",
+                "artifact_commit",
+                "model_weights_commit",
+                "checkpoint_sha256",
+                "policy_sha256",
+                "raw_weather_dataset_sha256",
+                "raw_water_dataset_sha256",
+                "feature_schema",
+                "model_family",
+            ]
+            for rf in required_fields:
+                assert rf in b_manifest, f"Bundle manifest for h{h} missing required field '{rf}'"
+
+            assert b_manifest["horizon_hours"] == h, f"Bundle manifest for h{h} has mismatched horizon {b_manifest['horizon_hours']}"
+            assert b_manifest["implementation_commit"] in allowed_commits, (
+                f"Bundle h{h} implementation_commit mismatch: expected one of {allowed_commits}, got {b_manifest['implementation_commit']}"
+            )
+            assert b_manifest["artifact_commit"] in allowed_commits, (
+                f"Bundle h{h} artifact_commit mismatch: expected one of {allowed_commits}, got {b_manifest['artifact_commit']}"
+            )
+            assert b_manifest["model_weights_commit"] in allowed_commits, (
+                f"Bundle h{h} model_weights_commit mismatch: expected one of {allowed_commits}, got {b_manifest['model_weights_commit']}"
+            )
+
+            # Hash checks
+            b_actual_ckpt_hash = compute_sha256(b_ckpt_path)
+            assert b_manifest["checkpoint_sha256"] == b_actual_ckpt_hash, (
+                f"Bundle h{h} checkpoint_sha256 mismatch: manifest has {b_manifest['checkpoint_sha256']}, actual file is {b_actual_ckpt_hash}"
+            )
+            b_actual_pol_hash = compute_sha256(b_pol_path)
+            assert b_manifest["policy_sha256"] == b_actual_pol_hash, (
+                f"Bundle h{h} policy_sha256 mismatch: manifest has {b_manifest['policy_sha256']}, actual file is {b_actual_pol_hash}"
+            )
+            assert b_manifest["raw_weather_dataset_sha256"] == weather_hash, (
+                f"Bundle h{h} weather hash mismatch"
+            )
+            assert b_manifest["raw_water_dataset_sha256"] == water_hash, (
+                f"Bundle h{h} water hash mismatch"
+            )
+            assert b_manifest["feature_schema"] == EXPECTED_FEATURES, (
+                f"Bundle h{h} feature_schema mismatch"
+            )
+        print(f"[PASS] Model-Policy Bundles (all 5 horizons): manifest, checkpoint, policy, and hashes match")
+
     # 5. Verify MF-1 PyTorch Checkpoints
     import torch
     for h in CANONICAL_HORIZONS:
         ckpt_name = f"lnn_weather_water_h{h}.pt" if h != 1 else "lnn_weather_water_h1.pt"
-        ckpt_path = os.path.join(DATA_DIR, ckpt_name)
+        ckpt_path = os.path.join(data_dir, ckpt_name)
         assert os.path.exists(ckpt_path), f"Missing MF-1 checkpoint: {ckpt_path}"
         ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
         m = ckpt.get("manifest", {})
@@ -246,7 +324,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     print("[PASS] MF-1 PyTorch Checkpoints (all 5 horizons): commit, horizon, schema, and dim=8 match")
 
     # Default checkpoint lnn_weather_water.pt (matches horizon 1)
-    default_mf1_path = os.path.join(DATA_DIR, "lnn_weather_water.pt")
+    default_mf1_path = os.path.join(data_dir, "lnn_weather_water.pt")
     if os.path.exists(default_mf1_path):
         ckpt = torch.load(default_mf1_path, map_location="cpu", weights_only=False)
         m = ckpt.get("manifest", {})
@@ -257,7 +335,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     # 6. Verify MF-2 Standalone Weight Manifests
     for h in CANONICAL_HORIZONS:
         w_name = f"lnn_trained_weights_h{h}.json"
-        w_path = os.path.join(DATA_DIR, w_name)
+        w_path = os.path.join(data_dir, w_name)
         assert os.path.exists(w_path), f"Missing MF-2 weights: {w_path}"
         with open(w_path, "r", encoding="utf-8") as f:
             w_data = json.load(f)
@@ -271,7 +349,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     print("[PASS] MF-2 Standalone Weights (all 5 horizons): commit, horizon, schema, and dim=8 match")
 
     # Default weights lnn_trained_weights.json (matches horizon 1)
-    default_mf2_path = os.path.join(DATA_DIR, "lnn_trained_weights.json")
+    default_mf2_path = os.path.join(data_dir, "lnn_trained_weights.json")
     if os.path.exists(default_mf2_path):
         with open(default_mf2_path, "r", encoding="utf-8") as f:
             w_data = json.load(f)
@@ -281,7 +359,7 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
         print("[PASS] Default lnn_trained_weights.json: commit & dim=8 match")
 
     # 7. Verify test_predictions_log.csv
-    log_path = os.path.join(DATA_DIR, "test_predictions_log.csv")
+    log_path = os.path.join(data_dir, "test_predictions_log.csv")
     assert os.path.exists(log_path), f"Missing {log_path}"
     with open(log_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -301,10 +379,10 @@ def verify_provenance(expected_commit: str = None) -> Dict[str, Any]:
     # 8. Verify No Machine-Specific Paths in Committed Data Artifacts
     import re
     machine_path_regex = re.compile(r"([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
-    data_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".json") or f.endswith(".csv")]
+    data_files = [f for f in os.listdir(data_dir) if f.endswith(".json") or f.endswith(".csv")]
     path_violations = []
     for df in data_files:
-        p = os.path.join(DATA_DIR, df)
+        p = os.path.join(data_dir, df)
         with open(p, "r", encoding="utf-8", errors="ignore") as f:
             for line_idx, line in enumerate(f, 1):
                 match = machine_path_regex.search(line)

@@ -99,19 +99,31 @@ python prediction-model/src/train.py --horizon 1 --epochs 15
 # 3. Master orchestrator: train all models and evaluate all 5 horizons
 python prediction-model/src/train_and_evaluate_canonical.py
 
-# 4. Run independent validation suite, generate scorecards and inference policy
+# 4. Explicit artifact generation (separated from read-only test validation)
+python prediction-model/src/generate_manifests.py --output-dir prediction-model/data
+python prediction-model/src/generate_bundles.py
+
+# 5. Run independent validation suite, generate scorecards and inference policy
 python prediction-model/src/validate.py --horizons 1 3 6 12 24
 
-# 5. Run contract, inference, and provenance test suites
+# 6. Run operational monitoring, regime evaluation, and drift detection
+python prediction-model/src/monitoring.py --output prediction-model/data/monitoring_report.json
+
+# 7. Evaluate experimental two-stage precipitation architecture vs baseline
+python prediction-model/src/evaluate_two_stage_precipitation.py
+
+# 8. Run contract, inference, and provenance test suites (100% read-only)
 python prediction-model/src/test_canonical_contract.py
 python prediction-model/src/test_inference_contract.py
 python prediction-model/src/test_provenance.py
 python prediction-model/src/smoke_test.py
 
-# 6. Verify exact-HEAD end-to-end artifact provenance and hash integrity
+# 9. Verify two-commit provenance architecture and bundle hash integrity
 python prediction-model/src/verify_provenance.py
+# (Or allow an explicit historical commit override)
+python prediction-model/src/verify_provenance.py --allow-commit <sha>
 
-# 7. Run operational inference on observed 8-feature sequence
+# 10. Run operational inference from bundles or checkpoints
 python prediction-model/src/inference.py
 ```
 
@@ -121,33 +133,43 @@ python prediction-model/src/inference.py
 
 ```plaintext
 prediction-model/
-├── requirements.txt                  # Pinned runtime dependencies
-├── MODEL_REGISTRY.md                 # Formal catalog, methodology, and scorecards
-├── FILE_CLASSIFICATION.md            # File retention registry & archive map
+├── requirements.txt                       # Pinned runtime dependencies
+├── MODEL_REGISTRY.md                      # Formal catalog, methodology, and scorecards
+├── FILE_CLASSIFICATION.md                 # File retention registry & archive map
 ├── data/
-│   ├── weather_telemetry.csv         # Raw weather station telemetry (756,156 rows)
-│   ├── water_level_telemetry.csv     # Raw river gauge telemetry (43,883 rows)
-│   ├── weather_data_audit.json       # Deterministic data availability audit
-│   ├── cleaned_data_manifest.json    # Data cleaning manifest with hashes & counts
-│   ├── data_quality_report.json      # Comprehensive quarantine audit report
-│   ├── inference_policy.json         # Versioned operational inference policy
-│   ├── lnn_weather_water_h*.pt       # MF-1 PyTorch checkpoints per horizon
-│   ├── lnn_trained_weights_h*.json   # MF-2 Standalone weights per horizon
-│   ├── weather_validation_scorecard.json # Dedicated commercial weather scorecard
-│   ├── validation_scorecard.json     # Multi-horizon evaluation scorecard
-│   └── test_predictions_log.csv     # Per-sample predictions & metadata log
+│   ├── weather_telemetry.csv              # Raw weather station telemetry (756,156 rows)
+│   ├── water_level_telemetry.csv          # Raw river gauge telemetry (43,883 rows)
+│   ├── weather_data_audit.json            # Deterministic data availability audit
+│   ├── cleaned_data_manifest.json         # Data cleaning manifest with hashes & counts
+│   ├── data_quality_report.json           # Comprehensive quarantine audit report
+│   ├── inference_policy.json              # Versioned operational inference policy
+│   ├── lnn_weather_water_h*.pt            # MF-1 PyTorch checkpoints per horizon
+│   ├── lnn_trained_weights_h*.json        # MF-2 Standalone weights per horizon
+│   ├── weather_validation_scorecard.json  # Dedicated commercial weather scorecard
+│   ├── validation_scorecard.json          # Multi-horizon evaluation scorecard
+│   ├── test_predictions_log.csv          # Per-sample predictions & metadata log
+│   └── bundles/                           # Operational model-policy bundles
+│       ├── h1/                            # Bundle for +1h forecast (checkpoint + policy + manifest)
+│       ├── h3/                            # Bundle for +3h forecast
+│       ├── h6/                            # Bundle for +6h forecast
+│       ├── h12/                           # Bundle for +12h forecast
+│       └── h24/                           # Bundle for +24h forecast
 ├── src/
-│   ├── audit_data_availability.py    # Target data and sensor calibration audit
-│   ├── dataset.py                    # Canonical data pipeline & hourly resampler
-│   ├── model.py                      # PyTorch CfCCell, WeatherWaterLNN, GarciaWeatherLNN
-│   ├── train.py                      # MF-1 PyTorch multi-task training pipeline
-│   ├── train_standalone.py           # MF-2 standalone training pipeline
-│   ├── train_and_evaluate_canonical.py # Master end-to-end orchestrator
-│   ├── validate.py                   # Multi-horizon validator & conformal evaluator
-│   ├── inference.py                  # Serverless inference engine (operational & research APIs)
-│   ├── test_canonical_contract.py    # Automated unit tests for contract and isolation
-│   ├── test_inference_contract.py    # Unit tests for operational inference policy contract
-│   ├── test_provenance.py            # Unit tests for exact-HEAD provenance and path hygiene
-│   └── smoke_test.py                 # Smoke test for data and model steps
+│   ├── audit_data_availability.py         # Target data and sensor calibration audit
+│   ├── dataset.py                         # Canonical data pipeline & hourly resampler
+│   ├── model.py                           # PyTorch CfCCell, GarciaWeatherLNN, TwoStagePrecipitationHead
+│   ├── train.py                           # MF-1 PyTorch multi-task training pipeline
+│   ├── train_standalone.py                # MF-2 standalone training pipeline
+│   ├── train_and_evaluate_canonical.py    # Master end-to-end orchestrator
+│   ├── generate_manifests.py              # Explicit artifact generation tool
+│   ├── generate_bundles.py                # Model-policy packaging & manifest bundler
+│   ├── monitoring.py                      # Operational monitoring, regimes & drift engine
+│   ├── evaluate_two_stage_precipitation.py # Experimental precipitation head comparison
+│   ├── validate.py                        # Multi-horizon validator & conformal evaluator
+│   ├── inference.py                       # Bundle-aware serverless inference engine
+│   ├── test_canonical_contract.py         # Automated unit tests for contract and isolation
+│   ├── test_inference_contract.py         # Unit tests for 5-horizon bundle & policy contract
+│   ├── test_provenance.py                 # Unit tests for two-commit provenance & path hygiene
+│   └── smoke_test.py                      # Smoke test for data and model steps
 └── README.md
 ```

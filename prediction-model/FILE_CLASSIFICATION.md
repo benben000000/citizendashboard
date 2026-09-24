@@ -54,6 +54,16 @@ This document records the classification of all files in prediction-model/, docu
 | prediction-model/logs/continuous_3h_validation_log.json | External Integration / Active Service | Continuous 3h validation log cited in maintenance docs |
 | prediction-model/requirements.txt | Canonical Runtime / Test / Artifact | Project dependency specification |
 | prediction-model/data/inference_policy.json | Canonical Runtime / Test / Artifact | Versioned operational inference policy (Finding 1) |
+| prediction-model/data/bundles/h1/ | Canonical Runtime / Test / Artifact | Model-policy bundle for +1h horizon |
+| prediction-model/data/bundles/h3/ | Canonical Runtime / Test / Artifact | Model-policy bundle for +3h horizon |
+| prediction-model/data/bundles/h6/ | Canonical Runtime / Test / Artifact | Model-policy bundle for +6h horizon |
+| prediction-model/data/bundles/h12/ | Canonical Runtime / Test / Artifact | Model-policy bundle for +12h horizon |
+| prediction-model/data/bundles/h24/ | Canonical Runtime / Test / Artifact | Model-policy bundle for +24h horizon |
+| prediction-model/src/generate_manifests.py | Canonical Runtime / Test / Artifact | Explicit artifact generator for cleaned data and quality report |
+| prediction-model/src/generate_bundles.py | Canonical Runtime / Test / Artifact | Deterministic model-policy packaging and manifest bundler |
+| prediction-model/src/monitoring.py | Canonical Runtime / Test / Artifact | Operational monitoring, regimes, and drift detection engine |
+| prediction-model/src/evaluate_two_stage_precipitation.py | Canonical Runtime / Test / Artifact | Experimental two-stage precipitation evaluation and comparison |
+| .github/workflows/prediction-model.yml | Canonical Runtime / Test / Artifact | GitHub Actions CI release workflow with 14 verification gates |
 | prediction-model/src/audit_data_availability.py | Canonical Runtime / Test / Artifact | Target data availability & sensor calibration audit |
 | prediction-model/src/benchmark_performance.py | External Integration / Active Service | Performance benchmark referenced in developer guide |
 | prediction-model/src/dataset.py | Canonical Runtime / Test / Artifact | Canonical data pipeline & hourly resampler |

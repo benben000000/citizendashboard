@@ -484,6 +484,32 @@ class TestCanonicalForecastingContract(unittest.TestCase):
         res = verify_provenance()
         self.assertEqual(res["status"], "PASS")
 
+    def test_experimental_two_stage_precipitation_architecture(self):
+        """
+        Phase 6 Requirement:
+        Verify that GarciaWeatherLNN supports experimental two-stage precipitation
+        behind explicit flag use_two_stage_precipitation=True, while keeping
+        the default use_two_stage_precipitation=False for baseline backward compatibility.
+        """
+        from model import GarciaWeatherLNN, TwoStagePrecipitationHead
+        m_default = GarciaWeatherLNN(input_dim=8, hidden_dim=32, use_two_stage_precipitation=False)
+        self.assertFalse(m_default.use_two_stage_precipitation)
+        self.assertFalse(hasattr(m_default, "two_stage_rain_head"))
+
+        m_twostage = GarciaWeatherLNN(input_dim=8, hidden_dim=32, use_two_stage_precipitation=True)
+        self.assertTrue(m_twostage.use_two_stage_precipitation)
+        self.assertTrue(hasattr(m_twostage, "two_stage_rain_head"))
+        self.assertIsInstance(m_twostage.two_stage_rain_head, TwoStagePrecipitationHead)
+
+        # Forward pass verification
+        x = torch.randn(2, 24, 8)
+        dt = torch.ones(2, 24, 1)
+        rain_prob, precip_mm, water = m_twostage(x, dt)
+        self.assertEqual(rain_prob.shape, (2, 24, 1))
+        self.assertEqual(precip_mm.shape, (2, 24, 1))
+        self.assertTrue((rain_prob >= 0.0).all() and (rain_prob <= 1.0).all())
+        self.assertTrue((precip_mm >= 0.0).all())
+
 
 if __name__ == "__main__":
     unittest.main()

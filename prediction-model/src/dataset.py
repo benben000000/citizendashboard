@@ -396,25 +396,30 @@ class TelemetryDataPipeline:
         stds = arr.std(axis=0)
         self.norm_stds = np.where(stds < 1e-4, 1.0, stds).astype(np.float32)
 
-    def generate_data_quality_report(self, output_path: str = None) -> dict:
+    def generate_data_quality_report(
+        self,
+        output_path: str = None,
+        manifest_path: str = None,
+        write_to_disk: bool = False,
+        git_commit: str = None,
+    ) -> dict:
         """
         Produce a comprehensive data quality and quarantine report.
-        Saves report to prediction-model/data/data_quality_report.json.
+        By default (write_to_disk=False and output_path=None), returns the in-memory
+        report dictionary without modifying tracked repository files.
         """
-        if output_path is None:
-            output_path = os.path.join(DATA_DIR, "data_quality_report.json")
-
         total_station_hours = sum(len(h) for h in self.station_hourly.values())
-        git_commit = "unknown"
-        try:
-            import subprocess
-            git_commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"],
-                cwd=os.path.dirname(DATA_DIR),
-                text=True
-            ).strip()
-        except Exception:
-            pass
+        if git_commit is None:
+            git_commit = "unknown"
+            try:
+                import subprocess
+                git_commit = subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=os.path.dirname(DATA_DIR),
+                    text=True
+                ).strip()
+            except Exception:
+                pass
 
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -454,13 +459,19 @@ class TelemetryDataPipeline:
             },
         }
 
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=2)
+        should_write = write_to_disk or (output_path is not None)
+        if should_write:
+            if output_path is None:
+                output_path = os.path.join(DATA_DIR, "data_quality_report.json")
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2)
 
-        # Also write cleaned-data manifest
-        manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
-        with open(manifest_path, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=2)
+            if manifest_path is None:
+                manifest_path = os.path.join(DATA_DIR, "cleaned_data_manifest.json")
+            os.makedirs(os.path.dirname(os.path.abspath(manifest_path)), exist_ok=True)
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2)
 
         return report
 

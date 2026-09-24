@@ -27,24 +27,151 @@ from dataset import normalize_features, FEATURE_MEANS, FEATURE_STDS
 from model import WeatherWaterLNN
 
 
+def compute_sha256(filepath: str) -> str:
+    """Compute SHA-256 hash of a file."""
+    import hashlib
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 class LNNServerlessPredictor:
-    def __init__(self, model_weights_path: str = "lnn_weather_water.pt", policy_path: str = None):
-        self.device = torch.device("cpu")
+    SUPPORTED_HORIZONS = [1, 3, 6, 12, 24]
 
-        # Check current working directory, then data directory fallback
-        if not os.path.exists(model_weights_path):
-            fallback_data_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", os.path.basename(model_weights_path)
-            )
-            if os.path.exists(fallback_data_path):
-                model_weights_path = fallback_data_path
+    @classmethod
+    def supported_horizons(cls) -> list:
+        """Return list of canonically validated forecast horizons in hours."""
+        return list(cls.SUPPORTED_HORIZONS)
 
-        if not os.path.exists(model_weights_path):
-            raise FileNotFoundError(
-                f"Model checkpoint not found at '{model_weights_path}'. "
-                f"Train the model first with `python train.py`. "
-                f"Inference will NOT proceed with untrained weights."
+    def get_supported_horizons(self) -> list:
+        """Instance helper for supported forecast horizons."""
+        return list(self.SUPPORTED_HORIZONS)
+
+    def __init__(
+        self,
+        model_weights_path: str = None,
+        policy_path: str = None,
+        bundle_dir: str = None,
+        horizon_hours: int = None,
+        device: str = "cpu",
+    ):
+        self.device = torch.device(device)
+
+        if horizon_hours is None:
+            # Auto-detect horizon from model_weights_path or bundle_dir if present
+            import re
+            detected_h = None
+            if bundle_dir:
+                m = re.search(r"h(\d+)", os.path.basename(bundle_dir.rstrip("/\\")))
+                if m:
+                    detected_h = int(m.group(1))
+            if detected_h is None and model_weights_path:
+                m = re.search(r"_h(\d+)\.pt", os.path.basename(model_weights_path))
+                if m:
+                    detected_h = int(m.group(1))
+            self.horizon_hours = detected_h if detected_h is not None else 1
+        else:
+            self.horizon_hours = int(horizon_hours)
+
+        if self.horizon_hours not in self.SUPPORTED_HORIZONS:
+            raise ValueError(
+                f"Unsupported horizon {self.horizon_hours}h. Supported horizons are: {self.SUPPORTED_HORIZONS}"
             )
+
+        repo_data_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"
+        )
+
+        # Check default bundle location if bundle_dir not explicitly passed
+        if bundle_dir is None and model_weights_path is None:
+            candidate_bundle = os.path.join(repo_data_dir, "bundles", f"h{self.horizon_hours}")
+            if os.path.exists(candidate_bundle):
+                bundle_dir = candidate_bundle
+
+        self.is_bundled = False
+        self.bundle_dir = bundle_dir
+        self.bundle_manifest = {}
+        self.bundle_version = "legacy-unbundled"
+
+        if bundle_dir is not None:
+            if not os.path.exists(bundle_dir):
+                raise FileNotFoundError(f"Bundle directory not found: '{bundle_dir}'.")
+
+            manifest_path = os.path.join(bundle_dir, "bundle_manifest.json")
+            ckpt_path = os.path.join(bundle_dir, "checkpoint.pt")
+            pol_path = os.path.join(bundle_dir, "inference_policy.json")
+
+            for p, label in [(manifest_path, "bundle_manifest.json"), (ckpt_path, "checkpoint.pt"), (pol_path, "inference_policy.json")]:
+                if not os.path.exists(p):
+                    raise FileNotFoundError(f"Missing required bundle artifact '{label}' in '{bundle_dir}'.")
+
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                self.bundle_manifest = json.load(f)
+
+            # Validate required manifest fields
+            required_manifest_fields = [
+                "bundle_version",
+                "horizon_hours",
+                "implementation_commit",
+                "artifact_commit",
+                "checkpoint_sha256",
+                "policy_sha256",
+                "raw_weather_dataset_sha256",
+                "raw_water_dataset_sha256",
+                "feature_schema",
+                "model_family",
+            ]
+            for rf in required_manifest_fields:
+                if rf not in self.bundle_manifest:
+                    raise ValueError(f"Bundle manifest '{manifest_path}' missing required field: '{rf}'.")
+
+            # Validate horizon match
+            b_h = self.bundle_manifest.get("horizon_hours")
+            if b_h != self.horizon_hours:
+                raise ValueError(
+                    f"Bundle horizon mismatch: bundle is packaged for +{b_h}h, "
+                    f"but predictor was initialized for +{self.horizon_hours}h."
+                )
+
+            # Cryptographic hash validation (fail-closed)
+            actual_ckpt_hash = compute_sha256(ckpt_path)
+            expected_ckpt_hash = self.bundle_manifest.get("checkpoint_sha256")
+            if actual_ckpt_hash != expected_ckpt_hash:
+                raise ValueError(
+                    f"Bundle checkpoint hash mismatch (tampered or corrupted): "
+                    f"expected {expected_ckpt_hash}, got {actual_ckpt_hash}."
+                )
+
+            actual_pol_hash = compute_sha256(pol_path)
+            expected_pol_hash = self.bundle_manifest.get("policy_sha256")
+            if actual_pol_hash != expected_pol_hash:
+                raise ValueError(
+                    f"Bundle policy hash mismatch (tampered or corrupted): "
+                    f"expected {expected_pol_hash}, got {actual_pol_hash}."
+                )
+
+            model_weights_path = ckpt_path
+            policy_path = pol_path
+            self.is_bundled = True
+            self.bundle_version = self.bundle_manifest.get("bundle_version", "1.0.0")
+
+        else:
+            # Fallback legacy loading
+            if model_weights_path is None:
+                model_weights_path = f"lnn_weather_water_h{self.horizon_hours}.pt" if self.horizon_hours != 1 else "lnn_weather_water.pt"
+
+            if not os.path.exists(model_weights_path):
+                fallback_data_path = os.path.join(repo_data_dir, os.path.basename(model_weights_path))
+                if os.path.exists(fallback_data_path):
+                    model_weights_path = fallback_data_path
+
+            if not os.path.exists(model_weights_path):
+                raise FileNotFoundError(
+                    f"Model checkpoint not found at '{model_weights_path}'. "
+                    f"Inference will NOT proceed with untrained weights."
+                )
 
         checkpoint = torch.load(model_weights_path, map_location=self.device, weights_only=False)
 
@@ -88,16 +215,13 @@ class LNNServerlessPredictor:
         # Locate and load operational inference policy (fail-closed)
         if policy_path is None:
             default_policy_name = "inference_policy.json"
-            if os.path.exists(default_policy_name):
+            candidate_policy = os.path.join(repo_data_dir, default_policy_name)
+            if os.path.exists(candidate_policy):
+                policy_path = candidate_policy
+            elif os.path.exists(default_policy_name):
                 policy_path = default_policy_name
-            else:
-                policy_path = os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", default_policy_name
-                )
         elif not os.path.isabs(policy_path) and not os.path.exists(policy_path):
-            fallback_pol = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", os.path.basename(policy_path)
-            )
+            fallback_pol = os.path.join(repo_data_dir, os.path.basename(policy_path))
             if os.path.exists(fallback_pol):
                 policy_path = fallback_pol
 
@@ -135,7 +259,7 @@ class LNNServerlessPredictor:
         telemetry_sequence: np.ndarray,
         dt_sequence: np.ndarray = None,
         forecast_origin_timestamp: str = None,
-        horizon_hours: int = 1,
+        horizon_hours: int = None,
         current_water_level: float = None,
     ) -> dict:
         """
@@ -147,7 +271,7 @@ class LNNServerlessPredictor:
             dt_sequence: Optional array of shape [seq_len, 1] or [seq_len] with elapsed
                 hours between measurements. Defaults to 1.0h per step if None.
             forecast_origin_timestamp: ISO timestamp string of the last observation t0.
-            horizon_hours: Number of hours ahead to forecast.
+            horizon_hours: Number of hours ahead to forecast. Defaults to predictor.horizon_hours.
             current_water_level: Optional current river stage in meters.
 
         Returns:
@@ -155,6 +279,24 @@ class LNNServerlessPredictor:
             and target timestamp.
         """
         from dataset import compute_noaa_heat_index
+
+        if horizon_hours is None:
+            horizon_hours = self.horizon_hours
+        else:
+            horizon_hours = int(horizon_hours)
+
+        if horizon_hours not in self.SUPPORTED_HORIZONS:
+            raise ValueError(
+                f"Requested horizon {horizon_hours}h is not supported in operational inference policy "
+                f"(supported: {self.SUPPORTED_HORIZONS}). Fail closed; do not silently invent defaults or substitute 1h policy."
+            )
+
+        if horizon_hours != self.horizon_hours:
+            raise ValueError(
+                f"Horizon mismatch: predictor is initialized for +{self.horizon_hours}h "
+                f"(using checkpoint/bundle for {self.horizon_hours}h), but requested forecast horizon is +{horizon_hours}h. "
+                f"Initialize an LNNServerlessPredictor with horizon_hours={horizon_hours} (or bundle_dir for h{horizon_hours}) to serve this horizon."
+            )
 
         telemetry_arr = np.asarray(telemetry_sequence, dtype=np.float32)
         if telemetry_arr.ndim != 2:
@@ -299,9 +441,21 @@ class LNNServerlessPredictor:
             except Exception:
                 target_ts = None
 
+        provenance_dict = {
+            "implementation_commit": self.bundle_manifest.get("implementation_commit") or self.policy.get("policy_code_commit", "unknown"),
+            "artifact_commit": self.bundle_manifest.get("artifact_commit") or self.manifest.get("artifact_commit", "unknown"),
+            "model_weights_commit": self.bundle_manifest.get("model_weights_commit") or self.manifest.get("code_commit", "unknown"),
+            "bundle_version": self.bundle_version,
+            "checkpoint_sha256": self.bundle_manifest.get("checkpoint_sha256", "legacy-unbundled"),
+            "policy_sha256": self.bundle_manifest.get("policy_sha256", "legacy-unbundled"),
+        }
+
         return {
             "api_mode": "observed_sequence_forecast",
             "product_name": "Garcia Weather Telemetry Forecast Engine",
+            "bundle_version": self.bundle_version,
+            "active_bundle_horizon": f"{self.horizon_hours}h",
+            "active_bundle_path": self.bundle_dir if self.bundle_dir else None,
             "model_version": self.manifest.get("training_date", "unknown"),
             "model_seed": self.manifest.get("seed", "unknown"),
             "model_status": self.manifest.get("model_status", "RESEARCH_PROTOTYPE"),
@@ -337,6 +491,7 @@ class LNNServerlessPredictor:
             "policy_version": self.policy.get("policy_version", "unknown"),
             "policy_code_commit": self.policy.get("policy_code_commit", "unknown"),
             "model_code_commit": self.manifest.get("code_commit", "unknown"),
+            "provenance": provenance_dict,
             # Weather Uncertainty (Explicitly Unavailable)
             "weather_uncertainty": {
                 "status": "UNAVAILABLE",
