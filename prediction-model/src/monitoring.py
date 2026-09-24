@@ -2,7 +2,7 @@
 Operational Monitoring, Drift Detection, and Fine-Grained Evaluation Engine.
 
 Provides continuous and post-deployment evaluation across:
-  - Dimensions: horizon, station, target variable, rain vs dry regime,
+  - Dimensions: horizon (1h, 3h, 6h, 12h, 24h), station, target variable, rain vs dry regime,
     heavy-rain regime, calm vs windy regime, data-quality quarantine, time window.
   - Metrics:
       * Continuous: MAE, RMSE, bias, persistence MAE, skill score, climatology MAE, missingness, quarantine rate.
@@ -12,16 +12,26 @@ Provides continuous and post-deployment evaluation across:
       * Minimum sample count enforcement.
       * Bootstrap 95% confidence intervals.
       * Drift detection across feature distributions, missingness, and rain prevalence.
+      * Strict schema contract validation (PREDICTION_LOG_REQUIRED_COLUMNS) with zero silent defaults.
+      * Independent multi-horizon evaluation for all five canonical horizons (1h, 3h, 6h, 12h, 24h).
+      * Fail-closed behavior for missing columns, invalid horizons, and malformed rows.
       * NEVER automatically modifies the frozen operational inference policy.
 
 Usage:
-  python prediction-model/src/monitoring.py --output prediction-model/data/monitoring_report.json
+  python prediction-model/src/monitoring.py \
+    --data-dir prediction-model/data \
+    --predictions-log prediction-model/data/test_predictions_log.csv \
+    --horizons 1 3 6 12 24 \
+    --require-all-horizons \
+    --output prediction-model/data/monitoring_report.json
 """
 
 import os
 import sys
 import math
 import json
+import csv
+import hashlib
 import argparse
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -37,6 +47,225 @@ DATA_DIR = os.path.join(os.path.dirname(SRC_DIR), "data")
 CANONICAL_HORIZONS = [1, 3, 6, 12, 24]
 HEAVY_RAIN_THRESHOLDS = [2.5, 5.0, 10.0]
 MIN_RELIABLE_SAMPLES = 30
+
+PREDICTION_LOG_SCHEMA_VERSION = "1.0"
+MONITORING_VERSION = "2.0.0"
+
+PREDICTION_LOG_REQUIRED_COLUMNS = {
+    "station_id": "string",
+    "origin_timestamp": "timestamp",
+    "target_timestamp": "timestamp",
+    "horizon_hours": "integer",
+    "actual_lead_hours": "float",
+    "actual_rain": "float_or_binary",
+    "actual_precip_mm": "float",
+    "actual_temp": "float",
+    "actual_humidity": "float",
+    "actual_pressure": "float",
+    "actual_wind_speed": "float",
+    "pred_temp": "float",
+    "pred_humidity": "float",
+    "pred_pressure": "float",
+    "pred_wind_speed": "float",
+    "mf1_rain_prob": "float",
+    "hybrid_rain_prob": "float",
+    "mf1_precip_mm": "float",
+    "persist_temp": "float",
+    "persist_humidity": "float",
+    "persist_pressure": "float",
+    "persist_wind_speed": "float",
+    "persist_rain": "numeric_with_explicit_unit",
+}
+
+
+# ---------------------------------------------------------------------------
+# Schema and Error Definitions
+# ---------------------------------------------------------------------------
+
+class PredictionLogSchemaError(ValueError):
+    """Raised when prediction log schema validation fails (e.g. missing required columns)."""
+    pass
+
+
+class PredictionLogDataError(ValueError):
+    """Raised when prediction log data is empty, contains invalid horizons, or exceeds malformed limits."""
+    pass
+
+
+def compute_file_sha256(filepath: str) -> str:
+    """Compute SHA-256 hash of a file."""
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def validate_prediction_log_headers(fieldnames: Optional[List[str]]) -> None:
+    """
+    Validate that all required columns are present in CSV fieldnames.
+    Fails closed with a clear error listing any missing columns.
+    """
+    if not fieldnames:
+        raise PredictionLogSchemaError("Prediction log headers are empty or missing.")
+    present = set(fieldnames)
+    missing = [c for c in PREDICTION_LOG_REQUIRED_COLUMNS if c not in present]
+    if missing:
+        raise PredictionLogSchemaError(
+            f"Prediction log schema validation failed: missing {len(missing)} required column(s): {missing}. "
+            f"Expected schema version: {PREDICTION_LOG_SCHEMA_VERSION}."
+        )
+
+
+def parse_prediction_log_row(
+    row: Dict[str, Any],
+    row_idx: int,
+    canonical_horizons: List[int] = CANONICAL_HORIZONS,
+    lead_tolerance: float = 1.0,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Parse and validate a single prediction log row without silent fallbacks.
+    Returns (record, None) if valid, or (None, error_reason) if malformed.
+    """
+    # 1. Validate required columns exist in row dict
+    missing_cols = [c for c in PREDICTION_LOG_REQUIRED_COLUMNS if c not in row]
+    if missing_cols:
+        return None, f"Row {row_idx}: missing column(s): {missing_cols}"
+
+    # 2. Horizon validation
+    raw_h = row.get("horizon_hours")
+    if raw_h is None or str(raw_h).strip() == "":
+        return None, f"Row {row_idx}: 'horizon_hours' is missing or empty"
+    try:
+        f_h = float(raw_h)
+        i_h = int(f_h)
+        if f_h != i_h:
+            return None, f"Row {row_idx}: 'horizon_hours' {raw_h} is not an integer"
+        if i_h not in canonical_horizons:
+            return None, f"Row {row_idx}: 'horizon_hours' {i_h} is not in allowed canonical horizons {canonical_horizons}"
+    except (ValueError, TypeError):
+        return None, f"Row {row_idx}: 'horizon_hours' '{raw_h}' cannot be parsed as integer"
+
+    # 3. Lead hours validation
+    raw_lead = row.get("actual_lead_hours")
+    if raw_lead is None or str(raw_lead).strip() == "":
+        return None, f"Row {row_idx}: 'actual_lead_hours' is missing or empty"
+    try:
+        lead_h = float(raw_lead)
+        if math.isnan(lead_h) or math.isinf(lead_h):
+            return None, f"Row {row_idx}: 'actual_lead_hours' is NaN or Inf"
+        if abs(lead_h - i_h) > lead_tolerance:
+            return None, f"Row {row_idx}: 'actual_lead_hours' ({lead_h}) differs from 'horizon_hours' ({i_h}) by more than {lead_tolerance}h"
+    except (ValueError, TypeError):
+        return None, f"Row {row_idx}: 'actual_lead_hours' '{raw_lead}' cannot be parsed as float"
+
+    # 4. Numeric fields validation and parsing
+    numeric_fields = [
+        "actual_temp", "pred_temp", "persist_temp",
+        "actual_humidity", "pred_humidity", "persist_humidity",
+        "actual_pressure", "pred_pressure", "persist_pressure",
+        "actual_wind_speed", "pred_wind_speed", "persist_wind_speed",
+        "actual_precip_mm", "mf1_precip_mm",
+        "actual_rain", "hybrid_rain_prob", "mf1_rain_prob", "persist_rain",
+    ]
+    parsed_nums: Dict[str, float] = {}
+    for nf in numeric_fields:
+        raw_val = row.get(nf)
+        if raw_val is None or str(raw_val).strip() == "":
+            return None, f"Row {row_idx}: field '{nf}' is missing or empty"
+        try:
+            val = float(raw_val)
+            if math.isnan(val) or math.isinf(val):
+                return None, f"Row {row_idx}: field '{nf}' is NaN or Inf"
+            parsed_nums[nf] = val
+        except (ValueError, TypeError):
+            return None, f"Row {row_idx}: field '{nf}' '{raw_val}' cannot be parsed as float"
+
+    # 5. Probability range validation
+    for pf in ["actual_rain", "hybrid_rain_prob", "mf1_rain_prob", "persist_rain"]:
+        pval = parsed_nums[pf]
+        if pval < -1e-4 or pval > 1.0 + 1e-4:
+            return None, f"Row {row_idx}: probability field '{pf}' value {pval} out of range [0, 1]"
+
+    record = {
+        "station_id": str(row.get("station_id", "unknown")),
+        "origin_timestamp": str(row.get("origin_timestamp", "")),
+        "target_timestamp": str(row.get("target_timestamp", "")),
+        "horizon_hours": i_h,
+        "actual_lead_hours": lead_h,
+
+        "true_temperature": parsed_nums["actual_temp"],
+        "pred_temperature": parsed_nums["pred_temp"],
+        "persist_temperature": parsed_nums["persist_temp"],
+
+        "true_humidity": parsed_nums["actual_humidity"],
+        "pred_humidity": parsed_nums["pred_humidity"],
+        "persist_humidity": parsed_nums["persist_humidity"],
+
+        "true_pressure": parsed_nums["actual_pressure"],
+        "pred_pressure": parsed_nums["pred_pressure"],
+        "persist_pressure": parsed_nums["persist_pressure"],
+
+        "true_wind_speed": parsed_nums["actual_wind_speed"],
+        "pred_wind_speed": parsed_nums["pred_wind_speed"],
+        "persist_wind_speed": parsed_nums["persist_wind_speed"],
+
+        "true_precip_mm": parsed_nums["actual_precip_mm"],
+        "pred_precip_mm": parsed_nums["mf1_precip_mm"],
+        "persist_precip_mm": None,  # Not recorded as precip mm persistence in log; marked unavailable
+
+        "true_rain_prob": 1.0 if parsed_nums["actual_rain"] >= 0.5 else 0.0,
+        "pred_rain_prob": parsed_nums["hybrid_rain_prob"],
+        "mf1_rain_prob": parsed_nums["mf1_rain_prob"],
+        "persist_rain_prob": 1.0 if parsed_nums["persist_rain"] >= 0.5 else 0.0,
+    }
+    return record, None
+
+
+def load_and_validate_prediction_log(
+    file_path: str,
+    canonical_horizons: List[int] = CANONICAL_HORIZONS,
+    max_malformed_rows: int = 0,
+) -> Tuple[Dict[int, List[Dict[str, Any]]], int, List[str]]:
+    """
+    Load CSV, validate schema headers, parse rows, and group by horizon_hours.
+    Returns: (horizons_data, malformed_count, malformed_reasons)
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Prediction log file not found: {file_path}")
+    if os.path.getsize(file_path) == 0:
+        raise PredictionLogDataError(f"Prediction log file is empty (0 bytes): {file_path}")
+
+    horizons_data: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+    malformed_reasons: List[str] = []
+    malformed_count = 0
+    total_raw_rows = 0
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        validate_prediction_log_headers(reader.fieldnames)
+
+        for idx, row in enumerate(reader, start=2):
+            total_raw_rows += 1
+            rec, err = parse_prediction_log_row(row, idx, canonical_horizons)
+            if err is not None:
+                malformed_count += 1
+                if len(malformed_reasons) < 20:
+                    malformed_reasons.append(err)
+            else:
+                horizons_data[rec["horizon_hours"]].append(rec)
+
+    if total_raw_rows == 0:
+        raise PredictionLogDataError(f"Prediction log contains 0 data rows (header only): {file_path}")
+
+    if malformed_count > max_malformed_rows:
+        sample_errs = "; ".join(malformed_reasons[:5])
+        raise PredictionLogDataError(
+            f"Prediction log contained {malformed_count} malformed rows, exceeding threshold of {max_malformed_rows}. "
+            f"Examples: {sample_errs}"
+        )
+
+    return dict(horizons_data), malformed_count, malformed_reasons
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +496,7 @@ class PerformanceMonitor:
           - 'true_pressure', 'pred_pressure', 'persist_pressure'
           - 'true_wind_speed', 'pred_wind_speed', 'persist_wind_speed'
           - 'true_precip_mm', 'pred_precip_mm', 'persist_precip_mm'
-          - 'true_rain_prob' or 'true_rain_label', 'pred_rain_prob', 'persist_rain_prob'
+          - 'true_rain_prob', 'pred_rain_prob', 'mf1_rain_prob', 'persist_rain_prob'
         """
         n_total = len(predictions)
         sample_reliability_flag = n_total >= MIN_RELIABLE_SAMPLES
@@ -307,38 +536,62 @@ class PerformanceMonitor:
         def eval_continuous(name: str, records: List[Dict[str, Any]]) -> Dict[str, Any]:
             y_t = [float(r[f"true_{name}"]) for r in records if f"true_{name}" in r and f"pred_{name}" in r]
             y_p = [float(r[f"pred_{name}"]) for r in records if f"true_{name}" in r and f"pred_{name}" in r]
-            y_persist = [float(r.get(f"persist_{name}", r.get(f"true_{name}", 0.0))) for r in records if f"true_{name}" in r and f"pred_{name}" in r]
 
             n = len(y_t)
             if n == 0:
-                return {"sample_count": 0, "status": "INSUFFICIENT_DATA"}
+                return {
+                    "sample_count": 0,
+                    "status": "INSUFFICIENT_DATA",
+                    "mae": None,
+                    "rmse": None,
+                    "bias": None,
+                    "persistence_mae": None,
+                    "persistence_rmse": None,
+                    "skill_vs_persistence": None,
+                    "beats_persistence": None,
+                    "reliable_sample_size": False,
+                }
 
             diffs = [yp - yt for yp, yt in zip(y_p, y_t)]
-            p_diffs = [yp - yt for yp, yt in zip(y_persist, y_t)]
-
             mae = float(np.mean(np.abs(diffs)))
             rmse = float(np.sqrt(np.mean(np.square(diffs))))
             bias = float(np.mean(diffs))
 
-            p_mae = float(np.mean(np.abs(p_diffs)))
-            p_rmse = float(np.sqrt(np.mean(np.square(p_diffs))))
-
-            skill = 1.0 - (mae / max(1e-4, p_mae))
+            # Persistence evaluation (if field is available)
+            has_persistence = all(r.get(f"persist_{name}") is not None for r in records)
+            if has_persistence:
+                y_persist = [float(r[f"persist_{name}"]) for r in records]
+                p_diffs = [yp - yt for yp, yt in zip(y_persist, y_t)]
+                p_mae = float(np.mean(np.abs(p_diffs)))
+                p_rmse = float(np.sqrt(np.mean(np.square(p_diffs))))
+                skill = 1.0 - (mae / max(1e-4, p_mae))
+                beats_p = bool(mae < p_mae)
+                p_mae_val = round(p_mae, 4)
+                p_rmse_val = round(p_rmse, 4)
+                skill_val = round(skill, 4)
+            else:
+                p_mae_val = None
+                p_rmse_val = None
+                skill_val = None
+                beats_p = None
 
             mae_ci = compute_bootstrap_ci(y_t, y_p, lambda yt, yp: np.mean(np.abs(yp - yt)))
 
-            return {
+            res = {
                 "sample_count": n,
                 "mae": round(mae, 4),
                 "mae_95_ci": mae_ci,
                 "rmse": round(rmse, 4),
                 "bias": round(bias, 4),
-                "persistence_mae": round(p_mae, 4),
-                "persistence_rmse": round(p_rmse, 4),
-                "skill_vs_persistence": round(skill, 4),
-                "beats_persistence": bool(mae < p_mae),
+                "persistence_mae": p_mae_val,
+                "persistence_rmse": p_rmse_val,
+                "skill_vs_persistence": skill_val,
+                "beats_persistence": beats_p,
                 "reliable_sample_size": n >= MIN_RELIABLE_SAMPLES,
             }
+            if not has_persistence:
+                res["persistence_status"] = "UNAVAILABLE_IN_LOG"
+            return res
 
         continuous_metrics = {
             "temperature": eval_continuous("temperature", predictions),
@@ -348,8 +601,8 @@ class PerformanceMonitor:
         }
 
         # 3. Rain Occurrence Evaluation
-        y_rain_true = [1 if float(r.get("true_precip_mm", 0.0)) >= 0.1 else 0 for r in predictions]
-        y_rain_prob = [float(r.get("pred_rain_prob", 0.0)) for r in predictions]
+        y_rain_true = [1 if float(r["true_rain_prob"]) >= 0.5 else 0 for r in predictions]
+        y_rain_prob = [float(r["pred_rain_prob"]) for r in predictions]
         y_rain_pred_binary = [1 if p >= 0.5 else 0 for p in y_rain_prob]
 
         tp = sum(1 for yt, yp in zip(y_rain_true, y_rain_pred_binary) if yt == 1 and yp == 1)
@@ -360,9 +613,34 @@ class PerformanceMonitor:
         contingency = compute_contingency_scores(tp, fp, fn, tn)
         rel_and_ece = compute_reliability_and_ece(y_rain_prob, y_rain_true)
 
+        # Rain persistence comparison
+        persist_rain_probs = [float(r["persist_rain_prob"]) for r in predictions if r.get("persist_rain_prob") is not None]
+        if len(persist_rain_probs) == n_total and n_total > 0:
+            p_brier = sum((p - y) ** 2 for p, y in zip(persist_rain_probs, y_rain_true)) / n_total
+            brier_val = rel_and_ece.get("brier_score")
+            bss = 1.0 - (brier_val / max(1e-4, p_brier)) if (brier_val is not None and p_brier > 0) else 0.0
+            p_brier_round = round(p_brier, 4)
+            bss_round = round(bss, 4)
+            beats_rain_p = bool(brier_val < p_brier) if brier_val is not None else None
+        else:
+            p_brier_round = None
+            bss_round = None
+            beats_rain_p = None
+
+        # Diagnostic MF-1 model-only rain probability
+        mf1_probs = [float(r["mf1_rain_prob"]) for r in predictions if r.get("mf1_rain_prob") is not None]
+        if len(mf1_probs) == n_total and n_total > 0:
+            mf1_brier = round(sum((p - y) ** 2 for p, y in zip(mf1_probs, y_rain_true)) / n_total, 4)
+        else:
+            mf1_brier = None
+
         rain_occurrence_metrics = {
             **contingency,
             **rel_and_ece,
+            "diagnostic_mf1_brier_score": mf1_brier,
+            "persistence_brier_score": p_brier_round,
+            "brier_skill_score_vs_persistence": bss_round,
+            "beats_persistence_brier": beats_rain_p,
             "reliable_sample_size": n_total >= MIN_RELIABLE_SAMPLES,
         }
 
@@ -371,7 +649,6 @@ class PerformanceMonitor:
         precip_dry = eval_continuous("precip_mm", dry_preds)
         precip_rainy = eval_continuous("precip_mm", rainy_preds)
 
-        # Heavy rain detection at 2.5, 5.0, 10.0 mm/h
         heavy_rain_metrics = {}
         for th in HEAVY_RAIN_THRESHOLDS:
             th_true = [1 if float(r.get("true_precip_mm", 0.0)) >= th else 0 for r in predictions]
@@ -400,13 +677,58 @@ class PerformanceMonitor:
                 "precipitation_overall_mae": eval_continuous("precip_mm", st_preds).get("mae"),
             }
 
+        # 6. Structured Persistence Comparison Summary
+        persistence_comparison = {
+            "temperature_mae": continuous_metrics["temperature"].get("mae"),
+            "temperature_persistence_mae": continuous_metrics["temperature"].get("persistence_mae"),
+            "temperature_skill_vs_persistence": continuous_metrics["temperature"].get("skill_vs_persistence"),
+            "beats_temperature_persistence": continuous_metrics["temperature"].get("beats_persistence"),
+
+            "humidity_mae": continuous_metrics["humidity"].get("mae"),
+            "humidity_persistence_mae": continuous_metrics["humidity"].get("persistence_mae"),
+            "humidity_skill_vs_persistence": continuous_metrics["humidity"].get("skill_vs_persistence"),
+            "beats_humidity_persistence": continuous_metrics["humidity"].get("beats_persistence"),
+
+            "pressure_mae": continuous_metrics["pressure"].get("mae"),
+            "pressure_persistence_mae": continuous_metrics["pressure"].get("persistence_mae"),
+            "pressure_skill_vs_persistence": continuous_metrics["pressure"].get("skill_vs_persistence"),
+            "beats_pressure_persistence": continuous_metrics["pressure"].get("beats_persistence"),
+
+            "wind_speed_mae": continuous_metrics["wind_speed"].get("mae"),
+            "wind_speed_persistence_mae": continuous_metrics["wind_speed"].get("persistence_mae"),
+            "wind_speed_skill_vs_persistence": continuous_metrics["wind_speed"].get("skill_vs_persistence"),
+            "beats_wind_speed_persistence": continuous_metrics["wind_speed"].get("beats_persistence"),
+
+            "rain_brier_score": rain_occurrence_metrics.get("brier_score"),
+            "rain_persistence_brier_score": rain_occurrence_metrics.get("persistence_brier_score"),
+            "rain_brier_skill_score_vs_persistence": rain_occurrence_metrics.get("brier_skill_score_vs_persistence"),
+            "beats_rain_persistence": rain_occurrence_metrics.get("beats_persistence_brier"),
+
+            "precipitation_amount_persistence": "UNAVAILABLE_IN_LOG",
+        }
+
         return {
             "horizon_hours": horizon_hours,
+            "sample_count": n_total,
             "total_evaluated_samples": n_total,
+            "station_count": len(station_groups),
+            "valid_row_count": n_total,
+            "malformed_row_count": 0,
             "meets_minimum_sample_size": sample_reliability_flag,
+            "data_quality_summary": {
+                "valid_samples": n_total,
+                "stations_count": len(station_groups),
+                "missing_fields_count": 0,
+                "lead_hour_discrepancy_count": 0,
+            },
             "continuous_variables": continuous_metrics,
+            "temperature": continuous_metrics["temperature"],
+            "humidity": continuous_metrics["humidity"],
+            "pressure": continuous_metrics["pressure"],
+            "wind_speed": continuous_metrics["wind_speed"],
             "rain_occurrence": rain_occurrence_metrics,
             "precipitation_amount": precipitation_amount_metrics,
+            "persistence_comparison": persistence_comparison,
             "regimes_summary": {
                 "dry_samples": len(dry_preds),
                 "rainy_samples": len(rainy_preds),
@@ -424,23 +746,29 @@ class PerformanceMonitor:
 
 def run_monitoring_evaluation(
     data_dir: str = None,
+    predictions_log_path: str = None,
     output_path: str = None,
     horizons: List[int] = None,
+    require_all_horizons: bool = False,
+    allow_missing_horizon: bool = False,
+    max_malformed_rows: int = 0,
 ) -> Dict[str, Any]:
     """Execute comprehensive monitoring evaluation across horizons and telemetry."""
     if data_dir is None:
         data_dir = DATA_DIR
     if horizons is None:
-        horizons = CANONICAL_HORIZONS
+        horizons = list(CANONICAL_HORIZONS)
+    if predictions_log_path is None:
+        predictions_log_path = os.path.join(data_dir, "test_predictions_log.csv")
 
     print("=" * 80)
     print("PREDICTION MODEL OPERATIONAL MONITORING & DRIFT AUDIT")
+    print(f"Monitoring Version: {MONITORING_VERSION} | Schema Version: {PREDICTION_LOG_SCHEMA_VERSION}")
     print("=" * 80)
 
     # 1. Telemetry Drift Assessment
-    drift_monitor = TelemetryDriftMonitor()
+    drift_monitor = TelemetryDriftMonitor(os.path.join(data_dir, "cleaned_data_manifest.json"))
     weather_csv = os.path.join(data_dir, "weather_telemetry.csv")
-    import csv
     sample_rows = []
     if os.path.exists(weather_csv):
         with open(weather_csv, "r", encoding="utf-8") as f:
@@ -451,63 +779,68 @@ def run_monitoring_evaluation(
                     break
 
     drift_report = drift_monitor.evaluate_drift(sample_rows)
-    print(f"Evaluated {drift_report['evaluated_rows']} telemetry rows across {drift_report['active_stations_count']} stations.")
-    print(f"Rain prevalence: {drift_report['rain_prevalence_pct']}%")
+    print(f"Evaluated {drift_report.get('evaluated_rows', 0)} telemetry rows across {drift_report.get('active_stations_count', 0)} stations.")
+    print(f"Rain prevalence: {drift_report.get('rain_prevalence_pct', 'N/A')}%")
 
-    # 2. Performance Evaluation from test_predictions_log.csv if available
+    # 2. Validate and load prediction log
+    print(f"Loading predictions log: {predictions_log_path}")
+    input_log_sha256 = compute_file_sha256(predictions_log_path)
+    print(f"Log SHA-256: {input_log_sha256}")
+
+    horizons_data, malformed_count, malformed_reasons = load_and_validate_prediction_log(
+        file_path=predictions_log_path,
+        canonical_horizons=CANONICAL_HORIZONS,
+        max_malformed_rows=max_malformed_rows,
+    )
+    print(f"Schema validation PASS. Malformed rows: {malformed_count}")
+
+    # 3. Evaluate requested forecast horizons independently
     perf_monitor = PerformanceMonitor(data_dir)
-    log_csv = os.path.join(data_dir, "test_predictions_log.csv")
-    horizon_results = {}
+    horizon_results: Dict[str, Any] = {}
+    evaluated_horizons: List[int] = []
+    missing_horizons: List[int] = []
 
-    if os.path.exists(log_csv):
-        print(f"Loading predictions log: {log_csv}")
-        horizons_data = defaultdict(list)
-        with open(log_csv, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for r in reader:
-                try:
-                    h = int(float(r.get("horizon", 1)))
-                    # Map CSV columns to monitor schema
-                    record = {
-                        "station_id": r.get("station_id", "unknown"),
-                        "true_temperature": float(r.get("true_temp", 0.0)),
-                        "pred_temperature": float(r.get("pred_temp", 0.0)),
-                        "persist_temperature": float(r.get("orig_temp", r.get("true_temp", 0.0))),
-                        "true_humidity": float(r.get("true_rh", 0.0)),
-                        "pred_humidity": float(r.get("pred_rh", 0.0)),
-                        "persist_humidity": float(r.get("orig_rh", r.get("true_rh", 0.0))),
-                        "true_pressure": float(r.get("true_p", 0.0)),
-                        "pred_pressure": float(r.get("pred_p", 0.0)),
-                        "persist_pressure": float(r.get("orig_p", r.get("true_p", 0.0))),
-                        "true_wind_speed": float(r.get("true_ws", 0.0)),
-                        "pred_wind_speed": float(r.get("pred_ws", 0.0)),
-                        "persist_wind_speed": float(r.get("orig_ws", r.get("true_ws", 0.0))),
-                        "true_precip_mm": float(r.get("true_precip", 0.0)),
-                        "pred_precip_mm": float(r.get("pred_precip", 0.0)),
-                        "persist_precip_mm": float(r.get("orig_precip", 0.0)),
-                        "true_rain_prob": 1.0 if float(r.get("true_precip", 0.0)) >= 0.1 else 0.0,
-                        "pred_rain_prob": float(r.get("pred_rain_prob", 0.0)),
-                        "persist_rain_prob": 1.0 if float(r.get("orig_precip", 0.0)) >= 0.1 else 0.0,
-                    }
-                    horizons_data[h].append(record)
-                except Exception:
-                    pass
+    for h in horizons:
+        preds = horizons_data.get(h, [])
+        if preds:
+            h_res = perf_monitor.evaluate_predictions(preds, horizon_hours=h)
+            h_res["malformed_row_count"] = malformed_count if len(horizons) == 1 else 0
+            horizon_results[f"horizon_{h}h"] = h_res
+            evaluated_horizons.append(h)
+            temp_mae = h_res["continuous_variables"]["temperature"].get("mae")
+            brier = h_res["rain_occurrence"].get("brier_score")
+            print(f"[PASS] Monitored +{h}h: {len(preds)} samples | Temp MAE: {temp_mae}C | Rain Brier: {brier}")
+        else:
+            missing_horizons.append(h)
+            print(f"[WARN] Horizon +{h}h has 0 valid samples in prediction log.")
 
-        for h in horizons:
-            preds = horizons_data.get(h, [])
-            if preds:
-                h_res = perf_monitor.evaluate_predictions(preds, horizon_hours=h)
-                horizon_results[f"horizon_{h}h"] = h_res
-                temp_mae = h_res["continuous_variables"]["temperature"].get("mae")
-                brier = h_res["rain_occurrence"].get("brier_score")
-                print(f"[PASS] Monitored +{h}h: {len(preds)} samples | Temp MAE: {temp_mae}C | Rain Brier: {brier}")
-    else:
-        print("Note: test_predictions_log.csv not found; performance monitoring generated from baseline scorecard.")
+    # 4. Strict fail-closed horizon check
+    if missing_horizons:
+        if require_all_horizons or (not allow_missing_horizon):
+            raise PredictionLogDataError(
+                f"Missing required forecast horizon(s): {missing_horizons}. "
+                f"Evaluated horizons: {evaluated_horizons}. "
+                f"Supply --allow-missing-horizon to permit partial evaluation."
+            )
+
+    # Sanitize path for path hygiene compliance (no absolute Windows/Unix paths)
+    repo_root = os.path.dirname(os.path.dirname(SRC_DIR))
+    try:
+        sanitized_log_path = os.path.relpath(predictions_log_path, repo_root).replace("\\", "/")
+    except Exception:
+        sanitized_log_path = os.path.basename(predictions_log_path)
 
     full_report = {
+        "monitoring_version": MONITORING_VERSION,
+        "prediction_log_schema_version": PREDICTION_LOG_SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "telemetry_drift_report": drift_report,
+        "input_log_path": sanitized_log_path,
+        "input_log_sha256": input_log_sha256,
+        "evaluated_horizons_hours": evaluated_horizons,
+        "missing_horizons_hours": missing_horizons,
+        "malformed_row_count": malformed_count,
         "horizons_performance": horizon_results,
+        "telemetry_drift_report": drift_report,
         "operational_recommendation": {
             "policy_action": "RETAIN_FROZEN_POLICY",
             "weather_uncertainty_status": "UNAVAILABLE",
@@ -527,12 +860,44 @@ def run_monitoring_evaluation(
 
 def main():
     parser = argparse.ArgumentParser(description="Operational Prediction Model Monitor.")
+    parser.add_argument("--data-dir", type=str, default=DATA_DIR, help="Data directory (default: prediction-model/data)")
+    parser.add_argument("--predictions-log", type=str, default=None, help="Path to predictions log CSV")
+    parser.add_argument(
+        "--horizons",
+        type=int,
+        nargs="+",
+        default=CANONICAL_HORIZONS,
+        help="List of forecast horizons to evaluate in hours (default: 1 3 6 12 24)",
+    )
+    parser.add_argument(
+        "--require-all-horizons",
+        action="store_true",
+        help="Fail if any requested horizon has zero valid rows",
+    )
+    parser.add_argument(
+        "--allow-missing-horizon",
+        action="store_true",
+        help="Permit partial horizon evaluation if a requested horizon is absent",
+    )
+    parser.add_argument(
+        "--max-malformed-rows",
+        type=int,
+        default=0,
+        help="Maximum allowed malformed rows before failing (default: 0)",
+    )
     parser.add_argument("--output", type=str, default=None, help="Save monitoring report to JSON path")
-    parser.add_argument("--data-dir", type=str, default=DATA_DIR, help="Data directory")
     args = parser.parse_args()
 
     try:
-        run_monitoring_evaluation(data_dir=args.data_dir, output_path=args.output)
+        run_monitoring_evaluation(
+            data_dir=args.data_dir,
+            predictions_log_path=args.predictions_log,
+            output_path=args.output,
+            horizons=args.horizons,
+            require_all_horizons=args.require_all_horizons,
+            allow_missing_horizon=args.allow_missing_horizon,
+            max_malformed_rows=args.max_malformed_rows,
+        )
         sys.exit(0)
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)

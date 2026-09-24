@@ -57,7 +57,40 @@ jobs:
 
       - name: Gate 8 - Monitoring & Drift Schema Tests
         run: |
-          python prediction-model/src/monitoring.py
+          python prediction-model/src/test_monitoring.py
+          python prediction-model/src/monitoring.py \
+            --data-dir prediction-model/data \
+            --predictions-log prediction-model/data/test_predictions_log.csv \
+            --horizons 1 3 6 12 24 \
+            --require-all-horizons
+          python -c "
+          import sys, tempfile, os, json
+          sys.path.insert(0, 'prediction-model/src')
+          from monitoring import run_monitoring_evaluation
+          with tempfile.TemporaryDirectory() as tmp_dir:
+              out_json = os.path.join(tmp_dir, 'mon_out.json')
+              rep = run_monitoring_evaluation(output_path=out_json, require_all_horizons=True)
+              assert os.path.exists(out_json), 'Report was not written to output_path'
+              with open(out_json, 'r', encoding='utf-8') as f:
+                  data = json.load(f)
+              assert data.get('monitoring_version') == '2.0.0', 'Invalid monitoring_version'
+              assert data.get('prediction_log_schema_version') == '1.0', 'Invalid schema version'
+              eval_h = data.get('evaluated_horizons_hours')
+              assert eval_h == [1, 3, 6, 12, 24], f'Missing horizons: {eval_h}'
+              miss_h = data.get('missing_horizons_hours')
+              assert miss_h == [], f'Unexpected missing horizons: {miss_h}'
+              malf = data.get('malformed_row_count')
+              assert malf == 0, f'Malformed rows detected: {malf}'
+              hp = data.get('horizons_performance', {})
+              assert len(hp) == 5, f'Expected 5 horizon performance reports, got {len(hp)}'
+              for h in [1, 3, 6, 12, 24]:
+                  key = f'horizon_{h}h'
+                  assert key in hp, f'Missing {key}'
+                  assert hp[key]['sample_count'] > 0, f'Zero samples for {key}'
+                  assert hp[key]['continuous_variables']['temperature']['mae'] is not None, f'Missing temp MAE for {key}'
+                  assert hp[key]['rain_occurrence']['brier_score'] is not None, f'Missing rain Brier for {key}'
+          print('Gate 8 PASS: All 5 horizons evaluated with verified schema and metrics.')
+          "
 
       - name: Gate 9 - Path Hygiene Check
         run: |
