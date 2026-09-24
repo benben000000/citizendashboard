@@ -1,0 +1,15 @@
+# Git attributes for beta-citizen-prediction
+# Ensure deterministic line endings and binary handling across operating systems
+
+# Checkpoints are binary PyTorch files
+*.pt binary
+
+# Telemetry CSV files are preserved as-is with original bytes
+prediction-model/data/*.csv -text
+
+# JSON, Markdown, Python, and YAML files use LF line endings
+prediction-model/**/*.json text eol=lf
+prediction-model/**/*.md text eol=lf
+prediction-model/**/*.py text eol=lf
+prediction-model/**/*.yml text eol=lf
+.github/**/*.yml text eol=lf

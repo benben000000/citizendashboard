@@ -43,8 +43,16 @@ PHYSICAL_BOUNDS = {
 
 
 def compute_sha256(filepath: str) -> str:
+    """Compute deterministic SHA-256 hash of a file with text line-ending normalization."""
     if not os.path.exists(filepath):
         return "file_not_found"
+    ext = os.path.splitext(filepath)[1].lower()
+    # Normalize line endings for JSON and text policy/manifest files to ensure identical hashes across OSes
+    if ext in [".json", ".md", ".txt"]:
+        with open(filepath, "rb") as f:
+            content = f.read().replace(b"\r\n", b"\n")
+        return hashlib.sha256(content).hexdigest()
+
     h = hashlib.sha256()
     with open(filepath, "rb") as f:
         while chunk := f.read(65536):

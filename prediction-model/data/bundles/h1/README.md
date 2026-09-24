@@ -3,10 +3,10 @@
 - **Bundle Version**: 1.0.0
 - **Horizon**: +1 hour(s)
 - **Model Family**: GarciaWeatherLNN (PyTorch CfCCell continuous-time recurrent)
-- **Implementation Commit**: `b38231c0527ef78cf09804ab290af6ba4073d9ff`
-- **Artifact Commit**: `b38231c0527ef78cf09804ab290af6ba4073d9ff`
+- **Implementation Commit**: `b72b16ae960be6627b92dd2445dac10d84b99bef`
+- **Artifact Commit**: `b72b16ae960be6627b92dd2445dac10d84b99bef`
 - **Checkpoint SHA-256**: `6604047d1539a11c58068d595bf606023fb98d8915b62f943bea145fb72a4285`
-- **Policy SHA-256**: `0fb5174035eba419723d1ee4b9bf658d5914772a13cb65aa7de96a1e20e6cfb5`
+- **Policy SHA-256**: `f3aac1d7a000e72fcd12cf0a88f185933c8ddc08416edf5959bab518796faf44`
 
 ## Operational Status
 - **Surface Weather**: Production Operational (Persistence hybrid blending & frozen skill-gate threshold)
