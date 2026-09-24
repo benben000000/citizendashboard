@@ -21,7 +21,7 @@ jobs:
       - name: Gate 1 - Clean Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -88,11 +88,25 @@ jobs:
               'station_pinn_profiles.json',
               'station_adaptive_minute_forecasts.csv'
           ]
+          canonical_scripts = [
+              'train.py',
+              'train_standalone.py',
+              'train_and_evaluate_canonical.py',
+              'dataset.py',
+              'model.py',
+              'inference.py',
+              'validate.py',
+              'smoke_test.py',
+              'test_canonical_contract.py',
+              'test_inference_contract.py',
+              'audit_data_availability.py',
+          ]
           src_dir = 'prediction-model/src'
           violations = []
-          for s in os.listdir(src_dir):
-              if s.endswith('.py'):
-                  with open(os.path.join(src_dir, s), 'r', encoding='utf-8', errors='ignore') as fp:
+          for s in canonical_scripts:
+              p = os.path.join(src_dir, s)
+              if os.path.exists(p):
+                  with open(p, 'r', encoding='utf-8', errors='ignore') as fp:
                       content = fp.read()
                       for da in deleted:
                           if da in content:

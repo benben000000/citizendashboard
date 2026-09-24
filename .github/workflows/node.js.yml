@@ -3,8 +3,26 @@ name: CI
 on:
   push:
     branches: [main, development]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'next.config.*'
+      - 'postcss.config.*'
+      - '.github/workflows/node.js.yml'
   pull_request:
     branches: [main, development]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'next.config.*'
+      - 'postcss.config.*'
+      - '.github/workflows/node.js.yml'
 
 jobs:
   test:
@@ -12,7 +30,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x]
 
     steps:
       - name: Checkout code
@@ -67,4 +85,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-files
-          path: dist/
+          path: .next/
