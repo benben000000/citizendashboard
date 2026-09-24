@@ -1,0 +1,132 @@
+name: Prediction Model Release Pipeline
+
+on:
+  push:
+    branches: [main, development]
+    paths:
+      - 'prediction-model/**'
+      - '.github/workflows/prediction-model.yml'
+  pull_request:
+    branches: [main, development]
+    paths:
+      - 'prediction-model/**'
+      - '.github/workflows/prediction-model.yml'
+
+jobs:
+  prediction-model-ci:
+    name: Prediction Model 14-Gate Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Gate 1 - Clean Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'prediction-model/requirements.txt'
+
+      - name: Gate 2 - Dependency Installation
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r prediction-model/requirements.txt
+
+      - name: Gate 3 - Static Checks
+        run: |
+          python -m py_compile prediction-model/src/*.py
+
+      - name: Gate 4 - Canonical Contract Tests
+        run: |
+          python prediction-model/src/test_canonical_contract.py
+
+      - name: Gate 5 - Inference Policy Integration Tests
+        run: |
+          python prediction-model/src/test_inference_contract.py
+
+      - name: Gate 6 - Provenance Tests
+        run: |
+          python prediction-model/src/test_provenance.py
+
+      - name: Gate 7 - Smoke Test
+        run: |
+          python prediction-model/src/smoke_test.py
+
+      - name: Gate 8 - Monitoring & Drift Schema Tests
+        run: |
+          python prediction-model/src/monitoring.py
+
+      - name: Gate 9 - Path Hygiene Check
+        run: |
+          python -c "
+          import os, re, sys
+          pattern = re.compile(r'([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)')
+          data_dir = 'prediction-model/data'
+          violations = []
+          for f in os.listdir(data_dir):
+              if f.endswith('.json') or f.endswith('.csv'):
+                  with open(os.path.join(data_dir, f), 'r', encoding='utf-8', errors='ignore') as fp:
+                      for idx, line in enumerate(fp, 1):
+                          if pattern.search(line):
+                              violations.append(f'{f}:{idx}')
+          if violations:
+              print(f'Path hygiene failure: {len(violations)} violations found.')
+              sys.exit(1)
+          print('Gate 9 PASS: 0 machine-specific paths found.')
+          "
+
+      - name: Gate 10 - Deleted Artifact References Check
+        run: |
+          python -c "
+          import os, sys
+          deleted = [
+              'audit_and_benchmark_metrics.json',
+              'pinn_lnn_champion_weights.json',
+              'station_pinn_profiles.json',
+              'station_adaptive_minute_forecasts.csv'
+          ]
+          src_dir = 'prediction-model/src'
+          violations = []
+          for s in os.listdir(src_dir):
+              if s.endswith('.py'):
+                  with open(os.path.join(src_dir, s), 'r', encoding='utf-8', errors='ignore') as fp:
+                      content = fp.read()
+                      for da in deleted:
+                          if da in content:
+                              violations.append(f'{s} -> {da}')
+          if violations:
+              print(f'Deleted-artifact reference failure: {violations}')
+              sys.exit(1)
+          print('Gate 10 PASS: 0 active canonical scripts reference deleted artifacts.')
+          "
+
+      - name: Gate 11 - Working-Tree Cleanliness Check (Read-Only Test Verification)
+        run: |
+          git status --short
+          git diff --exit-code prediction-model/data/
+
+      - name: Gate 12 - Exact / Bundle Provenance Verification
+        run: |
+          python prediction-model/src/verify_provenance.py
+
+      - name: Gate 13 - Five-Horizon Artifact Presence Check
+        run: |
+          python -c "
+          import os, sys
+          horizons = [1, 3, 6, 12, 24]
+          for h in horizons:
+              bundle_dir = f'prediction-model/data/bundles/h{h}'
+              for req in ['bundle_manifest.json', 'checkpoint.pt', 'inference_policy.json', 'README.md']:
+                  path = os.path.join(bundle_dir, req)
+                  if not os.path.exists(path):
+                      print(f'Missing required artifact: {path}')
+                      sys.exit(1)
+          print('Gate 13 PASS: All 5 horizon bundles present and complete.')
+          "
+
+      - name: Gate 14 - Real-Data Validation Job
+        run: |
+          python prediction-model/src/validate.py --horizons 1 3 6 12 24
