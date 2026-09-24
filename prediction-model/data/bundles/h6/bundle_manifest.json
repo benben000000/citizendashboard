@@ -1,0 +1,60 @@
+{
+  "bundle_version": "1.0.0",
+  "horizon_hours": 6,
+  "implementation_commit": "b38231c0527ef78cf09804ab290af6ba4073d9ff",
+  "artifact_commit": "b38231c0527ef78cf09804ab290af6ba4073d9ff",
+  "model_weights_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+  "checkpoint_sha256": "f6f635ac1db287b287b9a516d43ede42aa76dc83edc34aec5a7535632c3d8666",
+  "policy_sha256": "0fb5174035eba419723d1ee4b9bf658d5914772a13cb65aa7de96a1e20e6cfb5",
+  "raw_weather_dataset_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+  "raw_water_dataset_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
+  "feature_schema": [
+    "temperature",
+    "heat_index",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_sin",
+    "wind_cos",
+    "precipitation"
+  ],
+  "normalization": {
+    "means": [
+      27.907407760620117,
+      32.218406677246094,
+      86.1355972290039,
+      1005.7548217773438,
+      1.5926493406295776,
+      0.07907973974943161,
+      -0.0017931798938661814,
+      0.5021592974662781
+    ],
+    "stds": [
+      3.200087070465088,
+      7.033414840698242,
+      12.564970970153809,
+      4.506224155426025,
+      3.6234092712402344,
+      0.7434014081954956,
+      0.6641515493392944,
+      2.836988687515259
+    ]
+  },
+  "model_family": "GarciaWeatherLNN",
+  "model_dimensions": {
+    "input_dim": 8,
+    "hidden_dim": 32,
+    "output_dim": 8
+  },
+  "random_seed": 42,
+  "training_config": {
+    "epochs": 20,
+    "batch_size": 32,
+    "lr": 0.005,
+    "weight_decay": 0.0001
+  },
+  "training_timestamp": "2026-09-23T06:49:26.290505+00:00",
+  "model_status": "ACTIVE_PRODUCTION",
+  "uncertainty_status": "UNAVAILABLE",
+  "water_level_safety_status": "BETA_ONLY_NOT_FOR_LIFE_SAFETY"
+}
