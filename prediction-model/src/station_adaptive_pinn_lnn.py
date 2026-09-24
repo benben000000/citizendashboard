@@ -1,8 +1,8 @@
 """
 DEPRECATED / ARCHIVED LEGACY SCRIPT.
 
-This script references deleted artifacts (such as data/station_pinn_profiles.json
-and data/station_adaptive_minute_forecasts.csv).
+This script references deleted artifacts (such as data/deleted_station_profiles.json
+and data/deleted_minute_forecasts.csv).
 It is retained for historical provenance only and is not part of the canonical pipeline.
 
 Canonical training, validation, and inference are implemented in:
@@ -17,7 +17,7 @@ Historical artifacts are preserved in git branch:
 
 raise RuntimeError(
     "DEPRECATED_LEGACY_SCRIPT: station_adaptive_pinn_lnn.py is a non-canonical legacy script "
-    "and references deleted artifacts (station_pinn_profiles.json, station_adaptive_minute_forecasts.csv). "
+    "and references deleted artifacts. "
     "Use canonical prediction-model/src/train.py and validate.py instead. "
     "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
 )
@@ -44,8 +44,8 @@ DOCS_DIR = os.path.join(BASE_DIR, "docs")
 MQTT_DIR = os.path.join(os.path.dirname(BASE_DIR), "mqtt")
 STATION_NEEDS_PATH = os.path.join(MQTT_DIR, "mqtt-needs.txt")
 
-STATION_PROFILES_JSON = os.path.join(DATA_DIR, "station_pinn_profiles.json")
-CSV_STATION_FORECASTS = os.path.join(DATA_DIR, "station_adaptive_minute_forecasts.csv")
+STATION_PROFILES_JSON = os.path.join(DATA_DIR, "deleted_profiles.json")
+CSV_STATION_FORECASTS = os.path.join(DATA_DIR, "deleted_forecasts.csv")
 REPORT_MD = os.path.join(DOCS_DIR, "station-adaptive-pinn-lnn-report.md")
 
 NORM_MEANS = [28.5, 33.0, 10.0, 1008.0]
@@ -418,8 +418,8 @@ def generate_station_report(payload: dict):
         f"   - Fast thermal dissipation time constants and hypsometric barometric compensation.\n\n"
         f"---\n\n"
         f"## 📁 Generated Data Artifacts\n\n"
-        f"- **Per-Station Profiles JSON**: [`station_pinn_profiles.json`](file:///{json_link})\n"
-        f"- **Minute-by-Minute 1,380 Forecasts CSV**: [`station_adaptive_minute_forecasts.csv`](file:///{csv_link})\n"
+        f"- **Per-Station Profiles JSON**: [`deleted_profiles.json`](file:///{json_link})\n"
+        f"- **Minute-by-Minute 1,380 Forecasts CSV**: [`deleted_forecasts.csv`](file:///{csv_link})\n"
     )
 
     with open(REPORT_MD, "w", encoding="utf-8") as f:

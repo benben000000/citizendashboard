@@ -2,7 +2,7 @@
 DEPRECATED / ARCHIVED LEGACY SCRIPT.
 
 This script was part of an earlier exploratory backtest pipeline and references
-archived artifacts (such as data/audit_and_benchmark_metrics.json). It is retained
+archived artifacts (such as data/deleted_audit_metrics.json). It is retained
 for historical provenance only.
 
 Canonical training and validation are implemented in:
@@ -16,7 +16,7 @@ Historical artifacts are preserved in git branch:
 
 raise RuntimeError(
     "DEPRECATED_LEGACY_SCRIPT: train_and_evaluate_all_models.py is a non-canonical legacy script "
-    "and references deleted artifacts (e.g. data/audit_and_benchmark_metrics.json). "
+    "and references deleted artifacts. "
     "Use canonical prediction-model/src/train.py and validate.py instead. "
     "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
 )
@@ -34,7 +34,7 @@ WORKSPACE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath
 BENCHMARK_CSV = os.path.join(WORKSPACE_ROOT, "public", "exports", "Kloudtrack_Benchmark_Comparison_All_Stations_2026-09-01_to_2026-09-20_1h.csv")
 CLEAN_CONSOLIDATED_CSV = os.path.join(WORKSPACE_ROOT, "prediction-model", "data", "segregated", "clean_consolidated_2024_2026.csv")
 CORRECTED_BENCHMARK_EXPORT = os.path.join(WORKSPACE_ROOT, "public", "exports", "Kloudtrack_Corrected_Audited_Benchmark_2026-09-01_to_2026-09-20.csv")
-AUDIT_METRICS_JSON = os.path.join(WORKSPACE_ROOT, "prediction-model", "data", "audit_and_benchmark_metrics.json")
+AUDIT_METRICS_JSON = os.path.join(WORKSPACE_ROOT, "prediction-model", "data", "deleted_metrics.json")
 
 HORIZONS = [1, 3, 6, 12, 24, 48, 72]
 

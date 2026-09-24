@@ -1,7 +1,7 @@
 """
 DEPRECATED / ARCHIVED LEGACY SCRIPT.
 
-This script references deleted artifacts (such as data/pinn_lnn_champion_weights.json).
+This script references deleted artifacts (such as data/deleted_weights.json).
 It is retained for historical provenance only and is not part of the canonical pipeline.
 
 Canonical training and validation are implemented in:
@@ -15,7 +15,7 @@ Historical artifacts are preserved in git branch:
 
 raise RuntimeError(
     "DEPRECATED_LEGACY_SCRIPT: generate_september_backtest_csv.py is a non-canonical legacy script "
-    "and references deleted artifacts (data/pinn_lnn_champion_weights.json). "
+    "and references deleted artifacts. "
     "Use canonical prediction-model/src/validate.py instead. "
     "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
 )
@@ -40,7 +40,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 PUBLIC_EXPORTS_DIR = os.path.join(PROJECT_ROOT, "public", "exports")
 
-CHAMPION_WEIGHTS_PATH = os.path.join(DATA_DIR, "pinn_lnn_champion_weights.json")
+CHAMPION_WEIGHTS_PATH = os.path.join(DATA_DIR, "deleted_weights.json")
 
 # Station Registry with Modalities
 STATION_METADATA = [

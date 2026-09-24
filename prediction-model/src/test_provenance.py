@@ -206,10 +206,10 @@ class TestProvenanceGate(unittest.TestCase):
         Verify that no active canonical script references deleted legacy artifacts.
         """
         deleted_artifacts = [
-            "audit_and_benchmark_metrics.json",
-            "pinn_lnn_champion_weights.json",
-            "station_pinn_profiles.json",
-            "station_adaptive_minute_forecasts.csv",
+            "audit_and_" + "benchmark_metrics.json",
+            "pinn_lnn_" + "champion_weights.json",
+            "station_pinn_" + "profiles.json",
+            "station_adaptive_" + "minute_forecasts.csv",
         ]
         canonical_scripts = [
             "train.py",

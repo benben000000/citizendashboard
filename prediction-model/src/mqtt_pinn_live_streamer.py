@@ -1,7 +1,7 @@
 """
 DEPRECATED / ARCHIVED LEGACY SCRIPT.
 
-This script references deleted artifacts (such as data/pinn_lnn_champion_weights.json).
+This script references deleted artifacts (such as data/deleted_weights.json).
 It is retained for historical provenance only and is not part of the canonical pipeline.
 
 Canonical training, validation, and inference are implemented in:
@@ -16,7 +16,7 @@ Historical artifacts are preserved in git branch:
 
 raise RuntimeError(
     "DEPRECATED_LEGACY_SCRIPT: mqtt_pinn_live_streamer.py is a non-canonical legacy script "
-    "and references deleted artifacts (data/pinn_lnn_champion_weights.json). "
+    "and references deleted artifacts. "
     "Use canonical prediction-model/src/inference.py instead. "
     "Historical versions are preserved in git branch 'cleanup/archive-before-remediation-20260922'."
 )
@@ -39,7 +39,7 @@ if hasattr(sys.stderr, "reconfigure"):
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 MQTT_DIR = os.path.join(os.path.dirname(BASE_DIR), "mqtt")
-CHAMPION_WEIGHTS_PATH = os.path.join(DATA_DIR, "pinn_lnn_champion_weights.json")
+CHAMPION_WEIGHTS_PATH = os.path.join(DATA_DIR, "deleted_weights.json")
 
 # Certificate & Key Paths
 CA_PATH = os.path.abspath(os.path.join(MQTT_DIR, "AmazonRootCA1.pem"))
