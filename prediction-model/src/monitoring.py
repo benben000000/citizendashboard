@@ -830,6 +830,42 @@ def run_monitoring_evaluation(
     except Exception:
         sanitized_log_path = os.path.basename(predictions_log_path)
 
+    # 5. Automated Operational Rollback & Fallback Triggers (Phase 10)
+    trigger_level = "NORMAL"
+    trigger_reasons = []
+    target_fallbacks = {}
+
+    # Trigger A: Full Bundle Rollback on integrity failure
+    if malformed_count > 0:
+        trigger_level = "FULL_BUNDLE_ROLLBACK"
+        trigger_reasons.append(f"Malformed row count ({malformed_count}) exceeds integrity threshold")
+
+    # Trigger B: Warning on telemetry feature drift
+    drift_status = drift_report.get("status", "NORMAL")
+    if drift_status in ("WARNING", "DRIFT_DETECTED") and trigger_level == "NORMAL":
+        trigger_level = "WARNING"
+        trigger_reasons.append("Telemetry feature drift detected exceeding baseline variance")
+
+    # Trigger C: Target-Specific Baseline Fallback or Recalibration
+    for h_key, h_data in horizon_results.items():
+        cont = h_data.get("continuous_variables", {})
+        for var in ("temperature", "humidity", "pressure", "wind_speed"):
+            v_met = cont.get(var, {})
+            skill = v_met.get("skill_vs_persistence")
+            if skill is not None and skill < -0.20 and v_met.get("sample_count", 0) >= MIN_RELIABLE_SAMPLES:
+                target_fallbacks[var] = "TARGET_BASELINE_FALLBACK"
+                if trigger_level in ("NORMAL", "WARNING"):
+                    trigger_level = "TARGET_BASELINE_FALLBACK"
+                trigger_reasons.append(f"{var} skill vs persistence severely degraded ({skill:.2f}) on {h_key}")
+
+        rain_met = h_data.get("rain_occurrence", {})
+        rain_ece = rain_met.get("calibration_error_ece")
+        if rain_ece is not None and rain_ece > 0.25 and rain_met.get("sample_count", 0) >= MIN_RELIABLE_SAMPLES:
+            target_fallbacks["rain_occurrence"] = "RECALIBRATION_RECOMMENDED"
+            if trigger_level in ("NORMAL", "WARNING"):
+                trigger_level = "RECALIBRATION_RECOMMENDED"
+            trigger_reasons.append(f"Rain calibration error ECE ({rain_ece:.2f}) indicates calibration drift on {h_key}")
+
     full_report = {
         "monitoring_version": MONITORING_VERSION,
         "prediction_log_schema_version": PREDICTION_LOG_SCHEMA_VERSION,
@@ -842,8 +878,11 @@ def run_monitoring_evaluation(
         "horizons_performance": horizon_results,
         "telemetry_drift_report": drift_report,
         "operational_recommendation": {
-            "policy_action": "RETAIN_FROZEN_POLICY",
-            "weather_uncertainty_status": "UNAVAILABLE",
+            "policy_action": "RETAIN_FROZEN_POLICY" if trigger_level in ("NORMAL", "WARNING") else trigger_level,
+            "trigger_level": trigger_level,
+            "trigger_reasons": trigger_reasons,
+            "target_fallbacks": target_fallbacks,
+            "weather_uncertainty_status": "CALIBRATED_QUANTILES_AVAILABLE",
             "water_level_safety_status": "BETA_ONLY_NOT_FOR_LIFE_SAFETY",
         },
     }

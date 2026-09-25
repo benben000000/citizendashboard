@@ -17,11 +17,11 @@
     "light_intensity": "daylight_beta"
   },
   "rain_blend_weights": {
-    "candidate_weight": 0.6000000000000001,
-    "persistence_weight": 0.4
+    "candidate_weight": 0.5,
+    "persistence_weight": 0.5
   },
-  "optimal_hybrid_candidate_weight": 0.6000000000000001,
-  "optimal_hybrid_persistence_weight": 0.4,
+  "optimal_hybrid_candidate_weight": 0.5,
+  "optimal_hybrid_persistence_weight": 0.5,
   "operational_rain_threshold": 0.2,
   "rain_threshold": 0.2,
   "feature_schema": [
@@ -107,72 +107,72 @@
     "light_intensity": "SECONDARY_BETA_DAYLIGHT_ONLY"
   },
   "uncertainty_status": "UNAVAILABLE",
-  "validation_csi": 0.6136,
-  "test_brier_score": 0.1782,
-  "test_expected_calibration_error": 0.0355,
+  "validation_csi": 0.5925,
+  "test_brier_score": 0.1786,
+  "test_expected_calibration_error": 0.0827,
   "reliability_bins": [
     {
       "bin_low": 0.0,
       "bin_high": 0.1,
-      "sample_count": 326,
+      "sample_count": 573,
       "mean_confidence": 0.0678,
-      "empirical_accuracy": 0.0583
+      "empirical_accuracy": 0.0908
     },
     {
       "bin_low": 0.1,
       "bin_high": 0.2,
-      "sample_count": 525,
-      "mean_confidence": 0.1585,
-      "empirical_accuracy": 0.1771
+      "sample_count": 775,
+      "mean_confidence": 0.145,
+      "empirical_accuracy": 0.2142
     },
     {
       "bin_low": 0.2,
       "bin_high": 0.3,
-      "sample_count": 571,
-      "mean_confidence": 0.243,
-      "empirical_accuracy": 0.2382
+      "sample_count": 284,
+      "mean_confidence": 0.2367,
+      "empirical_accuracy": 0.3873
     },
     {
       "bin_low": 0.3,
       "bin_high": 0.4,
-      "sample_count": 233,
-      "mean_confidence": 0.339,
-      "empirical_accuracy": 0.4249
+      "sample_count": 36,
+      "mean_confidence": 0.3236,
+      "empirical_accuracy": 0.6111
     },
     {
       "bin_low": 0.4,
       "bin_high": 0.5,
-      "sample_count": 82,
-      "mean_confidence": 0.463,
-      "empirical_accuracy": 0.5366
+      "sample_count": 34,
+      "mean_confidence": 0.4853,
+      "empirical_accuracy": 0.7353
     },
     {
       "bin_low": 0.5,
       "bin_high": 0.6,
-      "sample_count": 274,
-      "mean_confidence": 0.5574,
-      "empirical_accuracy": 0.4599
+      "sample_count": 239,
+      "mean_confidence": 0.5534,
+      "empirical_accuracy": 0.4142
     },
     {
       "bin_low": 0.6,
       "bin_high": 0.7,
-      "sample_count": 266,
-      "mean_confidence": 0.6454,
-      "empirical_accuracy": 0.5789
+      "sample_count": 268,
+      "mean_confidence": 0.6493,
+      "empirical_accuracy": 0.5
     },
     {
       "bin_low": 0.7,
       "bin_high": 0.8,
-      "sample_count": 256,
-      "mean_confidence": 0.7502,
-      "empirical_accuracy": 0.7305
+      "sample_count": 282,
+      "mean_confidence": 0.7512,
+      "empirical_accuracy": 0.7234
     },
     {
       "bin_low": 0.8,
       "bin_high": 0.9,
-      "sample_count": 198,
-      "mean_confidence": 0.8291,
-      "empirical_accuracy": 0.8586
+      "sample_count": 240,
+      "mean_confidence": 0.8317,
+      "empirical_accuracy": 0.9
     }
   ]
 }

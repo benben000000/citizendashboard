@@ -24,6 +24,7 @@ Status: Research prototype & probabilistic guidance engine. Not for life-safety 
 import math
 from collections import defaultdict
 from datetime import datetime
+from typing import Tuple, Dict, Any, List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
@@ -791,3 +792,496 @@ class PersistenceWeatherModel:
             "precipitation_mm": precip,
             "rain_probability": rain_prob,
         }
+
+
+class SeasonalPersistenceWeatherModel:
+    """
+    Diurnal / Seasonal Persistence Baseline (24-hour Diurnal Lag).
+    Predicts meteorological conditions at target time t0 + h using the observation
+    from exactly 24 hours prior to the target time: t_seasonal = (t0 + h) - 24h = t0 - (24 - h)h.
+    If the seasonal lag is unavailable, falls back gracefully to instantaneous persistence at origin t0.
+    """
+    def __init__(self):
+        self.targets = ["temperature", "humidity", "pressure", "wind_speed", "wind_u", "wind_v", "precipitation_mm", "rain_prob"]
+
+    @staticmethod
+    def predict_from_history(window_records: list, horizon: int, origin_rec: dict = None) -> dict:
+        """
+        Predict using the observation from (24 - horizon) hours before t0 in window_records.
+        For example:
+          - h = 24: (24 - 24) = 0 hours before t0 -> origin record at t0
+          - h = 1: (24 - 1) = 23 hours before t0 -> window_records[-24] (if seq_len >= 24)
+          - h = 12: (24 - 12) = 12 hours before t0 -> window_records[-13]
+        """
+        target_lag_steps = 24 - horizon
+        if window_records and len(window_records) > target_lag_steps and target_lag_steps >= 0:
+            rec = window_records[-(target_lag_steps + 1)]
+            t = float(rec.get("temperature", 28.0))
+            rh = float(rec.get("humidity", 75.0))
+            p = float(rec.get("pressure", 1008.0))
+            ws = float(rec.get("wind_speed", 5.0))
+            u = float(rec.get("wind_cos", rec.get("wind_u", 0.0)))
+            v = float(rec.get("wind_sin", rec.get("wind_v", 0.0)))
+            precip = float(rec.get("precipitation", 0.0))
+            rain_prob = 1.0 if precip >= 0.1 else 0.0
+            hi = compute_noaa_heat_index(t, rh)
+            return {
+                "temperature": t,
+                "humidity": rh,
+                "pressure": p,
+                "wind_speed": ws,
+                "wind_u": u,
+                "wind_v": v,
+                "wind_direction_deg": (math.degrees(math.atan2(v, u)) % 360.0) if ws >= 1.0 else None,
+                "heat_index": hi,
+                "precipitation_mm": precip,
+                "rain_probability": rain_prob,
+            }
+        elif origin_rec is not None:
+            return PersistenceWeatherModel.predict_from_origin(origin_rec)
+        else:
+            return {
+                "temperature": 28.0, "humidity": 75.0, "pressure": 1008.0,
+                "wind_speed": 5.0, "wind_u": 0.0, "wind_v": 0.0,
+                "wind_direction_deg": None, "heat_index": 33.0,
+                "precipitation_mm": 0.0, "rain_probability": 0.0,
+            }
+
+
+class WeeklyClimatologyWeatherModel:
+    """
+    Day-of-Week x Hour-of-Day Climatology Baseline.
+    Indexes historical mean observations by (station_id, day_of_week, hour_of_day).
+    Captures weekly diurnal patterns and anthropogenic rhythms.
+    """
+    def __init__(self):
+        self.table = {}  # (station_id, day_of_week, hour) -> dict
+        self.hourly_table = {}  # (station_id, hour) -> dict fallback
+        self.global_mean = {}
+        self.targets = ["temperature", "humidity", "pressure", "wind_speed", "wind_u", "wind_v", "precipitation_mm", "rain_prob"]
+
+    def fit_from_metadata(self, train_metadata: list):
+        stats = defaultdict(lambda: defaultdict(list))
+        hourly_stats = defaultdict(lambda: defaultdict(list))
+        global_stats = defaultdict(list)
+
+        for r in train_metadata:
+            st = r["station_id"]
+            # Local Philippine time (UTC + 8)
+            t_target = datetime.fromisoformat(r["target_timestamp"])
+            dow = (t_target.weekday()) % 7
+            h = (t_target.hour + 8) % 24
+            for target, val_key in [
+                ("temperature", "target_temperature"),
+                ("humidity", "target_humidity"),
+                ("pressure", "target_pressure"),
+                ("wind_speed", "target_wind_speed"),
+                ("wind_u", "target_wind_u"),
+                ("wind_v", "target_wind_v"),
+                ("precipitation_mm", "actual_precip_mm"),
+                ("rain_prob", "actual_rain_prob"),
+            ]:
+                if val_key in r and r[val_key] is not None:
+                    v = float(r[val_key])
+                    stats[(st, dow, h)][target].append(v)
+                    hourly_stats[(st, h)][target].append(v)
+                    global_stats[target].append(v)
+
+        self.global_mean = {k: float(np.mean(v)) if v else 0.0 for k, v in global_stats.items()}
+        for (st, h), vals in hourly_stats.items():
+            self.hourly_table[(st, h)] = {k: float(np.mean(v)) if v else self.global_mean.get(k, 0.0) for k, v in vals.items()}
+        for (st, dow, h), vals in stats.items():
+            fallback = self.hourly_table.get((st, h), self.global_mean)
+            self.table[(st, dow, h)] = {k: float(np.mean(v)) if len(v) >= 2 else fallback.get(k, 0.0) for k, v in vals.items()}
+        return self
+
+    def predict(self, station_id: str, day_of_week: int, hour_of_day: int) -> dict:
+        key = (station_id, day_of_week, hour_of_day)
+        if key in self.table:
+            return self.table[key]
+        return self.hourly_table.get((station_id, hour_of_day), self.global_mean)
+
+
+class DampedPersistenceWeatherModel:
+    """
+    Damped Persistence Baseline.
+    Blends instantaneous persistence at t0 with climatology based on autocorrelation decay:
+      forecast = (alpha ** horizon) * origin_val + (1 - alpha ** horizon) * climatology_val
+    where alpha in [0, 1] is the estimated 1-hour lag autocorrelation for each continuous variable.
+    """
+    def __init__(self, climatology_model: ClimatologyWeatherModel = None, default_alpha: float = 0.92):
+        self.climatology_model = climatology_model or ClimatologyWeatherModel()
+        self.default_alpha = default_alpha
+        self.alphas = {
+            "temperature": 0.94,
+            "humidity": 0.91,
+            "pressure": 0.96,
+            "wind_speed": 0.75,
+            "wind_u": 0.65,
+            "wind_v": 0.65,
+        }
+
+    def fit_autocorrelations(self, train_metadata: list):
+        """Estimate 1-hour autocorrelation alpha from sequential training samples."""
+        pairs = defaultdict(lambda: ([], []))
+        for r in train_metadata:
+            if r.get("requested_horizon_hours") == 1:
+                for k in ("temperature", "humidity", "pressure", "wind_speed", "wind_u", "wind_v"):
+                    orig_k = f"origin_{k}"
+                    targ_k = f"target_{k}"
+                    if orig_k in r and targ_k in r and r[orig_k] is not None and r[targ_k] is not None:
+                        pairs[k][0].append(float(r[orig_k]))
+                        pairs[k][1].append(float(r[targ_k]))
+
+        for k, (x, y) in pairs.items():
+            if len(x) >= 20:
+                x_arr = np.array(x, dtype=np.float64)
+                y_arr = np.array(y, dtype=np.float64)
+                cov = np.cov(x_arr, y_arr)
+                if cov[0, 0] > 1e-6 and cov[1, 1] > 1e-6:
+                    corr = float(cov[0, 1] / (np.sqrt(cov[0, 0] * cov[1, 1]) + 1e-9))
+                    self.alphas[k] = float(np.clip(corr, 0.1, 0.99))
+        return self
+
+    def predict(self, origin_rec: dict, horizon: int, station_id: str, hour_of_day: int) -> dict:
+        clim = self.climatology_model.predict(station_id, hour_of_day)
+        res = {}
+        for k in ("temperature", "humidity", "pressure", "wind_speed", "wind_u", "wind_v"):
+            alpha = self.alphas.get(k, self.default_alpha)
+            weight = alpha ** horizon
+            orig_val = float(origin_rec.get(f"origin_{k}", origin_rec.get(k, clim.get(k, 0.0))))
+            clim_val = float(clim.get(k, orig_val))
+            res[k] = weight * orig_val + (1.0 - weight) * clim_val
+
+        # Clip to physical limits
+        res["temperature"] = float(np.clip(res["temperature"], -10.0, 60.0))
+        res["humidity"] = float(np.clip(res["humidity"], 0.0, 100.0))
+        res["pressure"] = float(np.clip(res["pressure"], 850.0, 1090.0))
+        res["wind_speed"] = float(np.clip(res["wind_speed"], 0.0, 250.0))
+
+        # Reconstruct wind direction and heat index
+        u, v = res["wind_u"], res["wind_v"]
+        ws = res["wind_speed"]
+        res["wind_direction_deg"] = (math.degrees(math.atan2(v, u)) % 360.0) if ws >= 1.0 else None
+        res["heat_index"] = compute_noaa_heat_index(res["temperature"], res["humidity"])
+        res["precipitation_mm"] = float(origin_rec.get("last_observed_precip", 0.0)) * (0.8 ** horizon)
+        res["rain_probability"] = 1.0 if res["precipitation_mm"] >= 0.1 else 0.0
+        return res
+
+
+class AutoregressiveWeatherModel:
+    """
+    Autoregressive (AR(p)) Lag Baseline with L2 Regularization.
+    Fits a linear model on p historical hourly observations leading up to t0:
+      y(t0 + h) = beta_0 + sum_{j=1}^p beta_j * y(t0 - (j-1)h)
+    Fit analytically via regularized ridge regression for each continuous variable.
+    """
+    def __init__(self, p_lags: int = 12, alpha: float = 1.0):
+        self.p_lags = p_lags
+        self.alpha = alpha
+        self.weights = {}  # target -> [p + 1] weight vector
+        self.targets = ["temperature", "humidity", "pressure", "wind_speed", "wind_u", "wind_v"]
+
+    def fit(self, X_lags: Dict[str, np.ndarray], Y: Dict[str, np.ndarray]):
+        """
+        X_lags: dict mapping var_name -> np.ndarray of shape [N, p_lags]
+        Y: dict mapping var_name -> np.ndarray of shape [N]
+        """
+        for var in self.targets:
+            if var not in X_lags or var not in Y:
+                continue
+            X = X_lags[var].astype(np.float32)
+            y = Y[var].astype(np.float32)
+            N, P = X.shape
+            X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X])
+            reg = self.alpha * np.eye(P + 1, dtype=np.float32)
+            reg[0, 0] = 0.0
+            A = X_aug.T @ X_aug + reg
+            b = X_aug.T @ y
+            self.weights[var] = np.linalg.solve(A, b)
+        return self
+
+    def predict(self, X_lags: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        res = {}
+        for var in self.targets:
+            if var in self.weights and var in X_lags:
+                X = X_lags[var].astype(np.float32)
+                N = X.shape[0]
+                X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X])
+                preds = X_aug @ self.weights[var]
+                if var == "temperature":
+                    preds = np.clip(preds, -10.0, 60.0)
+                elif var == "humidity":
+                    preds = np.clip(preds, 0.0, 100.0)
+                elif var == "pressure":
+                    preds = np.clip(preds, 850.0, 1090.0)
+                elif var == "wind_speed":
+                    preds = np.clip(preds, 0.0, 250.0)
+                res[var] = preds
+        return res
+
+
+class ResidualWeatherModel:
+    """
+    Residual Meteorological Model:
+      forecast = baseline_prediction + learned_residual
+    Addresses short-horizon temperature and continuous variable regression:
+      The model learns when and how to deviate from a strong local baseline (e.g. Persistence or Damped Persistence),
+      rather than relearning the state from scratch.
+    Provides calibrated residual quantiles (p10, p50, p90) via empirical residual errors.
+    """
+    def __init__(self, alpha: float = 5.0, bounds: Tuple[float, float] = (-10.0, 60.0)):
+        self.alpha = alpha
+        self.bounds = bounds
+        self.weights = None  # [D + 1]
+        self.residual_quantiles = {"p10": -1.0, "p50": 0.0, "p90": 1.0}
+
+    def fit(self, X: np.ndarray, y_true: np.ndarray, y_baseline: np.ndarray):
+        """
+        X: [N, D] engineered context features
+        y_true: [N] ground-truth target values
+        y_baseline: [N] baseline predictions (e.g. persistence or damped persistence)
+        """
+        residuals = (y_true - y_baseline).astype(np.float32)
+        N, D = X.shape
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        reg = self.alpha * np.eye(D + 1, dtype=np.float32)
+        reg[0, 0] = 0.0
+        A = X_aug.T @ X_aug + reg
+        b = X_aug.T @ residuals
+        self.weights = np.linalg.solve(A, b)
+
+        # Fit empirical calibration quantiles on in-sample / calibration residuals
+        pred_res = X_aug @ self.weights
+        val_errors = residuals - pred_res
+        self.residual_quantiles["p10"] = float(np.quantile(val_errors, 0.10))
+        self.residual_quantiles["p50"] = float(np.quantile(val_errors, 0.50))
+        self.residual_quantiles["p90"] = float(np.quantile(val_errors, 0.90))
+        return self
+
+    def predict(self, X: np.ndarray, y_baseline: np.ndarray) -> Dict[str, np.ndarray]:
+        """Returns point prediction and calibrated prediction intervals [p10, p50, p90]."""
+        N = X.shape[0]
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        learned_res = X_aug @ self.weights
+        point_pred = np.clip(y_baseline + learned_res, self.bounds[0], self.bounds[1])
+
+        p10 = np.clip(point_pred + self.residual_quantiles["p10"], self.bounds[0], self.bounds[1])
+        p50 = np.clip(point_pred + self.residual_quantiles["p50"], self.bounds[0], self.bounds[1])
+        p90 = np.clip(point_pred + self.residual_quantiles["p90"], self.bounds[0], self.bounds[1])
+
+        return {
+            "prediction": point_pred,
+            "p10": p10,
+            "p50": p50,
+            "p90": p90,
+            "residual": learned_res,
+        }
+
+
+class VectorWindDirectionModel:
+    """
+    Vector-Decomposition Wind Direction Model:
+      u = ws * cos(direction)
+      v = ws * sin(direction)
+      direction = atan2(v, u) in degrees [0, 360)
+    Avoids scalar 0/360 wrap-around penalties.
+    Implements calm-wind thresholding (ws < calm_threshold_kmh, default 3.6 km/h = 1.0 m/s):
+      Calm winds have undefined circular direction; uses persistence fallback and reports calm separately.
+    """
+    def __init__(self, calm_threshold_kmh: float = 3.6, alpha: float = 5.0):
+        self.calm_threshold = calm_threshold_kmh
+        self.alpha = alpha
+        self.weights_u = None
+        self.weights_v = None
+
+    def fit(self, X: np.ndarray, u_true: np.ndarray, v_true: np.ndarray):
+        N, D = X.shape
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        reg = self.alpha * np.eye(D + 1, dtype=np.float32)
+        reg[0, 0] = 0.0
+        A = X_aug.T @ X_aug + reg
+        self.weights_u = np.linalg.solve(A, X_aug.T @ u_true.astype(np.float32))
+        self.weights_v = np.linalg.solve(A, X_aug.T @ v_true.astype(np.float32))
+        return self
+
+    def predict(self, X: np.ndarray, wind_speed_pred: np.ndarray, u_origin: np.ndarray = None, v_origin: np.ndarray = None) -> Dict[str, np.ndarray]:
+        N = X.shape[0]
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        pred_u = X_aug @ self.weights_u
+        pred_v = X_aug @ self.weights_v
+        # Normalize unit direction vectors
+        norm = np.sqrt(pred_u ** 2 + pred_v ** 2) + 1e-6
+        u_norm = pred_u / norm
+        v_norm = pred_v / norm
+
+        raw_deg = (np.degrees(np.arctan2(v_norm, u_norm))) % 360.0
+
+        is_calm = wind_speed_pred < self.calm_threshold
+        final_deg = raw_deg.copy()
+        if u_origin is not None and v_origin is not None:
+            orig_deg = (np.degrees(np.arctan2(v_origin, u_origin))) % 360.0
+            final_deg = np.where(is_calm, orig_deg, raw_deg)
+
+        return {
+            "wind_u": u_norm,
+            "wind_v": v_norm,
+            "wind_direction_deg": final_deg,
+            "is_calm": is_calm,
+            "calm_count": int(np.sum(is_calm)),
+        }
+
+
+class HurdlePrecipitationModel:
+    """
+    Two-Stage Hurdle Precipitation Model:
+      P(precip >= 0.1 mm) x E[precipitation | rain]
+    Prevents majority dry-hour zero-inflation from washing out heavy rain response.
+    Stage 1: Calibrated classification (rain probability).
+    Stage 2: Positive regression trained on rainy samples.
+    """
+    def __init__(self, alpha_cls: float = 2.0, alpha_reg: float = 5.0):
+        self.alpha_cls = alpha_cls
+        self.alpha_reg = alpha_reg
+        self.weights_cls = None
+        self.weights_reg = None
+        self.mean_rainy_amount = 1.0
+
+    def fit(self, X: np.ndarray, precip_true: np.ndarray):
+        N, D = X.shape
+        rain_binary = (precip_true >= 0.1).astype(np.float32)
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+
+        # Stage 1: Regularized linear probability classifier
+        reg_cls = self.alpha_cls * np.eye(D + 1, dtype=np.float32)
+        reg_cls[0, 0] = 0.0
+        A_cls = X_aug.T @ X_aug + reg_cls
+        self.weights_cls = np.linalg.solve(A_cls, X_aug.T @ rain_binary)
+
+        # Stage 2: Regression fit on rainy subset (or all if very few rainy samples)
+        rain_mask = precip_true >= 0.1
+        if np.sum(rain_mask) >= 10:
+            X_rainy = X_aug[rain_mask]
+            y_rainy = precip_true[rain_mask].astype(np.float32)
+            self.mean_rainy_amount = float(np.mean(y_rainy))
+            reg_reg = self.alpha_reg * np.eye(D + 1, dtype=np.float32)
+            reg_reg[0, 0] = 0.0
+            A_reg = X_rainy.T @ X_rainy + reg_reg
+            self.weights_reg = np.linalg.solve(A_reg, X_rainy.T @ y_rainy)
+        else:
+            self.weights_reg = np.zeros(D + 1, dtype=np.float32)
+            self.weights_reg[0] = self.mean_rainy_amount
+        return self
+
+    def predict(self, X: np.ndarray) -> Dict[str, np.ndarray]:
+        N = X.shape[0]
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        prob = np.clip(X_aug @ self.weights_cls, 0.0, 1.0)
+        cond_amount = np.clip(X_aug @ self.weights_reg, 0.0, 300.0)
+        expected_amount = prob * cond_amount
+        return {
+            "rain_prob": prob,
+            "conditional_amount": cond_amount,
+            "precipitation_mm": expected_amount,
+        }
+
+
+class QuantileEvaluator:
+    """
+    Probabilistic Forecast and Uncertainty Evaluator.
+    Evaluates central 80% prediction intervals [p10, p90] with median p50:
+      - Empirical Coverage: percentage of observations in [p10, p90] (target: 80%).
+      - Sharpness: average interval width (p90 - p10).
+      - Weighted Interval Score (WIS) for alpha = 0.2:
+          WIS = 0.5 * |y - p50| + (alpha / 2) * (p90 - p10) + (p10 - y)*I(y < p10) + (y - p90)*I(y > p90)
+    """
+    @staticmethod
+    def evaluate(y_true: np.ndarray, p10: np.ndarray, p50: np.ndarray, p90: np.ndarray) -> Dict[str, float]:
+        N = len(y_true)
+        if N == 0:
+            return {"coverage_80_pct": 0.0, "sharpness": 0.0, "wis": 0.0, "underprediction_penalty": 0.0, "overprediction_penalty": 0.0}
+
+        y = y_true.astype(np.float64)
+        l = p10.astype(np.float64)
+        m = p50.astype(np.float64)
+        u = p90.astype(np.float64)
+
+        in_interval = (y >= l) & (y <= u)
+        coverage_80 = float(np.mean(in_interval) * 100.0)
+        sharpness = float(np.mean(u - l))
+
+        alpha = 0.2  # 80% interval
+        under = np.maximum(0.0, l - y)
+        over = np.maximum(0.0, y - u)
+        med_err = np.abs(y - m)
+
+        wis_per_sample = 0.5 * med_err + (alpha / 2.0) * (u - l) + under + over
+        wis = float(np.mean(wis_per_sample))
+
+        return {
+            "coverage_80_pct": round(coverage_80, 2),
+            "sharpness": round(sharpness, 4),
+            "wis": round(wis, 4),
+            "underprediction_penalty": round(float(np.mean(under)), 4),
+            "overprediction_penalty": round(float(np.mean(over)), 4),
+        }
+
+
+class CompactEnsembleWeatherModel:
+    """
+    Compact Multi-Model Ensemble.
+    Combines distinct predictions from complementary model families:
+      - Residual / Linear Model
+      - Tabular Tree (Gradient-Boosted Decision Trees)
+      - Continuous CfC/LNN Neural Model
+    Learns non-negative convex blend weights (sum w_i = 1) strictly on validation/calibration data.
+    """
+    def __init__(self):
+        self.weights = {}  # target -> [M] array of weights
+        self.model_names = []
+
+    def fit_weights(self, model_predictions: Dict[str, Dict[str, np.ndarray]], y_val: Dict[str, np.ndarray]):
+        """
+        model_predictions: dict mapping model_name -> dict(target -> [N] array)
+        y_val: dict mapping target -> [N] array
+        Fits convex weights minimizing MSE on validation data.
+        """
+        self.model_names = sorted(model_predictions.keys())
+        M = len(self.model_names)
+        if M == 0:
+            return self
+
+        for target, y_true in y_val.items():
+            valid_names = [m for m in self.model_names if target in model_predictions[m]]
+            if not valid_names:
+                continue
+            preds_matrix = np.column_stack([model_predictions[m][target] for m in valid_names])
+            n_models = preds_matrix.shape[1]
+            if n_models <= 1:
+                self.weights[target] = np.ones(n_models, dtype=np.float32)
+                continue
+
+            # Quick constrained non-negative least squares via projected gradient descent
+            w = np.full(n_models, 1.0 / n_models, dtype=np.float32)
+            lr = 0.05
+            for _ in range(100):
+                err = preds_matrix @ w - y_true
+                grad = (preds_matrix.T @ err) / len(y_true)
+                w = np.maximum(0.0, w - lr * grad)
+                s = np.sum(w)
+                if s > 1e-6:
+                    w /= s
+
+            self.weights[target] = w
+        return self
+
+    def predict(self, model_predictions: Dict[str, Dict[str, np.ndarray]], target: str) -> np.ndarray:
+        valid_names = [m for m in self.model_names if target in model_predictions[m]]
+        if not valid_names:
+            return np.zeros(1, dtype=np.float32)
+        preds_matrix = np.column_stack([model_predictions[m][target] for m in valid_names])
+        w = self.weights.get(target)
+        if w is None or len(w) != preds_matrix.shape[1]:
+            # Equal weighting fallback
+            return np.mean(preds_matrix, axis=1)
+        return preds_matrix @ w

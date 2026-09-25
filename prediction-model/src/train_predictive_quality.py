@@ -36,7 +36,7 @@ import copy
 import random
 import argparse
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
 import numpy as np
@@ -53,6 +53,9 @@ from dataset import (
     get_telemetry_pipeline,
     build_forecast_windows,
     build_feature_augmented_forecast_windows,
+    build_rolling_origin_splits,
+    audit_features_and_labels,
+    FEATURE_SCHEMA_METADATA,
     compute_file_sha256,
     compute_noaa_heat_index,
     circular_direction_error_deg,
@@ -70,6 +73,15 @@ from model import (
     GradientBoostedWeatherModel,
     ClimatologyWeatherModel,
     PersistenceWeatherModel,
+    SeasonalPersistenceWeatherModel,
+    WeeklyClimatologyWeatherModel,
+    DampedPersistenceWeatherModel,
+    AutoregressiveWeatherModel,
+    ResidualWeatherModel,
+    VectorWindDirectionModel,
+    HurdlePrecipitationModel,
+    QuantileEvaluator,
+    CompactEnsembleWeatherModel,
 )
 from anomaly_detector import TelemetryAnomalyDetector
 from verify_provenance import compute_sha256
@@ -356,16 +368,22 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     norm_means, norm_stds = pipeline.norm_means, pipeline.norm_stds
     feat_means, feat_stds = pipeline.get_feature_augmented_norm_stats()
 
-    # Pre-fit Climatology baseline from train split
-    print("\nFitting Climatology baseline on training split...")
+    # Pre-fit Climatology, Weekly Climatology, and Damped Persistence from train split
+    print("\nFitting Climatology & Multi-Reference Baselines on training split...")
     clim_model = ClimatologyWeatherModel()
+    weekly_clim_model = WeeklyClimatologyWeatherModel()
     train_metadata_all = []
     for h in [1]:
         res = build_forecast_windows(pipeline, split="train", horizon=h, return_metadata=True)
         if res is not None:
             train_metadata_all.extend(res[6])
     clim_model.fit_from_metadata(train_metadata_all)
-    print(f"Climatology fitted across {len(clim_model.table)} station-hour buckets.")
+    weekly_clim_model.fit_from_metadata(train_metadata_all)
+    damped_model = DampedPersistenceWeatherModel(clim_model)
+    damped_model.fit_autocorrelations(train_metadata_all)
+    print(f"Hourly Climatology fitted across {len(clim_model.table)} station-hour buckets.")
+    print(f"Weekly Climatology fitted across {len(weekly_clim_model.table)} station-dow-hour buckets.")
+    print(f"Damped Persistence fitted with estimated autocorrelations: {damped_model.alphas}")
 
     scorecard = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -374,9 +392,17 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         "horizons": horizons,
         "models_evaluated": [
             "Persistence",
+            "SeasonalPersistence",
             "Climatology",
+            "WeeklyClimatology",
+            "DampedPersistence",
+            "Autoregression_p6",
             "Ridge_75Features",
             "GradientBoostedTree_75Features",
+            "ResidualWeatherModel_Quantiles",
+            "VectorWindDirectionModel",
+            "HurdlePrecipitationModel",
+            "CompactEnsembleWeatherModel",
             "GarciaWeatherLNNFeatured_Candidate",
         ],
         "horizon_evaluations": {},
@@ -398,6 +424,16 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         "canonical_feature_schema": [
             "temperature", "heat_index", "humidity", "pressure",
             "wind_speed", "wind_sin", "wind_cos", "precipitation"
+        ],
+        "canonical_baselines_included": [
+            "persistence",
+            "seasonal_persistence",
+            "hourly_climatology",
+            "weekly_climatology",
+            "damped_persistence",
+            "autoregression_p6",
+            "ridge_75features",
+            "gradient_boosted_tree_75features",
         ],
         "training_seeds": [seed],
         "model_configuration": {
@@ -524,6 +560,148 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         clim_eval_precip = evaluate_precipitation_amount(precip_true, precip_clim, precip_orig, precip_clim)
         clim_eval_wdir = evaluate_wind_direction(u_true, v_true, u_clim, v_clim, ws_true)
 
+        # Baseline 2b: Seasonal Persistence (24h Diurnal Lag)
+        seasonal_preds = []
+        for m in test_meta:
+            st = m["station_id"]
+            t0_dt = datetime.fromisoformat(m["origin_timestamp"].replace("Z", "+00:00"))
+            target_lag = 24 - h
+            lag_time = t0_dt - timedelta(hours=target_lag)
+            rec_lag = pipeline.station_hourly.get(st, {}).get(lag_time)
+            if rec_lag is not None:
+                seasonal_preds.append({
+                    "temperature": float(rec_lag["temperature"]),
+                    "humidity": float(rec_lag["humidity"]),
+                    "pressure": float(rec_lag["pressure"]),
+                    "wind_speed": float(rec_lag["wind_speed"]),
+                    "wind_u": float(rec_lag["wind_cos"]),
+                    "wind_v": float(rec_lag["wind_sin"]),
+                    "precipitation_mm": float(rec_lag["precipitation"]),
+                    "rain_prob": 1.0 if float(rec_lag["precipitation"]) >= 0.1 else 0.0,
+                    "heat_index": compute_noaa_heat_index(float(rec_lag["temperature"]), float(rec_lag["humidity"])),
+                })
+            else:
+                seasonal_preds.append({
+                    "temperature": float(m["origin_temperature"]),
+                    "humidity": float(m["origin_humidity"]),
+                    "pressure": float(m["origin_pressure"]),
+                    "wind_speed": float(m["origin_wind_speed"]),
+                    "wind_u": float(m["origin_wind_u"]),
+                    "wind_v": float(m["origin_wind_v"]),
+                    "precipitation_mm": float(m["last_observed_precip"]),
+                    "rain_prob": 0.85 if float(m["last_observed_precip"]) >= 0.1 else 0.05,
+                    "heat_index": float(m["origin_heat_index"]),
+                })
+        t_seas = np.array([sp["temperature"] for sp in seasonal_preds], dtype=np.float32)
+        rh_seas = np.array([sp["humidity"] for sp in seasonal_preds], dtype=np.float32)
+        p_seas = np.array([sp["pressure"] for sp in seasonal_preds], dtype=np.float32)
+        ws_seas = np.array([sp["wind_speed"] for sp in seasonal_preds], dtype=np.float32)
+        u_seas = np.array([sp["wind_u"] for sp in seasonal_preds], dtype=np.float32)
+        v_seas = np.array([sp["wind_v"] for sp in seasonal_preds], dtype=np.float32)
+        hi_seas = np.array([sp["heat_index"] for sp in seasonal_preds], dtype=np.float32)
+        rain_prob_seas = np.array([sp["rain_prob"] for sp in seasonal_preds], dtype=np.float32)
+        precip_seas = np.array([sp["precipitation_mm"] for sp in seasonal_preds], dtype=np.float32)
+
+        seas_eval_t = evaluate_continuous(t_true, t_seas, t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
+        seas_eval_rh = evaluate_continuous(rh_true, rh_seas, rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
+        seas_eval_p = evaluate_continuous(p_true, p_seas, p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
+        seas_eval_ws = evaluate_continuous(ws_true, ws_seas, ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        seas_eval_hi = evaluate_continuous(hi_true, hi_seas, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
+        seas_eval_rain = evaluate_rain_occurrence(rain_true, rain_prob_seas, threshold=0.5)
+        seas_eval_precip = evaluate_precipitation_amount(precip_true, precip_seas, precip_orig, precip_clim)
+        seas_eval_wdir = evaluate_wind_direction(u_true, v_true, u_seas, v_seas, ws_true)
+
+        # Baseline 2c: Weekly Climatology (Station x Day-of-Week x Hour-of-Day)
+        weekly_preds = []
+        for m in test_meta:
+            st = m["station_id"]
+            dt_m = datetime.fromisoformat(m["target_timestamp"].replace("Z", "+00:00"))
+            dow = dt_m.weekday() % 7
+            hr = (dt_m.hour + 8) % 24
+            weekly_preds.append(weekly_clim_model.predict(st, dow, hr))
+        t_wclim = np.array([wp.get("temperature", t_clim[i]) for i, wp in enumerate(weekly_preds)], dtype=np.float32)
+        rh_wclim = np.array([wp.get("humidity", rh_clim[i]) for i, wp in enumerate(weekly_preds)], dtype=np.float32)
+        p_wclim = np.array([wp.get("pressure", p_clim[i]) for i, wp in enumerate(weekly_preds)], dtype=np.float32)
+        ws_wclim = np.array([wp.get("wind_speed", ws_clim[i]) for i, wp in enumerate(weekly_preds)], dtype=np.float32)
+        u_wclim = np.array([wp.get("wind_u", u_clim[i]) for i, wp in enumerate(weekly_preds)], dtype=np.float32)
+        v_wclim = np.array([wp.get("wind_v", v_clim[i]) for i, wp in enumerate(weekly_preds)], dtype=np.float32)
+        hi_wclim = np.array([compute_noaa_heat_index(t_wclim[i], rh_wclim[i]) for i in range(len(t_wclim))], dtype=np.float32)
+        rain_prob_wclim = np.array([wp.get("rain_prob", 0.1) for wp in weekly_preds], dtype=np.float32)
+        precip_wclim = np.array([wp.get("precipitation_mm", 0.0) for wp in weekly_preds], dtype=np.float32)
+
+        wclim_eval_t = evaluate_continuous(t_true, t_wclim, t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
+        wclim_eval_rh = evaluate_continuous(rh_true, rh_wclim, rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
+        wclim_eval_p = evaluate_continuous(p_true, p_wclim, p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
+        wclim_eval_ws = evaluate_continuous(ws_true, ws_wclim, ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        wclim_eval_hi = evaluate_continuous(hi_true, hi_wclim, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
+        wclim_eval_rain = evaluate_rain_occurrence(rain_true, rain_prob_wclim, threshold=0.5)
+        wclim_eval_precip = evaluate_precipitation_amount(precip_true, precip_wclim, precip_orig, precip_clim)
+        wclim_eval_wdir = evaluate_wind_direction(u_true, v_true, u_wclim, v_wclim, ws_true)
+
+        # Baseline 2d: Damped Persistence (Autocorrelation decay to Climatology)
+        damped_preds = []
+        for m in test_meta:
+            st = m["station_id"]
+            dt_m = datetime.fromisoformat(m["target_timestamp"].replace("Z", "+00:00"))
+            hr = (dt_m.hour + 8) % 24
+            damped_preds.append(damped_model.predict(m, h, st, hr))
+        t_damp = np.array([dp["temperature"] for dp in damped_preds], dtype=np.float32)
+        rh_damp = np.array([dp["humidity"] for dp in damped_preds], dtype=np.float32)
+        p_damp = np.array([dp["pressure"] for dp in damped_preds], dtype=np.float32)
+        ws_damp = np.array([dp["wind_speed"] for dp in damped_preds], dtype=np.float32)
+        u_damp = np.array([dp["wind_u"] for dp in damped_preds], dtype=np.float32)
+        v_damp = np.array([dp["wind_v"] for dp in damped_preds], dtype=np.float32)
+        hi_damp = np.array([dp["heat_index"] for dp in damped_preds], dtype=np.float32)
+        rain_prob_damp = np.array([dp["rain_probability"] for dp in damped_preds], dtype=np.float32)
+        precip_damp = np.array([dp["precipitation_mm"] for dp in damped_preds], dtype=np.float32)
+
+        damp_eval_t = evaluate_continuous(t_true, t_damp, t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
+        damp_eval_rh = evaluate_continuous(rh_true, rh_damp, rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
+        damp_eval_p = evaluate_continuous(p_true, p_damp, p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
+        damp_eval_ws = evaluate_continuous(ws_true, ws_damp, ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        damp_eval_hi = evaluate_continuous(hi_true, hi_damp, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
+        damp_eval_rain = evaluate_rain_occurrence(rain_true, rain_prob_damp, threshold=0.5)
+        damp_eval_precip = evaluate_precipitation_amount(precip_true, precip_damp, precip_orig, precip_clim)
+        damp_eval_wdir = evaluate_wind_direction(u_true, v_true, u_damp, v_damp, ws_true)
+
+        # Baseline 2e: Autoregressive AR(p=6) Lag Model
+        ar_model = AutoregressiveWeatherModel(p_lags=6, alpha=1.0)
+        X_train_lags = {
+            "temperature": train_telemetry[:, -6:, 0].numpy(),
+            "humidity": train_telemetry[:, -6:, 2].numpy(),
+            "pressure": train_telemetry[:, -6:, 3].numpy(),
+            "wind_speed": train_telemetry[:, -6:, 4].numpy(),
+            "wind_u": train_telemetry[:, -6:, 6].numpy(),
+            "wind_v": train_telemetry[:, -6:, 5].numpy(),
+        }
+        Y_train_ar = {
+            "temperature": np.array([m["target_temperature"] for m in train_meta], dtype=np.float32),
+            "humidity": np.array([m["target_humidity"] for m in train_meta], dtype=np.float32),
+            "pressure": np.array([m["target_pressure"] for m in train_meta], dtype=np.float32),
+            "wind_speed": np.array([m["target_wind_speed"] for m in train_meta], dtype=np.float32),
+            "wind_u": np.array([m["target_wind_u"] for m in train_meta], dtype=np.float32),
+            "wind_v": np.array([m["target_wind_v"] for m in train_meta], dtype=np.float32),
+        }
+        ar_model.fit(X_train_lags, Y_train_ar)
+
+        X_test_lags = {
+            "temperature": test_telemetry[:, -6:, 0].numpy(),
+            "humidity": test_telemetry[:, -6:, 2].numpy(),
+            "pressure": test_telemetry[:, -6:, 3].numpy(),
+            "wind_speed": test_telemetry[:, -6:, 4].numpy(),
+            "wind_u": test_telemetry[:, -6:, 6].numpy(),
+            "wind_v": test_telemetry[:, -6:, 5].numpy(),
+        }
+        ar_preds = ar_model.predict(X_test_lags)
+        ar_hi = np.array([compute_noaa_heat_index(ar_preds["temperature"][i], ar_preds["humidity"][i]) for i in range(N_test)], dtype=np.float32)
+
+        ar_eval_t = evaluate_continuous(t_true, ar_preds["temperature"], t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
+        ar_eval_rh = evaluate_continuous(rh_true, ar_preds["humidity"], rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
+        ar_eval_p = evaluate_continuous(p_true, ar_preds["pressure"], p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
+        ar_eval_ws = evaluate_continuous(ws_true, ar_preds["wind_speed"], ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        ar_eval_hi = evaluate_continuous(hi_true, ar_hi, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
+        ar_eval_wdir = evaluate_wind_direction(u_true, v_true, ar_preds["wind_u"], ar_preds["wind_v"], ws_true)
+
         # Baseline 3: Ridge Linear Regression on 75 Engineered Features
         print("Fitting Ridge Linear Regression (75 features)...")
         X_train_75 = train_context.numpy()
@@ -576,11 +754,34 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "wind_direction_circular_mae": persist_eval_wdir["circular_mae_deg"],
                 "precipitation_rainy_mae": persist_eval_precip["rainy_hour_mae_mm"],
             },
+            "seasonal_persistence": {
+                "temperature_mae": seas_eval_t["mae"],
+                "heat_index_mae": seas_eval_hi["mae"],
+                "rain_brier_score": seas_eval_rain["brier_score"],
+                "wind_direction_circular_mae": seas_eval_wdir["circular_mae_deg"],
+            },
             "climatology": {
                 "temperature_mae": clim_eval_t["mae"],
                 "heat_index_mae": clim_eval_hi["mae"],
                 "rain_brier_score": clim_eval_rain["brier_score"],
                 "wind_direction_circular_mae": clim_eval_wdir["circular_mae_deg"],
+            },
+            "weekly_climatology": {
+                "temperature_mae": wclim_eval_t["mae"],
+                "heat_index_mae": wclim_eval_hi["mae"],
+                "rain_brier_score": wclim_eval_rain["brier_score"],
+                "wind_direction_circular_mae": wclim_eval_wdir["circular_mae_deg"],
+            },
+            "damped_persistence": {
+                "temperature_mae": damp_eval_t["mae"],
+                "heat_index_mae": damp_eval_hi["mae"],
+                "rain_brier_score": damp_eval_rain["brier_score"],
+                "wind_direction_circular_mae": damp_eval_wdir["circular_mae_deg"],
+            },
+            "autoregression_p6": {
+                "temperature_mae": ar_eval_t["mae"],
+                "heat_index_mae": ar_eval_hi["mae"],
+                "wind_direction_circular_mae": ar_eval_wdir["circular_mae_deg"],
             },
             "ridge_75features": {
                 "temperature_mae": ridge_eval_t["mae"],
@@ -748,6 +949,105 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         cand_eval_wdir = evaluate_wind_direction(u_true, v_true, cand_u, cand_v, ws_true)
         cand_eval_rain = evaluate_rain_occurrence(rain_true, cand_rain_prob, threshold=best_thresh)
         cand_eval_precip = evaluate_precipitation_amount(precip_true, cand_precip_mm, precip_orig, precip_clim)
+
+        # Target-Specific Model 1: Residual Weather Models & Uncertainty Quantiles (Phases 4.1 & 5)
+        print(f"Fitting Target-Specific Residual Models & Calibrating Quantiles (+{h}h)...")
+        train_damp_preds = [damped_model.predict(m, h, m["station_id"], (datetime.fromisoformat(m["target_timestamp"].replace("Z", "+00:00")).hour + 8) % 24) for m in train_meta]
+        train_damp_t = np.array([dp["temperature"] for dp in train_damp_preds], dtype=np.float32)
+        train_damp_rh = np.array([dp["humidity"] for dp in train_damp_preds], dtype=np.float32)
+        train_damp_p = np.array([dp["pressure"] for dp in train_damp_preds], dtype=np.float32)
+
+        res_temp_model = ResidualWeatherModel(alpha=5.0, bounds=PHYSICAL_BOUNDS["temperature"])
+        train_t_true = np.array([m["target_temperature"] for m in train_meta], dtype=np.float32)
+        res_temp_model.fit(X_train_75, train_t_true, train_damp_t)
+        res_temp_out = res_temp_model.predict(X_test_75, t_damp)
+        res_eval_t = evaluate_continuous(t_true, res_temp_out["prediction"], t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
+        temp_quantile_eval = QuantileEvaluator.evaluate(t_true, res_temp_out["p10"], res_temp_out["p50"], res_temp_out["p90"])
+
+        res_rh_model = ResidualWeatherModel(alpha=5.0, bounds=PHYSICAL_BOUNDS["humidity"])
+        train_rh_true = np.array([m["target_humidity"] for m in train_meta], dtype=np.float32)
+        res_rh_model.fit(X_train_75, train_rh_true, train_damp_rh)
+        res_rh_out = res_rh_model.predict(X_test_75, rh_damp)
+        res_eval_rh = evaluate_continuous(rh_true, res_rh_out["prediction"], rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
+        rh_quantile_eval = QuantileEvaluator.evaluate(rh_true, res_rh_out["p10"], res_rh_out["p50"], res_rh_out["p90"])
+
+        res_p_model = ResidualWeatherModel(alpha=5.0, bounds=PHYSICAL_BOUNDS["pressure"])
+        train_p_true = np.array([m["target_pressure"] for m in train_meta], dtype=np.float32)
+        res_p_model.fit(X_train_75, train_p_true, train_damp_p)
+        res_p_out = res_p_model.predict(X_test_75, p_damp)
+        res_eval_p = evaluate_continuous(p_true, res_p_out["prediction"], p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
+        p_quantile_eval = QuantileEvaluator.evaluate(p_true, res_p_out["p10"], res_p_out["p50"], res_p_out["p90"])
+
+        # Target-Specific Model 2: Vector Wind Direction (Phase 4.2)
+        vec_wind_model = VectorWindDirectionModel(calm_threshold_kmh=3.6, alpha=5.0)
+        train_u_true = np.array([m["target_wind_u"] for m in train_meta], dtype=np.float32)
+        train_v_true = np.array([m["target_wind_v"] for m in train_meta], dtype=np.float32)
+        vec_wind_model.fit(X_train_75, train_u_true, train_v_true)
+        vec_wind_out = vec_wind_model.predict(X_test_75, ws_orig, u_orig, v_orig)
+        vec_wind_eval = evaluate_wind_direction(u_true, v_true, vec_wind_out["wind_u"], vec_wind_out["wind_v"], ws_true)
+
+        # Target-Specific Model 3: Hurdle Precipitation Model (Phase 4.4)
+        hurdle_model = HurdlePrecipitationModel(alpha_cls=2.0, alpha_reg=5.0)
+        hurdle_model.fit(X_train_75, train_precip.squeeze(-1).numpy())
+        hurdle_out = hurdle_model.predict(X_test_75)
+        hurdle_eval_rain = evaluate_rain_occurrence(rain_true, hurdle_out["rain_prob"], threshold=0.5)
+        hurdle_eval_precip = evaluate_precipitation_amount(precip_true, hurdle_out["precipitation_mm"], precip_orig, precip_clim)
+
+        # Phase 6: Compact Local Ensemble
+        X_val_75 = val_context.numpy()
+        val_damp_preds = [damped_model.predict(m, h, m["station_id"], (datetime.fromisoformat(m["target_timestamp"].replace("Z", "+00:00")).hour + 8) % 24) for m in val_meta]
+        val_damp_t = np.array([dp["temperature"] for dp in val_damp_preds], dtype=np.float32)
+        val_ridge_preds = ridge.predict(X_val_75)
+        val_gbm_preds = gbm.predict(X_val_75)
+        with torch.no_grad():
+            val_cand_out = candidate_model(val_telemetry, val_context, val_dt, origin_weather=val_orig_w)
+            val_cand_t = val_cand_out["temperature"].squeeze(-1).numpy()
+
+        val_model_preds = {
+            "persistence": {"temperature": np.array([m["origin_temperature"] for m in val_meta], dtype=np.float32)},
+            "damped_persistence": {"temperature": val_damp_t},
+            "ridge_75": {"temperature": val_ridge_preds[:, 0]},
+            "gbm_75": {"temperature": val_gbm_preds[:, 0]},
+            "candidate_featured": {"temperature": val_cand_t},
+        }
+        val_targets = {"temperature": np.array([m["target_temperature"] for m in val_meta], dtype=np.float32)}
+
+        ensemble = CompactEnsembleWeatherModel()
+        ensemble.fit_weights(val_model_preds, val_targets)
+
+        test_model_preds = {
+            "persistence": {"temperature": t_orig},
+            "damped_persistence": {"temperature": t_damp},
+            "ridge_75": {"temperature": ridge_preds[:, 0]},
+            "gbm_75": {"temperature": gbm_preds[:, 0]},
+            "candidate_featured": {"temperature": cand_t},
+        }
+        ens_t_pred = ensemble.predict(test_model_preds, "temperature")
+        ens_eval_t = evaluate_continuous(t_true, ens_t_pred, t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
+
+        # Phase 2 & 8: Rolling-Origin Splits Evaluation & Information Ceiling Audit
+        rolling_splits = build_rolling_origin_splits(pipeline, horizon=h, n_splits=3, return_metadata=True)
+        rolling_fold_metrics = []
+        for r_split in rolling_splits:
+            r_eval_meta = r_split["eval_data"][7]
+            r_t_true = np.array([m["target_temperature"] for m in r_eval_meta], dtype=np.float32)
+            r_t_orig = np.array([m["origin_temperature"] for m in r_eval_meta], dtype=np.float32)
+            r_p_mae = float(np.mean(np.abs(r_t_orig - r_t_true)))
+            r_damp_preds = np.array([damped_model.predict(m, h, m["station_id"], (datetime.fromisoformat(m["target_timestamp"].replace("Z", "+00:00")).hour + 8) % 24)["temperature"] for m in r_eval_meta], dtype=np.float32)
+            r_damp_mae = float(np.mean(np.abs(r_damp_preds - r_t_true)))
+            r_skill = 1.0 - (r_damp_mae / max(1e-4, r_p_mae))
+            rolling_fold_metrics.append({
+                "fold": r_split["fold"],
+                "sample_count": len(r_eval_meta),
+                "eval_bounds": r_split["eval_bounds"],
+                "persistence_mae": round(r_p_mae, 4),
+                "model_mae": round(r_damp_mae, 4),
+                "skill_vs_persistence": round(r_skill, 4),
+                "beats_persistence": bool(r_damp_mae < r_p_mae),
+            })
+
+        worst_rolling_fold = max(rolling_fold_metrics, key=lambda f: f["model_mae"]) if rolling_fold_metrics else {}
+        is_info_limited = bool(all(f["skill_vs_persistence"] <= 0.0 for f in rolling_fold_metrics)) if rolling_fold_metrics else False
 
         # Station-Level Breakdown and Worst Station Analysis for Candidate
         st_breakdown = {}
@@ -1009,6 +1309,16 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "rain_occurrence": persist_eval_rain,
                 "precipitation_amount": persist_eval_precip,
             },
+            "seasonal_persistence": {
+                "temperature": seas_eval_t,
+                "humidity": seas_eval_rh,
+                "pressure": seas_eval_p,
+                "wind_speed": seas_eval_ws,
+                "heat_index": seas_eval_hi,
+                "wind_direction": seas_eval_wdir,
+                "rain_occurrence": seas_eval_rain,
+                "precipitation_amount": seas_eval_precip,
+            },
             "climatology": {
                 "temperature": clim_eval_t,
                 "humidity": clim_eval_rh,
@@ -1018,6 +1328,34 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "wind_direction": clim_eval_wdir,
                 "rain_occurrence": clim_eval_rain,
                 "precipitation_amount": clim_eval_precip,
+            },
+            "weekly_climatology": {
+                "temperature": wclim_eval_t,
+                "humidity": wclim_eval_rh,
+                "pressure": wclim_eval_p,
+                "wind_speed": wclim_eval_ws,
+                "heat_index": wclim_eval_hi,
+                "wind_direction": wclim_eval_wdir,
+                "rain_occurrence": wclim_eval_rain,
+                "precipitation_amount": wclim_eval_precip,
+            },
+            "damped_persistence": {
+                "temperature": damp_eval_t,
+                "humidity": damp_eval_rh,
+                "pressure": damp_eval_p,
+                "wind_speed": damp_eval_ws,
+                "heat_index": damp_eval_hi,
+                "wind_direction": damp_eval_wdir,
+                "rain_occurrence": damp_eval_rain,
+                "precipitation_amount": damp_eval_precip,
+            },
+            "autoregression": {
+                "temperature": ar_eval_t,
+                "humidity": ar_eval_rh,
+                "pressure": ar_eval_p,
+                "wind_speed": ar_eval_ws,
+                "heat_index": ar_eval_hi,
+                "wind_direction": ar_eval_wdir,
             },
             "ridge_75features": {
                 "temperature": ridge_eval_t,
@@ -1039,6 +1377,25 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "rain_occurrence": gbm_eval_rain,
                 "precipitation_amount": gbm_eval_precip,
             },
+            "residual_model": {
+                "temperature": res_eval_t,
+                "humidity": res_eval_rh,
+                "pressure": res_eval_p,
+                "quantiles_wis": {
+                    "temperature": temp_quantile_eval,
+                    "humidity": rh_quantile_eval,
+                    "pressure": p_quantile_eval,
+                },
+            },
+            "vector_wind_direction": vec_wind_eval,
+            "hurdle_precipitation": {
+                "rain_occurrence": hurdle_eval_rain,
+                "precipitation_amount": hurdle_eval_precip,
+            },
+            "compact_ensemble": {
+                "temperature": ens_eval_t,
+                "weights": {k: [round(float(x), 4) for x in v] for k, v in ensemble.weights.items()},
+            },
             "candidate_featured_model": {
                 "temperature": cand_eval_t,
                 "humidity": cand_eval_rh,
@@ -1055,53 +1412,98 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "worst_temperature_station": worst_station_temp,
                 "worst_rain_brier_station": worst_station_rain,
             },
+            "rolling_origin_evaluations": {
+                "num_folds": len(rolling_splits),
+                "fold_metrics": rolling_fold_metrics,
+                "worst_rolling_fold": worst_rolling_fold,
+            },
+            "information_ceiling": {
+                "information_limited": is_info_limited,
+                "target": "temperature",
+                "horizon_hours": h,
+                "ceiling_status": "INFORMATION_LIMITED" if is_info_limited else "POTENTIALLY_LEARNABLE",
+            },
         }
 
         comparison_report["horizons"][f"horizon_{h}h"] = {
             "temperature_mae": {
                 "persistence": persist_eval_t["mae"],
+                "seasonal_persistence": seas_eval_t["mae"],
                 "climatology": clim_eval_t["mae"],
+                "weekly_climatology": wclim_eval_t["mae"],
+                "damped_persistence": damp_eval_t["mae"],
+                "autoregression_p6": ar_eval_t["mae"],
                 "ridge_75": ridge_eval_t["mae"],
                 "gradient_boosted_tree_75": gbm_eval_t["mae"],
+                "residual_model": res_eval_t["mae"],
+                "compact_ensemble": ens_eval_t["mae"],
                 "candidate_featured": cand_eval_t["mae"],
                 "candidate_vs_persist_skill": cand_eval_t.get("persistence_skill", 0.0),
             },
             "heat_index_mae": {
                 "persistence": persist_eval_hi["mae"],
                 "climatology": clim_eval_hi["mae"],
+                "weekly_climatology": wclim_eval_hi["mae"],
+                "damped_persistence": damp_eval_hi["mae"],
+                "autoregression_p6": ar_eval_hi["mae"],
                 "ridge_75": ridge_eval_hi["mae"],
                 "gradient_boosted_tree_75": gbm_eval_hi["mae"],
                 "candidate_featured": cand_eval_hi["mae"],
             },
             "rain_brier_score": {
                 "persistence": persist_eval_rain["brier_score"],
+                "seasonal_persistence": seas_eval_rain["brier_score"],
                 "climatology": clim_eval_rain["brier_score"],
+                "weekly_climatology": wclim_eval_rain["brier_score"],
+                "damped_persistence": damp_eval_rain["brier_score"],
+                "hurdle_model": hurdle_eval_rain["brier_score"],
                 "ridge_75": ridge_eval_rain["brier_score"],
                 "gradient_boosted_tree_75": gbm_eval_rain["brier_score"],
                 "candidate_featured": cand_eval_rain["brier_score"],
             },
             "wind_direction_circular_mae": {
                 "persistence": persist_eval_wdir["circular_mae_deg"],
+                "seasonal_persistence": seas_eval_wdir["circular_mae_deg"],
                 "climatology": clim_eval_wdir["circular_mae_deg"],
+                "weekly_climatology": wclim_eval_wdir["circular_mae_deg"],
+                "damped_persistence": damp_eval_wdir["circular_mae_deg"],
+                "vector_wind_model": vec_wind_eval["circular_mae_deg"],
                 "ridge_75": ridge_eval_wdir["circular_mae_deg"],
                 "gradient_boosted_tree_75": gbm_eval_wdir["circular_mae_deg"],
                 "candidate_featured": cand_eval_wdir["circular_mae_deg"],
             },
             "precipitation_rainy_mae": {
                 "persistence": persist_eval_precip["rainy_hour_mae_mm"],
+                "seasonal_persistence": seas_eval_precip["rainy_hour_mae_mm"],
                 "climatology": clim_eval_precip["rainy_hour_mae_mm"],
+                "weekly_climatology": wclim_eval_precip["rainy_hour_mae_mm"],
+                "damped_persistence": damp_eval_precip["rainy_hour_mae_mm"],
+                "hurdle_model": hurdle_eval_precip["rainy_hour_mae_mm"],
                 "ridge_75": ridge_eval_precip["rainy_hour_mae_mm"],
                 "gradient_boosted_tree_75": gbm_eval_precip["rainy_hour_mae_mm"],
                 "candidate_featured": cand_eval_precip["rainy_hour_mae_mm"],
-            }
+            },
+            "uncertainty_wis": {
+                "temperature_wis": temp_quantile_eval["wis"],
+                "temperature_coverage_80": temp_quantile_eval["coverage_80_pct"],
+                "humidity_wis": rh_quantile_eval["wis"],
+                "pressure_wis": p_quantile_eval["wis"],
+            },
+            "rolling_origin_summary": {
+                "num_folds": len(rolling_splits),
+                "worst_rolling_fold": worst_rolling_fold,
+                "information_limited": is_info_limited,
+            },
         }
 
         print(f"Results for +{h}h:")
-        print(f"  Temp MAE:      Cand={cand_eval_t['mae']:.4f}C | Tree={gbm_eval_t['mae']:.4f}C | Ridge={ridge_eval_t['mae']:.4f}C | Persist={persist_eval_t['mae']:.4f}C")
-        print(f"  Rain Brier:    Cand={cand_eval_rain['brier_score']:.4f} | Tree={gbm_eval_rain['brier_score']:.4f} | Persist={persist_eval_rain['brier_score']:.4f}")
+        print(f"  Temp MAE:      Cand={cand_eval_t['mae']:.4f}C | Tree={gbm_eval_t['mae']:.4f}C | Damp={damp_eval_t['mae']:.4f}C | Persist={persist_eval_t['mae']:.4f}C")
+        print(f"  Residual Temp: Res={res_eval_t['mae']:.4f}C | WIS={temp_quantile_eval['wis']:.4f} | Coverage 80%: {temp_quantile_eval['coverage_80_pct']}%")
+        print(f"  Rain Brier:    Cand={cand_eval_rain['brier_score']:.4f} | Hurdle={hurdle_eval_rain['brier_score']:.4f} | Persist={persist_eval_rain['brier_score']:.4f}")
         print(f"  Rain ECE:      Cand={cand_eval_rain['expected_calibration_error']:.4f}")
-        print(f"  Wind Dir MAE:  Cand={cand_eval_wdir['circular_mae_deg']:.2f} deg | Persist={persist_eval_wdir['circular_mae_deg']:.2f} deg")
-        print(f"  Rainy Precip:  Cand={cand_eval_precip['rainy_hour_mae_mm']:.4f} mm | Persist={persist_eval_precip['persistence_rainy_mae']:.4f} mm")
+        print(f"  Wind Dir MAE:  Cand={cand_eval_wdir['circular_mae_deg']:.2f} deg | Vec={vec_wind_eval['circular_mae_deg']:.2f} deg | Persist={persist_eval_wdir['circular_mae_deg']:.2f} deg")
+        print(f"  Rainy Precip:  Cand={cand_eval_precip['rainy_hour_mae_mm']:.4f} mm | Hurdle={hurdle_eval_precip['rainy_hour_mae_mm']:.4f} mm | Persist={persist_eval_precip['persistence_rainy_mae']:.4f} mm")
+        print(f"  Rolling Info:  Folds={len(rolling_splits)} | Info-Limited={is_info_limited}")
 
     # Workstream 8: Audit Promotion Rules & Separate Decisions (Phase 4 of Promotion Plan)
     print("\n" + "=" * 80)

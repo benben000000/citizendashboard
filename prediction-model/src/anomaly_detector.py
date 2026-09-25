@@ -487,3 +487,120 @@ class TelemetryAnomalyDetector:
             "summary": summary,
             "actionable": actionable,
         }
+
+    def detect_distribution_anomalies(
+        self,
+        observed_value: float,
+        p10: float,
+        p50: float,
+        p90: float,
+        variable_name: str,
+        timestamp: Optional[str] = None,
+        station_id: Optional[str] = None,
+    ) -> Optional[AnomalyRecord]:
+        """
+        Evaluate observation against calibrated forecast distribution [p10, p90].
+        Separates physical weather extremes from sensor defects.
+        """
+        if np.isnan(observed_value) or np.isnan(p10) or np.isnan(p90):
+            return None
+
+        # Check physical bounds first
+        if variable_name in PHYSICAL_BOUNDS:
+            low, high = PHYSICAL_BOUNDS[variable_name]
+            if observed_value < low or observed_value > high:
+                return AnomalyRecord(
+                    anomaly_type="sensor",
+                    affected_variable=variable_name,
+                    timestamp=timestamp,
+                    severity_score=1.0,
+                    explanation=f"Out-of-bounds sensor defect: {variable_name}={observed_value:.2f} outside [{low}, {high}]",
+                    is_actionable=True,
+                    station_id=station_id,
+                    raw_value=observed_value,
+                    threshold_version=self.version,
+                    metadata={"p10": p10, "p50": p50, "p90": p90, "defect": "out_of_bounds"},
+                )
+
+        # Check distribution bounds
+        width = max(0.1, p90 - p10)
+        if observed_value < p10:
+            deviation = (p10 - observed_value) / width
+            if deviation > 0.5:
+                sev = min(1.0, 0.4 + 0.3 * deviation)
+                return AnomalyRecord(
+                    anomaly_type="physical",
+                    affected_variable=variable_name,
+                    timestamp=timestamp,
+                    severity_score=sev,
+                    explanation=f"Climatological low excursion: {observed_value:.2f} below forecast p10 ({p10:.2f})",
+                    is_actionable=True,
+                    station_id=station_id,
+                    raw_value=observed_value,
+                    threshold_version=self.version,
+                    metadata={"p10": p10, "p50": p50, "p90": p90, "deviation_ratio": deviation},
+                )
+        elif observed_value > p90:
+            deviation = (observed_value - p90) / width
+            if deviation > 0.5:
+                sev = min(1.0, 0.4 + 0.3 * deviation)
+                return AnomalyRecord(
+                    anomaly_type="physical",
+                    affected_variable=variable_name,
+                    timestamp=timestamp,
+                    severity_score=sev,
+                    explanation=f"Climatological high excursion: {observed_value:.2f} above forecast p90 ({p90:.2f})",
+                    is_actionable=True,
+                    station_id=station_id,
+                    raw_value=observed_value,
+                    threshold_version=self.version,
+                    metadata={"p10": p10, "p50": p50, "p90": p90, "deviation_ratio": deviation},
+                )
+        return None
+
+    def evaluate_anomaly_events_with_budget(
+        self,
+        detected_anomalies: List[Dict[str, Any]],
+        reviewed_events: List[Dict[str, Any]],
+        total_monitoring_days: float = 30.0,
+        false_alarm_budget_per_day: float = 2.0,
+    ) -> Dict[str, Any]:
+        """
+        Evaluate anomaly detection performance against reviewed extreme event labels with an explicit false alarm budget.
+        """
+        tp = 0
+        fn_events = []
+        matched_detected = set()
+
+        for ev in reviewed_events:
+            ev_ts = ev.get("timestamp")
+            ev_var = ev.get("affected_variable")
+            matched = False
+            for idx, anom in enumerate(detected_anomalies):
+                if anom.get("affected_variable") == ev_var and anom.get("timestamp") == ev_ts:
+                    matched = True
+                    matched_detected.add(idx)
+                    break
+            if matched:
+                tp += 1
+            else:
+                fn_events.append(ev)
+
+        fp = len(detected_anomalies) - len(matched_detected)
+        total_events = len(reviewed_events)
+        event_recall = (tp / max(1, total_events)) * 100.0 if total_events > 0 else 100.0
+        fa_per_day = fp / max(0.1, total_monitoring_days)
+        within_budget = fa_per_day <= false_alarm_budget_per_day
+
+        return {
+            "reviewed_events_count": total_events,
+            "detected_anomalies_count": len(detected_anomalies),
+            "true_positives": tp,
+            "false_positives": fp,
+            "event_recall_pct": round(event_recall, 2),
+            "false_alarms_per_day": round(fa_per_day, 2),
+            "false_alarm_budget_per_day": false_alarm_budget_per_day,
+            "within_false_alarm_budget": within_budget,
+            "missed_events_count": len(fn_events),
+            "status": "PASS" if within_budget and event_recall >= 70.0 else "WARNING",
+        }

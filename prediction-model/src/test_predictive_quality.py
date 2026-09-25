@@ -47,6 +47,9 @@ from dataset import (
     extract_zero_leakage_feature_vector,
     build_forecast_windows,
     build_feature_augmented_forecast_windows,
+    build_rolling_origin_splits,
+    audit_features_and_labels,
+    FEATURE_SCHEMA_METADATA,
     compute_file_sha256,
     TelemetryDataPipeline,
     FEATURE_AUGMENTED_SCHEMA,
@@ -61,8 +64,18 @@ from anomaly_detector import (
 from model import (
     GarciaWeatherLNNFeatured,
     RidgeWeatherModel,
+    GradientBoostedWeatherModel,
     ClimatologyWeatherModel,
     PersistenceWeatherModel,
+    SeasonalPersistenceWeatherModel,
+    WeeklyClimatologyWeatherModel,
+    DampedPersistenceWeatherModel,
+    AutoregressiveWeatherModel,
+    ResidualWeatherModel,
+    VectorWindDirectionModel,
+    HurdlePrecipitationModel,
+    QuantileEvaluator,
+    CompactEnsembleWeatherModel,
 )
 from inference import LNNServerlessPredictor
 
@@ -1120,6 +1133,301 @@ class TestPredictiveQuality(unittest.TestCase):
             self.assertIn("expected_precipitation_mm", res)
             self.assertIn("pressure_hpa", res)
             self.assertIn("relative_humidity_pct", res)
+
+    # --------------------------------------------------------------------------
+    # 18. Feature Schema Metadata Integrity (Phase 3)
+    # --------------------------------------------------------------------------
+    def test_feature_schema_metadata_integrity(self):
+        """Verify that all 75 engineered features have complete and compliant schema metadata."""
+        self.assertEqual(len(FEATURE_SCHEMA_METADATA), 75)
+        required_keys = {
+            "feature_name",
+            "source_columns",
+            "lookback_window",
+            "latest_allowed_timestamp",
+            "transformation",
+            "missing_value_rule",
+        }
+        for feat, meta in FEATURE_SCHEMA_METADATA.items():
+            self.assertIn(feat, FEATURE_AUGMENTED_SCHEMA)
+            self.assertTrue(required_keys.issubset(meta.keys()), f"Missing keys in metadata for {feat}")
+            self.assertEqual(meta["latest_allowed_timestamp"], "t0")
+            self.assertIsInstance(meta["source_columns"], list)
+            self.assertGreater(len(meta["source_columns"]), 0)
+
+    # --------------------------------------------------------------------------
+    # 19. Label & Feature Audit Functionality (Phase 3)
+    # --------------------------------------------------------------------------
+    def test_audit_features_and_labels(self):
+        """Verify that audit_features_and_labels runs cleanly and passes tolerance and zero-leakage checks."""
+        pipeline = TelemetryDataPipeline(self.weather_csv, self.water_csv)
+        audit_rep = audit_features_and_labels(pipeline, horizon=1)
+        self.assertEqual(audit_rep["status"], "PASS")
+        self.assertEqual(audit_rep["target_timestamp_alignment"], "EXACT_UTC_HOURLY")
+        self.assertEqual(audit_rep["tolerance_violations"], 0)
+        self.assertTrue(audit_rep["zero_future_leakage_guaranteed"])
+        self.assertTrue(audit_rep["features_schema_verified"])
+        self.assertEqual(audit_rep["uv_calibration_status"], "BLOCKED_BY_SENSOR_CALIBRATION")
+
+    # --------------------------------------------------------------------------
+    # 20. Seasonal Persistence Baseline (Phase 2)
+    # --------------------------------------------------------------------------
+    def test_seasonal_persistence_baseline(self):
+        """Verify 24h seasonal lag retrieval and fallback to origin."""
+        t0 = datetime(2026, 8, 15, 12, 0, tzinfo=timezone.utc)
+        history = []
+        for step in range(24):
+            dt_step = t0 - timedelta(hours=23 - step)
+            history.append({
+                "timestamp": dt_step,
+                "temperature": 25.0 + step,
+                "humidity": 60.0,
+                "pressure": 1010.0,
+                "wind_speed": 5.0,
+                "wind_cos": 1.0,
+                "wind_sin": 0.0,
+                "precipitation": 0.0,
+            })
+        pred_1h = SeasonalPersistenceWeatherModel.predict_from_history(history, horizon=1)
+        self.assertAlmostEqual(pred_1h["temperature"], 25.0, places=2)
+        pred_24h = SeasonalPersistenceWeatherModel.predict_from_history(history, horizon=24)
+        self.assertAlmostEqual(pred_24h["temperature"], 48.0, places=2)
+
+    # --------------------------------------------------------------------------
+    # 21. Weekly Climatology Baseline (Phase 2)
+    # --------------------------------------------------------------------------
+    def test_weekly_climatology_baseline(self):
+        """Verify day-of-week x hour-of-day climatology table fitting and query."""
+        dummy_meta = [
+            {
+                "station_id": "TEST_STATION",
+                "origin_timestamp": "2026-08-15T00:00:00+00:00",
+                "target_timestamp": "2026-08-15T01:00:00+00:00",
+                "target_temperature": 27.5,
+                "target_humidity": 80.0,
+                "target_pressure": 1009.0,
+                "target_wind_speed": 6.0,
+                "target_wind_u": 0.0,
+                "target_wind_v": 1.0,
+                "actual_precip_mm": 0.0,
+                "actual_rain_prob": 0.0,
+            }
+        ]
+        weekly_model = WeeklyClimatologyWeatherModel().fit_from_metadata(dummy_meta)
+        pred = weekly_model.predict("TEST_STATION", 5, 9)
+        self.assertAlmostEqual(pred["temperature"], 27.5, places=1)
+
+    # --------------------------------------------------------------------------
+    # 22. Damped Persistence Baseline (Phase 2)
+    # --------------------------------------------------------------------------
+    def test_damped_persistence_baseline(self):
+        """Verify autocorrelation decay blending persistence with climatology."""
+        clim = ClimatologyWeatherModel()
+        clim.global_mean = {"temperature": 30.0, "humidity": 70.0, "pressure": 1010.0, "wind_speed": 10.0, "wind_u": 0.0, "wind_v": 0.0}
+        damped = DampedPersistenceWeatherModel(climatology_model=clim, default_alpha=0.9)
+        origin = {"origin_temperature": 20.0, "origin_humidity": 50.0, "origin_pressure": 1005.0, "origin_wind_speed": 5.0, "origin_wind_u": 0.0, "origin_wind_v": 0.0}
+        pred_1h = damped.predict(origin, horizon=1, station_id="TEST", hour_of_day=12)
+        pred_24h = damped.predict(origin, horizon=24, station_id="TEST", hour_of_day=12)
+        self.assertLess(pred_1h["temperature"], pred_24h["temperature"])
+        self.assertGreater(pred_24h["temperature"], 25.0)
+
+    # --------------------------------------------------------------------------
+    # 23. Autoregressive Weather Model (Phase 2)
+    # --------------------------------------------------------------------------
+    def test_autoregressive_weather_model(self):
+        """Verify AR(p) model fitting and prediction."""
+        ar = AutoregressiveWeatherModel(p_lags=3, alpha=1.0)
+        np.random.seed(42)
+        X_lags = {"temperature": np.random.randn(50, 3).astype(np.float32) + 28.0}
+        Y = {"temperature": np.random.randn(50).astype(np.float32) + 28.5}
+        ar.fit(X_lags, Y)
+        preds = ar.predict(X_lags)
+        self.assertIn("temperature", preds)
+        self.assertEqual(len(preds["temperature"]), 50)
+        self.assertTrue(np.all(preds["temperature"] >= -10.0) and np.all(preds["temperature"] <= 60.0))
+
+    # --------------------------------------------------------------------------
+    # 24. Residual Weather Model and Quantiles (Phases 4 & 5)
+    # --------------------------------------------------------------------------
+    def test_residual_weather_model_and_quantiles(self):
+        """Verify residual model learning, physical bound preservation, and quantile interval ordering."""
+        res_model = ResidualWeatherModel(alpha=1.0, bounds=PHYSICAL_BOUNDS["temperature"])
+        np.random.seed(42)
+        N = 100
+        X = np.random.randn(N, 75).astype(np.float32)
+        baseline = np.full(N, 28.0, dtype=np.float32)
+        y_true = baseline + 0.5 * X[:, 0] + np.random.randn(N).astype(np.float32) * 0.2
+
+        res_model.fit(X, y_true, baseline)
+        preds = res_model.predict(X, baseline)
+
+        self.assertIn("prediction", preds)
+        self.assertIn("p10", preds)
+        self.assertIn("p50", preds)
+        self.assertIn("p90", preds)
+
+        self.assertTrue(np.all(preds["p10"] <= preds["p50"] + 1e-4))
+        self.assertTrue(np.all(preds["p50"] <= preds["p90"] + 1e-4))
+        self.assertTrue(np.all(preds["prediction"] >= PHYSICAL_BOUNDS["temperature"][0]))
+        self.assertTrue(np.all(preds["prediction"] <= PHYSICAL_BOUNDS["temperature"][1]))
+
+    # --------------------------------------------------------------------------
+    # 25. Vector Wind Direction Model (Phase 4)
+    # --------------------------------------------------------------------------
+    def test_vector_wind_direction_model(self):
+        """Verify (u, v) vector decomposition, direction reconstruction, and calm-wind handling."""
+        v_wind = VectorWindDirectionModel(calm_threshold_kmh=3.6, alpha=1.0)
+        np.random.seed(42)
+        N = 50
+        X = np.random.randn(N, 75).astype(np.float32)
+        u_true = np.ones(N, dtype=np.float32)
+        v_true = np.zeros(N, dtype=np.float32)
+        v_wind.fit(X, u_true, v_true)
+
+        ws_high = np.full(N, 15.0, dtype=np.float32)
+        out = v_wind.predict(X, ws_high)
+        self.assertIn("wind_direction_deg", out)
+        self.assertIn("is_calm", out)
+        self.assertEqual(out["calm_count"], 0)
+        self.assertTrue(np.all(out["wind_direction_deg"] >= 0.0))
+        self.assertTrue(np.all(out["wind_direction_deg"] < 360.0))
+
+        ws_low = np.full(N, 1.0, dtype=np.float32)
+        u_orig = np.zeros(N, dtype=np.float32)
+        v_orig = np.ones(N, dtype=np.float32)
+        out_calm = v_wind.predict(X, ws_low, u_origin=u_orig, v_origin=v_orig)
+        self.assertEqual(out_calm["calm_count"], N)
+        self.assertAlmostEqual(float(out_calm["wind_direction_deg"][0]), 90.0, places=1)
+
+    # --------------------------------------------------------------------------
+    # 26. Hurdle Precipitation Model (Phase 4)
+    # --------------------------------------------------------------------------
+    def test_hurdle_precipitation_model(self):
+        """Verify two-stage hurdle model classification and conditional amount."""
+        hurdle = HurdlePrecipitationModel(alpha_cls=1.0, alpha_reg=1.0)
+        np.random.seed(42)
+        N = 100
+        X = np.random.randn(N, 75).astype(np.float32)
+        precip_true = np.zeros(N, dtype=np.float32)
+        precip_true[:20] = np.random.uniform(1.0, 15.0, size=20).astype(np.float32)
+
+        hurdle.fit(X, precip_true)
+        res = hurdle.predict(X)
+
+        self.assertIn("rain_prob", res)
+        self.assertIn("conditional_amount", res)
+        self.assertIn("precipitation_mm", res)
+        self.assertTrue(np.all(res["rain_prob"] >= 0.0) and np.all(res["rain_prob"] <= 1.0))
+        self.assertTrue(np.all(res["precipitation_mm"] >= 0.0))
+
+    # --------------------------------------------------------------------------
+    # 27. Quantile Evaluator and WIS (Phase 5)
+    # --------------------------------------------------------------------------
+    def test_quantile_evaluator_wis_and_coverage(self):
+        """Verify empirical coverage, sharpness, and Weighted Interval Score (WIS)."""
+        y_true = np.array([28.0, 29.0, 30.0, 31.0, 32.0], dtype=np.float32)
+        p10 = np.array([27.0, 28.0, 29.0, 30.0, 31.0], dtype=np.float32)
+        p50 = np.array([28.0, 29.0, 30.0, 31.0, 32.0], dtype=np.float32)
+        p90 = np.array([29.0, 30.0, 31.0, 32.0, 33.0], dtype=np.float32)
+
+        metrics = QuantileEvaluator.evaluate(y_true, p10, p50, p90)
+        self.assertEqual(metrics["coverage_80_pct"], 100.0)
+        self.assertAlmostEqual(metrics["sharpness"], 2.0, places=2)
+        self.assertGreater(metrics["wis"], 0.0)
+        self.assertEqual(metrics["underprediction_penalty"], 0.0)
+        self.assertEqual(metrics["overprediction_penalty"], 0.0)
+
+    # --------------------------------------------------------------------------
+    # 28. Compact Ensemble Weather Model (Phase 6)
+    # --------------------------------------------------------------------------
+    def test_compact_ensemble_model(self):
+        """Verify non-negative convex ensemble weight fitting and prediction."""
+        ensemble = CompactEnsembleWeatherModel()
+        N = 50
+        y_val = {"temperature": np.random.randn(N).astype(np.float32) + 28.0}
+        model_preds = {
+            "model_a": {"temperature": y_val["temperature"] + np.random.randn(N).astype(np.float32) * 0.5},
+            "model_b": {"temperature": y_val["temperature"] + np.random.randn(N).astype(np.float32) * 0.3},
+        }
+        ensemble.fit_weights(model_preds, y_val)
+        self.assertIn("temperature", ensemble.weights)
+        w = ensemble.weights["temperature"]
+        self.assertAlmostEqual(float(np.sum(w)), 1.0, places=3)
+        self.assertTrue(np.all(w >= 0.0))
+
+        ens_pred = ensemble.predict(model_preds, "temperature")
+        self.assertEqual(len(ens_pred), N)
+
+    # --------------------------------------------------------------------------
+    # 29. Rolling-Origin Splits Preservation (Phase 2)
+    # --------------------------------------------------------------------------
+    def test_rolling_origin_splits_preserves_test_partition(self):
+        """Verify that rolling origin evaluation generates >= 3 folds and leaves final test partition untouched."""
+        pipeline = TelemetryDataPipeline(self.weather_csv, self.water_csv)
+        splits = build_rolling_origin_splits(pipeline, horizon=1, n_splits=3)
+        self.assertGreaterEqual(len(splits), 2)
+        for s in splits:
+            self.assertTrue(s["untouched_test_partition_preserved"])
+            train_start, train_end = s["train_bounds"]
+            eval_start, eval_end = s["eval_bounds"]
+            self.assertLess(train_start, train_end)
+            self.assertLess(train_end, eval_start)  # Embargo respected
+            self.assertLess(eval_end, pipeline.test_start.isoformat())
+
+    # --------------------------------------------------------------------------
+    # 30. Distribution Anomaly Detection (Phase 7)
+    # --------------------------------------------------------------------------
+    def test_distribution_anomaly_detection(self):
+        """Verify detection of physical weather extremes vs sensor defects using forecast distribution."""
+        detector = TelemetryAnomalyDetector()
+        self.assertIsNone(detector.detect_distribution_anomalies(28.0, 26.0, 28.0, 30.0, "temperature"))
+
+        phys_anom = detector.detect_distribution_anomalies(35.0, 25.0, 26.0, 27.0, "temperature")
+        self.assertIsNotNone(phys_anom)
+        self.assertEqual(phys_anom.anomaly_type, "physical")
+
+        sensor_anom = detector.detect_distribution_anomalies(65.0, 25.0, 26.0, 27.0, "temperature")
+        self.assertIsNotNone(sensor_anom)
+        self.assertEqual(sensor_anom.anomaly_type, "sensor")
+
+    # --------------------------------------------------------------------------
+    # 31. Anomaly False Alarm Budget Evaluation (Phase 7)
+    # --------------------------------------------------------------------------
+    def test_anomaly_false_alarm_budget_evaluation(self):
+        """Verify false-alarm rate budgeting and event recall scoring."""
+        detector = TelemetryAnomalyDetector()
+        reviewed = [
+            {"timestamp": "2026-08-15T12:00:00Z", "affected_variable": "pressure"},
+            {"timestamp": "2026-08-16T15:00:00Z", "affected_variable": "wind_speed"},
+        ]
+        detected = [
+            {"timestamp": "2026-08-15T12:00:00Z", "affected_variable": "pressure"},
+            {"timestamp": "2026-08-16T15:00:00Z", "affected_variable": "wind_speed"},
+            {"timestamp": "2026-08-17T03:00:00Z", "affected_variable": "temperature"},
+        ]
+        res = detector.evaluate_anomaly_events_with_budget(detected, reviewed, total_monitoring_days=30.0, false_alarm_budget_per_day=2.0)
+        self.assertEqual(res["true_positives"], 2)
+        self.assertEqual(res["false_positives"], 1)
+        self.assertEqual(res["event_recall_pct"], 100.0)
+        self.assertTrue(res["within_false_alarm_budget"])
+        self.assertEqual(res["status"], "PASS")
+
+    # --------------------------------------------------------------------------
+    # 32. Monitoring Automated Fallback Triggers (Phase 10)
+    # --------------------------------------------------------------------------
+    def test_monitoring_automated_fallback_triggers(self):
+        """Verify that monitoring triggers reflect drift, target degradation, and rollback levels."""
+        import tempfile
+        from monitoring import run_monitoring_evaluation
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_json = os.path.join(tmp_dir, "mon_out.json")
+            rep = run_monitoring_evaluation(output_path=out_json, require_all_horizons=True)
+            self.assertIn("operational_recommendation", rep)
+            op = rep["operational_recommendation"]
+            self.assertIn("trigger_level", op)
+            self.assertIn(op["trigger_level"], ("NORMAL", "WARNING", "RECALIBRATION_RECOMMENDED", "TARGET_BASELINE_FALLBACK", "FULL_BUNDLE_ROLLBACK"))
+            self.assertIn("target_fallbacks", op)
 
 
 if __name__ == "__main__":

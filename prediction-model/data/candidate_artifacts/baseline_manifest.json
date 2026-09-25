@@ -1,7 +1,7 @@
 {
   "manifest_type": "baseline_freeze_reference",
-  "generated_at": "2026-09-25T06:48:30.483092+00:00",
-  "baseline_commit": "5411a7370a5e8c3a09865bc400dc491d21cf4434",
+  "generated_at": "2026-09-25T12:52:09.040049+00:00",
+  "baseline_commit": "39fe267e83e97f4d7a159f36aaaecf2e0c995c89",
   "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
   "water_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
   "canonical_feature_schema": [
@@ -13,6 +13,16 @@
     "wind_sin",
     "wind_cos",
     "precipitation"
+  ],
+  "canonical_baselines_included": [
+    "persistence",
+    "seasonal_persistence",
+    "hourly_climatology",
+    "weekly_climatology",
+    "damped_persistence",
+    "autoregression_p6",
+    "ridge_75features",
+    "gradient_boosted_tree_75features"
   ],
   "training_seeds": [
     42
@@ -57,11 +67,34 @@
         "wind_direction_circular_mae": 39.42,
         "precipitation_rainy_mae": 2.6347
       },
+      "seasonal_persistence": {
+        "temperature_mae": 1.2638,
+        "heat_index_mae": 3.3893,
+        "rain_brier_score": 0.3358,
+        "wind_direction_circular_mae": 57.28
+      },
       "climatology": {
         "temperature_mae": 1.6845,
         "heat_index_mae": 4.0291,
         "rain_brier_score": 0.254,
         "wind_direction_circular_mae": 74.61
+      },
+      "weekly_climatology": {
+        "temperature_mae": 1.7131,
+        "heat_index_mae": 4.0463,
+        "rain_brier_score": 0.2615,
+        "wind_direction_circular_mae": 75.61
+      },
+      "damped_persistence": {
+        "temperature_mae": 0.4838,
+        "heat_index_mae": 1.4442,
+        "rain_brier_score": 0.1578,
+        "wind_direction_circular_mae": 40.7
+      },
+      "autoregression_p6": {
+        "temperature_mae": 0.5435,
+        "heat_index_mae": 1.6059,
+        "wind_direction_circular_mae": 37.43
       },
       "ridge_75features": {
         "temperature_mae": 0.6218,
@@ -84,11 +117,34 @@
         "wind_direction_circular_mae": 46.95,
         "precipitation_rainy_mae": 2.997
       },
+      "seasonal_persistence": {
+        "temperature_mae": 1.2551,
+        "heat_index_mae": 3.355,
+        "rain_brier_score": 0.3351,
+        "wind_direction_circular_mae": 57.1
+      },
       "climatology": {
         "temperature_mae": 1.6709,
         "heat_index_mae": 3.9946,
         "rain_brier_score": 0.2531,
         "wind_direction_circular_mae": 74.48
+      },
+      "weekly_climatology": {
+        "temperature_mae": 1.7086,
+        "heat_index_mae": 4.0282,
+        "rain_brier_score": 0.2612,
+        "wind_direction_circular_mae": 75.44
+      },
+      "damped_persistence": {
+        "temperature_mae": 0.8612,
+        "heat_index_mae": 2.3253,
+        "rain_brier_score": 0.2202,
+        "wind_direction_circular_mae": 56.12
+      },
+      "autoregression_p6": {
+        "temperature_mae": 1.1697,
+        "heat_index_mae": 3.2038,
+        "wind_direction_circular_mae": 45.03
       },
       "ridge_75features": {
         "temperature_mae": 1.2679,
@@ -111,11 +167,34 @@
         "wind_direction_circular_mae": 53.2,
         "precipitation_rainy_mae": 3.1398
       },
+      "seasonal_persistence": {
+        "temperature_mae": 1.2148,
+        "heat_index_mae": 3.241,
+        "rain_brier_score": 0.3325,
+        "wind_direction_circular_mae": 56.52
+      },
       "climatology": {
         "temperature_mae": 1.6297,
         "heat_index_mae": 3.9052,
         "rain_brier_score": 0.2488,
         "wind_direction_circular_mae": 74.43
+      },
+      "weekly_climatology": {
+        "temperature_mae": 1.6747,
+        "heat_index_mae": 3.9524,
+        "rain_brier_score": 0.2569,
+        "wind_direction_circular_mae": 75.29
+      },
+      "damped_persistence": {
+        "temperature_mae": 1.1037,
+        "heat_index_mae": 2.8663,
+        "rain_brier_score": 0.2578,
+        "wind_direction_circular_mae": 70.93
+      },
+      "autoregression_p6": {
+        "temperature_mae": 1.7763,
+        "heat_index_mae": 4.6736,
+        "wind_direction_circular_mae": 50.79
       },
       "ridge_75features": {
         "temperature_mae": 1.7367,
@@ -138,11 +217,34 @@
         "wind_direction_circular_mae": 57.05,
         "precipitation_rainy_mae": 3.0973
       },
+      "seasonal_persistence": {
+        "temperature_mae": 1.1933,
+        "heat_index_mae": 3.1503,
+        "rain_brier_score": 0.3308,
+        "wind_direction_circular_mae": 56.51
+      },
       "climatology": {
         "temperature_mae": 1.5905,
         "heat_index_mae": 3.8243,
         "rain_brier_score": 0.2457,
         "wind_direction_circular_mae": 74.66
+      },
+      "weekly_climatology": {
+        "temperature_mae": 1.619,
+        "heat_index_mae": 3.8341,
+        "rain_brier_score": 0.254,
+        "wind_direction_circular_mae": 75.31
+      },
+      "damped_persistence": {
+        "temperature_mae": 1.2095,
+        "heat_index_mae": 3.1114,
+        "rain_brier_score": 0.3266,
+        "wind_direction_circular_mae": 74.54
+      },
+      "autoregression_p6": {
+        "temperature_mae": 1.9137,
+        "heat_index_mae": 4.9614,
+        "wind_direction_circular_mae": 56.69
       },
       "ridge_75features": {
         "temperature_mae": 1.8787,
@@ -165,11 +267,34 @@
         "wind_direction_circular_mae": 54.33,
         "precipitation_rainy_mae": 2.8745
       },
+      "seasonal_persistence": {
+        "temperature_mae": 1.2104,
+        "heat_index_mae": 3.1662,
+        "rain_brier_score": 0.3328,
+        "wind_direction_circular_mae": 54.33
+      },
       "climatology": {
         "temperature_mae": 1.6259,
         "heat_index_mae": 3.8969,
         "rain_brier_score": 0.2399,
         "wind_direction_circular_mae": 74.56
+      },
+      "weekly_climatology": {
+        "temperature_mae": 1.6457,
+        "heat_index_mae": 3.8881,
+        "rain_brier_score": 0.2496,
+        "wind_direction_circular_mae": 75.63
+      },
+      "damped_persistence": {
+        "temperature_mae": 1.4745,
+        "heat_index_mae": 3.659,
+        "rain_brier_score": 0.3614,
+        "wind_direction_circular_mae": 74.56
+      },
+      "autoregression_p6": {
+        "temperature_mae": 1.1355,
+        "heat_index_mae": 2.9733,
+        "wind_direction_circular_mae": 53.4
       },
       "ridge_75features": {
         "temperature_mae": 1.6871,

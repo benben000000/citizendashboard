@@ -107,51 +107,58 @@
     "light_intensity": "SECONDARY_BETA_DAYLIGHT_ONLY"
   },
   "uncertainty_status": "UNAVAILABLE",
-  "validation_csi": 0.5566,
-  "test_brier_score": 0.2174,
-  "test_expected_calibration_error": 0.1059,
+  "validation_csi": 0.5561,
+  "test_brier_score": 0.2185,
+  "test_expected_calibration_error": 0.1339,
   "reliability_bins": [
     {
       "bin_low": 0.0,
       "bin_high": 0.1,
-      "sample_count": 37,
-      "mean_confidence": 0.0959,
-      "empirical_accuracy": 0.4324
+      "sample_count": 57,
+      "mean_confidence": 0.0927,
+      "empirical_accuracy": 0.3509
     },
     {
       "bin_low": 0.1,
       "bin_high": 0.2,
-      "sample_count": 1360,
-      "mean_confidence": 0.1434,
-      "empirical_accuracy": 0.2375
+      "sample_count": 1365,
+      "mean_confidence": 0.138,
+      "empirical_accuracy": 0.2403
     },
     {
       "bin_low": 0.2,
       "bin_high": 0.3,
-      "sample_count": 59,
-      "mean_confidence": 0.2134,
-      "empirical_accuracy": 0.3051
+      "sample_count": 34,
+      "mean_confidence": 0.2131,
+      "empirical_accuracy": 0.2647
     },
     {
       "bin_low": 0.5,
       "bin_high": 0.6,
-      "sample_count": 50,
-      "mean_confidence": 0.5926,
-      "empirical_accuracy": 0.54
+      "sample_count": 30,
+      "mean_confidence": 0.5954,
+      "empirical_accuracy": 0.4667
     },
     {
       "bin_low": 0.6,
       "bin_high": 0.7,
-      "sample_count": 844,
-      "mean_confidence": 0.646,
-      "empirical_accuracy": 0.5166
+      "sample_count": 587,
+      "mean_confidence": 0.6457,
+      "empirical_accuracy": 0.3901
     },
     {
       "bin_low": 0.7,
       "bin_high": 0.8,
-      "sample_count": 93,
-      "mean_confidence": 0.7207,
-      "empirical_accuracy": 0.7312
+      "sample_count": 364,
+      "mean_confidence": 0.7353,
+      "empirical_accuracy": 0.7802
+    },
+    {
+      "bin_low": 0.8,
+      "bin_high": 0.9,
+      "sample_count": 6,
+      "mean_confidence": 0.8108,
+      "empirical_accuracy": 0.6667
     }
   ]
 }
