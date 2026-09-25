@@ -568,6 +568,7 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "lookback_window": "0h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": "cos_day_of_year" if "cos" in feat else "sin_day_of_year",
+                "unit": "unitless (-1 to 1)",
                 "missing_value_rule": "derived_from_origin_timestamp",
             }
         elif feat in ("hour_cos", "hour_sin"):
@@ -577,6 +578,7 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "lookback_window": "0h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": "cos_solar_hour_pht" if "cos" in feat else "sin_solar_hour_pht",
+                "unit": "unitless (-1 to 1)",
                 "missing_value_rule": "derived_from_origin_timestamp",
             }
         elif feat == "is_daylight":
@@ -586,6 +588,7 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "lookback_window": "0h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": "binary_daylight_flag_06_to_18_pht",
+                "unit": "binary (0 or 1)",
                 "missing_value_rule": "derived_from_origin_timestamp",
             }
         elif feat == "dry_spell_hours":
@@ -595,6 +598,7 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "lookback_window": "24h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": "consecutive_dry_hours_before_t0",
+                "unit": "hours",
                 "missing_value_rule": "zero_fill_if_empty",
             }
         elif feat == "rain_persistence_hours":
@@ -604,6 +608,7 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "lookback_window": "24h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": "consecutive_rain_hours_before_t0",
+                "unit": "hours",
                 "missing_value_rule": "zero_fill_if_empty",
             }
         elif feat in ("pressure_dp_1h", "pressure_dp_3h"):
@@ -613,6 +618,7 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "lookback_window": "1h" if "1h" in feat else "3h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": "delta_pressure_tendency",
+                "unit": "hPa",
                 "missing_value_rule": "zero_fill_if_empty",
             }
         elif feat == "pressure_tendency_cat":
@@ -622,17 +628,29 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "lookback_window": "3h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": "categorical_tendency_rising_steady_falling",
+                "unit": "categorical (-1, 0, 1)",
                 "missing_value_rule": "steady_zero_fill",
             }
         elif feat.startswith("t0_"):
             var = feat[3:]
             source = ["wind_speed", "wind_direction"] if var in ("wind_u", "wind_v") else [var]
+            unit_map = {
+                "temperature": "Celsius",
+                "humidity": "Percent (%)",
+                "pressure": "hPa",
+                "wind_speed": "km/h",
+                "wind_u": "km/h",
+                "wind_v": "km/h",
+                "calm_wind": "binary (0 or 1)",
+                "precipitation": "mm",
+            }
             meta[feat] = {
                 "feature_name": feat,
                 "source_columns": source,
                 "lookback_window": "0h",
                 "latest_allowed_timestamp": "t0",
                 "transformation": f"instantaneous_{var}_at_t0",
+                "unit": unit_map.get(var, "unitless"),
                 "missing_value_rule": "zero_or_climatology_fallback",
             }
         else:
@@ -647,18 +665,35 @@ def _build_feature_schema_metadata() -> Dict[str, Dict[str, Any]]:
                 "precip": ["precipitation"],
                 "wind": ["wind_speed"],
             }
+            unit_map = {
+                "temp": "Celsius",
+                "humidity": "Percent (%)",
+                "pressure": "hPa",
+                "precip": "mm",
+                "wind": "km/h",
+            }
             meta[feat] = {
                 "feature_name": feat,
                 "source_columns": src_map.get(var, [var]),
                 "lookback_window": win,
                 "latest_allowed_timestamp": "t0",
                 "transformation": f"{op}_{win}",
+                "unit": unit_map.get(var, "unitless"),
                 "missing_value_rule": "available_window_stat_or_zero",
             }
     return meta
 
 
 FEATURE_SCHEMA_METADATA = _build_feature_schema_metadata()
+
+
+def compute_feature_schema_hash() -> str:
+    """Compute deterministic SHA-256 hash of the 75-feature schema metadata."""
+    serialized = json.dumps(FEATURE_SCHEMA_METADATA, sort_keys=True)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+FEATURE_SCHEMA_HASH = compute_feature_schema_hash()
 
 
 def extract_zero_leakage_features(

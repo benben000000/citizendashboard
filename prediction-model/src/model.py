@@ -1226,6 +1226,45 @@ class QuantileEvaluator:
             "overprediction_penalty": round(float(np.mean(over)), 4),
         }
 
+    @staticmethod
+    def evaluate_regimes(
+        y_true: np.ndarray,
+        p10: np.ndarray,
+        p50: np.ndarray,
+        p90: np.ndarray,
+        is_rain: np.ndarray = None,
+    ) -> Dict[str, Any]:
+        """
+        Evaluate coverage and WIS segmented by weather regimes:
+          - overall
+          - dry regime (is_rain == 0)
+          - rain regime (is_rain == 1)
+          - upper 10% extreme (top decile of observed values)
+          - lower 10% extreme (bottom decile of observed values)
+        """
+        overall = QuantileEvaluator.evaluate(y_true, p10, p50, p90)
+        res = {"overall": overall}
+
+        if is_rain is not None and len(is_rain) == len(y_true):
+            dry_mask = is_rain == 0
+            rain_mask = is_rain == 1
+            if np.sum(dry_mask) > 0:
+                res["dry_regime"] = QuantileEvaluator.evaluate(y_true[dry_mask], p10[dry_mask], p50[dry_mask], p90[dry_mask])
+            if np.sum(rain_mask) > 0:
+                res["rain_regime"] = QuantileEvaluator.evaluate(y_true[rain_mask], p10[rain_mask], p50[rain_mask], p90[rain_mask])
+
+        if len(y_true) >= 20:
+            q_high = float(np.quantile(y_true, 0.90))
+            q_low = float(np.quantile(y_true, 0.10))
+            high_mask = y_true >= q_high
+            low_mask = y_true <= q_low
+            if np.sum(high_mask) > 0:
+                res["extreme_high_regime"] = QuantileEvaluator.evaluate(y_true[high_mask], p10[high_mask], p50[high_mask], p90[high_mask])
+            if np.sum(low_mask) > 0:
+                res["extreme_low_regime"] = QuantileEvaluator.evaluate(y_true[low_mask], p10[low_mask], p50[low_mask], p90[low_mask])
+
+        return res
+
 
 class CompactEnsembleWeatherModel:
     """
@@ -1285,3 +1324,91 @@ class CompactEnsembleWeatherModel:
             # Equal weighting fallback
             return np.mean(preds_matrix, axis=1)
         return preds_matrix @ w
+
+
+def evaluate_wind_direction_by_regime(
+    true_deg: np.ndarray,
+    pred_deg: np.ndarray,
+    wind_speed: np.ndarray,
+    calm_threshold_kmh: float = 1.0,
+) -> Dict[str, Any]:
+    """
+    Evaluate circular wind direction error conditioned on wind speed regimes:
+      - Calm: < calm_threshold_kmh (default 1.0 km/h)
+      - Low: 1.0 - 5.0 km/h
+      - Normal: 5.0 - 15.0 km/h
+      - High: > 15.0 km/h
+    """
+    ws = wind_speed.astype(np.float64)
+    t = true_deg.astype(np.float64)
+    p = pred_deg.astype(np.float64)
+
+    # Circular error in degrees [0, 180]
+    diff = np.abs(t - p) % 360.0
+    circ_err = np.where(diff > 180.0, 360.0 - diff, diff)
+
+    regimes = {
+        "calm": ws < calm_threshold_kmh,
+        "low": (ws >= calm_threshold_kmh) & (ws < 5.0),
+        "normal": (ws >= 5.0) & (ws <= 15.0),
+        "high": ws > 15.0,
+    }
+
+    results = {}
+    for name, mask in regimes.items():
+        count = int(np.sum(mask))
+        if count > 0:
+            mae = float(np.mean(circ_err[mask]))
+            rmse = float(np.sqrt(np.mean(circ_err[mask] ** 2)))
+        else:
+            mae = 0.0
+            rmse = 0.0
+        results[name] = {
+            "sample_count": count,
+            "circular_mae_deg": round(mae, 2),
+            "circular_rmse_deg": round(rmse, 2),
+        }
+    return results
+
+
+def evaluate_heat_index_risk_categories(
+    hi_true: np.ndarray,
+    hi_pred: np.ndarray,
+) -> Dict[str, Any]:
+    """
+    Evaluate NOAA Heat Index Risk Category Accuracy:
+      - Category 0: Normal (< 27.0 C)
+      - Category 1: Caution (27.0 - 32.0 C)
+      - Category 2: Extreme Caution (32.0 - 41.0 C)
+      - Category 3: Danger (41.0 - 54.0 C)
+      - Category 4: Extreme Danger (>= 54.0 C)
+    """
+    def _to_category(arr):
+        cats = np.zeros(len(arr), dtype=np.int32)
+        cats[arr >= 27.0] = 1
+        cats[arr >= 32.0] = 2
+        cats[arr >= 41.0] = 3
+        cats[arr >= 54.0] = 4
+        return cats
+
+    true_cats = _to_category(hi_true)
+    pred_cats = _to_category(hi_pred)
+
+    n = len(true_cats)
+    if n == 0:
+        return {"category_accuracy_pct": 100.0, "mae_c": 0.0, "risk_underprediction_rate_pct": 0.0}
+
+    correct = int(np.sum(true_cats == pred_cats))
+    underpredicted = int(np.sum(pred_cats < true_cats))
+    overpredicted = int(np.sum(pred_cats > true_cats))
+    mae = float(np.mean(np.abs(hi_true - hi_pred)))
+
+    return {
+        "sample_count": n,
+        "mae_c": round(mae, 3),
+        "category_accuracy_pct": round((correct / n) * 100.0, 2),
+        "risk_underprediction_rate_pct": round((underpredicted / n) * 100.0, 2),
+        "risk_overprediction_rate_pct": round((overpredicted / n) * 100.0, 2),
+        "category_distribution_true": {int(c): int(np.sum(true_cats == c)) for c in range(5)},
+        "category_distribution_pred": {int(c): int(np.sum(pred_cats == c)) for c in range(5)},
+    }

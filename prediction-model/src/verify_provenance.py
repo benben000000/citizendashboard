@@ -392,6 +392,13 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             assert c_manifest["calibration_sha256"] == compute_sha256(c_calib_path), f"Candidate h{h} calibration hash mismatch"
             if "predictions_sha256" in c_manifest:
                 assert c_manifest["predictions_sha256"] == compute_sha256(c_preds_path), f"Candidate h{h} predictions hash mismatch"
+            if "feature_schema_hash" in c_manifest:
+                assert isinstance(c_manifest["feature_schema_hash"], str) and len(c_manifest["feature_schema_hash"]) == 64, f"Candidate h{h} feature_schema_hash invalid"
+            if "training_config_hash" in c_manifest:
+                assert isinstance(c_manifest["training_config_hash"], str) and len(c_manifest["training_config_hash"]) == 64, f"Candidate h{h} training_config_hash invalid"
+            if "evaluation_schema" in c_manifest:
+                for col in ["issue_timestamp_utc", "target_timestamp_utc", "horizon_hours", "station_id", "split_name", "feature_schema_hash", "label_quality_status"]:
+                    assert col in c_manifest["evaluation_schema"], f"Candidate h{h} evaluation_schema missing {col}"
 
             with open(c_calib_path, "r", encoding="utf-8") as f:
                 c_calib = json.load(f)

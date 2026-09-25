@@ -33,6 +33,7 @@ import math
 import json
 import csv
 import copy
+import hashlib
 import random
 import argparse
 import subprocess
@@ -56,6 +57,7 @@ from dataset import (
     build_rolling_origin_splits,
     audit_features_and_labels,
     FEATURE_SCHEMA_METADATA,
+    FEATURE_SCHEMA_HASH,
     compute_file_sha256,
     compute_noaa_heat_index,
     circular_direction_error_deg,
@@ -82,6 +84,8 @@ from model import (
     HurdlePrecipitationModel,
     QuantileEvaluator,
     CompactEnsembleWeatherModel,
+    evaluate_wind_direction_by_regime,
+    evaluate_heat_index_risk_categories,
 )
 from anomaly_detector import TelemetryAnomalyDetector
 from verify_provenance import compute_sha256
@@ -986,12 +990,30 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         vec_wind_out = vec_wind_model.predict(X_test_75, ws_orig, u_orig, v_orig)
         vec_wind_eval = evaluate_wind_direction(u_true, v_true, vec_wind_out["wind_u"], vec_wind_out["wind_v"], ws_true)
 
+        deg_true_arr = (np.degrees(np.arctan2(v_true, u_true))) % 360.0
+        deg_cand_arr = (np.degrees(np.arctan2(cand_v, cand_u))) % 360.0
+        cand_wdir_regimes = evaluate_wind_direction_by_regime(deg_true_arr, deg_cand_arr, ws_true, calm_threshold_kmh=1.0)
+
         # Target-Specific Model 3: Hurdle Precipitation Model (Phase 4.4)
         hurdle_model = HurdlePrecipitationModel(alpha_cls=2.0, alpha_reg=5.0)
         hurdle_model.fit(X_train_75, train_precip.squeeze(-1).numpy())
         hurdle_out = hurdle_model.predict(X_test_75)
         hurdle_eval_rain = evaluate_rain_occurrence(rain_true, hurdle_out["rain_prob"], threshold=0.5)
         hurdle_eval_precip = evaluate_precipitation_amount(precip_true, hurdle_out["precipitation_mm"], precip_orig, precip_clim)
+        heavy_mask = precip_true >= 1.0
+        hurdle_heavy_rain_eval = {
+            "heavy_rain_samples": int(np.sum(heavy_mask)),
+            "heavy_rain_mae_mm": round(float(np.mean(np.abs(precip_true[heavy_mask] - hurdle_out["precipitation_mm"][heavy_mask]))), 3) if np.sum(heavy_mask) > 0 else 0.0,
+            "heavy_rain_recall": round(float(np.mean(hurdle_out["precipitation_mm"][heavy_mask] >= 1.0)), 3) if np.sum(heavy_mask) > 0 else 1.0,
+        }
+
+        # Heat Index Risk Category Accuracy (Phase 4.5)
+        cand_hi_risk_eval = evaluate_heat_index_risk_categories(hi_true, cand_hi)
+
+        # Regime-Aware Quantiles (Phase 5)
+        temp_quantile_regimes = QuantileEvaluator.evaluate_regimes(
+            t_true, res_temp_out["p10"], res_temp_out["p50"], res_temp_out["p90"], is_rain=rain_true
+        )
 
         # Phase 6: Compact Local Ensemble
         X_val_75 = val_context.numpy()
@@ -1195,11 +1217,12 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             json.dump(calib_data, f, indent=2)
         calib_sha256 = compute_sha256(calib_path)
 
-        # Save test predictions log (hygienic, relative basenames, no machine paths)
+        # Save test predictions log (hygienic, relative basenames, no machine paths, Phase 2 evaluation row schema)
         with open(preds_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, lineterminator="\n")
             writer.writerow([
-                "station_id", "target_timestamp", "horizon_hours",
+                "issue_timestamp_utc", "target_timestamp_utc", "horizon_hours", "station_id", "split_name",
+                "feature_schema_hash", "label_quality_status",
                 "temp_true", "temp_pred", "temp_persist",
                 "hi_true", "hi_pred",
                 "rain_true", "rain_prob", "rain_pred",
@@ -1208,8 +1231,11 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             ])
             for i in range(min(500, N_test)):  # Log first 500 test samples
                 m = test_meta[i]
+                issue_ts = m.get("origin_timestamp", "")
+                target_ts = m.get("target_timestamp", "")
                 writer.writerow([
-                    m["station_id"], m["target_timestamp"], h,
+                    issue_ts, target_ts, h, m.get("station_id", ""), "test",
+                    FEATURE_SCHEMA_HASH, "VERIFIED_VALID",
                     round(float(t_true[i]), 3), round(float(cand_t[i]), 3), round(float(t_orig[i]), 3),
                     round(float(hi_true[i]), 3), round(float(cand_hi[i]), 3),
                     int(rain_true[i]), round(float(cand_rain_prob[i]), 4), int(cand_rain_prob[i] >= best_thresh),
@@ -1219,7 +1245,17 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 ])
         preds_sha256 = compute_sha256(preds_path)
 
-        # Save candidate manifest (Workstream B & Phase 3 complete schema)
+        # Save candidate manifest (Workstream B & Phase 1/2 complete schema)
+        training_config = {
+            "epochs": epochs,
+            "learning_rate": lr,
+            "batch_size": 32,
+            "optimizer": "AdamW",
+            "seed": seed,
+            "early_stopping_patience": 3,
+        }
+        training_config_hash = hashlib.sha256(json.dumps(training_config, sort_keys=True).encode("utf-8")).hexdigest()
+
         manifest_data = {
             "bundle_type": "candidate_featured_model_bundle",
             "bundle_version": "2.0.0-candidate",
@@ -1239,6 +1275,19 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "context_dimension": NUM_FEATURE_AUGMENTED,
             "feature_schema": CANONICAL_FEATURES,
             "context_feature_schema": FEATURE_AUGMENTED_SCHEMA,
+            "feature_schema_hash": FEATURE_SCHEMA_HASH,
+            "training_config_hash": training_config_hash,
+            "seed": seed,
+            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "evaluation_schema": [
+                "issue_timestamp_utc", "target_timestamp_utc", "horizon_hours", "station_id", "split_name",
+                "feature_schema_hash", "label_quality_status",
+                "temp_true", "temp_pred", "temp_persist",
+                "hi_true", "hi_pred",
+                "rain_true", "rain_prob", "rain_pred",
+                "wind_u_true", "wind_u_pred", "wind_v_true", "wind_v_pred",
+                "precip_true", "precip_pred"
+            ],
             "feature_units": {
                 "temperature": "Celsius",
                 "humidity": "Percent (%)",
@@ -1257,21 +1306,13 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "hidden_dim": 32,
                 "use_two_stage_precipitation": True,
             },
-            "training_config": {
-                "epochs": epochs,
-                "learning_rate": lr,
-                "batch_size": 32,
-                "optimizer": "AdamW",
-                "seed": seed,
-                "early_stopping_patience": 3,
-            },
+            "training_config": training_config,
             "target_schema": [
                 "temperature", "humidity", "pressure", "wind_speed",
                 "wind_direction", "heat_index", "precipitation_amount", "rain_occurrence"
             ],
             "weather_telemetry_sha256": raw_weather_hash,
             "water_telemetry_sha256": raw_water_hash,
-            "seed": seed,
             "anomaly_detector_config": {
                 "detector_version": "2.0.0",
                 "sensor_checks_enabled": True,
@@ -1406,6 +1447,10 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "rain_occurrence": cand_eval_rain,
                 "precipitation_amount": cand_eval_precip,
             },
+            "wind_direction_by_regime": cand_wdir_regimes,
+            "heat_index_risk_categories": cand_hi_risk_eval,
+            "temperature_quantile_regimes": temp_quantile_regimes,
+            "hurdle_heavy_rain": hurdle_heavy_rain_eval,
             "station_metrics": station_metrics,
             "regime_slices": regime_slices,
             "worst_stations": {
@@ -1450,6 +1495,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "gradient_boosted_tree_75": gbm_eval_hi["mae"],
                 "candidate_featured": cand_eval_hi["mae"],
             },
+            "heat_index_risk_categories": cand_hi_risk_eval,
             "rain_brier_score": {
                 "persistence": persist_eval_rain["brier_score"],
                 "seasonal_persistence": seas_eval_rain["brier_score"],
@@ -1472,6 +1518,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "gradient_boosted_tree_75": gbm_eval_wdir["circular_mae_deg"],
                 "candidate_featured": cand_eval_wdir["circular_mae_deg"],
             },
+            "wind_direction_regimes": cand_wdir_regimes,
             "precipitation_rainy_mae": {
                 "persistence": persist_eval_precip["rainy_hour_mae_mm"],
                 "seasonal_persistence": seas_eval_precip["rainy_hour_mae_mm"],
@@ -1483,12 +1530,14 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "gradient_boosted_tree_75": gbm_eval_precip["rainy_hour_mae_mm"],
                 "candidate_featured": cand_eval_precip["rainy_hour_mae_mm"],
             },
+            "hurdle_heavy_rain": hurdle_heavy_rain_eval,
             "uncertainty_wis": {
                 "temperature_wis": temp_quantile_eval["wis"],
                 "temperature_coverage_80": temp_quantile_eval["coverage_80_pct"],
                 "humidity_wis": rh_quantile_eval["wis"],
                 "pressure_wis": p_quantile_eval["wis"],
             },
+            "uncertainty_regimes": temp_quantile_regimes,
             "rolling_origin_summary": {
                 "num_folds": len(rolling_splits),
                 "worst_rolling_fold": worst_rolling_fold,

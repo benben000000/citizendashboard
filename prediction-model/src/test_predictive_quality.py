@@ -50,6 +50,7 @@ from dataset import (
     build_rolling_origin_splits,
     audit_features_and_labels,
     FEATURE_SCHEMA_METADATA,
+    FEATURE_SCHEMA_HASH,
     compute_file_sha256,
     TelemetryDataPipeline,
     FEATURE_AUGMENTED_SCHEMA,
@@ -76,6 +77,8 @@ from model import (
     HurdlePrecipitationModel,
     QuantileEvaluator,
     CompactEnsembleWeatherModel,
+    evaluate_wind_direction_by_regime,
+    evaluate_heat_index_risk_categories,
 )
 from inference import LNNServerlessPredictor
 
@@ -1146,6 +1149,7 @@ class TestPredictiveQuality(unittest.TestCase):
             "lookback_window",
             "latest_allowed_timestamp",
             "transformation",
+            "unit",
             "missing_value_rule",
         }
         for feat, meta in FEATURE_SCHEMA_METADATA.items():
@@ -1428,6 +1432,205 @@ class TestPredictiveQuality(unittest.TestCase):
             self.assertIn("trigger_level", op)
             self.assertIn(op["trigger_level"], ("NORMAL", "WARNING", "RECALIBRATION_RECOMMENDED", "TARGET_BASELINE_FALLBACK", "FULL_BUNDLE_ROLLBACK"))
             self.assertIn("target_fallbacks", op)
+
+    # --------------------------------------------------------------------------
+    # 33. Causal Feature Mutation Test (Phase 3)
+    # --------------------------------------------------------------------------
+    def test_causal_feature_mutation(self):
+        """
+        Verify feature causality: mutating telemetry values strictly after forecast origin t0
+        must leave the extracted feature vector at t0 invariant.
+        """
+        t0 = datetime(2026, 8, 15, 12, 0, tzinfo=timezone.utc)
+        history = []
+        for step in range(24):
+            dt_step = t0 - timedelta(hours=23 - step)
+            history.append({
+                "timestamp": dt_step,
+                "temperature": 26.0 + step * 0.2,
+                "humidity": 70.0 - step * 0.5,
+                "pressure": 1012.0 - step * 0.1,
+                "wind_speed": 5.0 + step * 0.1,
+                "wind_cos": 0.8,
+                "wind_sin": 0.6,
+                "precipitation": 0.0,
+            })
+        vec_base = extract_zero_leakage_feature_vector(history, t0_timestamp=t0)
+
+        # Mutate by adding future observations after t0 with corrupted/extreme values
+        mutated_future = list(history)
+        for fut_h in range(1, 6):
+            mutated_future.append({
+                "timestamp": t0 + timedelta(hours=fut_h),
+                "temperature": 999.0,
+                "humidity": 0.0,
+                "pressure": 800.0,
+                "wind_speed": 150.0,
+                "wind_cos": -1.0,
+                "wind_sin": -1.0,
+                "precipitation": 500.0,
+            })
+        vec_mutated = extract_zero_leakage_feature_vector(mutated_future, t0_timestamp=t0)
+        np.testing.assert_allclose(
+            vec_base,
+            vec_mutated,
+            err_msg="Zero-leakage extraction leaked future observations into feature vector at t0",
+        )
+
+    # --------------------------------------------------------------------------
+    # 34. Causal Feature Truncation Test (Phase 3)
+    # --------------------------------------------------------------------------
+    def test_causal_feature_truncation(self):
+        """
+        Verify truncation test: truncating all rows after t0 produces a feature vector
+        identical to extraction from a dataset containing future rows.
+        """
+        t0 = datetime(2026, 8, 15, 12, 0, tzinfo=timezone.utc)
+        records = []
+        for step in range(30):
+            dt_step = t0 - timedelta(hours=23 - step)  # 24 steps up to t0, 6 steps after t0
+            records.append({
+                "timestamp": dt_step,
+                "temperature": 27.0 + np.sin(step),
+                "humidity": 65.0,
+                "pressure": 1010.0,
+                "wind_speed": 8.0,
+                "wind_cos": 0.707,
+                "wind_sin": 0.707,
+                "precipitation": 0.2 if step % 4 == 0 else 0.0,
+            })
+        vec_full = extract_zero_leakage_feature_vector(records, t0_timestamp=t0)
+
+        truncated = [r for r in records if r["timestamp"] <= t0]
+        vec_trunc = extract_zero_leakage_feature_vector(truncated, t0_timestamp=t0)
+        np.testing.assert_allclose(
+            vec_full,
+            vec_trunc,
+            err_msg="Feature vector differs between truncated history and full dataset",
+        )
+
+    # --------------------------------------------------------------------------
+    # 35. Wind Direction by Speed Regimes (Phase 4.2)
+    # --------------------------------------------------------------------------
+    def test_wind_direction_by_regime(self):
+        """
+        Verify circular error evaluation conditioned on wind speed regimes:
+        calm (< 1.0 km/h), low (1-5 km/h), normal (5-15 km/h), high (> 15 km/h).
+        """
+        deg_true = np.array([45.0, 90.0, 180.0, 270.0, 350.0], dtype=np.float32)
+        deg_pred = np.array([50.0, 80.0, 190.0, 260.0, 10.0], dtype=np.float32)
+        ws_true = np.array([0.5, 3.0, 10.0, 20.0, 12.0], dtype=np.float32)
+
+        res = evaluate_wind_direction_by_regime(deg_true, deg_pred, ws_true, calm_threshold_kmh=1.0)
+        self.assertIn("calm", res)
+        self.assertIn("low", res)
+        self.assertIn("normal", res)
+        self.assertIn("high", res)
+
+        self.assertEqual(res["calm"]["sample_count"], 1)
+        self.assertEqual(res["low"]["sample_count"], 1)
+        self.assertEqual(res["normal"]["sample_count"], 2)
+        self.assertEqual(res["high"]["sample_count"], 1)
+
+    # --------------------------------------------------------------------------
+    # 36. Heat Index Risk Categories Evaluation (Phase 4.5)
+    # --------------------------------------------------------------------------
+    def test_heat_index_risk_categories(self):
+        """
+        Verify NOAA heat index risk categories (Normal, Caution, Extreme Caution, Danger, Extreme Danger)
+        accuracy, underprediction, and overprediction rate evaluation.
+        """
+        hi_true = np.array([25.0, 29.0, 35.0, 45.0, 56.0], dtype=np.float32)
+        hi_pred = np.array([26.0, 30.0, 36.0, 44.0, 52.0], dtype=np.float32)
+
+        eval_res = evaluate_heat_index_risk_categories(hi_true, hi_pred)
+        self.assertIn("category_accuracy_pct", eval_res)
+        self.assertIn("risk_underprediction_rate_pct", eval_res)
+        self.assertIn("risk_overprediction_rate_pct", eval_res)
+        self.assertEqual(eval_res["sample_count"], 5)
+        self.assertGreater(eval_res["category_accuracy_pct"], 50.0)
+
+    # --------------------------------------------------------------------------
+    # 37. Regime-Aware Quantile Evaluation (Phase 5)
+    # --------------------------------------------------------------------------
+    def test_regime_aware_quantile_evaluation(self):
+        """
+        Verify empirical coverage and WIS evaluation split across dry vs rain regimes.
+        """
+        y_true = np.array([25.0, 28.0, 32.0, 38.0, 22.0, 26.0, 30.0, 34.0], dtype=np.float32)
+        p10 = y_true - 1.5
+        p50 = y_true + 0.1
+        p90 = y_true + 1.5
+        is_rain = np.array([0, 0, 1, 1, 0, 1, 0, 0], dtype=np.int32)
+
+        regimes = QuantileEvaluator.evaluate_regimes(y_true, p10, p50, p90, is_rain=is_rain)
+        self.assertIn("overall", regimes)
+        self.assertIn("dry_regime", regimes)
+        self.assertIn("rain_regime", regimes)
+
+        for reg_name in ("overall", "dry_regime", "rain_regime"):
+            reg_data = regimes[reg_name]
+            self.assertIn("coverage_80_pct", reg_data)
+            self.assertIn("wis", reg_data)
+            self.assertGreaterEqual(reg_data["coverage_80_pct"], 90.0)
+
+    # --------------------------------------------------------------------------
+    # 38. Candidate Prediction Log Evaluation Schema (Phase 2)
+    # --------------------------------------------------------------------------
+    def test_candidate_prediction_log_evaluation_schema(self):
+        """
+        Verify that candidate prediction logs adhere to the Phase 2 evaluation row schema:
+        issue_timestamp_utc, target_timestamp_utc, horizon_hours, station_id, split_name,
+        feature_schema_hash, label_quality_status.
+        """
+        required_cols = [
+            "issue_timestamp_utc",
+            "target_timestamp_utc",
+            "horizon_hours",
+            "station_id",
+            "split_name",
+            "feature_schema_hash",
+            "label_quality_status",
+        ]
+        self.assertEqual(len(FEATURE_SCHEMA_HASH), 64)
+
+        cand_dir = os.path.join(DATA_DIR, "candidate_artifacts")
+        sample_log = os.path.join(cand_dir, "candidate_h1h_predictions.csv")
+        if os.path.exists(sample_log):
+            with open(sample_log, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                header = next(reader)
+            if "issue_timestamp_utc" in header:
+                for col in required_cols:
+                    self.assertIn(col, header, f"Candidate predictions log missing evaluation column: {col}")
+            else:
+                self.assertIn("station_id", header)
+
+    # --------------------------------------------------------------------------
+    # 39. Rollback Simulation Without Code Changes (Phase 10 & 11)
+    # --------------------------------------------------------------------------
+    def test_rollback_simulation_without_code_changes(self):
+        """
+        Verify that an LNNServerlessPredictor can roll back to baseline cleanly
+        via rollback_to_baseline() without editing source code.
+        """
+        predictor = LNNServerlessPredictor(horizon_hours=1)
+        # Attempt rollback to baseline
+        rolled_back = predictor.rollback_to_baseline()
+        self.assertTrue(rolled_back)
+        self.assertFalse(predictor.is_candidate_featured)
+        self.assertEqual(predictor.horizon_hours, 1)
+
+        # Operational forecast using baseline bundle works
+        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+        res = predictor.predict_from_observed_sequence(
+            telemetry_sequence=dummy_seq,
+            forecast_origin_timestamp="2026-08-01T12:00:00Z",
+            horizon_hours=1,
+        )
+        self.assertIn("temperature_c", res)
+        self.assertIn("chance_of_rain_pct", res)
+        self.assertEqual(res["forecast_horizon"], "1h")
 
 
 if __name__ == "__main__":

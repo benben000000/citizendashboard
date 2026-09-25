@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-25T12:52:09.040049+00:00",
-  "code_commit": "39fe267e83e97f4d7a159f36aaaecf2e0c995c89",
+  "generated_at": "2026-09-25T13:50:05.546524+00:00",
+  "code_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
   "horizons": {
     "horizon_1h": {
       "temperature_mae": {
@@ -27,6 +27,27 @@
         "gradient_boosted_tree_75": 2.6153,
         "candidate_featured": 1.4621
       },
+      "heat_index_risk_categories": {
+        "sample_count": 2820,
+        "mae_c": 1.462,
+        "category_accuracy_pct": 80.14,
+        "risk_underprediction_rate_pct": 10.82,
+        "risk_overprediction_rate_pct": 9.04,
+        "category_distribution_true": {
+          "0": 508,
+          "1": 747,
+          "2": 1384,
+          "3": 181,
+          "4": 0
+        },
+        "category_distribution_pred": {
+          "0": 544,
+          "1": 690,
+          "2": 1425,
+          "3": 161,
+          "4": 0
+        }
+      },
       "rain_brier_score": {
         "persistence": 0.147,
         "seasonal_persistence": 0.3358,
@@ -49,6 +70,28 @@
         "gradient_boosted_tree_75": 73.49,
         "candidate_featured": 40.07
       },
+      "wind_direction_regimes": {
+        "calm": {
+          "sample_count": 1378,
+          "circular_mae_deg": 35.79,
+          "circular_rmse_deg": 56.6
+        },
+        "low": {
+          "sample_count": 947,
+          "circular_mae_deg": 43.53,
+          "circular_rmse_deg": 61.4
+        },
+        "normal": {
+          "sample_count": 493,
+          "circular_mae_deg": 33.58,
+          "circular_rmse_deg": 52.05
+        },
+        "high": {
+          "sample_count": 2,
+          "circular_mae_deg": 2.37,
+          "circular_rmse_deg": 3.01
+        }
+      },
       "precipitation_rainy_mae": {
         "persistence": 2.6347,
         "seasonal_persistence": 3.0823,
@@ -60,11 +103,53 @@
         "gradient_boosted_tree_75": 2.3606,
         "candidate_featured": 2.3069
       },
+      "hurdle_heavy_rain": {
+        "heavy_rain_samples": 544,
+        "heavy_rain_mae_mm": 4.242,
+        "heavy_rain_recall": 0.561
+      },
       "uncertainty_wis": {
         "temperature_wis": 0.6183,
         "temperature_coverage_80": 81.17,
         "humidity_wis": 1.7679,
         "pressure_wis": 0.3879
+      },
+      "uncertainty_regimes": {
+        "overall": {
+          "coverage_80_pct": 81.17,
+          "sharpness": 1.8286,
+          "wis": 0.6183,
+          "underprediction_penalty": 0.0572,
+          "overprediction_penalty": 0.0624
+        },
+        "dry_regime": {
+          "coverage_80_pct": 84.26,
+          "sharpness": 1.8286,
+          "wis": 0.5597,
+          "underprediction_penalty": 0.0199,
+          "overprediction_penalty": 0.0613
+        },
+        "rain_regime": {
+          "coverage_80_pct": 76.14,
+          "sharpness": 1.8286,
+          "wis": 0.7137,
+          "underprediction_penalty": 0.1179,
+          "overprediction_penalty": 0.0641
+        },
+        "extreme_high_regime": {
+          "coverage_80_pct": 58.87,
+          "sharpness": 1.8286,
+          "wis": 1.0004,
+          "underprediction_penalty": 0.0273,
+          "overprediction_penalty": 0.3031
+        },
+        "extreme_low_regime": {
+          "coverage_80_pct": 89.01,
+          "sharpness": 1.8286,
+          "wis": 0.5177,
+          "underprediction_penalty": 0.0929,
+          "overprediction_penalty": 0.0
+        }
       },
       "rolling_origin_summary": {
         "num_folds": 3,
@@ -108,6 +193,27 @@
         "gradient_boosted_tree_75": 3.6412,
         "candidate_featured": 2.7756
       },
+      "heat_index_risk_categories": {
+        "sample_count": 2784,
+        "mae_c": 2.776,
+        "category_accuracy_pct": 52.23,
+        "risk_underprediction_rate_pct": 38.29,
+        "risk_overprediction_rate_pct": 9.48,
+        "category_distribution_true": {
+          "0": 494,
+          "1": 735,
+          "2": 1374,
+          "3": 181,
+          "4": 0
+        },
+        "category_distribution_pred": {
+          "0": 700,
+          "1": 1052,
+          "2": 955,
+          "3": 77,
+          "4": 0
+        }
+      },
       "rain_brier_score": {
         "persistence": 0.1914,
         "seasonal_persistence": 0.3351,
@@ -130,6 +236,28 @@
         "gradient_boosted_tree_75": 77.44,
         "candidate_featured": 47.3
       },
+      "wind_direction_regimes": {
+        "calm": {
+          "sample_count": 1364,
+          "circular_mae_deg": 46.79,
+          "circular_rmse_deg": 65.76
+        },
+        "low": {
+          "sample_count": 933,
+          "circular_mae_deg": 51.24,
+          "circular_rmse_deg": 67.97
+        },
+        "normal": {
+          "sample_count": 485,
+          "circular_mae_deg": 39.81,
+          "circular_rmse_deg": 61.09
+        },
+        "high": {
+          "sample_count": 2,
+          "circular_mae_deg": 26.59,
+          "circular_rmse_deg": 26.64
+        }
+      },
       "precipitation_rainy_mae": {
         "persistence": 2.997,
         "seasonal_persistence": 3.1206,
@@ -141,11 +269,53 @@
         "gradient_boosted_tree_75": 2.5043,
         "candidate_featured": 2.5525
       },
+      "hurdle_heavy_rain": {
+        "heavy_rain_samples": 540,
+        "heavy_rain_mae_mm": 4.529,
+        "heavy_rain_recall": 0.363
+      },
       "uncertainty_wis": {
         "temperature_wis": 1.2429,
         "temperature_coverage_80": 64.76,
         "humidity_wis": 3.2285,
         "pressure_wis": 0.6167
+      },
+      "uncertainty_regimes": {
+        "overall": {
+          "coverage_80_pct": 64.76,
+          "sharpness": 3.2609,
+          "wis": 1.2429,
+          "underprediction_penalty": 0.0454,
+          "overprediction_penalty": 0.2083
+        },
+        "dry_regime": {
+          "coverage_80_pct": 63.48,
+          "sharpness": 3.2609,
+          "wis": 1.2356,
+          "underprediction_penalty": 0.0163,
+          "overprediction_penalty": 0.2251
+        },
+        "rain_regime": {
+          "coverage_80_pct": 66.86,
+          "sharpness": 3.2609,
+          "wis": 1.2547,
+          "underprediction_penalty": 0.0928,
+          "overprediction_penalty": 0.1809
+        },
+        "extreme_high_regime": {
+          "coverage_80_pct": 45.88,
+          "sharpness": 3.2609,
+          "wis": 1.7654,
+          "underprediction_penalty": 0.0017,
+          "overprediction_penalty": 0.5592
+        },
+        "extreme_low_regime": {
+          "coverage_80_pct": 87.46,
+          "sharpness": 3.2609,
+          "wis": 0.8503,
+          "underprediction_penalty": 0.0877,
+          "overprediction_penalty": 0.0016
+        }
       },
       "rolling_origin_summary": {
         "num_folds": 3,
@@ -189,6 +359,27 @@
         "gradient_boosted_tree_75": 4.3943,
         "candidate_featured": 4.2636
       },
+      "heat_index_risk_categories": {
+        "sample_count": 2731,
+        "mae_c": 4.264,
+        "category_accuracy_pct": 36.8,
+        "risk_underprediction_rate_pct": 53.02,
+        "risk_overprediction_rate_pct": 10.18,
+        "category_distribution_true": {
+          "0": 481,
+          "1": 710,
+          "2": 1360,
+          "3": 180,
+          "4": 0
+        },
+        "category_distribution_pred": {
+          "0": 970,
+          "1": 990,
+          "2": 754,
+          "3": 17,
+          "4": 0
+        }
+      },
       "rain_brier_score": {
         "persistence": 0.2246,
         "seasonal_persistence": 0.3325,
@@ -211,6 +402,28 @@
         "gradient_boosted_tree_75": 80.06,
         "candidate_featured": 54.3
       },
+      "wind_direction_regimes": {
+        "calm": {
+          "sample_count": 1345,
+          "circular_mae_deg": 54.29,
+          "circular_rmse_deg": 71.78
+        },
+        "low": {
+          "sample_count": 911,
+          "circular_mae_deg": 57.33,
+          "circular_rmse_deg": 74.72
+        },
+        "normal": {
+          "sample_count": 473,
+          "circular_mae_deg": 48.33,
+          "circular_rmse_deg": 66.93
+        },
+        "high": {
+          "sample_count": 2,
+          "circular_mae_deg": 84.99,
+          "circular_rmse_deg": 94.18
+        }
+      },
       "precipitation_rainy_mae": {
         "persistence": 3.1398,
         "seasonal_persistence": 3.1575,
@@ -222,11 +435,53 @@
         "gradient_boosted_tree_75": 2.6459,
         "candidate_featured": 2.6605
       },
+      "hurdle_heavy_rain": {
+        "heavy_rain_samples": 526,
+        "heavy_rain_mae_mm": 5.251,
+        "heavy_rain_recall": 0.076
+      },
       "uncertainty_wis": {
         "temperature_wis": 1.8719,
         "temperature_coverage_80": 48.7,
         "humidity_wis": 4.38,
         "pressure_wis": 0.8202
+      },
+      "uncertainty_regimes": {
+        "overall": {
+          "coverage_80_pct": 48.7,
+          "sharpness": 3.8362,
+          "wis": 1.8719,
+          "underprediction_penalty": 0.0431,
+          "overprediction_penalty": 0.4955
+        },
+        "dry_regime": {
+          "coverage_80_pct": 44.27,
+          "sharpness": 3.8362,
+          "wis": 1.9411,
+          "underprediction_penalty": 0.0289,
+          "overprediction_penalty": 0.5424
+        },
+        "rain_regime": {
+          "coverage_80_pct": 56.03,
+          "sharpness": 3.8362,
+          "wis": 1.7574,
+          "underprediction_penalty": 0.0666,
+          "overprediction_penalty": 0.4178
+        },
+        "extreme_high_regime": {
+          "coverage_80_pct": 31.02,
+          "sharpness": 3.8362,
+          "wis": 2.3875,
+          "underprediction_penalty": 0.0,
+          "overprediction_penalty": 0.8231
+        },
+        "extreme_low_regime": {
+          "coverage_80_pct": 79.56,
+          "sharpness": 3.8362,
+          "wis": 1.1232,
+          "underprediction_penalty": 0.0852,
+          "overprediction_penalty": 0.0533
+        }
       },
       "rolling_origin_summary": {
         "num_folds": 3,
@@ -270,6 +525,27 @@
         "gradient_boosted_tree_75": 3.7375,
         "candidate_featured": 4.2323
       },
+      "heat_index_risk_categories": {
+        "sample_count": 2633,
+        "mae_c": 4.232,
+        "category_accuracy_pct": 39.5,
+        "risk_underprediction_rate_pct": 47.63,
+        "risk_overprediction_rate_pct": 12.88,
+        "category_distribution_true": {
+          "0": 452,
+          "1": 681,
+          "2": 1317,
+          "3": 183,
+          "4": 0
+        },
+        "category_distribution_pred": {
+          "0": 924,
+          "1": 738,
+          "2": 922,
+          "3": 49,
+          "4": 0
+        }
+      },
       "rain_brier_score": {
         "persistence": 0.2483,
         "seasonal_persistence": 0.3308,
@@ -292,6 +568,28 @@
         "gradient_boosted_tree_75": 84.21,
         "candidate_featured": 59.94
       },
+      "wind_direction_regimes": {
+        "calm": {
+          "sample_count": 1302,
+          "circular_mae_deg": 62.2,
+          "circular_rmse_deg": 79.71
+        },
+        "low": {
+          "sample_count": 879,
+          "circular_mae_deg": 61.23,
+          "circular_rmse_deg": 77.18
+        },
+        "normal": {
+          "sample_count": 450,
+          "circular_mae_deg": 57.41,
+          "circular_rmse_deg": 78.32
+        },
+        "high": {
+          "sample_count": 2,
+          "circular_mae_deg": 60.65,
+          "circular_rmse_deg": 73.42
+        }
+      },
       "precipitation_rainy_mae": {
         "persistence": 3.0973,
         "seasonal_persistence": 3.0717,
@@ -303,11 +601,53 @@
         "gradient_boosted_tree_75": 2.4952,
         "candidate_featured": 2.5003
       },
+      "hurdle_heavy_rain": {
+        "heavy_rain_samples": 491,
+        "heavy_rain_mae_mm": 3.99,
+        "heavy_rain_recall": 0.794
+      },
       "uncertainty_wis": {
         "temperature_wis": 2.1742,
         "temperature_coverage_80": 43.83,
         "humidity_wis": 5.2154,
         "pressure_wis": 0.9466
+      },
+      "uncertainty_regimes": {
+        "overall": {
+          "coverage_80_pct": 43.83,
+          "sharpness": 3.805,
+          "wis": 2.1742,
+          "underprediction_penalty": 0.0613,
+          "overprediction_penalty": 0.6532
+        },
+        "dry_regime": {
+          "coverage_80_pct": 39.68,
+          "sharpness": 3.805,
+          "wis": 2.2281,
+          "underprediction_penalty": 0.0393,
+          "overprediction_penalty": 0.6991
+        },
+        "rain_regime": {
+          "coverage_80_pct": 50.76,
+          "sharpness": 3.805,
+          "wis": 2.0839,
+          "underprediction_penalty": 0.0981,
+          "overprediction_penalty": 0.5765
+        },
+        "extreme_high_regime": {
+          "coverage_80_pct": 33.33,
+          "sharpness": 3.805,
+          "wis": 2.665,
+          "underprediction_penalty": 0.0,
+          "overprediction_penalty": 1.0039
+        },
+        "extreme_low_regime": {
+          "coverage_80_pct": 72.35,
+          "sharpness": 3.805,
+          "wis": 1.2908,
+          "underprediction_penalty": 0.0774,
+          "overprediction_penalty": 0.1309
+        }
       },
       "rolling_origin_summary": {
         "num_folds": 3,
@@ -351,6 +691,27 @@
         "gradient_boosted_tree_75": 3.308,
         "candidate_featured": 3.1137
       },
+      "heat_index_risk_categories": {
+        "sample_count": 2443,
+        "mae_c": 3.114,
+        "category_accuracy_pct": 60.99,
+        "risk_underprediction_rate_pct": 21.65,
+        "risk_overprediction_rate_pct": 17.36,
+        "category_distribution_true": {
+          "0": 335,
+          "1": 650,
+          "2": 1275,
+          "3": 183,
+          "4": 0
+        },
+        "category_distribution_pred": {
+          "0": 426,
+          "1": 609,
+          "2": 1237,
+          "3": 171,
+          "4": 0
+        }
+      },
       "rain_brier_score": {
         "persistence": 0.2728,
         "seasonal_persistence": 0.3328,
@@ -373,6 +734,28 @@
         "gradient_boosted_tree_75": 83.36,
         "candidate_featured": 54.45
       },
+      "wind_direction_regimes": {
+        "calm": {
+          "sample_count": 1214,
+          "circular_mae_deg": 58.04,
+          "circular_rmse_deg": 75.79
+        },
+        "low": {
+          "sample_count": 812,
+          "circular_mae_deg": 56.88,
+          "circular_rmse_deg": 73.35
+        },
+        "normal": {
+          "sample_count": 415,
+          "circular_mae_deg": 49.66,
+          "circular_rmse_deg": 70.25
+        },
+        "high": {
+          "sample_count": 2,
+          "circular_mae_deg": 61.76,
+          "circular_rmse_deg": 63.28
+        }
+      },
       "precipitation_rainy_mae": {
         "persistence": 2.8745,
         "seasonal_persistence": 2.8745,
@@ -384,11 +767,53 @@
         "gradient_boosted_tree_75": 2.3584,
         "candidate_featured": 2.3773
       },
+      "hurdle_heavy_rain": {
+        "heavy_rain_samples": 431,
+        "heavy_rain_mae_mm": 4.031,
+        "heavy_rain_recall": 0.882
+      },
       "uncertainty_wis": {
         "temperature_wis": 2.8456,
         "temperature_coverage_80": 30.09,
         "humidity_wis": 6.8455,
         "pressure_wis": 1.2347
+      },
+      "uncertainty_regimes": {
+        "overall": {
+          "coverage_80_pct": 30.09,
+          "sharpness": 3.6958,
+          "wis": 2.8456,
+          "underprediction_penalty": 0.0509,
+          "overprediction_penalty": 1.1143
+        },
+        "dry_regime": {
+          "coverage_80_pct": 23.41,
+          "sharpness": 3.6958,
+          "wis": 3.113,
+          "underprediction_penalty": 0.0152,
+          "overprediction_penalty": 1.3168
+        },
+        "rain_regime": {
+          "coverage_80_pct": 41.78,
+          "sharpness": 3.6958,
+          "wis": 2.3773,
+          "underprediction_penalty": 0.1135,
+          "overprediction_penalty": 0.7598
+        },
+        "extreme_high_regime": {
+          "coverage_80_pct": 14.69,
+          "sharpness": 3.6958,
+          "wis": 3.9275,
+          "underprediction_penalty": 0.0,
+          "overprediction_penalty": 1.8496
+        },
+        "extreme_low_regime": {
+          "coverage_80_pct": 52.65,
+          "sharpness": 3.6958,
+          "wis": 1.715,
+          "underprediction_penalty": 0.1399,
+          "overprediction_penalty": 0.3314
+        }
       },
       "rolling_origin_summary": {
         "num_folds": 3,
