@@ -1945,6 +1945,10 @@ class TestPredictiveQuality(unittest.TestCase):
             self.assertEqual(len(manifest["checkpoint_sha256"]), 64)
             self.assertEqual(len(manifest["calibration_sha256"]), 64)
             self.assertEqual(len(manifest["predictions_sha256"]), 64)
+            if "parent_baseline_commit" in manifest:
+                self.assertEqual(len(manifest["parent_baseline_commit"]), 40)
+            if "code_commit" in manifest:
+                self.assertEqual(len(manifest["code_commit"]), 40)
 
 
 if __name__ == "__main__":
