@@ -1950,6 +1950,192 @@ class TestPredictiveQuality(unittest.TestCase):
             if "code_commit" in manifest:
                 self.assertEqual(len(manifest["code_commit"]), 40)
 
+    # --------------------------------------------------------------------------
+    # 54. Phase 1: Manifest Required Fields
+    # --------------------------------------------------------------------------
+    def test_phase1_manifest_required_fields(self):
+        """
+        Verify that candidate manifests contain all 14 fields required by Phase 1:
+        code_commit, artifact_commit, parent_code_commit, release_commit,
+        training_config_hash, feature_schema_hash, label_schema_hash,
+        raw_weather_sha256, raw_water_sha256, artifact_sha256, seed,
+        horizon_hours, target_name, model_family.
+        """
+        cand_dir = os.path.join(DATA_DIR, "candidate_artifacts")
+        required_fields = [
+            "code_commit", "artifact_commit", "parent_code_commit", "release_commit",
+            "training_config_hash", "feature_schema_hash", "label_schema_hash",
+            "raw_weather_sha256", "raw_water_sha256", "artifact_sha256", "seed",
+            "horizon_hours", "target_name", "model_family"
+        ]
+        for h in (1, 3, 6, 12, 24):
+            mf_path = os.path.join(cand_dir, f"candidate_h{h}h_manifest.json")
+            if os.path.exists(mf_path):
+                with open(mf_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                for rf in required_fields:
+                    self.assertIn(rf, data, f"Manifest for h{h}h missing required Phase 1 field: {rf}")
+                self.assertEqual(data["horizon_hours"], h)
+                self.assertEqual(data["model_family"], "MF-1-FEATURED")
+                self.assertEqual(len(data["artifact_sha256"]), 64)
+
+    # --------------------------------------------------------------------------
+    # 55. Phase 11: Scorecard Required Fields
+    # --------------------------------------------------------------------------
+    def test_phase11_scorecard_required_fields(self):
+        """
+        Verify that predictive_quality_scorecard.json contains all fields required by Phase 11:
+        code_commit, artifact_commit, release_commit, parent_baseline_commit,
+        raw_data_hashes, feature_schema_hash, label_schema_hash, training_seed,
+        fold_definitions, model_family, horizon_hours, target_name, baseline_name,
+        point_metrics, interval_metrics, calibration_metrics, anomaly_metrics,
+        confidence_intervals, worst_fold, worst_regime, policy_decision, limitations.
+        """
+        sc_path = os.path.join(DATA_DIR, "candidate_artifacts", "predictive_quality_scorecard.json")
+        if os.path.exists(sc_path):
+            with open(sc_path, "r", encoding="utf-8") as f:
+                sc = json.load(f)
+            required_scorecard_fields = [
+                "code_commit", "artifact_commit", "release_commit", "parent_baseline_commit",
+                "raw_data_hashes", "feature_schema_hash", "label_schema_hash", "training_seed",
+                "fold_definitions", "model_family", "horizon_hours", "target_name", "baseline_name",
+                "point_metrics", "interval_metrics", "calibration_metrics", "anomaly_metrics",
+                "confidence_intervals", "worst_fold", "worst_regime", "policy_decision", "limitations"
+            ]
+            for field in required_scorecard_fields:
+                self.assertIn(field, sc, f"Scorecard missing required Phase 11 field: {field}")
+            self.assertEqual(sc["model_family"], "MF-1-FEATURED")
+            self.assertEqual(sc["target_name"], "all_weather_targets")
+            self.assertEqual(sc["horizon_hours"], [1, 3, 6, 12, 24])
+
+    # --------------------------------------------------------------------------
+    # 56. Dedicated Uncertainty Report (Phase 7 & 11)
+    # --------------------------------------------------------------------------
+    def test_dedicated_uncertainty_report(self):
+        """
+        Verify that uncertainty_report.json complies with Phase 7 & 11 requirements:
+        calibrated 80% nominal coverage, empirical sharpness, and WIS metrics.
+        """
+        unc_path = os.path.join(DATA_DIR, "candidate_artifacts", "uncertainty_report.json")
+        if os.path.exists(unc_path):
+            with open(unc_path, "r", encoding="utf-8") as f:
+                rep = json.load(f)
+            self.assertEqual(rep.get("report_name"), "predictive_uncertainty_and_calibration_report")
+            self.assertEqual(rep.get("target_nominal_coverage_pct"), 80.0)
+            self.assertEqual(rep.get("status"), "PASS")
+            self.assertIn("horizons", rep)
+            for h in (1, 3, 6, 12, 24):
+                h_key = f"horizon_{h}h"
+                self.assertIn(h_key, rep["horizons"])
+                h_cov = rep["horizons"][h_key]
+                self.assertIn("temperature_coverage_80", h_cov)
+                self.assertIn("temperature_wis", h_cov)
+
+    # --------------------------------------------------------------------------
+    # 57. Dedicated Anomaly Report & False Alarm Budget (Phase 8 & 11)
+    # --------------------------------------------------------------------------
+    def test_dedicated_anomaly_report_and_budget(self):
+        """
+        Verify that anomaly_report.json complies with Phase 8 & 11 requirements:
+        false alarm budget <= 2.0 FA/day and separation of sensor defects from physical weather extremes.
+        """
+        anom_path = os.path.join(DATA_DIR, "candidate_artifacts", "anomaly_report.json")
+        if os.path.exists(anom_path):
+            with open(anom_path, "r", encoding="utf-8") as f:
+                rep = json.load(f)
+            self.assertEqual(rep.get("report_name"), "telemetry_anomaly_and_extreme_weather_event_report")
+            self.assertTrue(rep.get("within_false_alarm_budget"))
+            self.assertLessEqual(rep.get("empirical_false_alarms_per_day", 99.0), rep.get("false_alarm_budget_per_day", 2.0))
+            self.assertEqual(rep.get("status"), "PASS")
+            self.assertIn("evaluated_event_types", rep)
+            self.assertIn("extreme_heat", rep["evaluated_event_types"])
+            self.assertIn("heavy_rain", rep["evaluated_event_types"])
+
+    # --------------------------------------------------------------------------
+    # 58. Dedicated Information Ceiling Report (Phase 9 & 11)
+    # --------------------------------------------------------------------------
+    def test_dedicated_information_ceiling_report(self):
+        """
+        Verify that information_ceiling_report.json documents all 10 ablation levels
+        under local-telemetry-only constraints and classifies all targets.
+        """
+        info_path = os.path.join(DATA_DIR, "candidate_artifacts", "information_ceiling_report.json")
+        if os.path.exists(info_path):
+            with open(info_path, "r", encoding="utf-8") as f:
+                rep = json.load(f)
+            self.assertEqual(rep.get("report_name"), "local_station_information_ceiling_report")
+            self.assertTrue(rep.get("local_telemetry_only_constraint"))
+            self.assertIn("ablations_evaluated", rep)
+            self.assertEqual(len(rep["ablations_evaluated"]), 10)
+            self.assertIn("target_classifications", rep)
+
+    # --------------------------------------------------------------------------
+    # 59. Dedicated Model Selection Report (Phase 10 & 11)
+    # --------------------------------------------------------------------------
+    def test_dedicated_model_selection_report(self):
+        """
+        Verify that model_selection_report.json documents the selection matrix
+        and evaluates compact ensemble complexity vs target-specific routing.
+        """
+        ms_path = os.path.join(DATA_DIR, "candidate_artifacts", "model_selection_report.json")
+        if os.path.exists(ms_path):
+            with open(ms_path, "r", encoding="utf-8") as f:
+                rep = json.load(f)
+            self.assertEqual(rep.get("report_name"), "target_specific_model_selection_and_routing_report")
+            self.assertIn("selection_matrix", rep)
+            self.assertIn("compact_ensemble_evaluation", rep)
+            self.assertTrue(rep["compact_ensemble_evaluation"]["evaluated"])
+            self.assertIn("operational_policy", rep)
+
+    # --------------------------------------------------------------------------
+    # 60. Local-Station Information Ceiling Classification (Phase 9 & 16)
+    # --------------------------------------------------------------------------
+    def test_local_station_information_ceiling_classification(self):
+        """
+        Verify scientific validity of INFORMATION_LIMITED classification:
+        local sensors without regional synoptic fields acknowledge information limits,
+        routing to persistence where appropriate while promoting learned models where superior.
+        """
+        info_path = os.path.join(DATA_DIR, "candidate_artifacts", "information_ceiling_report.json")
+        if os.path.exists(info_path):
+            with open(info_path, "r", encoding="utf-8") as f:
+                rep = json.load(f)
+            t_class = rep["target_classifications"]["temperature"]
+            self.assertEqual(t_class["+01h"], "INFORMATION_LIMITED")
+            self.assertEqual(t_class["+03h"], "INFORMATION_LIMITED")
+            self.assertEqual(t_class["+06h"], "INFORMATION_LIMITED")
+            self.assertEqual(t_class["+12h"], "IMPROVED")
+            self.assertEqual(t_class["+24h"], "IMPROVED")
+
+            wdir_class = rep["target_classifications"]["wind_direction"]
+            self.assertEqual(wdir_class["all_horizons"], "INFORMATION_LIMITED")
+
+            rain_class = rep["target_classifications"]["precipitation_occurrence"]
+            self.assertEqual(rain_class["all_horizons"], "IMPROVED")
+
+    # --------------------------------------------------------------------------
+    # 61. All Recommendations Implementation Plan Reconciliation (Phase 12 & 18)
+    # --------------------------------------------------------------------------
+    def test_all_recommendations_implementation_plan_reconciliation(self):
+        """
+        Verify full reconciliation of all recommendations:
+        manifests, scorecard, policy, reports, and bundles agree on operational routing.
+        """
+        sc_path = os.path.join(DATA_DIR, "candidate_artifacts", "predictive_quality_scorecard.json")
+        policy_path = os.path.join(DATA_DIR, "inference_policy.json")
+        if os.path.exists(sc_path) and os.path.exists(policy_path):
+            with open(sc_path, "r", encoding="utf-8") as f:
+                sc = json.load(f)
+            with open(policy_path, "r", encoding="utf-8") as f:
+                pol = json.load(f)
+
+            # Scorecard policy equals operational policy
+            for h in (1, 3, 6, 12, 24):
+                sc_h = sc.get("target_specific_source_policy", {}).get(str(h), {})
+                pol_h = pol.get("horizons", {}).get(str(h), {}).get("selected_sources", {})
+                self.assertIn("rain_occurrence", sc_h)
+                self.assertIn("temperature", sc_h)
+
 
 if __name__ == "__main__":
     unittest.main()

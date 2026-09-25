@@ -400,6 +400,15 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
                 for col in ["issue_timestamp_utc", "target_timestamp_utc", "horizon_hours", "station_id", "split_name", "feature_schema_hash", "label_quality_status"]:
                     assert col in c_manifest["evaluation_schema"], f"Candidate h{h} evaluation_schema missing {col}"
 
+            if "parent_code_commit" in c_manifest:
+                assert c_manifest["parent_code_commit"] in allowed_commits, f"Candidate h{h} parent_code_commit mismatch"
+            if "artifact_sha256" in c_manifest:
+                assert c_manifest["artifact_sha256"] == c_manifest["checkpoint_sha256"], f"Candidate h{h} artifact_sha256 mismatch"
+            if "raw_weather_sha256" in c_manifest:
+                assert c_manifest["raw_weather_sha256"] == weather_hash, f"Candidate h{h} raw_weather_sha256 mismatch"
+            if "raw_water_sha256" in c_manifest:
+                assert c_manifest["raw_water_sha256"] == water_hash, f"Candidate h{h} raw_water_sha256 mismatch"
+
             with open(c_calib_path, "r", encoding="utf-8") as f:
                 c_calib = json.load(f)
             assert c_calib["horizon_hours"] == h
@@ -410,6 +419,13 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             sc_path = os.path.join(cand_artifacts_dir, sc_name)
             assert os.path.exists(sc_path), f"Missing {sc_name} in candidate_artifacts"
 
+        for rep_name in ["uncertainty_report.json", "anomaly_report.json", "information_ceiling_report.json", "model_selection_report.json"]:
+            rep_path = os.path.join(cand_artifacts_dir, rep_name)
+            if os.path.exists(rep_path):
+                with open(rep_path, "r", encoding="utf-8") as f:
+                    rep_data = json.load(f)
+                assert "report_name" in rep_data and "code_commit" in rep_data, f"Invalid schema in {rep_name}"
+
         with open(os.path.join(cand_artifacts_dir, "predictive_quality_scorecard.json"), "r", encoding="utf-8") as f:
             sc_data = json.load(f)
         assert "research_decision" in sc_data, "Scorecard missing 'research_decision'"
@@ -418,6 +434,19 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         assert sc_data["operational_decision"] in ["GO", "CONDITIONAL_GO", "NO_GO"]
         if "artifacts_generated" in sc_data and len(sc_data["artifacts_generated"]) > 4:
             assert len(sc_data["artifacts_generated"]) >= 20, f"Scorecard artifacts_generated has {len(sc_data['artifacts_generated'])} items, expected >= 20"
+
+        if "point_metrics" in sc_data:
+            assert isinstance(sc_data["point_metrics"], dict), "Scorecard point_metrics must be dict"
+        if "interval_metrics" in sc_data:
+            assert isinstance(sc_data["interval_metrics"], dict), "Scorecard interval_metrics must be dict"
+        if "calibration_metrics" in sc_data:
+            assert isinstance(sc_data["calibration_metrics"], dict), "Scorecard calibration_metrics must be dict"
+        if "anomaly_metrics" in sc_data:
+            assert isinstance(sc_data["anomaly_metrics"], dict), "Scorecard anomaly_metrics must be dict"
+        if "policy_decision" in sc_data:
+            assert isinstance(sc_data["policy_decision"], dict), "Scorecard policy_decision must be dict"
+        if "limitations" in sc_data:
+            assert isinstance(sc_data["limitations"], list), "Scorecard limitations must be list"
 
         print("[PASS] Candidate Artifacts (all 5 horizons): manifests, checkpoints, calibration, provenance, and decisions verified")
 
