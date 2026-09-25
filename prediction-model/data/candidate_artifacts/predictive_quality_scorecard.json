@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-25T05:38:00.792478+00:00",
-  "code_commit": "ba274016cd6028f7d357ef663a9b104725c32f29",
+  "generated_at": "2026-09-25T05:43:03.131145+00:00",
+  "code_commit": "95f8816fa84dd7d5415f7bc3cb032adfe72333e4",
   "seed": 42,
   "horizons": [
     1,
@@ -21,7 +21,7 @@
       "sample_count": 2820,
       "calibrated_rain_threshold": 0.35000000000000003,
       "calibrated_hybrid_alpha": 0.6000000000000001,
-      "checkpoint_sha256": "c4a4a5d562624bb1a2c1ea8134d775ffe04f31fbdaefeea2d44d1d35f443681d",
+      "checkpoint_sha256": "884f3b203a823974cb0c621233a51abe1694e3c77b3ef59b10ce1b72bcd6dc3e",
       "persistence": {
         "temperature": {
           "mae": 0.4926,
@@ -1066,7 +1066,7 @@
       "sample_count": 2784,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.7000000000000001,
-      "checkpoint_sha256": "67c9f2a9fe4234334c924c0b51358773c70f3e90703808228b2736584cf2dee7",
+      "checkpoint_sha256": "ecae328ae0b9771b36d3ceb6fc71b6ee574b2d14e9fec86d17292ef8938f5228",
       "persistence": {
         "temperature": {
           "mae": 0.9554,
@@ -2097,7 +2097,7 @@
       "sample_count": 2731,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.6000000000000001,
-      "checkpoint_sha256": "2594b63bcc40411b1d42246eebed4364b2e997b26daf9c6f20c5ea4b567f73ae",
+      "checkpoint_sha256": "fea5152035fa70f79a93b8a8231f6afb59e76a68a6b5a28b478ad143207fbe56",
       "persistence": {
         "temperature": {
           "mae": 1.4413,
@@ -3114,7 +3114,7 @@
       "sample_count": 2633,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.5,
-      "checkpoint_sha256": "031590ad40c8217444228cf199a4759d4866eb089744b4b2ade9f85863cb8d83",
+      "checkpoint_sha256": "56a64b4ff638d0212851fbf2d38c9c59c9be03af944d69a2e99670384e85bff8",
       "persistence": {
         "temperature": {
           "mae": 1.8301,
@@ -4124,7 +4124,7 @@
       "sample_count": 2443,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.4,
-      "checkpoint_sha256": "0894702f4b011dfd91e691eb2c46deb56d982008ea68ec044ddb0d6e745996ce",
+      "checkpoint_sha256": "68c221db74083a88e2aa75ab218e6a1c73cf2798aeb3adcab64585f50d6dffdc",
       "persistence": {
         "temperature": {
           "mae": 1.2104,
