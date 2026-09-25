@@ -278,6 +278,13 @@ class LNNServerlessPredictor:
         """Normalize using checkpoint-stored constants (not module globals)."""
         return (features - self._norm_means) / self._norm_stds
 
+    def predict_uv(self, *args, **kwargs):
+        """UV forecasting is quarantined across all horizons (fail-closed)."""
+        raise ValueError(
+            "UV index forecasting is blocked by sensor calibration audit: "
+            "BLOCKED_BY_SENSOR_CALIBRATION (uncalibrated sensor reported non-zero UV at night)."
+        )
+
     def predict_from_observed_sequence(
         self,
         telemetry_sequence: np.ndarray,
@@ -285,6 +292,7 @@ class LNNServerlessPredictor:
         forecast_origin_timestamp: str = None,
         horizon_hours: int = None,
         current_water_level: float = None,
+        request_uv: bool = False,
     ) -> dict:
         """
         Operational forecast endpoint using actual observed historical telemetry sequence.
@@ -297,11 +305,18 @@ class LNNServerlessPredictor:
             forecast_origin_timestamp: ISO timestamp string of the last observation t0.
             horizon_hours: Number of hours ahead to forecast. Defaults to predictor.horizon_hours.
             current_water_level: Optional current river stage in meters.
+            request_uv: If True, raises ValueError because UV index is quarantined.
 
         Returns:
             Dictionary containing prediction outcomes, forecast origin timestamp,
             and target timestamp.
         """
+        if request_uv:
+            raise ValueError(
+                "UV index forecasting is blocked by sensor calibration audit: "
+                "BLOCKED_BY_SENSOR_CALIBRATION (uncalibrated sensor reported non-zero UV at night)."
+            )
+
         from dataset import compute_noaa_heat_index
 
         if horizon_hours is None:

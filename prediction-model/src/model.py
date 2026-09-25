@@ -477,6 +477,20 @@ class GarciaWeatherLNNFeatured(nn.Module):
             nn.Linear(16, 1)
         )
 
+        # Initialize delta heads to zero for strict persistence prior at step 0
+        nn.init.zeros_(self.temp_head[-1].weight)
+        nn.init.zeros_(self.temp_head[-1].bias)
+        nn.init.zeros_(self.rh_head[-1].weight)
+        nn.init.zeros_(self.rh_head[-1].bias)
+        nn.init.zeros_(self.pressure_head[-1].weight)
+        nn.init.zeros_(self.pressure_head[-1].bias)
+        nn.init.zeros_(self.ws_head[-1].weight)
+        nn.init.zeros_(self.ws_head[-1].bias)
+        nn.init.zeros_(self.wdir_head[-1].weight)
+        nn.init.zeros_(self.wdir_head[-1].bias)
+        # Prior log-odds for rain occurrence matching ~10% empirical base rate
+        nn.init.constant_(self.rain_occurrence_head[-1].bias, -2.2)
+
     def forward(
         self,
         telemetry_seq: torch.Tensor,
@@ -514,7 +528,6 @@ class GarciaWeatherLNNFeatured(nn.Module):
         d_p = self.pressure_head(fused)
         d_ws = self.ws_head(fused)
         uv_raw = self.wdir_head(fused)
-        uv_norm = F.normalize(uv_raw, p=2, dim=-1, eps=1e-6)
 
         d_water = self.water_head(fused)
         water_stage = (initial_water + d_water) if initial_water is not None else d_water
@@ -531,15 +544,22 @@ class GarciaWeatherLNNFeatured(nn.Module):
             rh_orig = origin_weather[:, 1:2]
             p_orig = origin_weather[:, 2:3]
             ws_orig = origin_weather[:, 3:4]
+            u_orig = origin_weather[:, 4:5]
+            v_orig = origin_weather[:, 5:6]
             pred_temp = torch.clamp(t_orig + d_temp, min=-10.0, max=60.0)
             pred_rh = torch.clamp(rh_orig + d_rh, min=0.0, max=100.0)
             pred_p = torch.clamp(p_orig + d_p, min=850.0, max=1090.0)
             pred_ws = torch.clamp(F.relu(ws_orig + d_ws), min=0.0, max=250.0)
+            # Origin wind vector residual
+            orig_uv = torch.cat([u_orig, v_orig], dim=-1)
+            combined_uv = orig_uv + uv_raw
+            uv_norm = F.normalize(combined_uv, p=2, dim=-1, eps=1e-6)
         else:
             pred_temp = d_temp
             pred_rh = d_rh
             pred_p = d_p
             pred_ws = F.relu(d_ws)
+            uv_norm = F.normalize(uv_raw, p=2, dim=-1, eps=1e-6)
 
         return {
             "temperature": pred_temp,
@@ -549,11 +569,107 @@ class GarciaWeatherLNNFeatured(nn.Module):
             "wind_u": uv_norm[:, 0:1],
             "wind_v": uv_norm[:, 1:2],
             "rain_prob": rain_prob,
+            "rain_logit": rain_logit,
             "precipitation_mm": precip_mm,
             "conditional_amount": cond_amount,
             "water_level": water_stage,
             "delta_water": d_water,
         }
+
+
+class DecisionStump:
+    """Fast axis-aligned binary decision stump in pure NumPy."""
+    def __init__(self):
+        self.feature_idx = 0
+        self.threshold = 0.0
+        self.left_value = 0.0
+        self.right_value = 0.0
+
+    def fit(self, X: np.ndarray, residuals: np.ndarray, subsample_features: int = 15):
+        n_samples, n_features = X.shape
+        best_gain = -1e9
+        feature_indices = np.random.choice(n_features, min(subsample_features, n_features), replace=False)
+        for f_idx in feature_indices:
+            x_col = X[:, f_idx]
+            thresholds = np.quantile(x_col, [0.1, 0.3, 0.5, 0.7, 0.9])
+            for th in thresholds:
+                left_mask = x_col <= th
+                right_mask = ~left_mask
+                n_l, n_r = int(np.sum(left_mask)), int(np.sum(right_mask))
+                if n_l < 5 or n_r < 5:
+                    continue
+                sum_l = float(np.sum(residuals[left_mask]))
+                sum_r = float(np.sum(residuals[right_mask]))
+                gain = (sum_l ** 2) / n_l + (sum_r ** 2) / n_r
+                if gain > best_gain:
+                    best_gain = gain
+                    self.feature_idx = int(f_idx)
+                    self.threshold = float(th)
+                    self.left_value = float(sum_l / (n_l + 1e-4))
+                    self.right_value = float(sum_r / (n_r + 1e-4))
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        left = X[:, self.feature_idx] <= self.threshold
+        return np.where(left, self.left_value, self.right_value)
+
+
+class GradientBoostedWeatherModel:
+    """
+    Strong Tabular Baseline: Pure NumPy Gradient Boosted Decision Tree Ensemble on 75 Engineered Features.
+    Fulfills Workstream D of the Proper Predictive-Quality Implementation Plan.
+    Trains an ensemble of gradient-boosted decision stumps with shrinkage for each meteorological target.
+    """
+    def __init__(self, n_estimators: int = 25, learning_rate: float = 0.1, random_state: int = 42):
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
+        self.random_state = random_state
+        self.models = {}  # target_idx -> list of DecisionStump
+        self.base_preds = {}  # target_idx -> float
+        self.targets = ["temperature", "humidity", "pressure", "wind_speed", "wind_u", "wind_v", "precipitation_mm", "rain_prob"]
+
+    def fit(self, X: np.ndarray, Y: np.ndarray):
+        np.random.seed(self.random_state)
+        N, D = X.shape
+        _, K = Y.shape
+        for k in range(K):
+            y_k = Y[:, k].astype(np.float32)
+            base = float(np.mean(y_k))
+            self.base_preds[k] = base
+            curr_pred = np.full(N, base, dtype=np.float32)
+            stumps = []
+            for _ in range(self.n_estimators):
+                residuals = y_k - curr_pred
+                stump = DecisionStump()
+                stump.fit(X, residuals)
+                pred_step = stump.predict(X)
+                curr_pred += self.learning_rate * pred_step
+                stumps.append(stump)
+            self.models[k] = stumps
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        N = X.shape[0]
+        K = len(self.targets)
+        Y_pred = np.zeros((N, K), dtype=np.float32)
+        for k in range(K):
+            pred = np.full(N, self.base_preds[k], dtype=np.float32)
+            for stump in self.models[k]:
+                pred += self.learning_rate * stump.predict(X)
+            Y_pred[:, k] = pred
+
+        # Enforce physical constraints identical to Ridge
+        Y_pred[:, 0] = np.clip(Y_pred[:, 0], -10.0, 60.0)      # temperature
+        Y_pred[:, 1] = np.clip(Y_pred[:, 1], 0.0, 100.0)       # humidity
+        Y_pred[:, 2] = np.clip(Y_pred[:, 2], 850.0, 1090.0)    # pressure
+        Y_pred[:, 3] = np.clip(Y_pred[:, 3], 0.0, 250.0)       # wind_speed
+        # Normalize wind vectors
+        uv_norm = np.sqrt(Y_pred[:, 4] ** 2 + Y_pred[:, 5] ** 2) + 1e-6
+        Y_pred[:, 4] /= uv_norm
+        Y_pred[:, 5] /= uv_norm
+        Y_pred[:, 6] = np.clip(Y_pred[:, 6], 0.0, 300.0)       # precipitation_mm
+        Y_pred[:, 7] = np.clip(Y_pred[:, 7], 0.0, 1.0)         # rain_prob
+        return Y_pred
 
 
 class RidgeWeatherModel:

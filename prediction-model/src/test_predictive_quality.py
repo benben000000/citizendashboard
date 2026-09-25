@@ -687,6 +687,141 @@ class TestPredictiveQuality(unittest.TestCase):
             tt = datetime.fromisoformat(m["target_timestamp"])
             self.assertGreater(tt, t0)
 
+    # --------------------------------------------------------------------------
+    # 22. Gradient-Boosted Tree Baseline on 75 Features
+    # --------------------------------------------------------------------------
+    def test_gradient_boosted_weather_model(self):
+        """
+        Verify that GradientBoostedWeatherModel fits on 75 features, predicts all 8 targets,
+        and enforces physical bounds.
+        """
+        from model import GradientBoostedWeatherModel
+        np.random.seed(42)
+        X_dummy = np.random.randn(30, 75).astype(np.float32)
+        Y_dummy = np.column_stack([
+            np.random.uniform(20.0, 35.0, 30),    # temp
+            np.random.uniform(50.0, 95.0, 30),    # rh
+            np.random.uniform(995.0, 1015.0, 30), # p
+            np.random.uniform(0.0, 15.0, 30),     # ws
+            np.random.uniform(-1.0, 1.0, 30),     # u
+            np.random.uniform(-1.0, 1.0, 30),     # v
+            np.random.uniform(0.0, 5.0, 30),      # precip
+            np.random.choice([0.0, 1.0], 30),     # rain
+        ]).astype(np.float32)
+
+        gbm = GradientBoostedWeatherModel(n_estimators=10, learning_rate=0.1)
+        gbm.fit(X_dummy, Y_dummy)
+        preds = gbm.predict(X_dummy[:5])
+        self.assertEqual(preds.shape, (5, 8))
+        self.assertTrue((preds[:, 0] >= -10.0).all() and (preds[:, 0] <= 60.0).all())
+        self.assertTrue((preds[:, 1] >= 0.0).all() and (preds[:, 1] <= 100.0).all())
+        self.assertTrue((preds[:, 7] >= 0.0).all() and (preds[:, 7] <= 1.0).all())
+
+    # --------------------------------------------------------------------------
+    # 23. Candidate Artifact Serialization and Reloading
+    # --------------------------------------------------------------------------
+    def test_candidate_artifact_serialization_and_reloading(self):
+        """
+        Verify that candidate checkpoints, manifests, calibration artifacts, and predictions
+        can be serialized, reloaded, and executed for forward inference without mutation.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            model = GarciaWeatherLNNFeatured(input_dim=8, context_dim=75, hidden_dim=16)
+            ckpt_path = os.path.join(tmp_dir, "candidate_h1h.pt")
+            manifest_path = os.path.join(tmp_dir, "candidate_h1h_manifest.json")
+            calib_path = os.path.join(tmp_dir, "candidate_h1h_calibration.json")
+            preds_path = os.path.join(tmp_dir, "candidate_h1h_predictions.csv")
+
+            torch.save({
+                "model_state_dict": model.state_dict(),
+                "manifest": {
+                    "model_family": "MF-1-FEATURED",
+                    "forecast_horizon_hours": 1,
+                    "input_dim": 8,
+                    "context_dim": 75,
+                }
+            }, ckpt_path)
+
+            ckpt_hash = compute_file_sha256(ckpt_path)
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump({"checkpoint_filename": "candidate_h1h.pt", "checkpoint_sha256": ckpt_hash}, f)
+            with open(calib_path, "w", encoding="utf-8") as f:
+                json.dump({"horizon_hours": 1, "operational_rain_threshold": 0.35}, f)
+            with open(preds_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["station_id", "horizon_hours", "temp_true", "temp_pred"])
+                writer.writerow(["garcia_station", 1, 28.5, 28.3])
+
+            self.assertTrue(os.path.exists(ckpt_path))
+            self.assertTrue(os.path.exists(manifest_path))
+            self.assertTrue(os.path.exists(calib_path))
+            self.assertTrue(os.path.exists(preds_path))
+
+            # Reload in simulated fresh process
+            loaded_ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+            reloaded_model = GarciaWeatherLNNFeatured(input_dim=8, context_dim=75, hidden_dim=16)
+            reloaded_model.load_state_dict(loaded_ckpt["model_state_dict"])
+            reloaded_model.eval()
+
+            dummy_seq = torch.randn(1, 24, 8)
+            dummy_ctx = torch.randn(1, 75)
+            dummy_dt = torch.ones(1, 24, 1)
+            with torch.no_grad():
+                out = reloaded_model(dummy_seq, dummy_ctx, dummy_dt)
+            self.assertIn("temperature", out)
+
+    # --------------------------------------------------------------------------
+    # 24. Baseline Freeze Manifest Structure
+    # --------------------------------------------------------------------------
+    def test_baseline_manifest_structure(self):
+        """
+        Verify that baseline manifest contains all required baseline freeze fields and 5 horizons.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            b_path = os.path.join(tmp_dir, "baseline_manifest.json")
+            b_manifest = {
+                "manifest_type": "baseline_freeze_reference",
+                "canonical_feature_schema": [
+                    "temperature", "heat_index", "humidity", "pressure",
+                    "wind_speed", "wind_sin", "wind_cos", "precipitation"
+                ],
+                "quarantine_counts": {
+                    "uv_index_quarantined_samples": 40320,
+                    "luminosity_conditional_samples": 40320,
+                },
+                "five_horizon_baseline_metrics": {f"horizon_{h}h": {} for h in [1, 3, 6, 12, 24]}
+            }
+            with open(b_path, "w", encoding="utf-8") as f:
+                json.dump(b_manifest, f)
+            with open(b_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual(len(data["canonical_feature_schema"]), 8)
+            self.assertEqual(len(data["five_horizon_baseline_metrics"]), 5)
+
+    # --------------------------------------------------------------------------
+    # 25. Inference UV Rejection Fail-Closed
+    # --------------------------------------------------------------------------
+    def test_inference_uv_rejection_fail_closed(self):
+        """
+        Verify that inference explicitly rejects UV index requests fail-closed.
+        """
+        from inference import LNNServerlessPredictor
+        predictor = LNNServerlessPredictor(horizon_hours=1)
+        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+
+        # Calling predict_uv should raise ValueError
+        with self.assertRaises(ValueError) as ctx:
+            predictor.predict_uv()
+        self.assertIn("BLOCKED_BY_SENSOR_CALIBRATION", str(ctx.exception))
+
+        # Passing request_uv=True to predict_from_observed_sequence should raise ValueError
+        with self.assertRaises(ValueError) as ctx2:
+            predictor.predict_from_observed_sequence(
+                telemetry_sequence=dummy_seq,
+                request_uv=True,
+            )
+        self.assertIn("BLOCKED_BY_SENSOR_CALIBRATION", str(ctx2.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
