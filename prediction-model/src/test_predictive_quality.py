@@ -44,15 +44,25 @@ from dataset import (
     compute_noaa_heat_index,
     circular_direction_error_deg,
     extract_zero_leakage_features,
+    extract_zero_leakage_feature_vector,
     build_forecast_windows,
+    build_feature_augmented_forecast_windows,
     compute_file_sha256,
     TelemetryDataPipeline,
+    FEATURE_AUGMENTED_SCHEMA,
+    NUM_FEATURE_AUGMENTED,
     PHYSICAL_BOUNDS,
 )
 from anomaly_detector import (
     TelemetryAnomalyDetector,
     AnomalyRecord,
     PHYSICAL_EXTREMES,
+)
+from model import (
+    GarciaWeatherLNNFeatured,
+    RidgeWeatherModel,
+    ClimatologyWeatherModel,
+    PersistenceWeatherModel,
 )
 from inference import LNNServerlessPredictor
 
@@ -540,6 +550,142 @@ class TestPredictiveQuality(unittest.TestCase):
                 h_key = f"horizon_{h}h"
                 self.assertIn(h_key, hp)
                 self.assertGreater(hp[h_key]["sample_count"], 0)
+
+    # --------------------------------------------------------------------------
+    # 18. Feature-Augmented Schema and Zero-Leakage Vector Extractor
+    # --------------------------------------------------------------------------
+    def test_feature_augmented_schema_and_vector_extractor(self):
+        """
+        Verify that FEATURE_AUGMENTED_SCHEMA defines 75 deterministic zero-leakage features
+        and that extract_zero_leakage_feature_vector returns a matching 75-dim array.
+        """
+        self.assertEqual(NUM_FEATURE_AUGMENTED, 75)
+        self.assertEqual(len(FEATURE_AUGMENTED_SCHEMA), 75)
+        self.assertEqual(FEATURE_AUGMENTED_SCHEMA, tuple(sorted(FEATURE_AUGMENTED_SCHEMA)))
+
+        # Create dummy window
+        now = datetime.now(timezone.utc)
+        records = [
+            {
+                "timestamp": now - timedelta(hours=24 - i),
+                "temperature": 25.0 + 0.1 * i,
+                "humidity": 80.0 - 0.2 * i,
+                "pressure": 1010.0 + 0.05 * i,
+                "wind_speed": 5.0 + 0.1 * i,
+                "wind_sin": 0.5,
+                "wind_cos": 0.866,
+                "precipitation": 0.0,
+            }
+            for i in range(24)
+        ]
+        t0 = records[-1]["timestamp"]
+        vec = extract_zero_leakage_feature_vector(records, t0_timestamp=t0)
+        self.assertIsInstance(vec, np.ndarray)
+        self.assertEqual(vec.shape, (75,))
+        self.assertFalse(np.isnan(vec).any())
+
+    # --------------------------------------------------------------------------
+    # 19. GarciaWeatherLNNFeatured Forward Pass and Bounds
+    # --------------------------------------------------------------------------
+    def test_garcia_weather_lnn_featured_forward_and_bounds(self):
+        """
+        Verify that the candidate feature-augmented model accepts sequence [batch, 24, 8]
+        and context [batch, 75], outputting valid continuous weather, two-stage rain, and heat index.
+        """
+        batch_size = 4
+        seq_len = 24
+        telemetry = torch.randn(batch_size, seq_len, 8)
+        context = torch.randn(batch_size, 75)
+        dt = torch.ones(batch_size, seq_len, 1)
+        orig_w = torch.tensor([[28.0, 75.0, 1010.0, 10.0, 0.866, 0.5]] * batch_size)
+
+        model = GarciaWeatherLNNFeatured(input_dim=8, context_dim=75, hidden_dim=32, use_two_stage_precipitation=True)
+        model.eval()
+
+        with torch.no_grad():
+            out = model(telemetry, context, dt, origin_weather=orig_w)
+
+        self.assertIn("temperature", out)
+        self.assertIn("humidity", out)
+        self.assertIn("pressure", out)
+        self.assertIn("wind_speed", out)
+        self.assertIn("wind_u", out)
+        self.assertIn("wind_v", out)
+        self.assertIn("rain_prob", out)
+        self.assertIn("precipitation_mm", out)
+
+        # Check physical bounds on output
+        t_val = out["temperature"].numpy()
+        self.assertTrue((t_val >= -10.0).all() and (t_val <= 60.0).all())
+        rh_val = out["humidity"].numpy()
+        self.assertTrue((rh_val >= 0.0).all() and (rh_val <= 100.0).all())
+        ws_val = out["wind_speed"].numpy()
+        self.assertTrue((ws_val >= 0.0).all())
+        rp_val = out["rain_prob"].numpy()
+        self.assertTrue((rp_val >= 0.0).all() and (rp_val <= 1.0).all())
+        p_val = out["precipitation_mm"].numpy()
+        self.assertTrue((p_val >= 0.0).all())
+
+    # --------------------------------------------------------------------------
+    # 20. Ridge, Climatology, and Persistence Baselines
+    # --------------------------------------------------------------------------
+    def test_ridge_climatology_persistence_baselines(self):
+        """
+        Verify that Ridge, Climatology, and Persistence baselines fit and predict with physical bounds.
+        """
+        # Persistence
+        orig_rec = {
+            "origin_temperature": 27.5,
+            "origin_humidity": 82.0,
+            "origin_pressure": 1009.5,
+            "origin_wind_speed": 8.0,
+            "origin_wind_u": 0.707,
+            "origin_wind_v": 0.707,
+            "last_observed_precip": 0.2,
+        }
+        p_pred = PersistenceWeatherModel.predict_from_origin(orig_rec)
+        self.assertEqual(p_pred["temperature"], 27.5)
+        self.assertEqual(p_pred["rain_probability"], 1.0)
+        self.assertIsNotNone(p_pred["heat_index"])
+
+        # Ridge
+        X_dummy = np.random.randn(20, 75).astype(np.float32)
+        Y_dummy = np.random.randn(20, 8).astype(np.float32)
+        ridge = RidgeWeatherModel(alpha=1.0)
+        ridge.fit(X_dummy, Y_dummy)
+        preds = ridge.predict(X_dummy[:5])
+        self.assertEqual(preds.shape, (5, 8))
+        # Temp bounded [-10, 60]
+        self.assertTrue((preds[:, 0] >= -10.0).all() and (preds[:, 0] <= 60.0).all())
+        # Humidity bounded [0, 100]
+        self.assertTrue((preds[:, 1] >= 0.0).all() and (preds[:, 1] <= 100.0).all())
+        # Rain prob bounded [0, 1]
+        self.assertTrue((preds[:, 7] >= 0.0).all() and (preds[:, 7] <= 1.0).all())
+
+    # --------------------------------------------------------------------------
+    # 21. Build Feature-Augmented Forecast Windows Pipeline
+    # --------------------------------------------------------------------------
+    def test_build_feature_augmented_forecast_windows(self):
+        """
+        Verify that build_feature_augmented_forecast_windows returns both canonical sequence
+        tensors and 75-dim context features without future leakage.
+        """
+        from dataset import get_telemetry_pipeline
+        pipeline = get_telemetry_pipeline()
+        res = build_feature_augmented_forecast_windows(
+            pipeline=pipeline, split="val", horizon=1, max_samples=16, return_metadata=True
+        )
+        self.assertIsNotNone(res)
+        telemetry, context, dt, rain, precip, water, has_w, meta = res
+        self.assertEqual(telemetry.shape[1], 24)
+        self.assertEqual(telemetry.shape[2], 8)
+        self.assertEqual(context.shape[1], 75)
+        self.assertEqual(len(meta), len(telemetry))
+        # Ensure zero leakage
+        for m in meta:
+            t0 = datetime.fromisoformat(m["origin_timestamp"])
+            tt = datetime.fromisoformat(m["target_timestamp"])
+            self.assertGreater(tt, t0)
 
 
 if __name__ == "__main__":

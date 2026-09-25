@@ -22,6 +22,8 @@ Status: Research prototype & probabilistic guidance engine. Not for life-safety 
 """
 
 import math
+from collections import defaultdict
+from datetime import datetime
 import numpy as np
 import torch
 import torch.nn as nn
@@ -382,4 +384,294 @@ class GarciaWeatherLNN(WeatherWaterLNN):
             "rain_probability": r_prob,
             "precipitation_mm": p_mm,
             "water_level_stage": w_lvl,
+        }
+
+
+class GarciaWeatherLNNFeatured(nn.Module):
+    """
+    Candidate Model Family (MF-1-FEATURED): Continuous-Time CfC/LNN with Zero-Leakage Feature Fusion.
+    Fuses sequential hourly telemetry dynamics [batch, seq_len, 8] with normalized zero-leakage engineered features [batch, 75] at origin t0.
+    Outputs:
+      - Continuous Weather Heads: Temperature, Humidity, Pressure, Wind Speed, Wind Vector (u, v).
+      - Two-Stage Precipitation: Occurrence logit + Conditional amount (mm).
+      - Derived Heat Index (NOAA Rothfusz formula).
+      - Hydrological River Stage Delta (for gauge station).
+    """
+    def __init__(
+        self,
+        input_dim: int = 8,
+        context_dim: int = 75,
+        hidden_dim: int = 32,
+        use_two_stage_precipitation: bool = True,
+    ):
+        super().__init__()
+        self.input_dim = input_dim
+        self.context_dim = context_dim
+        self.hidden_dim = hidden_dim
+        self.use_two_stage_precipitation = use_two_stage_precipitation
+
+        # Sequence encoder and CfC continuous recurrent cell
+        self.seq_encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim)
+        )
+        self.cfc_cell = CfCCell(hidden_dim, hidden_dim)
+
+        # Context projection for engineered features
+        self.context_encoder = nn.Sequential(
+            nn.Linear(context_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim)
+        )
+
+        # Fusion layer combining sequence state h and context c
+        self.fusion = nn.Sequential(
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.SiLU()
+        )
+
+        # Weather heads
+        self.temp_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta temperature (C)
+        )
+        self.rh_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta humidity (%)
+        )
+        self.pressure_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta pressure (hPa)
+        )
+        self.ws_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # delta wind speed (km/h)
+        )
+        self.wdir_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 2)  # circular unit components (u=cos, v=sin)
+        )
+
+        # Precipitation heads
+        self.rain_occurrence_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # occurrence logit
+        )
+        self.conditional_rain_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)  # conditional rain amount
+        )
+
+        # Hydrological river stage delta
+        self.water_head = nn.Sequential(
+            nn.Linear(hidden_dim, 16),
+            nn.SiLU(),
+            nn.Linear(16, 1)
+        )
+
+    def forward(
+        self,
+        telemetry_seq: torch.Tensor,
+        context_feats: torch.Tensor,
+        dt_seq: torch.Tensor,
+        initial_water: torch.Tensor = None,
+        origin_weather: torch.Tensor = None,
+    ):
+        """
+        telemetry_seq: [batch, seq_len, 8]
+        context_feats: [batch, 75]
+        dt_seq: [batch, seq_len, 1]
+        initial_water: Optional [batch, 1]
+        origin_weather: Optional [batch, 6] -> (temp, humidity, pressure, ws, u, v)
+        """
+        batch_size, seq_len, _ = telemetry_seq.shape
+        h = torch.zeros(batch_size, self.hidden_dim, device=telemetry_seq.device)
+
+        # Unroll sequence through continuous CfC cell
+        for t in range(seq_len):
+            x_t = telemetry_seq[:, t, :]
+            dt_t = dt_seq[:, t, :]
+            feat = self.seq_encoder(x_t)
+            h = self.cfc_cell(feat, h, dt_t)
+
+        # Project static context
+        c = self.context_encoder(context_feats)
+
+        # Fuse sequential state and context
+        fused = self.fusion(torch.cat([h, c], dim=-1))
+
+        # Base deltas
+        d_temp = self.temp_head(fused)
+        d_rh = self.rh_head(fused)
+        d_p = self.pressure_head(fused)
+        d_ws = self.ws_head(fused)
+        uv_raw = self.wdir_head(fused)
+        uv_norm = F.normalize(uv_raw, p=2, dim=-1, eps=1e-6)
+
+        d_water = self.water_head(fused)
+        water_stage = (initial_water + d_water) if initial_water is not None else d_water
+
+        # Rain Occurrence and Conditional Amount
+        rain_logit = self.rain_occurrence_head(fused)
+        rain_prob = torch.sigmoid(rain_logit)
+        cond_amount = F.softplus(self.conditional_rain_head(fused))
+        precip_mm = rain_prob * cond_amount
+
+        # Absolute weather if origin provided
+        if origin_weather is not None:
+            t_orig = origin_weather[:, 0:1]
+            rh_orig = origin_weather[:, 1:2]
+            p_orig = origin_weather[:, 2:3]
+            ws_orig = origin_weather[:, 3:4]
+            pred_temp = torch.clamp(t_orig + d_temp, min=-10.0, max=60.0)
+            pred_rh = torch.clamp(rh_orig + d_rh, min=0.0, max=100.0)
+            pred_p = torch.clamp(p_orig + d_p, min=850.0, max=1090.0)
+            pred_ws = torch.clamp(F.relu(ws_orig + d_ws), min=0.0, max=250.0)
+        else:
+            pred_temp = d_temp
+            pred_rh = d_rh
+            pred_p = d_p
+            pred_ws = F.relu(d_ws)
+
+        return {
+            "temperature": pred_temp,
+            "humidity": pred_rh,
+            "pressure": pred_p,
+            "wind_speed": pred_ws,
+            "wind_u": uv_norm[:, 0:1],
+            "wind_v": uv_norm[:, 1:2],
+            "rain_prob": rain_prob,
+            "precipitation_mm": precip_mm,
+            "conditional_amount": cond_amount,
+            "water_level": water_stage,
+            "delta_water": d_water,
+        }
+
+
+class RidgeWeatherModel:
+    """
+    Multi-target regularized linear baseline fit on normalized zero-leakage engineered features [batch, 75].
+    Closed-form analytical solution: W = (X^T X + lambda I)^(-1) X^T Y
+    """
+    def __init__(self, alpha: float = 1.0):
+        self.alpha = alpha
+        self.weights = None  # [d + 1, k]
+        self.targets = ["temperature", "humidity", "pressure", "wind_speed", "wind_u", "wind_v", "precipitation_mm", "rain_prob"]
+
+    def fit(self, X: np.ndarray, Y: np.ndarray):
+        """
+        X: [N, D] feature matrix
+        Y: [N, K] target matrix
+        """
+        N, D = X.shape
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        # Regularization matrix (do not regularize bias)
+        reg = self.alpha * np.eye(D + 1, dtype=np.float32)
+        reg[0, 0] = 0.0
+        A = X_aug.T @ X_aug + reg
+        B = X_aug.T @ Y.astype(np.float32)
+        self.weights = np.linalg.solve(A, B)
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        N = X.shape[0]
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        Y_pred = X_aug @ self.weights
+        # Enforce physical constraints:
+        # Col 0: temp [-10, 60]
+        Y_pred[:, 0] = np.clip(Y_pred[:, 0], -10.0, 60.0)
+        # Col 1: humidity [0, 100]
+        Y_pred[:, 1] = np.clip(Y_pred[:, 1], 0.0, 100.0)
+        # Col 2: pressure [850, 1090]
+        Y_pred[:, 2] = np.clip(Y_pred[:, 2], 850.0, 1090.0)
+        # Col 3: wind_speed >= 0
+        Y_pred[:, 3] = np.clip(Y_pred[:, 3], 0.0, 250.0)
+        # Col 4, 5: wind_u, wind_v normalized
+        uv_norm = np.sqrt(Y_pred[:, 4] ** 2 + Y_pred[:, 5] ** 2) + 1e-6
+        Y_pred[:, 4] /= uv_norm
+        Y_pred[:, 5] /= uv_norm
+        # Col 6: precip_mm >= 0
+        Y_pred[:, 6] = np.clip(Y_pred[:, 6], 0.0, 300.0)
+        # Col 7: rain_prob [0, 1]
+        Y_pred[:, 7] = np.clip(Y_pred[:, 7], 0.0, 1.0)
+        return Y_pred
+
+
+class ClimatologyWeatherModel:
+    """
+    Station-hour historical average baseline.
+    Computes average target values indexed by (station_id, hour_of_day) from training partition.
+    """
+    def __init__(self):
+        self.table = {}  # (station_id, hour) -> dict of mean values
+        self.global_mean = {}
+
+    def fit_from_metadata(self, train_metadata: list):
+        """Fit climatology tables from train metadata dictionaries."""
+        stats = defaultdict(lambda: defaultdict(list))
+        global_stats = defaultdict(list)
+        for r in train_metadata:
+            st = r["station_id"]
+            # Extract local Philippine hour (UTC + 8)
+            t0 = datetime.fromisoformat(r["origin_timestamp"])
+            h = (t0.hour + 8) % 24
+            for target, val_key in [
+                ("temperature", "target_temperature"),
+                ("humidity", "target_humidity"),
+                ("pressure", "target_pressure"),
+                ("wind_speed", "target_wind_speed"),
+                ("wind_u", "target_wind_u"),
+                ("wind_v", "target_wind_v"),
+                ("precipitation_mm", "actual_precip_mm"),
+                ("rain_prob", "actual_rain_prob"),
+            ]:
+                if val_key in r and r[val_key] is not None:
+                    v = float(r[val_key])
+                    stats[(st, h)][target].append(v)
+                    global_stats[target].append(v)
+
+        self.global_mean = {k: float(np.mean(v)) if v else 0.0 for k, v in global_stats.items()}
+        for (st, h), vals in stats.items():
+            self.table[(st, h)] = {k: float(np.mean(v)) if v else self.global_mean.get(k, 0.0) for k, v in vals.items()}
+        return self
+
+    def predict(self, station_id: str, hour_of_day: int) -> dict:
+        return self.table.get((station_id, hour_of_day), self.global_mean)
+
+
+class PersistenceWeatherModel:
+    """
+    Canonical zero-skill persistence baseline.
+    Predicts t0 + h target values equal to the last valid observation at origin t0.
+    """
+    @staticmethod
+    def predict_from_origin(origin_rec: dict) -> dict:
+        temp = float(origin_rec["origin_temperature"])
+        rh = float(origin_rec["origin_humidity"])
+        p = float(origin_rec["origin_pressure"])
+        ws = float(origin_rec["origin_wind_speed"])
+        u = float(origin_rec.get("origin_wind_u", 0.0))
+        v = float(origin_rec.get("origin_wind_v", 0.0))
+        precip = float(origin_rec.get("last_observed_precip", 0.0))
+        rain_prob = 1.0 if precip >= 0.1 else 0.0
+        hi = compute_noaa_heat_index(temp, rh)
+        return {
+            "temperature": temp,
+            "humidity": rh,
+            "pressure": p,
+            "wind_speed": ws,
+            "wind_u": u,
+            "wind_v": v,
+            "wind_direction_deg": (math.degrees(math.atan2(v, u)) % 360.0) if ws >= 1.0 else None,
+            "heat_index": hi,
+            "precipitation_mm": precip,
+            "rain_probability": rain_prob,
         }

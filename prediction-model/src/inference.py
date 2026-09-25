@@ -206,14 +206,28 @@ class LNNServerlessPredictor:
             self._norm_means = FEATURE_MEANS
             self._norm_stds = FEATURE_STDS
 
-        from model import GarciaWeatherLNN
+        feat_norm_info = self.manifest.get("feature_augmented_normalization", {})
+        if feat_norm_info and "means" in feat_norm_info and "stds" in feat_norm_info:
+            self._feat_means = np.array(feat_norm_info["means"], dtype=np.float32)
+            self._feat_stds = np.array(feat_norm_info["stds"], dtype=np.float32)
+        else:
+            self._feat_means = np.zeros(75, dtype=np.float32)
+            self._feat_stds = np.ones(75, dtype=np.float32)
+
+        from model import GarciaWeatherLNN, GarciaWeatherLNNFeatured
         state_dict = checkpoint["model_state_dict"]
         has_weather_heads = any(k.startswith("temp_head") for k in state_dict.keys())
+        has_context_encoder = any(k.startswith("context_encoder") for k in state_dict.keys())
 
-        if has_weather_heads:
+        if has_context_encoder:
+            self.model = GarciaWeatherLNNFeatured(**model_config)
+            self.is_featured_model = True
+        elif has_weather_heads:
             self.model = GarciaWeatherLNN(**model_config)
+            self.is_featured_model = False
         else:
             self.model = WeatherWaterLNN(**model_config)
+            self.is_featured_model = False
 
         self.model.load_state_dict(state_dict)
         self.model.eval()
@@ -346,11 +360,51 @@ class LNNServerlessPredictor:
         orig_cos = float(telemetry_arr[-1, 6])
         orig_weather_tensor = torch.tensor([[orig_temp, orig_rh, orig_p, orig_ws, orig_cos, orig_sin]], dtype=torch.float32)
 
-        from model import GarciaWeatherLNN
-        is_garcia = isinstance(self.model, GarciaWeatherLNN)
+        from model import GarciaWeatherLNN, GarciaWeatherLNNFeatured
+        is_featured = isinstance(self.model, GarciaWeatherLNNFeatured)
+        is_garcia = isinstance(self.model, GarciaWeatherLNN) or is_featured
 
         with torch.no_grad():
-            if is_garcia:
+            if is_featured:
+                from dataset import extract_zero_leakage_feature_vector
+                records = []
+                for row_idx in range(len(telemetry_arr)):
+                    rec_ts = (origin_dt - timedelta(hours=len(telemetry_arr) - 1 - row_idx)) if forecast_origin_timestamp else datetime.now(timezone.utc)
+                    records.append({
+                        "timestamp": rec_ts,
+                        "temperature": float(telemetry_arr[row_idx, 0]),
+                        "heat_index": float(telemetry_arr[row_idx, 1]),
+                        "humidity": float(telemetry_arr[row_idx, 2]),
+                        "pressure": float(telemetry_arr[row_idx, 3]),
+                        "wind_speed": float(telemetry_arr[row_idx, 4]),
+                        "wind_sin": float(telemetry_arr[row_idx, 5]),
+                        "wind_cos": float(telemetry_arr[row_idx, 6]),
+                        "precipitation": float(telemetry_arr[row_idx, 7]),
+                    })
+                raw_vec = extract_zero_leakage_feature_vector(records, t0_timestamp=records[-1]["timestamp"])
+                norm_vec = (raw_vec - self._feat_means) / self._feat_stds
+                context_tensor = torch.tensor(norm_vec, dtype=torch.float32).unsqueeze(0).to(self.device)
+
+                out = self.model(
+                    x_tensor,
+                    context_tensor,
+                    dt_tensor,
+                    initial_water=init_water_tensor,
+                    origin_weather=orig_weather_tensor,
+                )
+                final_rain_prob = float(out["rain_prob"][0, 0].item())
+                final_precip_mm = float(out["precipitation_mm"][0, 0].item())
+                predicted_water = float(out["water_level"][0, 0].item())
+                pred_temp = float(out["temperature"][0, 0].item())
+                pred_rh = float(out["humidity"][0, 0].item())
+                pred_p = float(out["pressure"][0, 0].item())
+                pred_ws = float(out["wind_speed"][0, 0].item())
+                u_val = float(out["wind_u"][0, 0].item())
+                v_val = float(out["wind_v"][0, 0].item())
+                pred_wind_dir = (math.degrees(math.atan2(v_val, u_val)) + 360.0) % 360.0
+                if pred_ws < 1.0:
+                    pred_wind_dir = None
+            elif is_garcia:
                 out = self.model(
                     x_tensor,
                     dt_tensor,

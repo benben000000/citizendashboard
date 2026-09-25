@@ -397,6 +397,34 @@ class TelemetryDataPipeline:
         stds = arr.std(axis=0)
         self.norm_stds = np.where(stds < 1e-4, 1.0, stds).astype(np.float32)
 
+    def get_feature_augmented_norm_stats(self, schema=None):
+        """Fit normalization means and stds strictly on the training partition for all 75 engineered features."""
+        target_schema = schema if schema is not None else FEATURE_AUGMENTED_SCHEMA
+        if hasattr(self, "_feat_aug_means") and self._feat_aug_means is not None:
+            return self._feat_aug_means, self._feat_aug_stds
+
+        feature_vectors = []
+        for st_id, st_dict in self.station_hourly.items():
+            split_hours = sorted([h for h in st_dict if h <= self.train_end])
+            for k in range(len(split_hours)):
+                t0 = split_hours[k]
+                win_start = t0 - timedelta(hours=DEFAULT_SEQ_LEN - 1)
+                win_records = [st_dict[h] for h in split_hours if win_start <= h <= t0]
+                if len(win_records) >= 3:
+                    vec = extract_zero_leakage_feature_vector(win_records, t0_timestamp=t0, station_id=st_id, schema=target_schema)
+                    feature_vectors.append(vec)
+
+        if len(feature_vectors) < 10:
+            self._feat_aug_means = np.zeros(len(target_schema), dtype=np.float32)
+            self._feat_aug_stds = np.ones(len(target_schema), dtype=np.float32)
+        else:
+            arr = np.stack(feature_vectors)
+            self._feat_aug_means = arr.mean(axis=0).astype(np.float32)
+            stds = arr.std(axis=0).astype(np.float32)
+            self._feat_aug_stds = np.where(stds < 1e-4, 1.0, stds).astype(np.float32)
+
+        return self._feat_aug_means, self._feat_aug_stds
+
     def generate_data_quality_report(
         self,
         output_path: str = None,
@@ -500,6 +528,33 @@ def normalize_features(features: np.ndarray, means: np.ndarray, stds: np.ndarray
 def denormalize_features(features: np.ndarray, means: np.ndarray, stds: np.ndarray) -> np.ndarray:
     """Denormalize scaled features back to physical units."""
     return features * stds + means
+
+
+# ---------------------------------------------------------------------------
+# Feature-Augmented Schema (75 Zero-Leakage Engineered Features)
+# ---------------------------------------------------------------------------
+FEATURE_AUGMENTED_SCHEMA = (
+    "doy_cos", "doy_sin", "dry_spell_hours", "hour_cos", "hour_sin",
+    "humidity_lag_12h", "humidity_lag_1h", "humidity_lag_24h", "humidity_lag_3h", "humidity_lag_6h",
+    "humidity_mean_12h", "humidity_mean_24h", "humidity_mean_3h", "humidity_mean_6h",
+    "is_daylight",
+    "precip_lag_12h", "precip_lag_1h", "precip_lag_24h", "precip_lag_3h", "precip_lag_6h",
+    "precip_sum_12h", "precip_sum_24h", "precip_sum_3h", "precip_sum_6h",
+    "pressure_dp_1h", "pressure_dp_3h",
+    "pressure_lag_12h", "pressure_lag_1h", "pressure_lag_24h", "pressure_lag_3h", "pressure_lag_6h",
+    "pressure_mean_12h", "pressure_mean_24h", "pressure_mean_3h", "pressure_mean_6h",
+    "pressure_std_12h", "pressure_std_24h", "pressure_std_3h", "pressure_std_6h",
+    "pressure_tendency_cat", "rain_persistence_hours",
+    "t0_calm_wind", "t0_humidity", "t0_precipitation", "t0_pressure", "t0_temperature",
+    "t0_wind_speed", "t0_wind_u", "t0_wind_v",
+    "temp_lag_12h", "temp_lag_1h", "temp_lag_24h", "temp_lag_3h", "temp_lag_6h",
+    "temp_max_12h", "temp_max_24h", "temp_max_3h", "temp_max_6h",
+    "temp_mean_12h", "temp_mean_24h", "temp_mean_3h", "temp_mean_6h",
+    "temp_min_12h", "temp_min_24h", "temp_min_3h", "temp_min_6h",
+    "temp_std_12h", "temp_std_24h", "temp_std_3h", "temp_std_6h",
+    "wind_speed_lag_12h", "wind_speed_lag_1h", "wind_speed_lag_24h", "wind_speed_lag_3h", "wind_speed_lag_6h",
+)
+NUM_FEATURE_AUGMENTED = len(FEATURE_AUGMENTED_SCHEMA)  # 75
 
 
 def extract_zero_leakage_features(
@@ -629,6 +684,22 @@ def extract_zero_leakage_features(
     feats["is_daylight"] = 1.0 if (6 <= pht_hour < 18) else 0.0
 
     return feats
+
+
+def extract_zero_leakage_feature_vector(
+    window_records: list,
+    t0_timestamp: datetime = None,
+    station_id: str = None,
+    schema: tuple = FEATURE_AUGMENTED_SCHEMA,
+) -> np.ndarray:
+    """
+    Extract zero-leakage engineered features as an ordered 1D numpy array of shape [NUM_FEATURE_AUGMENTED].
+    Strictly guaranteed to use only observations <= t0_timestamp.
+    """
+    feats = extract_zero_leakage_features(window_records, t0_timestamp=t0_timestamp, station_id=station_id)
+    if not feats:
+        return np.zeros(len(schema), dtype=np.float32)
+    return np.array([feats.get(k, 0.0) for k in schema], dtype=np.float32)
 
 
 def build_forecast_windows(
@@ -887,6 +958,76 @@ def build_forecast_windows(
     return tensors
 
 
+def build_feature_augmented_forecast_windows(
+    pipeline: TelemetryDataPipeline,
+    split: str = "train",
+    horizon: int = 1,
+    seq_len: int = DEFAULT_SEQ_LEN,
+    max_samples: int = None,
+    norm_means: np.ndarray = None,
+    norm_stds: np.ndarray = None,
+    feat_means: np.ndarray = None,
+    feat_stds: np.ndarray = None,
+    mode: str = "temporal",
+    holdout_stations: list = None,
+    return_metadata: bool = False,
+):
+    """
+    Build future-forecast windows for candidate feature-augmented models:
+      - Returns canonical normalized sequential telemetry [batch, seq_len, 8]
+      - PLUS normalized zero-leakage engineered features at origin t0 [batch, 75]
+      - PLUS dt tensor [batch, seq_len, 1]
+      - PLUS targets: rain_prob, precip_mm, water_level, has_water
+      - Optional: metadata_list
+    """
+    if feat_means is None or feat_stds is None:
+        feat_means, feat_stds = pipeline.get_feature_augmented_norm_stats()
+
+    canonical_res = build_forecast_windows(
+        pipeline=pipeline,
+        split=split,
+        horizon=horizon,
+        seq_len=seq_len,
+        max_samples=max_samples,
+        norm_means=norm_means,
+        norm_stds=norm_stds,
+        mode=mode,
+        holdout_stations=holdout_stations,
+        return_metadata=True,
+    )
+    if canonical_res is None:
+        return None
+
+    telemetry, dt_t, rain_t, precip_t, water_t, has_w_t, metadata_list = canonical_res
+
+    # Extract and normalize engineered feature vector for each sample
+    feat_context_list = []
+    for meta in metadata_list:
+        st_id = meta["station_id"]
+        t0 = parse_utc_timestamp(meta["origin_timestamp"])
+        st_dict = pipeline.station_hourly[st_id]
+        win_start = t0 - timedelta(hours=seq_len - 1)
+        win_records = [st_dict[h] for h in sorted(st_dict.keys()) if win_start <= h <= t0]
+        raw_vec = extract_zero_leakage_feature_vector(win_records, t0_timestamp=t0, station_id=st_id)
+        norm_vec = (raw_vec - feat_means) / feat_stds
+        feat_context_list.append(norm_vec)
+
+    context_tensor = torch.tensor(np.stack(feat_context_list), dtype=torch.float32)
+
+    tensors = (
+        telemetry,
+        context_tensor,
+        dt_t,
+        rain_t,
+        precip_t,
+        water_t,
+        has_w_t,
+    )
+    if return_metadata:
+        return (*tensors, metadata_list)
+    return tensors
+
+
 class TelemetryDataset(Dataset):
     """
     PyTorch Dataset wrapper around the canonical future-forecast window contract.
@@ -970,6 +1111,122 @@ class TelemetryDataset(Dataset):
 
         item = {
             "telemetry": self.telemetry[idx],
+            "dt": self.dt[idx],
+            "rain_prob": self.rain_prob[idx],
+            "precip_mm": self.precip_mm[idx],
+            "water_level": self.water_level[idx],
+            "last_water": torch.tensor([last_w if has_w else 0.0], dtype=torch.float32),
+            "water_delta": torch.tensor([w_delta if has_w else 0.0], dtype=torch.float32),
+            "has_water": self.has_water[idx],
+            "origin_weather": torch.tensor(orig_w, dtype=torch.float32),
+            "target_weather": torch.tensor(tgt_w, dtype=torch.float32),
+            "target_temp": torch.tensor([tgt_w[0]], dtype=torch.float32),
+            "target_humidity": torch.tensor([tgt_w[1]], dtype=torch.float32),
+            "target_pressure": torch.tensor([tgt_w[2]], dtype=torch.float32),
+            "target_wind_speed": torch.tensor([tgt_w[3]], dtype=torch.float32),
+            "target_wind_u": torch.tensor([tgt_w[4]], dtype=torch.float32),
+            "target_wind_v": torch.tensor([tgt_w[5]], dtype=torch.float32),
+        }
+        if self.return_metadata and meta is not None:
+            item["metadata"] = meta
+        return item
+
+
+class FeatureAugmentedTelemetryDataset(Dataset):
+    """
+    PyTorch Dataset wrapper providing both sequential telemetry [seq_len, 8]
+    and normalized zero-leakage engineered features [75] at forecast origin t0.
+    """
+
+    def __init__(
+        self,
+        split: str = "train",
+        horizon: int = 1,
+        seq_len: int = DEFAULT_SEQ_LEN,
+        max_samples: int = None,
+        norm_means: np.ndarray = None,
+        norm_stds: np.ndarray = None,
+        feat_means: np.ndarray = None,
+        feat_stds: np.ndarray = None,
+        return_metadata: bool = False,
+        mode: str = "temporal",
+        holdout_stations: list = None,
+        pipeline: TelemetryDataPipeline = None,
+    ):
+        self.split = split
+        self.horizon = horizon
+        self.seq_len = seq_len
+        self.return_metadata = return_metadata
+
+        if pipeline is None:
+            pipeline = get_telemetry_pipeline()
+        self.pipeline = pipeline
+
+        self.norm_means = norm_means if norm_means is not None else pipeline.norm_means
+        self.norm_stds = norm_stds if norm_stds is not None else pipeline.norm_stds
+
+        if feat_means is None or feat_stds is None:
+            feat_means, feat_stds = pipeline.get_feature_augmented_norm_stats()
+        self.feat_means = feat_means
+        self.feat_stds = feat_stds
+
+        res = build_feature_augmented_forecast_windows(
+            pipeline=self.pipeline,
+            split=split,
+            horizon=horizon,
+            seq_len=seq_len,
+            max_samples=max_samples,
+            norm_means=self.norm_means,
+            norm_stds=self.norm_stds,
+            feat_means=self.feat_means,
+            feat_stds=self.feat_stds,
+            mode=mode,
+            holdout_stations=holdout_stations,
+            return_metadata=True,
+        )
+
+        if res is None:
+            self.telemetry = torch.empty(0, seq_len, NUM_FEATURES)
+            self.context = torch.empty(0, NUM_FEATURE_AUGMENTED)
+            self.dt = torch.empty(0, seq_len, 1)
+            self.rain_prob = torch.empty(0, 1)
+            self.precip_mm = torch.empty(0, 1)
+            self.water_level = torch.empty(0, 1)
+            self.has_water = torch.empty(0, 1)
+            self.metadata = []
+        else:
+            self.telemetry, self.context, self.dt, self.rain_prob, self.precip_mm, self.water_level, self.has_water, self.metadata = res
+
+    def __len__(self):
+        return self.telemetry.shape[0]
+
+    def __getitem__(self, idx):
+        has_w = bool(self.has_water[idx, 0].item() > 0.5)
+        meta = self.metadata[idx] if (self.metadata and idx < len(self.metadata)) else None
+        last_w = meta["last_observed_water"] if (meta and meta.get("last_observed_water") is not None) else 0.0
+        w_delta = meta["actual_water_delta"] if (meta and meta.get("actual_water_delta") is not None) else 0.0
+
+        orig_w = [
+            meta["origin_temperature"],
+            meta["origin_humidity"],
+            meta["origin_pressure"],
+            meta["origin_wind_speed"],
+            meta["origin_wind_u"],
+            meta["origin_wind_v"],
+        ] if meta and "origin_temperature" in meta else [0.0] * 6
+
+        tgt_w = [
+            meta["target_temperature"],
+            meta["target_humidity"],
+            meta["target_pressure"],
+            meta["target_wind_speed"],
+            meta["target_wind_u"],
+            meta["target_wind_v"],
+        ] if meta and "target_temperature" in meta else [0.0] * 6
+
+        item = {
+            "telemetry": self.telemetry[idx],
+            "context": self.context[idx],
             "dt": self.dt[idx],
             "rain_prob": self.rain_prob[idx],
             "precip_mm": self.precip_mm[idx],

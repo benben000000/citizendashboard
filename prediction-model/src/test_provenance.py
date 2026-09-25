@@ -224,6 +224,7 @@ class TestProvenanceGate(unittest.TestCase):
             "test_inference_contract.py",
             "test_monitoring.py",
             "test_predictive_quality.py",
+            "train_predictive_quality.py",
             "anomaly_detector.py",
             "audit_data_availability.py",
         ]
