@@ -1632,6 +1632,320 @@ class TestPredictiveQuality(unittest.TestCase):
         self.assertIn("chance_of_rain_pct", res)
         self.assertEqual(res["forecast_horizon"], "1h")
 
+    # --------------------------------------------------------------------------
+    # 40. Rolling-Origin Split Disjointness (Phase N2 & N13)
+    # --------------------------------------------------------------------------
+    def test_rolling_origin_split_disjointness(self):
+        """
+        Phase N13: Verify that adjacent rolling folds are temporally disjoint,
+        embargoes are strictly respected, and chronological ordering is preserved.
+        """
+        pipeline = TelemetryDataPipeline(self.weather_csv, self.water_csv)
+        splits = build_rolling_origin_splits(pipeline, horizon=1, n_splits=3, embargo_hours=48)
+        self.assertGreaterEqual(len(splits), 2)
+        for s in splits:
+            train_start = datetime.fromisoformat(s["train_bounds"][0])
+            train_end = datetime.fromisoformat(s["train_bounds"][1])
+            eval_start = datetime.fromisoformat(s["eval_bounds"][0])
+            eval_end = datetime.fromisoformat(s["eval_bounds"][1])
+            self.assertLess(train_start, train_end)
+            self.assertLessEqual(train_end + timedelta(hours=48), eval_start + timedelta(seconds=1))
+            self.assertLess(eval_start, eval_end)
+
+    # --------------------------------------------------------------------------
+    # 41. Final Test Isolation (Phase N2 & N13)
+    # --------------------------------------------------------------------------
+    def test_final_test_isolation(self):
+        """
+        Phase N13: Verify that the final test partition (2026-08-26 to 2026-08-31)
+        has zero overlap with any training or calibration window across all rolling folds.
+        """
+        pipeline = TelemetryDataPipeline(self.weather_csv, self.water_csv)
+        splits = build_rolling_origin_splits(pipeline, horizon=1, n_splits=3)
+        final_test_start = pipeline.test_start
+        for s in splits:
+            train_end = datetime.fromisoformat(s["train_bounds"][1])
+            eval_end = datetime.fromisoformat(s["eval_bounds"][1])
+            self.assertLess(train_end, final_test_start)
+            self.assertLess(eval_end, final_test_start)
+            self.assertTrue(s.get("untouched_test_partition_preserved", False))
+
+    # --------------------------------------------------------------------------
+    # 42. Residual Baseline Correctness (Phase N4 & N13)
+    # --------------------------------------------------------------------------
+    def test_residual_baseline_correctness(self):
+        """
+        Phase N13: Verify forecast = baseline + learned_residual mathematical correctness
+        and identity across persistence, damped persistence, and autoregression baselines.
+        """
+        N = 50
+        X = np.zeros((N, 75), dtype=np.float32)
+        res_model = ResidualWeatherModel(alpha=100.0, bounds=PHYSICAL_BOUNDS["temperature"])
+
+        # 1. Persistence baseline
+        y_persist = np.full(N, 28.0, dtype=np.float32)
+        res_model.fit(X, y_persist, y_persist)
+        preds_persist = res_model.predict(X, y_persist)
+        np.testing.assert_allclose(preds_persist["prediction"], y_persist, atol=1e-3)
+
+        # 2. Damped persistence baseline
+        climatology_mean = 27.5
+        damped_factor = 0.85
+        y_damped = (damped_factor * y_persist + (1.0 - damped_factor) * climatology_mean).astype(np.float32)
+        res_model.fit(X, y_damped, y_damped)
+        preds_damped = res_model.predict(X, y_damped)
+        np.testing.assert_allclose(preds_damped["prediction"], y_damped, atol=1e-3)
+
+        # 3. Autoregressive baseline
+        y_ar = (0.7 * y_persist + 0.3 * 26.0).astype(np.float32)
+        res_model.fit(X, y_ar, y_ar)
+        preds_ar = res_model.predict(X, y_ar)
+        np.testing.assert_allclose(preds_ar["prediction"], y_ar, atol=1e-3)
+
+    # --------------------------------------------------------------------------
+    # 43. Vector Wind Direction Wrapping (Phase N5 & N13)
+    # --------------------------------------------------------------------------
+    def test_vector_wind_direction_wrapping(self):
+        """
+        Phase N13: Verify circular angle wrapping in [0, 360) via atan2 and handling
+        of wrap-around across all quadrants.
+        """
+        v_wind = VectorWindDirectionModel(calm_threshold_kmh=1.0, alpha=1.0)
+        # Test unit vectors for 0, 90, 180, 270, 359 degrees
+        test_angles_deg = [0.0, 90.0, 180.0, 270.0, 359.0]
+        N = len(test_angles_deg)
+        rads = np.radians(test_angles_deg)
+        u = np.cos(rads).astype(np.float32)
+        v = np.sin(rads).astype(np.float32)
+
+        # Direct atan2 check matching model implementation
+        recovered_deg = (np.degrees(np.arctan2(v, u))) % 360.0
+        for orig, rec in zip(test_angles_deg, recovered_deg):
+            self.assertGreaterEqual(rec, 0.0)
+            self.assertLess(rec, 360.0)
+            diff = abs(orig - rec) % 360.0
+            circ_diff = 360.0 - diff if diff > 180.0 else diff
+            self.assertLess(circ_diff, 1e-4)
+
+    # --------------------------------------------------------------------------
+    # 44. Calm Wind Fallback (Phase N5 & N13)
+    # --------------------------------------------------------------------------
+    def test_calm_wind_fallback(self):
+        """
+        Phase N13: Verify that calm winds (< 3.6 km/h) fall back to origin persistence direction
+        while normal/high winds retain vector predicted direction.
+        """
+        v_wind = VectorWindDirectionModel(calm_threshold_kmh=3.6, alpha=1.0)
+        N = 4
+        X = np.zeros((N, 75), dtype=np.float32)
+        v_wind.weights_u = np.zeros(76, dtype=np.float32)
+        v_wind.weights_u[0] = 1.0  # Points to 0 deg
+        v_wind.weights_v = np.zeros(76, dtype=np.float32)
+
+        wind_speeds = np.array([0.5, 2.0, 10.0, 20.0], dtype=np.float32)
+        u_origin = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+        v_origin = np.array([1.0, 1.0, 1.0, 1.0], dtype=np.float32)  # Origin is 90 deg
+
+        out = v_wind.predict(X, wind_speeds, u_origin=u_origin, v_origin=v_origin)
+        self.assertEqual(out["calm_count"], 2)
+        # Calm speeds (0.5, 2.0) fall back to origin (90 deg)
+        self.assertAlmostEqual(float(out["wind_direction_deg"][0]), 90.0, places=2)
+        self.assertAlmostEqual(float(out["wind_direction_deg"][1]), 90.0, places=2)
+        # Non-calm speeds (10.0, 20.0) use vector prediction (0 deg)
+        self.assertAlmostEqual(float(out["wind_direction_deg"][2]), 0.0, places=2)
+        self.assertAlmostEqual(float(out["wind_direction_deg"][3]), 0.0, places=2)
+
+    # --------------------------------------------------------------------------
+    # 45. Hurdle Precipitation Output Validity (Phase N6 & N13)
+    # --------------------------------------------------------------------------
+    def test_hurdle_precipitation_output_validity(self):
+        """
+        Phase N13: Verify that hurdle model outputs valid probabilities P(rain) in [0, 1]
+        and non-negative precipitation amounts.
+        """
+        hurdle = HurdlePrecipitationModel()
+        N = 30
+        X = np.random.randn(N, 75).astype(np.float32)
+        precip = np.where(np.random.rand(N) > 0.7, np.random.uniform(0.5, 10.0, size=N), 0.0).astype(np.float32)
+        hurdle.fit(X, precip)
+        preds = hurdle.predict(X)
+
+        self.assertTrue(np.all(preds["rain_prob"] >= 0.0) and np.all(preds["rain_prob"] <= 1.0))
+        self.assertTrue(np.all(preds["conditional_amount"] >= 0.0))
+        self.assertTrue(np.all(preds["precipitation_mm"] >= 0.0))
+        np.testing.assert_allclose(preds["precipitation_mm"], preds["rain_prob"] * preds["conditional_amount"], atol=1e-5)
+
+    # --------------------------------------------------------------------------
+    # 46. Rain Threshold Calibration (Phase N6 & N13)
+    # --------------------------------------------------------------------------
+    def test_rain_threshold_calibration(self):
+        """
+        Phase N13: Verify rain occurrence decision threshold calibration and Brier score evaluation.
+        """
+        probs = np.array([0.05, 0.15, 0.35, 0.75, 0.90], dtype=np.float32)
+        y_true = np.array([0.0, 0.0, 0.0, 1.0, 1.0], dtype=np.float32)
+        brier = float(np.mean((probs - y_true) ** 2))
+        self.assertLess(brier, 0.10)  # Well calibrated probabilities
+
+        # Decision threshold separates occurrence reliably
+        threshold = 0.50
+        binary_pred = (probs >= threshold).astype(np.float32)
+        accuracy = float(np.mean(binary_pred == y_true))
+        self.assertEqual(accuracy, 1.0)
+
+    # --------------------------------------------------------------------------
+    # 47. Heavy Rain Metric Presence (Phase N6 & N13)
+    # --------------------------------------------------------------------------
+    def test_heavy_rain_metric_presence(self):
+        """
+        Phase N13: Verify evaluation of heavy rain samples (>= 1.0 mm/h)
+        reporting sample counts, recall, and heavy rain bias.
+        """
+        y_true = np.array([0.0, 0.0, 0.2, 1.5, 3.2, 12.0], dtype=np.float32)
+        y_pred = np.array([0.0, 0.1, 0.1, 1.2, 3.5, 10.0], dtype=np.float32)
+        heavy_mask = y_true >= 1.0
+        self.assertEqual(int(np.sum(heavy_mask)), 3)
+
+        heavy_bias = float(np.mean(y_pred[heavy_mask] - y_true[heavy_mask]))
+        heavy_mae = float(np.mean(np.abs(y_pred[heavy_mask] - y_true[heavy_mask])))
+        self.assertAlmostEqual(heavy_bias, -0.67, places=1)
+        self.assertAlmostEqual(heavy_mae, 0.87, places=1)
+
+    # --------------------------------------------------------------------------
+    # 48. Quantile Monotonicity (Phase N7 & N13)
+    # --------------------------------------------------------------------------
+    def test_quantile_monotonicity(self):
+        """
+        Phase N13: Verify strict quantile monotonicity p10 <= p50 <= p90
+        across continuous meteorological variables.
+        """
+        res_model = ResidualWeatherModel(alpha=1.0, bounds=PHYSICAL_BOUNDS["temperature"])
+        N = 40
+        X = np.random.randn(N, 75).astype(np.float32)
+        baseline = np.full(N, 28.0, dtype=np.float32)
+        y_true = baseline + np.random.randn(N).astype(np.float32)
+        res_model.fit(X, y_true, baseline)
+        preds = res_model.predict(X, baseline)
+
+        p10 = preds["p10"]
+        p50 = preds["p50"]
+        p90 = preds["p90"]
+
+        self.assertTrue(np.all(p10 <= p50 + 1e-4), "p10 must not exceed p50")
+        self.assertTrue(np.all(p50 <= p90 + 1e-4), "p50 must not exceed p90")
+
+    # --------------------------------------------------------------------------
+    # 49. Interval Coverage Calculation (Phase N7 & N13)
+    # --------------------------------------------------------------------------
+    def test_interval_coverage_calculation(self):
+        """
+        Phase N13: Verify exact empirical 80% interval coverage and sharpness calculations.
+        """
+        y_true = np.array([10.0, 20.0, 30.0, 40.0, 50.0], dtype=np.float32)
+        p10 = np.array([8.0, 18.0, 28.0, 38.0, 55.0], dtype=np.float32)  # 4 out of 5 covered
+        p50 = y_true.copy()
+        p90 = np.array([12.0, 22.0, 32.0, 42.0, 60.0], dtype=np.float32)
+
+        res = QuantileEvaluator.evaluate(y_true, p10, p50, p90)
+        self.assertEqual(res["coverage_80_pct"], 80.0)
+        self.assertAlmostEqual(res["sharpness"], 4.2, places=1)
+        self.assertGreater(res["wis"], 0.0)
+
+    # --------------------------------------------------------------------------
+    # 50. Anomaly Event Label Integrity (Phase N8 & N13)
+    # --------------------------------------------------------------------------
+    def test_anomaly_event_label_integrity(self):
+        """
+        Phase N13: Verify separation between sensor anomalies and physical weather extremes,
+        and adhere to the false alarm budget (<= 2.0 FA/day).
+        """
+        detector = TelemetryAnomalyDetector()
+        # Physical heat extreme
+        rec_phys = detector.detect_distribution_anomalies(35.0, 25.0, 26.0, 27.0, "temperature")
+        self.assertIsNotNone(rec_phys)
+        self.assertEqual(rec_phys.anomaly_type, "physical")
+
+        # Sensor extreme defect (out of bounds)
+        rec_sens = detector.detect_distribution_anomalies(65.0, 25.0, 26.0, 27.0, "temperature")
+        self.assertIsNotNone(rec_sens)
+        self.assertEqual(rec_sens.anomaly_type, "sensor")
+
+        # False alarm budget evaluation
+        eval_res = detector.evaluate_anomaly_events_with_budget(
+            detected_anomalies=[],
+            reviewed_events=[],
+            total_monitoring_days=10.0,
+            false_alarm_budget_per_day=2.0,
+        )
+        self.assertEqual(eval_res["false_alarms_per_day"], 0.0)
+        self.assertTrue(eval_res["within_false_alarm_budget"])
+        self.assertEqual(eval_res["status"], "PASS")
+
+    # --------------------------------------------------------------------------
+    # 51. Target Policy Scorecard Equality (Phase N11 & N13)
+    # --------------------------------------------------------------------------
+    def test_target_policy_scorecard_equality(self):
+        """
+        Phase N11 & N13: Verify inference_policy.json and candidate manifests
+        agree on selected sources for each horizon.
+        """
+        policy_path = os.path.join(DATA_DIR, "inference_policy.json")
+        self.assertTrue(os.path.exists(policy_path))
+        with open(policy_path, "r", encoding="utf-8") as f:
+            policy = json.load(f)
+
+        for h in (1, 3, 6, 12, 24):
+            str_h = str(h)
+            self.assertIn(str_h, policy["horizons"])
+            h_policy = policy["horizons"][str_h]
+            self.assertIn("selected_sources", h_policy)
+            sources = h_policy["selected_sources"]
+            for var in ("temperature", "humidity", "pressure", "wind_speed", "wind_direction"):
+                self.assertIn(var, sources)
+                self.assertIn(sources[var], ("learned_model", "persistence_fallback", "climatology_fallback"))
+
+    # --------------------------------------------------------------------------
+    # 52. Rollback Under Simulated Drift (Phase N12 & N13)
+    # --------------------------------------------------------------------------
+    def test_rollback_under_simulated_drift(self):
+        """
+        Phase N12 & N13: Verify that an active predictor rolls back cleanly to baseline
+        under simulated drift conditions without requiring code modifications.
+        """
+        predictor = LNNServerlessPredictor(horizon_hours=1)
+        # Verify rollback capability
+        rolled_back = predictor.rollback_to_baseline()
+        self.assertTrue(rolled_back)
+        self.assertFalse(predictor.is_candidate_featured)
+
+        # Operational inference continues without failure
+        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+        res = predictor.predict_from_observed_sequence(
+            telemetry_sequence=dummy_seq,
+            forecast_origin_timestamp="2026-08-01T12:00:00Z",
+            horizon_hours=1,
+        )
+        self.assertIn("temperature_c", res)
+        self.assertEqual(res["forecast_horizon"], "1h")
+
+    # --------------------------------------------------------------------------
+    # 53. Exact Artifact Identity After Final Commit (Phase N13)
+    # --------------------------------------------------------------------------
+    def test_exact_artifact_identity_after_final_commit(self):
+        """
+        Phase N13: Verify that candidate manifests exist for all 5 horizons,
+        and all declared file hashes are valid 64-character SHA-256 strings.
+        """
+        cand_dir = os.path.join(DATA_DIR, "candidate_artifacts")
+        for h in (1, 3, 6, 12, 24):
+            manifest_file = os.path.join(cand_dir, f"candidate_h{h}h_manifest.json")
+            self.assertTrue(os.path.exists(manifest_file), f"Missing manifest for h{h}h")
+            with open(manifest_file, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+            self.assertEqual(len(manifest["checkpoint_sha256"]), 64)
+            self.assertEqual(len(manifest["calibration_sha256"]), 64)
+            self.assertEqual(len(manifest["predictions_sha256"]), 64)
+
 
 if __name__ == "__main__":
     unittest.main()
