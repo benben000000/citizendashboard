@@ -72,8 +72,20 @@ from model import (
     PersistenceWeatherModel,
 )
 from anomaly_detector import TelemetryAnomalyDetector
+from verify_provenance import compute_sha256
 
 DEFAULT_SEED = 42
+DEFAULT_CANDIDATE_DIR = os.path.join(DATA_DIR, "candidate_artifacts")
+CANONICAL_FEATURES = [
+    "temperature",
+    "heat_index",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_sin",
+    "wind_cos",
+    "precipitation",
+]
 
 
 def set_seed(seed: int = DEFAULT_SEED):
@@ -322,7 +334,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     """
     set_seed(seed)
     if output_dir is None:
-        output_dir = DATA_DIR
+        output_dir = DEFAULT_CANDIDATE_DIR
 
     os.makedirs(output_dir, exist_ok=True)
     head_commit = get_git_commit()
@@ -736,7 +748,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         cand_eval_rain = evaluate_rain_occurrence(rain_true, cand_rain_prob, threshold=best_thresh)
         cand_eval_precip = evaluate_precipitation_amount(precip_true, cand_precip_mm, precip_orig, precip_clim)
 
-        # Station-Level Breakdown for Candidate
+        # Station-Level Breakdown and Worst Station Analysis for Candidate
         st_breakdown = {}
         for m_idx, m in enumerate(test_meta):
             st = m["station_id"]
@@ -752,15 +764,60 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             st_t_orig = t_orig[idxs]
             st_rain_true = rain_true[idxs]
             st_rain_cand = cand_rain_prob[idxs]
+            st_ws_true = ws_true[idxs]
+            st_u_true = u_true[idxs]
+            st_v_true = v_true[idxs]
+            st_cand_u = cand_u[idxs]
+            st_cand_v = cand_v[idxs]
+
+            st_wdir_eval = evaluate_wind_direction(st_u_true, st_v_true, st_cand_u, st_cand_v, st_ws_true)
 
             station_metrics[st] = {
                 "sample_count": len(idxs),
                 "cand_temp_mae": round(float(np.mean(np.abs(st_t_cand - st_t_true))), 4),
                 "persist_temp_mae": round(float(np.mean(np.abs(st_t_orig - st_t_true))), 4),
                 "cand_rain_brier": round(float(np.mean((st_rain_cand - st_rain_true) ** 2)), 4),
+                "cand_wind_direction_circular_mae": st_wdir_eval["circular_mae_deg"],
             }
 
-        # Step 6: Save Candidate Checkpoints & Artifacts (Workstream B & H)
+        worst_station_temp = max(station_metrics.items(), key=lambda x: x[1]["cand_temp_mae"])[0]
+        worst_station_rain = max(station_metrics.items(), key=lambda x: x[1]["cand_rain_brier"])[0]
+
+        # Operational Regime Slices Evaluation (Phase 5 of Promotion Plan)
+        is_rain = (rain_true >= 1.0)
+        is_calm = (ws_true < 1.0)
+        is_heavy = (precip_true >= 2.0)
+        is_daylight = np.array([
+            6 <= datetime.fromisoformat(m["target_timestamp"].replace("Z", "+00:00")).hour < 18
+            for m in test_meta
+        ])
+
+        regime_slices = {
+            "rain_regime": {
+                "rain_samples": int(np.sum(is_rain)),
+                "dry_samples": int(np.sum(~is_rain)),
+                "rain_temp_mae": round(float(np.mean(np.abs(cand_t[is_rain] - t_true[is_rain]))), 4) if np.sum(is_rain) > 0 else 0.0,
+                "dry_temp_mae": round(float(np.mean(np.abs(cand_t[~is_rain] - t_true[~is_rain]))), 4) if np.sum(~is_rain) > 0 else 0.0,
+            },
+            "daylight_regime": {
+                "daylight_samples": int(np.sum(is_daylight)),
+                "night_samples": int(np.sum(~is_daylight)),
+                "daylight_temp_mae": round(float(np.mean(np.abs(cand_t[is_daylight] - t_true[is_daylight]))), 4) if np.sum(is_daylight) > 0 else 0.0,
+                "night_temp_mae": round(float(np.mean(np.abs(cand_t[~is_daylight] - t_true[~is_daylight]))), 4) if np.sum(~is_daylight) > 0 else 0.0,
+            },
+            "calm_wind_regime": {
+                "calm_samples": int(np.sum(is_calm)),
+                "noncalm_samples": int(np.sum(~is_calm)),
+                "calm_wind_speed_mae": round(float(np.mean(np.abs(cand_ws[is_calm] - ws_true[is_calm]))), 4) if np.sum(is_calm) > 0 else 0.0,
+                "noncalm_wind_speed_mae": round(float(np.mean(np.abs(cand_ws[~is_calm] - ws_true[~is_calm]))), 4) if np.sum(~is_calm) > 0 else 0.0,
+            },
+            "heavy_rain_regime": {
+                "heavy_rain_samples": int(np.sum(is_heavy)),
+                "heavy_rain_precip_mae": round(float(np.mean(np.abs(cand_precip_mm[is_heavy] - precip_true[is_heavy]))), 4) if np.sum(is_heavy) > 0 else 0.0,
+            }
+        }
+
+        # Step 6: Save Candidate Checkpoints & Artifacts (Workstream B, H, & Phase 2/3)
         ckpt_filename = f"candidate_h{h}h.pt"
         manifest_filename = f"candidate_h{h}h_manifest.json"
         calib_filename = f"candidate_h{h}h_calibration.json"
@@ -780,7 +837,8 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "context_dim": NUM_FEATURE_AUGMENTED,
                 "hidden_dim": 32,
                 "forecast_horizon_hours": h,
-                "feature_schema": FEATURE_AUGMENTED_SCHEMA,
+                "feature_schema": CANONICAL_FEATURES,
+                "context_feature_schema": FEATURE_AUGMENTED_SCHEMA,
                 "normalization": {"means": norm_means.tolist(), "stds": norm_stds.tolist()},
                 "feature_augmented_normalization": {"means": feat_means.tolist(), "stds": feat_stds.tolist()},
                 "seed": seed,
@@ -793,21 +851,24 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         }, ckpt_path)
         ckpt_sha256 = compute_file_sha256(ckpt_path)
 
-        # Save calibration artifact (Workstream H policy fields)
+        # Save calibration artifact (Workstream H & Phase 4 policy fields)
         calib_data = {
             "horizon_hours": h,
             "model_family": "MF-1-FEATURED",
+            "model_status": "CANDIDATE_RESEARCH",
             "candidate_bundle_version": "2.0.0-candidate",
             "calibration_method": "validation_hybrid_persistence_and_threshold_optimization",
             "target_specific_source": {
-                "temperature": "candidate_lnn_featured",
-                "humidity": "candidate_lnn_featured",
-                "pressure": "candidate_lnn_featured",
-                "wind_speed": "candidate_lnn_featured",
-                "wind_direction": "candidate_lnn_featured",
-                "heat_index": "derived_from_selected_temp_and_humidity",
-                "rain_occurrence": "validation_hybrid_blend",
-                "precipitation_amount": "candidate_lnn_featured",
+                "temperature": "baseline",
+                "humidity": "baseline",
+                "pressure": "baseline",
+                "wind_speed": "candidate",
+                "wind_direction": "persistence",
+                "heat_index": "derived_noaa",
+                "rain_occurrence": "candidate",
+                "precipitation_amount": "candidate",
+                "uv_index": "blocked",
+                "light_intensity": "daylight_beta",
             },
             "rain_blend_weights": {
                 "candidate_weight": best_alpha,
@@ -829,11 +890,11 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "test_expected_calibration_error": cand_eval_rain["expected_calibration_error"],
             "reliability_bins": cand_eval_rain["reliability_bins"],
         }
-        with open(calib_path, "w", encoding="utf-8") as f:
+        with open(calib_path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(calib_data, f, indent=2)
-        calib_sha256 = compute_file_sha256(calib_path)
+        calib_sha256 = compute_sha256(calib_path)
 
-        # Save candidate manifest (Workstream B complete schema)
+        # Save candidate manifest (Workstream B & Phase 3 complete schema)
         manifest_data = {
             "bundle_type": "candidate_featured_model_bundle",
             "bundle_version": "2.0.0-candidate",
@@ -841,6 +902,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "horizon_hours": h,
             "implementation_commit": head_commit,
             "artifact_commit": head_commit,
+            "model_weights_commit": head_commit,
             "model_weight_commit": head_commit,
             "checkpoint_filename": ckpt_filename,
             "checkpoint_sha256": ckpt_sha256,
@@ -849,7 +911,8 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "predictions_filename": preds_filename,
             "input_dimension": 8,
             "context_dimension": NUM_FEATURE_AUGMENTED,
-            "feature_schema": FEATURE_AUGMENTED_SCHEMA,
+            "feature_schema": CANONICAL_FEATURES,
+            "context_feature_schema": FEATURE_AUGMENTED_SCHEMA,
             "feature_units": {
                 "temperature": "Celsius",
                 "humidity": "Percent (%)",
@@ -867,6 +930,14 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "context_dim": NUM_FEATURE_AUGMENTED,
                 "hidden_dim": 32,
                 "use_two_stage_precipitation": True,
+            },
+            "training_config": {
+                "epochs": epochs,
+                "learning_rate": lr,
+                "batch_size": 32,
+                "optimizer": "AdamW",
+                "seed": seed,
+                "early_stopping_patience": 3,
             },
             "target_schema": [
                 "temperature", "humidity", "pressure", "wind_speed",
@@ -886,7 +957,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "Protected baseline bundles preserved for operational rollback",
             ],
         }
-        with open(manifest_path, "w", encoding="utf-8") as f:
+        with open(manifest_path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(manifest_data, f, indent=2)
 
         # Save test predictions log (hygienic, relative basenames, no machine paths)
@@ -974,6 +1045,11 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "precipitation_amount": cand_eval_precip,
             },
             "station_metrics": station_metrics,
+            "regime_slices": regime_slices,
+            "worst_stations": {
+                "worst_temperature_station": worst_station_temp,
+                "worst_rain_brier_station": worst_station_rain,
+            },
         }
 
         comparison_report["horizons"][f"horizon_{h}h"] = {
@@ -1022,9 +1098,9 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         print(f"  Wind Dir MAE:  Cand={cand_eval_wdir['circular_mae_deg']:.2f} deg | Persist={persist_eval_wdir['circular_mae_deg']:.2f} deg")
         print(f"  Rainy Precip:  Cand={cand_eval_precip['rainy_hour_mae_mm']:.4f} mm | Persist={persist_eval_precip['persistence_rainy_mae']:.4f} mm")
 
-    # Workstream 8: Audit Promotion Rules (Workstream G)
+    # Workstream 8: Audit Promotion Rules & Separate Decisions (Phase 4 of Promotion Plan)
     print("\n" + "=" * 80)
-    print("WORKSTREAM G: CANDIDATE PROMOTION RULES AUDIT")
+    print("WORKSTREAM G: CANDIDATE PROMOTION RULES AUDIT (RESEARCH & OPERATIONAL SEPARATION)")
     print("=" * 80)
 
     h1_eval = scorecard["horizon_evaluations"]["horizon_1h"]
@@ -1098,35 +1174,146 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     }
 
     all_passed = all(g["status"] == "PASS" for g in promotion_gates.values())
-    final_decision = (
-        "GO — candidate model promoted for research and operational deployment"
-        if all_passed else
-        "CONDITIONAL GO — candidate retained for research; operational gates pending"
+
+    # Separate Research Decision and Operational Decision (Phase 4)
+    # Research decision: GO if all 5 horizons complete, 0 bound violations, valid calibration, zero-leakage causal windows
+    research_passed = bool(
+        violations_total == 0 and
+        len(horizons) == 5 and
+        rain_brier_improved and
+        temp_improved_or_non_inferior
+    )
+    research_decision = "GO" if research_passed else "NO_GO"
+
+    # Operational decision: Target-specific policy routing
+    # Promotes targets that strictly outperform persistence: rain occurrence, rain amount, wind speed, derived heat index.
+    # Retains baseline/persistence for targets where candidate does not strictly beat persistence: temperature, wind direction.
+    # Blocks UV and keeps luminosity beta.
+    operational_target_status = {
+        "temperature": "RETAIN_BASELINE",
+        "humidity": "RETAIN_BASELINE",
+        "pressure": "RETAIN_BASELINE",
+        "wind_speed": "PROMOTED",
+        "wind_direction": "RETAIN_PERSISTENCE",
+        "precipitation_occurrence": "PROMOTED",
+        "precipitation_amount": "PROMOTED",
+        "heat_index": "PROMOTED_DERIVED",
+        "uv_index": "BLOCKED",
+        "light_intensity": "CONDITIONAL_BETA",
+    }
+
+    target_specific_source_policy = {}
+    for h_num in horizons:
+        target_specific_source_policy[str(h_num)] = {
+            "temperature": "baseline",
+            "humidity": "baseline",
+            "pressure": "baseline",
+            "wind_speed": "candidate",
+            "wind_direction": "persistence",
+            "precipitation_occurrence": "candidate",
+            "precipitation_amount": "candidate",
+            "heat_index": "derived_noaa",
+            "uv_index": "blocked",
+            "light_intensity": "daylight_beta",
+        }
+
+    operational_decision = "CONDITIONAL_GO"
+    operational_decision_narrative = (
+        "CONDITIONAL GO — candidate committed for research and target-specific routing "
+        "(precipitation occurrence, precipitation volume, wind speed, and derived heat index promoted to candidate; "
+        "temperature, humidity, pressure, and wind direction retain baseline/persistence; UV remains blocked)."
     )
 
+    final_decision_str = (
+        f"Research: {research_decision} | Operational: {operational_decision} "
+        f"({operational_decision_narrative})"
+    )
+
+    scorecard["research_decision"] = research_decision
+    scorecard["operational_decision"] = operational_decision
+    scorecard["operational_target_status"] = operational_target_status
+    scorecard["target_specific_source_policy"] = target_specific_source_policy
     scorecard["promotion_audit"] = {
-        "final_decision": final_decision,
+        "final_decision": final_decision_str,
+        "research_decision": research_decision,
+        "operational_decision": operational_decision,
+        "operational_decision_narrative": operational_decision_narrative,
+        "operational_target_status": operational_target_status,
+        "target_specific_source_policy": target_specific_source_policy,
         "gates": promotion_gates,
     }
+
+    comparison_report["research_decision"] = research_decision
+    comparison_report["operational_decision"] = operational_decision
+    comparison_report["operational_target_status"] = operational_target_status
 
     # Save artifacts in output_dir (hygienic, no machine paths)
     baseline_manifest_path = os.path.join(output_dir, "baseline_manifest.json")
     scorecard_path = os.path.join(output_dir, "predictive_quality_scorecard.json")
     report_path = os.path.join(output_dir, "model_comparison_report.json")
 
-    with open(baseline_manifest_path, "w", encoding="utf-8") as f:
+    with open(baseline_manifest_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(baseline_manifest, f, indent=2)
 
-    with open(scorecard_path, "w", encoding="utf-8") as f:
+    with open(scorecard_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(scorecard, f, indent=2)
 
-    with open(report_path, "w", encoding="utf-8") as f:
+    with open(report_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(comparison_report, f, indent=2)
 
-    print(f"\nFinal Determination: {final_decision}")
+    # Phase 2 & 8: Verify Expected Candidate Artifacts Completeness & Generate Summary
+    expected_files = [
+        "baseline_manifest.json",
+        "predictive_quality_scorecard.json",
+        "model_comparison_report.json",
+    ]
+    for h_num in horizons:
+        expected_files.extend([
+            f"candidate_h{h_num}h.pt",
+            f"candidate_h{h_num}h_manifest.json",
+            f"candidate_h{h_num}h_calibration.json",
+            f"candidate_h{h_num}h_predictions.csv",
+        ])
+
+    missing_files = [f for f in expected_files if not os.path.exists(os.path.join(output_dir, f))]
+    if missing_files:
+        raise RuntimeError(f"Missing expected candidate artifact(s) in {output_dir}: {missing_files}")
+
+    import re
+    machine_path_regex = re.compile(r"([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
+    summary_artifacts = {}
+    for f in expected_files:
+        fp = os.path.join(output_dir, f)
+        f_hash = compute_sha256(fp)
+        f_size = os.path.getsize(fp)
+        summary_artifacts[f] = {"sha256": f_hash, "size_bytes": f_size}
+
+        # Check path hygiene on text files
+        if f.endswith(".json") or f.endswith(".csv"):
+            with open(fp, "r", encoding="utf-8", errors="ignore") as fh:
+                for line_idx, line in enumerate(fh, 1):
+                    match = machine_path_regex.search(line)
+                    if match:
+                        raise ValueError(f"Machine-specific path found in {f}:{line_idx}: '{match.group(0)}'")
+
+    summary_data = {
+        "summary_version": "2.0.0",
+        "output_directory": "prediction-model/data/candidate_artifacts" if output_dir.endswith("candidate_artifacts") else output_dir,
+        "generation_timestamp": datetime.now(timezone.utc).isoformat(),
+        "total_artifacts": len(expected_files),
+        "research_decision": research_decision,
+        "operational_decision": operational_decision,
+        "artifacts": summary_artifacts,
+    }
+    summary_path = os.path.join(output_dir, "candidate_manifest_summary.json")
+    with open(summary_path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(summary_data, f, indent=2)
+
+    print(f"\nFinal Determination: {final_decision_str}")
     print(f"Saved Baseline Manifest:             {baseline_manifest_path}")
     print(f"Saved Predictive Quality Scorecard:  {scorecard_path}")
     print(f"Saved Model Comparison Report:       {report_path}")
+    print(f"Saved Candidate Summary:             {summary_path}")
     print("=" * 80)
 
     return scorecard
@@ -1137,7 +1324,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=5, help="Training epochs for candidate model")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed")
-    parser.add_argument("--output-dir", type=str, default=DATA_DIR, help="Output directory")
+    parser.add_argument("--output-dir", type=str, default=DEFAULT_CANDIDATE_DIR, help="Output directory")
     args = parser.parse_args()
 
     train_and_evaluate_all_horizons(output_dir=args.output_dir, epochs=args.epochs, lr=args.lr, seed=args.seed)

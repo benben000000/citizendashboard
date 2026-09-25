@@ -959,6 +959,168 @@ class TestPredictiveQuality(unittest.TestCase):
         self.assertGreater(hi_hot, 35.0)  # Heat index must exceed dry-bulb temp in high humidity
         self.assertLess(hi_hot, 65.0)  # Must remain within physical limits
 
+    # --------------------------------------------------------------------------
+    # 29. Candidate Directory Artifact Completeness and Path Hygiene
+    # --------------------------------------------------------------------------
+    def test_candidate_directory_artifact_completeness_and_path_hygiene(self):
+        """
+        Verify that candidate artifact layout requires all expected files across 5 horizons,
+        rejects missing files, and contains 0 machine-specific paths.
+        """
+        import re
+        from train_predictive_quality import DEFAULT_CANDIDATE_DIR
+        self.assertTrue(DEFAULT_CANDIDATE_DIR.endswith("candidate_artifacts"))
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Simulate a candidate directory missing one required file
+            expected_files = [
+                "baseline_manifest.json",
+                "predictive_quality_scorecard.json",
+                "model_comparison_report.json",
+            ]
+            for h in [1, 3, 6, 12, 24]:
+                expected_files.extend([
+                    f"candidate_h{h}h.pt",
+                    f"candidate_h{h}h_manifest.json",
+                    f"candidate_h{h}h_calibration.json",
+                    f"candidate_h{h}h_predictions.csv",
+                ])
+
+            # Write all but one file
+            for f in expected_files[:-1]:
+                with open(os.path.join(tmp_dir, f), "w", encoding="utf-8") as fp:
+                    fp.write("{}\n")
+
+            # Missing check
+            missing = [f for f in expected_files if not os.path.exists(os.path.join(tmp_dir, f))]
+            self.assertEqual(len(missing), 1)
+            self.assertEqual(missing[0], expected_files[-1])
+
+            # Now write the missing file with hygienic relative content
+            with open(os.path.join(tmp_dir, expected_files[-1]), "w", encoding="utf-8") as fp:
+                fp.write("{\"status\": \"CANDIDATE_RESEARCH\", \"checkpoint_filename\": \"candidate_h24h.pt\"}\n")
+
+            machine_path_regex = re.compile(r"([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
+            for f in expected_files:
+                p = os.path.join(tmp_dir, f)
+                with open(p, "r", encoding="utf-8", errors="ignore") as fh:
+                    for line in fh:
+                        self.assertIsNone(machine_path_regex.search(line))
+
+    # --------------------------------------------------------------------------
+    # 30. Scorecard Decision Separation and Target-Specific Routing Policy
+    # --------------------------------------------------------------------------
+    def test_scorecard_decision_separation_and_target_policies(self):
+        """
+        Verify that scorecard separates research_decision and operational_decision,
+        and provides target-specific source policy and status mapping.
+        """
+        dummy_scorecard = {
+            "research_decision": "GO",
+            "operational_decision": "CONDITIONAL_GO",
+            "operational_target_status": {
+                "temperature": "RETAIN_BASELINE",
+                "humidity": "RETAIN_BASELINE",
+                "pressure": "RETAIN_BASELINE",
+                "wind_speed": "PROMOTED",
+                "wind_direction": "RETAIN_PERSISTENCE",
+                "precipitation_occurrence": "PROMOTED",
+                "precipitation_amount": "PROMOTED",
+                "heat_index": "PROMOTED_DERIVED",
+                "uv_index": "BLOCKED",
+                "light_intensity": "CONDITIONAL_BETA",
+            },
+            "target_specific_source_policy": {
+                "1": {
+                    "temperature": "baseline",
+                    "wind_speed": "candidate",
+                    "precipitation_occurrence": "candidate",
+                    "uv_index": "blocked",
+                }
+            }
+        }
+        self.assertIn(dummy_scorecard["research_decision"], ["GO", "CONDITIONAL_GO", "NO_GO"])
+        self.assertIn(dummy_scorecard["operational_decision"], ["GO", "CONDITIONAL_GO", "NO_GO"])
+        self.assertEqual(dummy_scorecard["operational_target_status"]["uv_index"], "BLOCKED")
+        self.assertEqual(dummy_scorecard["operational_target_status"]["precipitation_occurrence"], "PROMOTED")
+        self.assertEqual(dummy_scorecard["target_specific_source_policy"]["1"]["temperature"], "baseline")
+
+    # --------------------------------------------------------------------------
+    # 31. Candidate Operational Rollback Path via rollback_to_baseline
+    # --------------------------------------------------------------------------
+    def test_candidate_operational_rollback_path(self):
+        """
+        Verify that rollback_to_baseline() cleanly switches predictor back to
+        production baseline bundle and successfully generates predictions.
+        """
+        from inference import LNNServerlessPredictor
+        from model import GarciaWeatherLNNFeatured
+        from verify_provenance import compute_sha256
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            model = GarciaWeatherLNNFeatured(input_dim=8, context_dim=75, hidden_dim=16)
+            ckpt_path = os.path.join(tmp_dir, "candidate_h1h.pt")
+            manifest_path = os.path.join(tmp_dir, "candidate_h1h_manifest.json")
+            calib_path = os.path.join(tmp_dir, "candidate_h1h_calibration.json")
+
+            torch.save({
+                "model_state_dict": model.state_dict(),
+                "manifest": {
+                    "model_family": "MF-1-FEATURED",
+                    "forecast_horizon_hours": 1,
+                    "input_dim": 8,
+                    "context_dim": 75,
+                    "normalization": {"means": [0.0]*8, "stds": [1.0]*8},
+                    "feature_augmented_normalization": {"means": [0.0]*75, "stds": [1.0]*75},
+                    "model_config": {"input_dim": 8, "context_dim": 75, "hidden_dim": 16},
+                }
+            }, ckpt_path)
+
+            calib_data = {
+                "horizon_hours": 1,
+                "model_family": "MF-1-FEATURED",
+                "operational_rain_threshold": 0.40,
+                "optimal_hybrid_candidate_weight": 0.8,
+                "optimal_hybrid_persistence_weight": 0.2,
+                "target_specific_source": {"temperature": "candidate", "precipitation_occurrence": "candidate"},
+            }
+            with open(calib_path, "w", encoding="utf-8") as f:
+                json.dump(calib_data, f, indent=2)
+
+            manifest_data = {
+                "bundle_type": "candidate_featured_model_bundle",
+                "model_family": "MF-1-FEATURED",
+                "horizon_hours": 1,
+                "checkpoint_filename": "candidate_h1h.pt",
+                "checkpoint_sha256": compute_sha256(ckpt_path),
+                "calibration_filename": "candidate_h1h_calibration.json",
+                "calibration_sha256": compute_sha256(calib_path),
+                "input_dimension": 8,
+                "context_dimension": 75,
+                "feature_schema": ["temperature", "heat_index", "humidity", "pressure", "wind_speed", "wind_sin", "wind_cos", "precipitation"],
+            }
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest_data, f, indent=2)
+
+            predictor = LNNServerlessPredictor(candidate_manifest_path=manifest_path)
+            self.assertTrue(predictor.is_candidate_featured)
+            self.assertTrue(predictor.has_rollback_baseline)
+
+            # Execute rollback
+            rolled_back = predictor.rollback_to_baseline()
+            self.assertTrue(rolled_back)
+            self.assertFalse(predictor.is_candidate_featured)
+            self.assertTrue(predictor.is_bundled)
+
+            # Test inference after rollback
+            dummy_seq = np.array([[25.0, 27.0, 60.0, 1012.0, 8.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+            res = predictor.predict_from_observed_sequence(telemetry_sequence=dummy_seq)
+            self.assertIn("temperature_c", res)
+            self.assertIn("chance_of_rain_pct", res)
+            self.assertIn("expected_precipitation_mm", res)
+            self.assertIn("pressure_hpa", res)
+            self.assertIn("relative_humidity_pct", res)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,188 @@
+{
+  "manifest_type": "baseline_freeze_reference",
+  "generated_at": "2026-09-25T04:47:55.278195+00:00",
+  "baseline_commit": "0153a7957460cf28cae528e152e997fed9b2165d",
+  "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+  "water_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
+  "canonical_feature_schema": [
+    "temperature",
+    "heat_index",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_sin",
+    "wind_cos",
+    "precipitation"
+  ],
+  "training_seeds": [
+    42
+  ],
+  "model_configuration": {
+    "model_family": "MF-1",
+    "input_dim": 8,
+    "hidden_dim": 32,
+    "architecture": "continuous_time_cfc_ode"
+  },
+  "split_configuration": {
+    "train_date_range": [
+      "2026-08-01T00:00:00Z",
+      "2026-08-20T23:00:00Z"
+    ],
+    "val_date_range": [
+      "2026-08-21T00:00:00Z",
+      "2026-08-25T23:00:00Z"
+    ],
+    "test_date_range": [
+      "2026-08-26T00:00:00Z",
+      "2026-08-31T23:00:00Z"
+    ],
+    "embargo_duration_hours": 24
+  },
+  "quarantine_counts": {
+    "uv_index_quarantined_samples": 40320,
+    "luminosity_conditional_samples": 40320
+  },
+  "known_limitations": [
+    "UV index blocked by nighttime sensor calibration defect.",
+    "Luminosity sensor uncalibrated across stations; secondary daylight-only proxy.",
+    "Water level gauge available only at Marikina Santo Nino station (internal beta target).",
+    "Short-term precipitation sparsity requires two-stage zero-inflation modeling."
+  ],
+  "five_horizon_baseline_metrics": {
+    "horizon_1h": {
+      "persistence": {
+        "temperature_mae": 0.4926,
+        "heat_index_mae": 1.5182,
+        "rain_brier_score": 0.147,
+        "wind_direction_circular_mae": 39.42,
+        "precipitation_rainy_mae": 2.6347
+      },
+      "climatology": {
+        "temperature_mae": 1.6845,
+        "heat_index_mae": 4.0291,
+        "rain_brier_score": 0.254,
+        "wind_direction_circular_mae": 74.61
+      },
+      "ridge_75features": {
+        "temperature_mae": 0.6218,
+        "heat_index_mae": 1.6777,
+        "rain_brier_score": 0.13,
+        "wind_direction_circular_mae": 81.22
+      },
+      "gradient_boosted_tree_75features": {
+        "temperature_mae": 0.912,
+        "heat_index_mae": 2.6153,
+        "rain_brier_score": 0.1294,
+        "wind_direction_circular_mae": 73.49
+      }
+    },
+    "horizon_3h": {
+      "persistence": {
+        "temperature_mae": 0.9554,
+        "heat_index_mae": 2.6578,
+        "rain_brier_score": 0.1914,
+        "wind_direction_circular_mae": 46.95,
+        "precipitation_rainy_mae": 2.997
+      },
+      "climatology": {
+        "temperature_mae": 1.6709,
+        "heat_index_mae": 3.9946,
+        "rain_brier_score": 0.2531,
+        "wind_direction_circular_mae": 74.48
+      },
+      "ridge_75features": {
+        "temperature_mae": 1.2679,
+        "heat_index_mae": 3.1581,
+        "rain_brier_score": 0.1688,
+        "wind_direction_circular_mae": 85.7
+      },
+      "gradient_boosted_tree_75features": {
+        "temperature_mae": 1.2653,
+        "heat_index_mae": 3.6412,
+        "rain_brier_score": 0.1707,
+        "wind_direction_circular_mae": 77.44
+      }
+    },
+    "horizon_6h": {
+      "persistence": {
+        "temperature_mae": 1.4413,
+        "heat_index_mae": 3.8582,
+        "rain_brier_score": 0.2246,
+        "wind_direction_circular_mae": 53.2,
+        "precipitation_rainy_mae": 3.1398
+      },
+      "climatology": {
+        "temperature_mae": 1.6297,
+        "heat_index_mae": 3.9052,
+        "rain_brier_score": 0.2488,
+        "wind_direction_circular_mae": 74.43
+      },
+      "ridge_75features": {
+        "temperature_mae": 1.7367,
+        "heat_index_mae": 4.0033,
+        "rain_brier_score": 0.1987,
+        "wind_direction_circular_mae": 86.7
+      },
+      "gradient_boosted_tree_75features": {
+        "temperature_mae": 1.6345,
+        "heat_index_mae": 4.3943,
+        "rain_brier_score": 0.1941,
+        "wind_direction_circular_mae": 80.06
+      }
+    },
+    "horizon_12h": {
+      "persistence": {
+        "temperature_mae": 1.8301,
+        "heat_index_mae": 4.8042,
+        "rain_brier_score": 0.2483,
+        "wind_direction_circular_mae": 57.05,
+        "precipitation_rainy_mae": 3.0973
+      },
+      "climatology": {
+        "temperature_mae": 1.5905,
+        "heat_index_mae": 3.8243,
+        "rain_brier_score": 0.2457,
+        "wind_direction_circular_mae": 74.66
+      },
+      "ridge_75features": {
+        "temperature_mae": 1.8787,
+        "heat_index_mae": 4.1942,
+        "rain_brier_score": 0.2436,
+        "wind_direction_circular_mae": 84.38
+      },
+      "gradient_boosted_tree_75features": {
+        "temperature_mae": 1.3983,
+        "heat_index_mae": 3.7375,
+        "rain_brier_score": 0.2176,
+        "wind_direction_circular_mae": 84.21
+      }
+    },
+    "horizon_24h": {
+      "persistence": {
+        "temperature_mae": 1.2104,
+        "heat_index_mae": 3.1662,
+        "rain_brier_score": 0.2728,
+        "wind_direction_circular_mae": 54.33,
+        "precipitation_rainy_mae": 2.8745
+      },
+      "climatology": {
+        "temperature_mae": 1.6259,
+        "heat_index_mae": 3.8969,
+        "rain_brier_score": 0.2399,
+        "wind_direction_circular_mae": 74.56
+      },
+      "ridge_75features": {
+        "temperature_mae": 1.6871,
+        "heat_index_mae": 4.0537,
+        "rain_brier_score": 0.2096,
+        "wind_direction_circular_mae": 81.22
+      },
+      "gradient_boosted_tree_75features": {
+        "temperature_mae": 1.2433,
+        "heat_index_mae": 3.308,
+        "rain_brier_score": 0.2329,
+        "wind_direction_circular_mae": 83.36
+      }
+    }
+  }
+}

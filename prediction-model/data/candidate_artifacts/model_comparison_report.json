@@ -1,0 +1,210 @@
+{
+  "generated_at": "2026-09-25T04:47:55.278195+00:00",
+  "code_commit": "0153a7957460cf28cae528e152e997fed9b2165d",
+  "horizons": {
+    "horizon_1h": {
+      "temperature_mae": {
+        "persistence": 0.4926,
+        "climatology": 1.6845,
+        "ridge_75": 0.6218,
+        "gradient_boosted_tree_75": 0.912,
+        "candidate_featured": 0.502,
+        "candidate_vs_persist_skill": -0.0192
+      },
+      "heat_index_mae": {
+        "persistence": 1.5182,
+        "climatology": 4.0291,
+        "ridge_75": 1.6777,
+        "gradient_boosted_tree_75": 2.6153,
+        "candidate_featured": 1.4621
+      },
+      "rain_brier_score": {
+        "persistence": 0.147,
+        "climatology": 0.254,
+        "ridge_75": 0.13,
+        "gradient_boosted_tree_75": 0.1294,
+        "candidate_featured": 0.1325
+      },
+      "wind_direction_circular_mae": {
+        "persistence": 39.42,
+        "climatology": 74.61,
+        "ridge_75": 81.22,
+        "gradient_boosted_tree_75": 73.49,
+        "candidate_featured": 40.07
+      },
+      "precipitation_rainy_mae": {
+        "persistence": 2.6347,
+        "climatology": 2.7316,
+        "ridge_75": 2.4373,
+        "gradient_boosted_tree_75": 2.3606,
+        "candidate_featured": 2.3069
+      }
+    },
+    "horizon_3h": {
+      "temperature_mae": {
+        "persistence": 0.9554,
+        "climatology": 1.6709,
+        "ridge_75": 1.2679,
+        "gradient_boosted_tree_75": 1.2653,
+        "candidate_featured": 1.0757,
+        "candidate_vs_persist_skill": -0.1259
+      },
+      "heat_index_mae": {
+        "persistence": 2.6578,
+        "climatology": 3.9946,
+        "ridge_75": 3.1581,
+        "gradient_boosted_tree_75": 3.6412,
+        "candidate_featured": 2.7756
+      },
+      "rain_brier_score": {
+        "persistence": 0.1914,
+        "climatology": 0.2531,
+        "ridge_75": 0.1688,
+        "gradient_boosted_tree_75": 0.1707,
+        "candidate_featured": 0.1542
+      },
+      "wind_direction_circular_mae": {
+        "persistence": 46.95,
+        "climatology": 74.48,
+        "ridge_75": 85.7,
+        "gradient_boosted_tree_75": 77.44,
+        "candidate_featured": 47.3
+      },
+      "precipitation_rainy_mae": {
+        "persistence": 2.997,
+        "climatology": 2.7697,
+        "ridge_75": 2.8662,
+        "gradient_boosted_tree_75": 2.5043,
+        "candidate_featured": 2.5525
+      }
+    },
+    "horizon_6h": {
+      "temperature_mae": {
+        "persistence": 1.4413,
+        "climatology": 1.6297,
+        "ridge_75": 1.7367,
+        "gradient_boosted_tree_75": 1.6345,
+        "candidate_featured": 1.7385,
+        "candidate_vs_persist_skill": -0.2062
+      },
+      "heat_index_mae": {
+        "persistence": 3.8582,
+        "climatology": 3.9052,
+        "ridge_75": 4.0033,
+        "gradient_boosted_tree_75": 4.3943,
+        "candidate_featured": 4.2636
+      },
+      "rain_brier_score": {
+        "persistence": 0.2246,
+        "climatology": 0.2488,
+        "ridge_75": 0.1987,
+        "gradient_boosted_tree_75": 0.1941,
+        "candidate_featured": 0.1786
+      },
+      "wind_direction_circular_mae": {
+        "persistence": 53.2,
+        "climatology": 74.43,
+        "ridge_75": 86.7,
+        "gradient_boosted_tree_75": 80.06,
+        "candidate_featured": 54.3
+      },
+      "precipitation_rainy_mae": {
+        "persistence": 3.1398,
+        "climatology": 2.838,
+        "ridge_75": 2.9094,
+        "gradient_boosted_tree_75": 2.6459,
+        "candidate_featured": 2.6605
+      }
+    },
+    "horizon_12h": {
+      "temperature_mae": {
+        "persistence": 1.8301,
+        "climatology": 1.5905,
+        "ridge_75": 1.8787,
+        "gradient_boosted_tree_75": 1.3983,
+        "candidate_featured": 1.745,
+        "candidate_vs_persist_skill": 0.0465
+      },
+      "heat_index_mae": {
+        "persistence": 4.8042,
+        "climatology": 3.8243,
+        "ridge_75": 4.1942,
+        "gradient_boosted_tree_75": 3.7375,
+        "candidate_featured": 4.2323
+      },
+      "rain_brier_score": {
+        "persistence": 0.2483,
+        "climatology": 0.2457,
+        "ridge_75": 0.2436,
+        "gradient_boosted_tree_75": 0.2176,
+        "candidate_featured": 0.1938
+      },
+      "wind_direction_circular_mae": {
+        "persistence": 57.05,
+        "climatology": 74.66,
+        "ridge_75": 84.38,
+        "gradient_boosted_tree_75": 84.21,
+        "candidate_featured": 59.94
+      },
+      "precipitation_rainy_mae": {
+        "persistence": 3.0973,
+        "climatology": 2.7064,
+        "ridge_75": 3.0887,
+        "gradient_boosted_tree_75": 2.4952,
+        "candidate_featured": 2.5003
+      }
+    },
+    "horizon_24h": {
+      "temperature_mae": {
+        "persistence": 1.2104,
+        "climatology": 1.6259,
+        "ridge_75": 1.6871,
+        "gradient_boosted_tree_75": 1.2433,
+        "candidate_featured": 1.1791,
+        "candidate_vs_persist_skill": 0.0259
+      },
+      "heat_index_mae": {
+        "persistence": 3.1662,
+        "climatology": 3.8969,
+        "ridge_75": 4.0537,
+        "gradient_boosted_tree_75": 3.308,
+        "candidate_featured": 3.1137
+      },
+      "rain_brier_score": {
+        "persistence": 0.2728,
+        "climatology": 0.2399,
+        "ridge_75": 0.2096,
+        "gradient_boosted_tree_75": 0.2329,
+        "candidate_featured": 0.2185
+      },
+      "wind_direction_circular_mae": {
+        "persistence": 54.33,
+        "climatology": 74.56,
+        "ridge_75": 81.22,
+        "gradient_boosted_tree_75": 83.36,
+        "candidate_featured": 54.45
+      },
+      "precipitation_rainy_mae": {
+        "persistence": 2.8745,
+        "climatology": 2.5325,
+        "ridge_75": 2.621,
+        "gradient_boosted_tree_75": 2.3584,
+        "candidate_featured": 2.3773
+      }
+    }
+  },
+  "research_decision": "GO",
+  "operational_decision": "CONDITIONAL_GO",
+  "operational_target_status": {
+    "temperature": "RETAIN_BASELINE",
+    "humidity": "RETAIN_BASELINE",
+    "pressure": "RETAIN_BASELINE",
+    "wind_speed": "PROMOTED",
+    "wind_direction": "RETAIN_PERSISTENCE",
+    "precipitation_occurrence": "PROMOTED",
+    "precipitation_amount": "PROMOTED",
+    "heat_index": "PROMOTED_DERIVED",
+    "uv_index": "BLOCKED",
+    "light_intensity": "CONDITIONAL_BETA"
+  }
+}

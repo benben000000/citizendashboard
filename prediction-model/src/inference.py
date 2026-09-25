@@ -338,6 +338,24 @@ class LNNServerlessPredictor:
                     f"policy commit '{policy_commit}' does not match model commit '{model_commit}'."
                 )
 
+    def rollback_to_baseline(self) -> bool:
+        """
+        Rollback predictor from candidate model to active production baseline bundle.
+        Returns True if rollback succeeded.
+        """
+        repo_data_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"
+        )
+        baseline_bundle = os.path.join(repo_data_dir, "bundles", f"h{self.horizon_hours}")
+        if not os.path.exists(baseline_bundle):
+            raise FileNotFoundError(f"Baseline bundle for horizon {self.horizon_hours}h not found at '{baseline_bundle}'.")
+        self.__init__(
+            bundle_dir=baseline_bundle,
+            horizon_hours=self.horizon_hours,
+            device=str(self.device),
+        )
+        return True
+
     def _normalize(self, features: np.ndarray) -> np.ndarray:
         """Normalize using checkpoint-stored constants (not module globals)."""
         if (
@@ -574,11 +592,12 @@ class LNNServerlessPredictor:
         ws_src = selected_sources.get("wind_speed", "persistence_fallback")
         wd_src = selected_sources.get("wind_direction", "persistence_fallback")
 
-        op_temp = pred_temp if temp_src == "learned_model" else orig_temp
-        op_rh = pred_rh if rh_src == "learned_model" else orig_rh
-        op_p = pred_p if p_src == "learned_model" else orig_p
-        op_ws = pred_ws if ws_src == "learned_model" else orig_ws
-        op_wind_dir = pred_wind_dir if wd_src == "learned_model" else orig_wind_deg
+        learned_sources = ("learned_model", "candidate", "candidate_lnn_featured")
+        op_temp = pred_temp if temp_src in learned_sources else orig_temp
+        op_rh = pred_rh if rh_src in learned_sources else orig_rh
+        op_p = pred_p if p_src in learned_sources else orig_p
+        op_ws = pred_ws if ws_src in learned_sources else orig_ws
+        op_wind_dir = pred_wind_dir if wd_src in learned_sources else orig_wind_deg
         if op_ws < 1.0:
             op_wind_dir = None
 

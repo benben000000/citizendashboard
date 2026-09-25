@@ -324,6 +324,57 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             )
         print(f"[PASS] Model-Policy Bundles (all 5 horizons): manifest, checkpoint, policy, and hashes match")
 
+    # 4f. Verify Candidate Artifacts (Phase 3 & 8 of Candidate Promotion Plan)
+    cand_artifacts_dir = os.path.join(data_dir, "candidate_artifacts")
+    if os.path.exists(cand_artifacts_dir):
+        for h in CANONICAL_HORIZONS:
+            c_ckpt_path = os.path.join(cand_artifacts_dir, f"candidate_h{h}h.pt")
+            c_manifest_path = os.path.join(cand_artifacts_dir, f"candidate_h{h}h_manifest.json")
+            c_calib_path = os.path.join(cand_artifacts_dir, f"candidate_h{h}h_calibration.json")
+            c_preds_path = os.path.join(cand_artifacts_dir, f"candidate_h{h}h_predictions.csv")
+
+            for cp, c_name in [
+                (c_ckpt_path, f"candidate_h{h}h.pt"),
+                (c_manifest_path, f"candidate_h{h}h_manifest.json"),
+                (c_calib_path, f"candidate_h{h}h_calibration.json"),
+                (c_preds_path, f"candidate_h{h}h_predictions.csv"),
+            ]:
+                assert os.path.exists(cp), f"Missing candidate artifact {c_name} in {cand_artifacts_dir}"
+
+            with open(c_manifest_path, "r", encoding="utf-8") as f:
+                c_manifest = json.load(f)
+
+            assert c_manifest["horizon_hours"] == h, f"Candidate h{h} horizon mismatch"
+            assert c_manifest["model_family"] == "MF-1-FEATURED", f"Candidate h{h} model family mismatch"
+            assert c_manifest["status"] == "CANDIDATE_RESEARCH", "Candidate manifest must declare CANDIDATE_RESEARCH status"
+            assert c_manifest["input_dimension"] == 8, f"Candidate h{h} input_dimension != 8"
+            assert c_manifest["context_dimension"] == 75, f"Candidate h{h} context_dimension != 75"
+            assert c_manifest["feature_schema"] == EXPECTED_FEATURES, f"Candidate h{h} feature_schema mismatch"
+            assert c_manifest["weather_telemetry_sha256"] == weather_hash, f"Candidate h{h} weather hash mismatch"
+            assert c_manifest["water_telemetry_sha256"] == water_hash, f"Candidate h{h} water hash mismatch"
+            assert c_manifest["implementation_commit"] in allowed_commits, f"Candidate h{h} implementation_commit mismatch"
+            assert c_manifest["checkpoint_sha256"] == compute_sha256(c_ckpt_path), f"Candidate h{h} checkpoint hash mismatch"
+            assert c_manifest["calibration_sha256"] == compute_sha256(c_calib_path), f"Candidate h{h} calibration hash mismatch"
+
+            with open(c_calib_path, "r", encoding="utf-8") as f:
+                c_calib = json.load(f)
+            assert c_calib["horizon_hours"] == h
+            assert "target_specific_source" in c_calib
+            assert c_calib.get("blocked_target_statuses", {}).get("uv_index") == "BLOCKED_BY_SENSOR_CALIBRATION"
+
+        for sc_name in ["baseline_manifest.json", "predictive_quality_scorecard.json", "model_comparison_report.json"]:
+            sc_path = os.path.join(cand_artifacts_dir, sc_name)
+            assert os.path.exists(sc_path), f"Missing {sc_name} in candidate_artifacts"
+
+        with open(os.path.join(cand_artifacts_dir, "predictive_quality_scorecard.json"), "r", encoding="utf-8") as f:
+            sc_data = json.load(f)
+        assert "research_decision" in sc_data, "Scorecard missing 'research_decision'"
+        assert "operational_decision" in sc_data, "Scorecard missing 'operational_decision'"
+        assert sc_data["research_decision"] in ["GO", "CONDITIONAL_GO", "NO_GO"]
+        assert sc_data["operational_decision"] in ["GO", "CONDITIONAL_GO", "NO_GO"]
+
+        print("[PASS] Candidate Artifacts (all 5 horizons): manifests, checkpoints, calibration, provenance, and decisions verified")
+
     # 5. Verify MF-1 PyTorch Checkpoints
     import torch
     for h in CANONICAL_HORIZONS:
@@ -396,10 +447,12 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
     # 8. Verify No Machine-Specific Paths in Committed Data Artifacts
     import re
     machine_path_regex = re.compile(r"([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
-    data_files = [f for f in os.listdir(data_dir) if f.endswith(".json") or f.endswith(".csv")]
+    data_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.endswith(".json") or f.endswith(".csv")]
+    if os.path.exists(cand_artifacts_dir):
+        data_files.extend([os.path.join(cand_artifacts_dir, f) for f in os.listdir(cand_artifacts_dir) if f.endswith(".json") or f.endswith(".csv")])
     path_violations = []
-    for df in data_files:
-        p = os.path.join(data_dir, df)
+    for p in data_files:
+        df = os.path.basename(p)
         with open(p, "r", encoding="utf-8", errors="ignore") as f:
             for line_idx, line in enumerate(f, 1):
                 match = machine_path_regex.search(line)
