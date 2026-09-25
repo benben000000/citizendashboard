@@ -1,0 +1,88 @@
+{
+  "report_name": "target_specific_model_selection_and_routing_report",
+  "report_version": "2.0.0",
+  "generated_at_utc": "2026-09-25T22:51:53.004837+00:00",
+  "code_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "artifact_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "release_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "selection_matrix": {
+    "1": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta"
+    },
+    "3": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta"
+    },
+    "6": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta"
+    },
+    "12": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta"
+    },
+    "24": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta"
+    }
+  },
+  "compact_ensemble_evaluation": {
+    "evaluated": true,
+    "selected_for_production": false,
+    "justification": "Compact ensemble delivers marginal point improvements on selected targets but introduces multi-model runtime overhead and maintenance complexity not justified over target-specific routing."
+  },
+  "operational_policy": {
+    "temperature": "RETAIN_BASELINE",
+    "humidity": "RETAIN_BASELINE",
+    "pressure": "RETAIN_BASELINE",
+    "wind_speed": "PROMOTED",
+    "wind_direction": "RETAIN_PERSISTENCE",
+    "precipitation_occurrence": "PROMOTED",
+    "precipitation_amount": "PROMOTED",
+    "heat_index": "PROMOTED_DERIVED",
+    "uv_index": "BLOCKED",
+    "light_intensity": "CONDITIONAL_BETA"
+  },
+  "verdict": "Target-specific routing achieves optimal predictive performance while preserving absolute system stability and operational rollback."
+}

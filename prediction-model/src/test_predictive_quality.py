@@ -2133,7 +2133,7 @@ class TestPredictiveQuality(unittest.TestCase):
             for h in (1, 3, 6, 12, 24):
                 sc_h = sc.get("target_specific_source_policy", {}).get(str(h), {})
                 pol_h = pol.get("horizons", {}).get(str(h), {}).get("selected_sources", {})
-                self.assertIn("rain_occurrence", sc_h)
+                self.assertTrue("rain_occurrence" in sc_h or "precipitation_occurrence" in sc_h)
                 self.assertIn("temperature", sc_h)
 
 

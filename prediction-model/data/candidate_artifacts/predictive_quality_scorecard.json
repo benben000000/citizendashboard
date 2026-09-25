@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-25T20:47:27.860299+00:00",
-  "code_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "generated_at": "2026-09-25T22:50:31.772311+00:00",
+  "code_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
   "parent_baseline_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
   "seed": 42,
   "horizons": [
@@ -30,7 +30,7 @@
       "sample_count": 2820,
       "calibrated_rain_threshold": 0.4,
       "calibrated_hybrid_alpha": 0.6000000000000001,
-      "checkpoint_sha256": "78dd83939d0dba7b1309ffb20de3a0c6d2c913be3cdd8c7e17368b8697dcda8b",
+      "checkpoint_sha256": "87aa631cebe413b8270fb7a4b5673502fd16110f2c016bef6b5f7228e490104f",
       "persistence": {
         "temperature": {
           "mae": 0.4926,
@@ -2005,7 +2005,7 @@
       "sample_count": 2784,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.6000000000000001,
-      "checkpoint_sha256": "49e7384d1b6600e3ebd748a4551ad7ba49c28f6aeae4944b3984352016b4ee9e",
+      "checkpoint_sha256": "2014a3e7cc47766f2689d18d7fe8d2c35746fd9993e6d7afefea449dc3ad09ef",
       "persistence": {
         "temperature": {
           "mae": 0.9554,
@@ -3966,7 +3966,7 @@
       "sample_count": 2731,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.5,
-      "checkpoint_sha256": "a247f615b16b79c8045f6fe45551301096a48fbb8b999a5abaf75a0ec7ab9c9d",
+      "checkpoint_sha256": "8cb3978ed781fddf94dcdaef2f1d4e243fae143976d33ddde54428bbf599a68b",
       "persistence": {
         "temperature": {
           "mae": 1.4413,
@@ -5913,7 +5913,7 @@
       "sample_count": 2633,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.5,
-      "checkpoint_sha256": "a3ca7b8a3299b90c5b6663b97a768b827746c2ee12d0c75211a17e53e27f7dbf",
+      "checkpoint_sha256": "f4add0d096a2feaa5e15267fd3eae6383483b348ded5245efb52d5ecf170234b",
       "persistence": {
         "temperature": {
           "mae": 1.8301,
@@ -7860,7 +7860,7 @@
       "sample_count": 2443,
       "calibrated_rain_threshold": 0.2,
       "calibrated_hybrid_alpha": 0.4,
-      "checkpoint_sha256": "e1212e73a764988dc13a6480ff6ea403349760761d534361f2de3d1f762759cc",
+      "checkpoint_sha256": "07c18ad9bb7ec38c2eaf7c7327833f293d87237c2b877e85ec2321d32d569723",
       "persistence": {
         "temperature": {
           "mae": 1.2104,
@@ -9811,7 +9811,8 @@
         "precipitation_amount": "candidate",
         "heat_index": "derived_noaa",
         "uv_index": "blocked",
-        "light_intensity": "daylight_beta"
+        "light_intensity": "daylight_beta",
+        "rain_occurrence": "candidate"
       },
       "3": {
         "temperature": "baseline",
@@ -9823,7 +9824,8 @@
         "precipitation_amount": "candidate",
         "heat_index": "derived_noaa",
         "uv_index": "blocked",
-        "light_intensity": "daylight_beta"
+        "light_intensity": "daylight_beta",
+        "rain_occurrence": "candidate"
       },
       "6": {
         "temperature": "baseline",
@@ -9835,7 +9837,8 @@
         "precipitation_amount": "candidate",
         "heat_index": "derived_noaa",
         "uv_index": "blocked",
-        "light_intensity": "daylight_beta"
+        "light_intensity": "daylight_beta",
+        "rain_occurrence": "candidate"
       },
       "12": {
         "temperature": "baseline",
@@ -9847,7 +9850,8 @@
         "precipitation_amount": "candidate",
         "heat_index": "derived_noaa",
         "uv_index": "blocked",
-        "light_intensity": "daylight_beta"
+        "light_intensity": "daylight_beta",
+        "rain_occurrence": "candidate"
       },
       "24": {
         "temperature": "baseline",
@@ -9859,7 +9863,8 @@
         "precipitation_amount": "candidate",
         "heat_index": "derived_noaa",
         "uv_index": "blocked",
-        "light_intensity": "daylight_beta"
+        "light_intensity": "daylight_beta",
+        "rain_occurrence": "candidate"
       }
     },
     "gates": {
@@ -9963,7 +9968,8 @@
       "precipitation_amount": "candidate",
       "heat_index": "derived_noaa",
       "uv_index": "blocked",
-      "light_intensity": "daylight_beta"
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
     },
     "3": {
       "temperature": "baseline",
@@ -9975,7 +9981,8 @@
       "precipitation_amount": "candidate",
       "heat_index": "derived_noaa",
       "uv_index": "blocked",
-      "light_intensity": "daylight_beta"
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
     },
     "6": {
       "temperature": "baseline",
@@ -9987,7 +9994,8 @@
       "precipitation_amount": "candidate",
       "heat_index": "derived_noaa",
       "uv_index": "blocked",
-      "light_intensity": "daylight_beta"
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
     },
     "12": {
       "temperature": "baseline",
@@ -9999,7 +10007,8 @@
       "precipitation_amount": "candidate",
       "heat_index": "derived_noaa",
       "uv_index": "blocked",
-      "light_intensity": "daylight_beta"
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
     },
     "24": {
       "temperature": "baseline",
@@ -10011,7 +10020,8 @@
       "precipitation_amount": "candidate",
       "heat_index": "derived_noaa",
       "uv_index": "blocked",
-      "light_intensity": "daylight_beta"
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
     }
   },
   "artifacts_generated": [
@@ -10035,5 +10045,286 @@
     "candidate_h24h_manifest.json",
     "candidate_h24h_calibration.json",
     "candidate_h24h_predictions.csv"
+  ],
+  "artifact_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "release_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "parent_code_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
+  "raw_data_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "raw_weather_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+  "raw_water_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
+  "feature_schema_hash": "a1ac286b97b15d33df0a93f90b11a1c3a41b0dafd9eede401094b43b93cc0765",
+  "label_schema_hash": "da2b86f865f6ecec9334fa33a2084d4132b320c6e5e092d22c8421cb60d22127",
+  "training_seed": 42,
+  "fold_definitions": [
+    [
+      "2026-07-20T03:00:00+00:00",
+      "2026-07-25T11:00:00+00:00"
+    ],
+    [
+      "2026-07-27T11:00:00+00:00",
+      "2026-08-01T18:00:00+00:00"
+    ],
+    [
+      "2026-08-03T18:00:00+00:00",
+      "2026-08-13T22:00:00+00:00"
+    ]
+  ],
+  "model_family": "MF-1-FEATURED",
+  "horizon_hours": [
+    1,
+    3,
+    6,
+    12,
+    24
+  ],
+  "target_name": "all_weather_targets",
+  "baseline_name": "persistence_and_multi_reference",
+  "point_metrics": {
+    "horizon_1h": {
+      "temperature_mae": 0.502,
+      "temperature_rmse": 0.8267,
+      "temperature_bias": -0.1257,
+      "humidity_mae": 1.4785,
+      "pressure_mae": 0.3484,
+      "wind_speed_mae": 0.8689,
+      "wind_direction_circular_mae": 82.1,
+      "rain_occurrence_brier": 0.1325,
+      "precipitation_rainy_mae": 2.7405
+    },
+    "horizon_3h": {
+      "temperature_mae": 1.0757,
+      "temperature_rmse": 1.4227,
+      "temperature_bias": -0.6645,
+      "humidity_mae": 3.2768,
+      "pressure_mae": 0.7806,
+      "wind_speed_mae": 1.0547,
+      "wind_direction_circular_mae": 86.4,
+      "rain_occurrence_brier": 0.1542,
+      "precipitation_rainy_mae": 2.7773
+    },
+    "horizon_6h": {
+      "temperature_mae": 1.7385,
+      "temperature_rmse": 2.1171,
+      "temperature_bias": -1.2426,
+      "humidity_mae": 4.6949,
+      "pressure_mae": 1.1997,
+      "wind_speed_mae": 1.2084,
+      "wind_direction_circular_mae": 87.47,
+      "rain_occurrence_brier": 0.1786,
+      "precipitation_rainy_mae": 2.9492
+    },
+    "horizon_12h": {
+      "temperature_mae": 1.745,
+      "temperature_rmse": 2.1108,
+      "temperature_bias": -1.005,
+      "humidity_mae": 4.6839,
+      "pressure_mae": 0.6931,
+      "wind_speed_mae": 1.3539,
+      "wind_direction_circular_mae": 84.74,
+      "rain_occurrence_brier": 0.1938,
+      "precipitation_rainy_mae": 3.1377
+    },
+    "horizon_24h": {
+      "temperature_mae": 1.1791,
+      "temperature_rmse": 1.7785,
+      "temperature_bias": -0.2018,
+      "humidity_mae": 3.8093,
+      "pressure_mae": 0.9517,
+      "wind_speed_mae": 1.2495,
+      "wind_direction_circular_mae": 81.38,
+      "rain_occurrence_brier": 0.2185,
+      "precipitation_rainy_mae": 3.7144
+    }
+  },
+  "interval_metrics": {
+    "horizon_1h": {
+      "temperature_wis": 0.6183,
+      "temperature_coverage_80": 81.17,
+      "temperature_sharpness": 1.8286,
+      "humidity_wis": 1.7679,
+      "pressure_wis": 0.3879
+    },
+    "horizon_3h": {
+      "temperature_wis": 1.2429,
+      "temperature_coverage_80": 64.76,
+      "temperature_sharpness": 3.2609,
+      "humidity_wis": 3.2285,
+      "pressure_wis": 0.6167
+    },
+    "horizon_6h": {
+      "temperature_wis": 1.8719,
+      "temperature_coverage_80": 48.7,
+      "temperature_sharpness": 3.8362,
+      "humidity_wis": 4.38,
+      "pressure_wis": 0.8202
+    },
+    "horizon_12h": {
+      "temperature_wis": 2.1742,
+      "temperature_coverage_80": 43.83,
+      "temperature_sharpness": 3.805,
+      "humidity_wis": 5.2154,
+      "pressure_wis": 0.9466
+    },
+    "horizon_24h": {
+      "temperature_wis": 2.8456,
+      "temperature_coverage_80": 30.09,
+      "temperature_sharpness": 3.6958,
+      "humidity_wis": 6.8455,
+      "pressure_wis": 1.2347
+    }
+  },
+  "calibration_metrics": {
+    "horizon_1h": {
+      "brier_score": 0.1325,
+      "brier_skill_score": 0.0,
+      "expected_calibration_error": 0.0627,
+      "pr_auc": 0.0,
+      "calibrated_rain_threshold": 0.4,
+      "calibrated_hybrid_alpha": 0.6000000000000001
+    },
+    "horizon_3h": {
+      "brier_score": 0.1542,
+      "brier_skill_score": 0.0,
+      "expected_calibration_error": 0.0438,
+      "pr_auc": 0.0,
+      "calibrated_rain_threshold": 0.2,
+      "calibrated_hybrid_alpha": 0.6000000000000001
+    },
+    "horizon_6h": {
+      "brier_score": 0.1786,
+      "brier_skill_score": 0.0,
+      "expected_calibration_error": 0.0827,
+      "pr_auc": 0.0,
+      "calibrated_rain_threshold": 0.2,
+      "calibrated_hybrid_alpha": 0.5
+    },
+    "horizon_12h": {
+      "brier_score": 0.1938,
+      "brier_skill_score": 0.0,
+      "expected_calibration_error": 0.0845,
+      "pr_auc": 0.0,
+      "calibrated_rain_threshold": 0.2,
+      "calibrated_hybrid_alpha": 0.5
+    },
+    "horizon_24h": {
+      "brier_score": 0.2185,
+      "brier_skill_score": 0.0,
+      "expected_calibration_error": 0.1339,
+      "pr_auc": 0.0,
+      "calibrated_rain_threshold": 0.2,
+      "calibrated_hybrid_alpha": 0.4
+    }
+  },
+  "anomaly_metrics": {
+    "detector_version": "2.0.0",
+    "false_alarm_budget_per_day": 2.0,
+    "empirical_false_alarms_per_day": 0.0,
+    "within_false_alarm_budget": true,
+    "evaluated_event_types": [
+      "extreme_heat",
+      "extreme_cold",
+      "rapid_temperature_change",
+      "pressure_drop",
+      "heavy_rain",
+      "rapid_wind_increase",
+      "wind_direction_shift",
+      "humidity_excursion",
+      "sensor_anomaly"
+    ],
+    "status": "PASS"
+  },
+  "confidence_intervals": {
+    "horizon_1h": {
+      "temperature_mae_ci_95": [
+        0.4775,
+        0.525
+      ],
+      "rain_brier_ci_95": [
+        0.0,
+        0.0
+      ],
+      "wind_speed_ci_95": [
+        0.8162,
+        0.9147
+      ]
+    },
+    "horizon_3h": {
+      "temperature_mae_ci_95": [
+        1.042,
+        1.1046
+      ],
+      "rain_brier_ci_95": [
+        0.0,
+        0.0
+      ],
+      "wind_speed_ci_95": [
+        0.9989,
+        1.1075
+      ]
+    },
+    "horizon_6h": {
+      "temperature_mae_ci_95": [
+        1.691,
+        1.7827
+      ],
+      "rain_brier_ci_95": [
+        0.0,
+        0.0
+      ],
+      "wind_speed_ci_95": [
+        1.1497,
+        1.2675
+      ]
+    },
+    "horizon_12h": {
+      "temperature_mae_ci_95": [
+        1.6974,
+        1.7876
+      ],
+      "rain_brier_ci_95": [
+        0.0,
+        0.0
+      ],
+      "wind_speed_ci_95": [
+        1.2794,
+        1.4341
+      ]
+    },
+    "horizon_24h": {
+      "temperature_mae_ci_95": [
+        1.1313,
+        1.2338
+      ],
+      "rain_brier_ci_95": [
+        0.0,
+        0.0
+      ],
+      "wind_speed_ci_95": [
+        1.1653,
+        1.3241
+      ]
+    }
+  },
+  "worst_fold": 3,
+  "worst_regime": "heavy_rain_rapid_wind_transition",
+  "policy_decision": {
+    "temperature": "RETAIN_BASELINE",
+    "humidity": "RETAIN_BASELINE",
+    "pressure": "RETAIN_BASELINE",
+    "wind_speed": "PROMOTED",
+    "wind_direction": "RETAIN_PERSISTENCE",
+    "precipitation_occurrence": "PROMOTED",
+    "precipitation_amount": "PROMOTED",
+    "heat_index": "PROMOTED_DERIVED",
+    "uv_index": "BLOCKED",
+    "light_intensity": "CONDITIONAL_BETA"
+  },
+  "limitations": [
+    "UV index forecasting blocked by sensor calibration defect: BLOCKED_BY_SENSOR_CALIBRATION",
+    "Protected baseline bundles preserved for operational rollback",
+    "Local-station information ceiling: temperature at 1h, 3h, 6h and wind direction retain persistence fallback under local-telemetry-only constraints"
   ]
 }

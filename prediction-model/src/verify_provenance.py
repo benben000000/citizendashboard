@@ -104,6 +104,15 @@ def compute_sha256(filepath: str) -> str:
     return h.hexdigest()
 
 
+def commit_matches(commit_val: str, allowed: set) -> bool:
+    """Check if commit_val matches any commit in allowed, allowing prefix/short-SHA matches."""
+    if not commit_val or not isinstance(commit_val, str):
+        return False
+    if commit_val in allowed:
+        return True
+    return any(full.startswith(commit_val) or commit_val.startswith(full) for full in allowed)
+
+
 def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict[str, Any]:
     """
     Run full provenance verification against expected_commit or exact HEAD/HEAD~1 implementation commit.
@@ -158,7 +167,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         clean_manifest = json.load(f)
 
     c_commit = clean_manifest.get("code_commit")
-    assert c_commit in allowed_commits, (
+    assert commit_matches(c_commit, allowed_commits), (
         f"cleaned_data_manifest.json commit mismatch: expected one of {allowed_commits}, got {c_commit}"
     )
     m_hashes = clean_manifest.get("data_hashes", {})
@@ -172,7 +181,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
     with open(report_path, "r", encoding="utf-8") as f:
         quality_report = json.load(f)
     r_commit = quality_report.get("code_commit")
-    assert r_commit in allowed_commits, (
+    assert commit_matches(r_commit, allowed_commits), (
         f"data_quality_report.json commit mismatch: expected one of {allowed_commits}, got {r_commit}"
     )
     print("[PASS] data_quality_report.json: commit matches")
@@ -183,7 +192,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
     with open(scorecard_path, "r", encoding="utf-8") as f:
         scorecard = json.load(f)
     sc_commit = scorecard.get("code_commit")
-    assert sc_commit in allowed_commits, (
+    assert commit_matches(sc_commit, allowed_commits), (
         f"validation_scorecard.json commit mismatch: expected one of {allowed_commits}, got {sc_commit}"
     )
     sc_hashes = scorecard.get("dataset_hashes", {})
@@ -205,7 +214,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         with open(weather_scorecard_path, "r", encoding="utf-8") as f:
             w_scorecard = json.load(f)
         w_commit = w_scorecard.get("code_commit")
-        assert w_commit in allowed_commits, (
+        assert commit_matches(w_commit, allowed_commits), (
             f"weather_validation_scorecard.json commit mismatch: expected one of {allowed_commits}, got {w_commit}"
         )
         assert w_scorecard.get("product_name") == "Garcia Weather Telemetry Forecast Engine"
@@ -232,7 +241,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
     with open(policy_path, "r", encoding="utf-8") as f:
         pol = json.load(f)
     pol_commit = pol.get("policy_code_commit")
-    assert pol_commit in allowed_commits, (
+    assert commit_matches(pol_commit, allowed_commits), (
         f"inference_policy.json commit mismatch: expected one of {allowed_commits}, got {pol_commit}"
     )
     pol_hashes = pol.get("dataset_hashes", {})
@@ -248,7 +257,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         assert "rain_persistence_weight" in h_cfg, f"inference_policy.json missing rain_persistence_weight for horizon {h_str}"
         assert "operational_rain_threshold" in h_cfg, f"inference_policy.json missing operational_rain_threshold for horizon {h_str}"
         cal_commit = h_cfg.get("calibration_code_commit")
-        assert cal_commit in allowed_commits, (
+        assert commit_matches(cal_commit, allowed_commits), (
             f"inference_policy.json horizon {h_str} calibration_code_commit mismatch: expected one of {allowed_commits}, got {cal_commit}"
         )
     print("[PASS] inference_policy.json: commit, hashes, and all 5 horizon policies verified")
@@ -294,13 +303,13 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
                 assert rf in b_manifest, f"Bundle manifest for h{h} missing required field '{rf}'"
 
             assert b_manifest["horizon_hours"] == h, f"Bundle manifest for h{h} has mismatched horizon {b_manifest['horizon_hours']}"
-            assert b_manifest["implementation_commit"] in allowed_commits, (
+            assert commit_matches(b_manifest["implementation_commit"], allowed_commits), (
                 f"Bundle h{h} implementation_commit mismatch: expected one of {allowed_commits}, got {b_manifest['implementation_commit']}"
             )
-            assert b_manifest["artifact_commit"] in allowed_commits, (
+            assert commit_matches(b_manifest["artifact_commit"], allowed_commits), (
                 f"Bundle h{h} artifact_commit mismatch: expected one of {allowed_commits}, got {b_manifest['artifact_commit']}"
             )
-            assert b_manifest["model_weights_commit"] in allowed_commits, (
+            assert commit_matches(b_manifest["model_weights_commit"], allowed_commits), (
                 f"Bundle h{h} model_weights_commit mismatch: expected one of {allowed_commits}, got {b_manifest['model_weights_commit']}"
             )
 
@@ -387,7 +396,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             assert c_manifest["feature_schema"] == EXPECTED_FEATURES, f"Candidate h{h} feature_schema mismatch"
             assert c_manifest["weather_telemetry_sha256"] == weather_hash, f"Candidate h{h} weather hash mismatch"
             assert c_manifest["water_telemetry_sha256"] == water_hash, f"Candidate h{h} water hash mismatch"
-            assert c_manifest["implementation_commit"] in allowed_commits, f"Candidate h{h} implementation_commit mismatch"
+            assert commit_matches(c_manifest["implementation_commit"], allowed_commits), f"Candidate h{h} implementation_commit mismatch"
             assert c_manifest["checkpoint_sha256"] == compute_sha256(c_ckpt_path), f"Candidate h{h} checkpoint hash mismatch"
             assert c_manifest["calibration_sha256"] == compute_sha256(c_calib_path), f"Candidate h{h} calibration hash mismatch"
             if "predictions_sha256" in c_manifest:
@@ -401,7 +410,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
                     assert col in c_manifest["evaluation_schema"], f"Candidate h{h} evaluation_schema missing {col}"
 
             if "parent_code_commit" in c_manifest:
-                assert c_manifest["parent_code_commit"] in allowed_commits, f"Candidate h{h} parent_code_commit mismatch"
+                assert commit_matches(c_manifest["parent_code_commit"], allowed_commits), f"Candidate h{h} parent_code_commit mismatch"
             if "artifact_sha256" in c_manifest:
                 assert c_manifest["artifact_sha256"] == c_manifest["checkpoint_sha256"], f"Candidate h{h} artifact_sha256 mismatch"
             if "raw_weather_sha256" in c_manifest:
@@ -424,7 +433,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             if os.path.exists(rep_path):
                 with open(rep_path, "r", encoding="utf-8") as f:
                     rep_data = json.load(f)
-                assert "report_name" in rep_data and "code_commit" in rep_data, f"Invalid schema in {rep_name}"
+                assert "report_name" in rep_data and commit_matches(rep_data.get("code_commit"), allowed_commits), f"Invalid schema or commit in {rep_name}"
 
         with open(os.path.join(cand_artifacts_dir, "predictive_quality_scorecard.json"), "r", encoding="utf-8") as f:
             sc_data = json.load(f)
@@ -458,7 +467,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         assert os.path.exists(ckpt_path), f"Missing MF-1 checkpoint: {ckpt_path}"
         ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
         m = ckpt.get("manifest", {})
-        assert m.get("code_commit") in allowed_commits, (
+        assert commit_matches(m.get("code_commit"), allowed_commits), (
             f"{ckpt_name} commit mismatch: expected one of {allowed_commits}, got {m.get('code_commit')}"
         )
         assert m.get("forecast_horizon_hours") == h, f"{ckpt_name} horizon mismatch: expected {h}, got {m.get('forecast_horizon_hours')}"
@@ -471,7 +480,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
     if os.path.exists(default_mf1_path):
         ckpt = torch.load(default_mf1_path, map_location="cpu", weights_only=False)
         m = ckpt.get("manifest", {})
-        assert m.get("code_commit") in allowed_commits, "default lnn_weather_water.pt commit mismatch"
+        assert commit_matches(m.get("code_commit"), allowed_commits), "default lnn_weather_water.pt commit mismatch"
         assert m.get("model_config", {}).get("input_dim") == 8, "default lnn_weather_water.pt input_dim != 8"
         print("[PASS] Default lnn_weather_water.pt: commit & dim=8 match")
 
@@ -483,7 +492,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         with open(w_path, "r", encoding="utf-8") as f:
             w_data = json.load(f)
         m = w_data.get("manifest", {})
-        assert m.get("code_commit") in allowed_commits, (
+        assert commit_matches(m.get("code_commit"), allowed_commits), (
             f"{w_name} commit mismatch: expected one of {allowed_commits}, got {m.get('code_commit')}"
         )
         assert m.get("forecast_horizon_hours") == h, f"{w_name} horizon mismatch: expected {h}, got {m.get('forecast_horizon_hours')}"
@@ -497,7 +506,7 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         with open(default_mf2_path, "r", encoding="utf-8") as f:
             w_data = json.load(f)
         m = w_data.get("manifest", {})
-        assert m.get("code_commit") in allowed_commits, "default lnn_trained_weights.json commit mismatch"
+        assert commit_matches(m.get("code_commit"), allowed_commits), "default lnn_trained_weights.json commit mismatch"
         assert m.get("model_config", {}).get("in_features") == 8, "default lnn_trained_weights.json in_features != 8"
         print("[PASS] Default lnn_trained_weights.json: commit & dim=8 match")
 

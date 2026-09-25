@@ -1,0 +1,104 @@
+{
+  "report_name": "local_station_information_ceiling_report",
+  "report_version": "2.0.0",
+  "generated_at_utc": "2026-09-25T22:51:53.004837+00:00",
+  "code_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "artifact_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "release_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "local_telemetry_only_constraint": true,
+  "ablations_evaluated": [
+    {
+      "level": 1,
+      "name": "raw_recent_values",
+      "description": "Single-step observed origin values"
+    },
+    {
+      "level": 2,
+      "name": "lagged_values",
+      "description": "1h, 3h, 6h, 12h, 24h lags for all variables"
+    },
+    {
+      "level": 3,
+      "name": "seasonal_features",
+      "description": "hour_sin, hour_cos, doy_sin, doy_cos diurnal/annual harmonics"
+    },
+    {
+      "level": 4,
+      "name": "trend_and_volatility_features",
+      "description": "rolling means, stds, min, max, dp tendencies"
+    },
+    {
+      "level": 5,
+      "name": "sensor_quality_features",
+      "description": "calm wind indicator, dry spell hours, rain persistence"
+    },
+    {
+      "level": 6,
+      "name": "current_candidate_lnn",
+      "description": "Liquid Neural Network with context conditioning"
+    },
+    {
+      "level": 7,
+      "name": "residual_temperature_model",
+      "description": "forecast = baseline + learned residual with quantile heads"
+    },
+    {
+      "level": 8,
+      "name": "vector_wind_direction_model",
+      "description": "Cartesian (u, v) circular modeling with calm fallback"
+    },
+    {
+      "level": 9,
+      "name": "hurdle_precipitation_model",
+      "description": "P(rain) classification + conditional volume regression"
+    },
+    {
+      "level": 10,
+      "name": "compact_ensemble",
+      "description": "Out-of-fold calibration blended ensemble"
+    }
+  ],
+  "target_classifications": {
+    "temperature": {
+      "+01h": "INFORMATION_LIMITED",
+      "+03h": "INFORMATION_LIMITED",
+      "+06h": "INFORMATION_LIMITED",
+      "+12h": "IMPROVED",
+      "+24h": "IMPROVED",
+      "justification": "Local thermodynamic inertia makes persistence superior at <=6h without regional advection data; candidate beats persistence at >=12h diurnal cycles."
+    },
+    "humidity": {
+      "all_horizons": "INFORMATION_LIMITED",
+      "justification": "Strong microclimatic humidity noise without regional dew point grid makes baseline/persistence optimal."
+    },
+    "pressure": {
+      "all_horizons": "INFORMATION_LIMITED",
+      "justification": "Barometric pressure changes are governed by regional synoptic gradients unavailable in single-station local telemetry."
+    },
+    "wind_speed": {
+      "status": "IMPROVED",
+      "justification": "Candidate beats persistence at +12h and matches baseline across remaining horizons."
+    },
+    "wind_direction": {
+      "all_horizons": "INFORMATION_LIMITED",
+      "justification": "Local turbulence and calm-wind regimes dominate; vector models improve upon unconstrained angle regression but do not surpass persistence without spatial pressure field."
+    },
+    "precipitation_occurrence": {
+      "all_horizons": "IMPROVED",
+      "justification": "Candidate beats persistence across all 5 horizons with lower Brier score and higher PR-AUC."
+    },
+    "precipitation_amount": {
+      "all_horizons": "IMPROVED",
+      "justification": "Two-stage hurdle formulation accurately preserves zero-inflation and captures heavy-rain events."
+    },
+    "heat_index": {
+      "all_horizons": "IMPROVED",
+      "justification": "Derived NOAA formula preserves thermodynamic consistency and improves upon raw persistence."
+    },
+    "uv_index": {
+      "all_horizons": "BLOCKED_BY_SENSOR_CALIBRATION",
+      "justification": "Sensor defect in nocturnal readings requires physical calibration before machine learning modeling."
+    }
+  },
+  "verdict": "Scientific validity of INFORMATION_LIMITED acknowledged. Production routing honors the local-station information ceiling by deploying target-specific fallback."
+}

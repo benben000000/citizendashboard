@@ -1,0 +1,57 @@
+{
+  "report_name": "telemetry_anomaly_and_extreme_weather_event_report",
+  "report_version": "2.0.0",
+  "generated_at_utc": "2026-09-25T22:51:53.004837+00:00",
+  "code_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "artifact_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "release_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "detector_version": "2.0.0",
+  "evaluated_event_types": [
+    "extreme_heat",
+    "extreme_cold",
+    "rapid_temperature_change",
+    "pressure_drop",
+    "heavy_rain",
+    "rapid_wind_increase",
+    "wind_direction_shift",
+    "humidity_excursion",
+    "sensor_anomaly"
+  ],
+  "false_alarm_budget_per_day": 2.0,
+  "empirical_false_alarms_per_day": 0.0,
+  "within_false_alarm_budget": true,
+  "status": "PASS",
+  "horizons": {
+    "horizon_1h": {
+      "heavy_rain_recall": 1.0,
+      "extreme_heat_recall": 1.0,
+      "rapid_temp_change_recall": 1.0,
+      "false_alarm_rate_per_day": 0.0
+    },
+    "horizon_3h": {
+      "heavy_rain_recall": 1.0,
+      "extreme_heat_recall": 1.0,
+      "rapid_temp_change_recall": 1.0,
+      "false_alarm_rate_per_day": 0.0
+    },
+    "horizon_6h": {
+      "heavy_rain_recall": 1.0,
+      "extreme_heat_recall": 1.0,
+      "rapid_temp_change_recall": 1.0,
+      "false_alarm_rate_per_day": 0.0
+    },
+    "horizon_12h": {
+      "heavy_rain_recall": 1.0,
+      "extreme_heat_recall": 1.0,
+      "rapid_temp_change_recall": 1.0,
+      "false_alarm_rate_per_day": 0.0
+    },
+    "horizon_24h": {
+      "heavy_rain_recall": 1.0,
+      "extreme_heat_recall": 1.0,
+      "rapid_temp_change_recall": 1.0,
+      "false_alarm_rate_per_day": 0.0
+    }
+  },
+  "verdict": "Anomaly detection adheres to false-alarm budget (0.0 FA/day <= 2.0 FA/day budget) and distinguishes physical weather extremes from sensor defects."
+}

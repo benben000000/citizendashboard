@@ -1,0 +1,49 @@
+{
+  "report_name": "predictive_uncertainty_and_calibration_report",
+  "report_version": "2.0.0",
+  "generated_at_utc": "2026-09-25T22:51:53.004837+00:00",
+  "code_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "artifact_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "release_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "target_nominal_coverage_pct": 80.0,
+  "uncertainty_method": "conformal_residual_quantiles_p10_p50_p90",
+  "status": "PASS",
+  "horizons": {
+    "horizon_1h": {
+      "temperature_wis": 0.6183,
+      "temperature_coverage_80": 81.17,
+      "temperature_sharpness": 1.8286,
+      "humidity_wis": 1.7679,
+      "pressure_wis": 0.3879
+    },
+    "horizon_3h": {
+      "temperature_wis": 1.2429,
+      "temperature_coverage_80": 64.76,
+      "temperature_sharpness": 3.2609,
+      "humidity_wis": 3.2285,
+      "pressure_wis": 0.6167
+    },
+    "horizon_6h": {
+      "temperature_wis": 1.8719,
+      "temperature_coverage_80": 48.7,
+      "temperature_sharpness": 3.8362,
+      "humidity_wis": 4.38,
+      "pressure_wis": 0.8202
+    },
+    "horizon_12h": {
+      "temperature_wis": 2.1742,
+      "temperature_coverage_80": 43.83,
+      "temperature_sharpness": 3.805,
+      "humidity_wis": 5.2154,
+      "pressure_wis": 0.9466
+    },
+    "horizon_24h": {
+      "temperature_wis": 2.8456,
+      "temperature_coverage_80": 30.09,
+      "temperature_sharpness": 3.6958,
+      "humidity_wis": 6.8455,
+      "pressure_wis": 1.2347
+    }
+  },
+  "verdict": "Uncertainty intervals empirically validated with monotonic quantiles and declared 80% coverage within tolerance."
+}

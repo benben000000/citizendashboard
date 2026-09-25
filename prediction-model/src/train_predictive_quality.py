@@ -353,7 +353,14 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         output_dir = DEFAULT_CANDIDATE_DIR
 
     os.makedirs(output_dir, exist_ok=True)
-    head_commit = commit if commit else get_git_commit()
+    if commit:
+        try:
+            res = subprocess.run(["git", "rev-parse", commit], cwd=SRC_DIR, capture_output=True, text=True, check=True)
+            head_commit = res.stdout.strip()
+        except Exception:
+            head_commit = commit
+    else:
+        head_commit = get_git_commit()
 
     pipeline = get_telemetry_pipeline()
     horizons = DEFAULT_HORIZONS  # [1, 3, 6, 12, 24]
@@ -1709,6 +1716,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "wind_speed": "candidate",
             "wind_direction": "persistence",
             "precipitation_occurrence": "candidate",
+            "rain_occurrence": "candidate",
             "precipitation_amount": "candidate",
             "heat_index": "derived_noaa",
             "uv_index": "blocked",
