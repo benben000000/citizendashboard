@@ -107,72 +107,65 @@
     "light_intensity": "SECONDARY_BETA_DAYLIGHT_ONLY"
   },
   "uncertainty_status": "UNAVAILABLE",
-  "validation_csi": 0.5848,
-  "test_brier_score": 0.1938,
-  "test_expected_calibration_error": 0.0845,
+  "validation_csi": 0.5825,
+  "test_brier_score": 0.1944,
+  "test_expected_calibration_error": 0.0703,
   "reliability_bins": [
     {
       "bin_low": 0.0,
       "bin_high": 0.1,
-      "sample_count": 157,
-      "mean_confidence": 0.0882,
-      "empirical_accuracy": 0.1529
+      "sample_count": 46,
+      "mean_confidence": 0.0888,
+      "empirical_accuracy": 0.2391
     },
     {
       "bin_low": 0.1,
       "bin_high": 0.2,
-      "sample_count": 689,
-      "mean_confidence": 0.1477,
-      "empirical_accuracy": 0.1858
+      "sample_count": 731,
+      "mean_confidence": 0.1485,
+      "empirical_accuracy": 0.1669
     },
     {
       "bin_low": 0.2,
       "bin_high": 0.3,
-      "sample_count": 600,
-      "mean_confidence": 0.2417,
-      "empirical_accuracy": 0.2433
+      "sample_count": 703,
+      "mean_confidence": 0.2421,
+      "empirical_accuracy": 0.2546
     },
     {
       "bin_low": 0.3,
       "bin_high": 0.4,
-      "sample_count": 145,
-      "mean_confidence": 0.335,
-      "empirical_accuracy": 0.469
-    },
-    {
-      "bin_low": 0.4,
-      "bin_high": 0.5,
-      "sample_count": 7,
-      "mean_confidence": 0.4806,
-      "empirical_accuracy": 0.7143
+      "sample_count": 112,
+      "mean_confidence": 0.3208,
+      "empirical_accuracy": 0.4911
     },
     {
       "bin_low": 0.5,
       "bin_high": 0.6,
-      "sample_count": 161,
-      "mean_confidence": 0.5612,
-      "empirical_accuracy": 0.3665
+      "sample_count": 138,
+      "mean_confidence": 0.5719,
+      "empirical_accuracy": 0.4058
     },
     {
       "bin_low": 0.6,
       "bin_high": 0.7,
-      "sample_count": 302,
-      "mean_confidence": 0.6532,
-      "empirical_accuracy": 0.4305
+      "sample_count": 399,
+      "mean_confidence": 0.6529,
+      "empirical_accuracy": 0.4411
     },
     {
       "bin_low": 0.7,
       "bin_high": 0.8,
-      "sample_count": 321,
-      "mean_confidence": 0.7483,
-      "empirical_accuracy": 0.6044
+      "sample_count": 362,
+      "mean_confidence": 0.7508,
+      "empirical_accuracy": 0.7072
     },
     {
       "bin_low": 0.8,
       "bin_high": 0.9,
-      "sample_count": 251,
-      "mean_confidence": 0.8433,
-      "empirical_accuracy": 0.9203
+      "sample_count": 142,
+      "mean_confidence": 0.8199,
+      "empirical_accuracy": 0.9155
     }
   ]
 }

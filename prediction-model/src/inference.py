@@ -122,6 +122,16 @@ class LNNServerlessPredictor:
                     f"expected {c_manifest['calibration_sha256']}, got {actual_calib_h}."
                 )
 
+            if "predictions_filename" in c_manifest and "predictions_sha256" in c_manifest:
+                c_preds = os.path.join(c_dir, c_manifest["predictions_filename"])
+                if os.path.exists(c_preds):
+                    actual_preds_h = compute_sha256(c_preds)
+                    if actual_preds_h != c_manifest["predictions_sha256"]:
+                        raise ValueError(
+                            f"Candidate predictions log hash mismatch (tampered or corrupted): "
+                            f"expected {c_manifest['predictions_sha256']}, got {actual_preds_h}."
+                        )
+
             model_weights_path = c_ckpt
             policy_path = c_calib
             horizon_hours = c_manifest["horizon_hours"]

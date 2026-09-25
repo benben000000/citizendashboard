@@ -1,6 +1,24 @@
 {
   "policy_version": "1.0.0",
   "policy_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+  "model_family": "GarciaWeatherLNN",
+  "model_status": "ACTIVE_PRODUCTION",
+  "bundle_version": "1.0.0",
+  "horizon_hours": 12,
+  "implementation_commit": "b72b16ae960be6627b92dd2445dac10d84b99bef",
+  "artifact_commit": "b72b16ae960be6627b92dd2445dac10d84b99bef",
+  "model_weights_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+  "checkpoint_sha256": "73697f9d10427e7b64a567a6ffb243dcf969e03a5f9eb5538eb5ee01d80fb4e2",
+  "feature_schema": [
+    "temperature",
+    "heat_index",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_sin",
+    "wind_cos",
+    "precipitation"
+  ],
   "generated_at": "2026-09-23T06:49:26.290505+00:00",
   "dataset_hashes": {
     "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",

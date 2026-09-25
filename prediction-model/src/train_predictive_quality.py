@@ -321,7 +321,7 @@ def evaluate_precipitation_amount(y_true_mm: np.ndarray, y_pred_mm: np.ndarray, 
 # Training Candidate Models Pipeline
 # ---------------------------------------------------------------------------
 
-def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr: float = 1e-3, seed: int = DEFAULT_SEED):
+def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr: float = 1e-3, seed: int = DEFAULT_SEED, commit: str = None):
     """
     Main execution pipeline fulfilling Workstreams A through I of the Proper Implementation Plan:
       1. Freezes baseline manifest (Workstream A).
@@ -337,7 +337,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         output_dir = DEFAULT_CANDIDATE_DIR
 
     os.makedirs(output_dir, exist_ok=True)
-    head_commit = get_git_commit()
+    head_commit = commit if commit else get_git_commit()
 
     pipeline = get_telemetry_pipeline()
     horizons = DEFAULT_HORIZONS  # [1, 3, 6, 12, 24]
@@ -426,6 +426,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     }
 
     # Iterate over all 5 horizons
+    all_candidate_artifacts = []
     for h in horizons:
         print(f"\n" + "-" * 70)
         print(f"EVALUATING FORECAST HORIZON: +{h}h")
@@ -894,6 +895,30 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             json.dump(calib_data, f, indent=2)
         calib_sha256 = compute_sha256(calib_path)
 
+        # Save test predictions log (hygienic, relative basenames, no machine paths)
+        with open(preds_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "station_id", "target_timestamp", "horizon_hours",
+                "temp_true", "temp_pred", "temp_persist",
+                "hi_true", "hi_pred",
+                "rain_true", "rain_prob", "rain_pred",
+                "wind_u_true", "wind_u_pred", "wind_v_true", "wind_v_pred",
+                "precip_true", "precip_pred"
+            ])
+            for i in range(min(500, N_test)):  # Log first 500 test samples
+                m = test_meta[i]
+                writer.writerow([
+                    m["station_id"], m["target_timestamp"], h,
+                    round(float(t_true[i]), 3), round(float(cand_t[i]), 3), round(float(t_orig[i]), 3),
+                    round(float(hi_true[i]), 3), round(float(cand_hi[i]), 3),
+                    int(rain_true[i]), round(float(cand_rain_prob[i]), 4), int(cand_rain_prob[i] >= best_thresh),
+                    round(float(u_true[i]), 4), round(float(cand_u[i]), 4),
+                    round(float(v_true[i]), 4), round(float(cand_v[i]), 4),
+                    round(float(precip_true[i]), 3), round(float(cand_precip_mm[i]), 3)
+                ])
+        preds_sha256 = compute_sha256(preds_path)
+
         # Save candidate manifest (Workstream B & Phase 3 complete schema)
         manifest_data = {
             "bundle_type": "candidate_featured_model_bundle",
@@ -909,6 +934,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "calibration_filename": calib_filename,
             "calibration_sha256": calib_sha256,
             "predictions_filename": preds_filename,
+            "predictions_sha256": preds_sha256,
             "input_dimension": 8,
             "context_dimension": NUM_FEATURE_AUGMENTED,
             "feature_schema": CANONICAL_FEATURES,
@@ -960,33 +986,12 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         with open(manifest_path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(manifest_data, f, indent=2)
 
-        # Save test predictions log (hygienic, relative basenames, no machine paths)
-        with open(preds_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                "station_id", "target_timestamp", "horizon_hours",
-                "temp_true", "temp_pred", "temp_persist",
-                "hi_true", "hi_pred",
-                "rain_true", "rain_prob", "rain_pred",
-                "wind_u_true", "wind_u_pred", "wind_v_true", "wind_v_pred",
-                "precip_true", "precip_pred"
-            ])
-            for i in range(min(500, N_test)):  # Log first 500 test samples
-                m = test_meta[i]
-                writer.writerow([
-                    m["station_id"], m["target_timestamp"], h,
-                    round(float(t_true[i]), 3), round(float(cand_t[i]), 3), round(float(t_orig[i]), 3),
-                    round(float(hi_true[i]), 3), round(float(cand_hi[i]), 3),
-                    int(rain_true[i]), round(float(cand_rain_prob[i]), 4), int(cand_rain_prob[i] >= best_thresh),
-                    round(float(u_true[i]), 4), round(float(cand_u[i]), 4),
-                    round(float(v_true[i]), 4), round(float(cand_v[i]), 4),
-                    round(float(precip_true[i]), 3), round(float(cand_precip_mm[i]), 3)
-                ])
+        all_candidate_artifacts.extend([ckpt_filename, manifest_filename, calib_filename, preds_filename])
 
         print(f"Saved Candidate Checkpoint: {ckpt_filename} (SHA-256: {ckpt_sha256[:12]}...)")
         print(f"Saved Candidate Manifest:   {manifest_filename}")
         print(f"Saved Calibration Artifact: {calib_filename}")
-        print(f"Saved Predictions Log:      {preds_filename}")
+        print(f"Saved Predictions Log:      {preds_filename} (SHA-256: {preds_sha256[:12]}...)")
 
         # Store in scorecard
         scorecard["horizon_evaluations"][f"horizon_{h}h"] = {
@@ -1158,10 +1163,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         },
         "gate_8_reproducibility_artifacts": {
             "status": "PASS",
-            "artifacts_generated": [
-                f"candidate_h{h}h.pt", f"candidate_h{h}h_manifest.json",
-                f"candidate_h{h}h_calibration.json", f"candidate_h{h}h_predictions.csv"
-            ]
+            "artifacts_generated": all_candidate_artifacts
         },
         "gate_9_uv_sensor_quarantine_enforced": {
             "status": "PASS",
@@ -1233,6 +1235,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     scorecard["operational_decision"] = operational_decision
     scorecard["operational_target_status"] = operational_target_status
     scorecard["target_specific_source_policy"] = target_specific_source_policy
+    scorecard["artifacts_generated"] = all_candidate_artifacts
     scorecard["promotion_audit"] = {
         "final_decision": final_decision_str,
         "research_decision": research_decision,
@@ -1325,6 +1328,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed")
     parser.add_argument("--output-dir", type=str, default=DEFAULT_CANDIDATE_DIR, help="Output directory")
+    parser.add_argument("--commit", type=str, default=None, help="Explicit commit hash override for candidate provenance metadata")
     args = parser.parse_args()
 
-    train_and_evaluate_all_horizons(output_dir=args.output_dir, epochs=args.epochs, lr=args.lr, seed=args.seed)
+    train_and_evaluate_all_horizons(output_dir=args.output_dir, epochs=args.epochs, lr=args.lr, seed=args.seed, commit=args.commit)

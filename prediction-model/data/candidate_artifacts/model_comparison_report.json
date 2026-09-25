@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-25T04:47:55.278195+00:00",
-  "code_commit": "0153a7957460cf28cae528e152e997fed9b2165d",
+  "generated_at": "2026-09-25T05:38:00.792478+00:00",
+  "code_commit": "ba274016cd6028f7d357ef663a9b104725c32f29",
   "horizons": {
     "horizon_1h": {
       "temperature_mae": {
@@ -8,36 +8,36 @@
         "climatology": 1.6845,
         "ridge_75": 0.6218,
         "gradient_boosted_tree_75": 0.912,
-        "candidate_featured": 0.502,
-        "candidate_vs_persist_skill": -0.0192
+        "candidate_featured": 0.5007,
+        "candidate_vs_persist_skill": -0.0165
       },
       "heat_index_mae": {
         "persistence": 1.5182,
         "climatology": 4.0291,
         "ridge_75": 1.6777,
         "gradient_boosted_tree_75": 2.6153,
-        "candidate_featured": 1.4621
+        "candidate_featured": 1.4405
       },
       "rain_brier_score": {
         "persistence": 0.147,
         "climatology": 0.254,
         "ridge_75": 0.13,
         "gradient_boosted_tree_75": 0.1294,
-        "candidate_featured": 0.1325
+        "candidate_featured": 0.1363
       },
       "wind_direction_circular_mae": {
         "persistence": 39.42,
         "climatology": 74.61,
         "ridge_75": 81.22,
         "gradient_boosted_tree_75": 73.49,
-        "candidate_featured": 40.07
+        "candidate_featured": 40.85
       },
       "precipitation_rainy_mae": {
         "persistence": 2.6347,
         "climatology": 2.7316,
         "ridge_75": 2.4373,
         "gradient_boosted_tree_75": 2.3606,
-        "candidate_featured": 2.3069
+        "candidate_featured": 2.3864
       }
     },
     "horizon_3h": {
@@ -46,36 +46,36 @@
         "climatology": 1.6709,
         "ridge_75": 1.2679,
         "gradient_boosted_tree_75": 1.2653,
-        "candidate_featured": 1.0757,
-        "candidate_vs_persist_skill": -0.1259
+        "candidate_featured": 1.3001,
+        "candidate_vs_persist_skill": -0.3608
       },
       "heat_index_mae": {
         "persistence": 2.6578,
         "climatology": 3.9946,
         "ridge_75": 3.1581,
         "gradient_boosted_tree_75": 3.6412,
-        "candidate_featured": 2.7756
+        "candidate_featured": 3.3074
       },
       "rain_brier_score": {
         "persistence": 0.1914,
         "climatology": 0.2531,
         "ridge_75": 0.1688,
         "gradient_boosted_tree_75": 0.1707,
-        "candidate_featured": 0.1542
+        "candidate_featured": 0.1837
       },
       "wind_direction_circular_mae": {
         "persistence": 46.95,
         "climatology": 74.48,
         "ridge_75": 85.7,
         "gradient_boosted_tree_75": 77.44,
-        "candidate_featured": 47.3
+        "candidate_featured": 50.31
       },
       "precipitation_rainy_mae": {
         "persistence": 2.997,
         "climatology": 2.7697,
         "ridge_75": 2.8662,
         "gradient_boosted_tree_75": 2.5043,
-        "candidate_featured": 2.5525
+        "candidate_featured": 2.5734
       }
     },
     "horizon_6h": {
@@ -84,36 +84,36 @@
         "climatology": 1.6297,
         "ridge_75": 1.7367,
         "gradient_boosted_tree_75": 1.6345,
-        "candidate_featured": 1.7385,
-        "candidate_vs_persist_skill": -0.2062
+        "candidate_featured": 1.7042,
+        "candidate_vs_persist_skill": -0.1824
       },
       "heat_index_mae": {
         "persistence": 3.8582,
         "climatology": 3.9052,
         "ridge_75": 4.0033,
         "gradient_boosted_tree_75": 4.3943,
-        "candidate_featured": 4.2636
+        "candidate_featured": 4.2076
       },
       "rain_brier_score": {
         "persistence": 0.2246,
         "climatology": 0.2488,
         "ridge_75": 0.1987,
         "gradient_boosted_tree_75": 0.1941,
-        "candidate_featured": 0.1786
+        "candidate_featured": 0.1782
       },
       "wind_direction_circular_mae": {
         "persistence": 53.2,
         "climatology": 74.43,
         "ridge_75": 86.7,
         "gradient_boosted_tree_75": 80.06,
-        "candidate_featured": 54.3
+        "candidate_featured": 56.21
       },
       "precipitation_rainy_mae": {
         "persistence": 3.1398,
         "climatology": 2.838,
         "ridge_75": 2.9094,
         "gradient_boosted_tree_75": 2.6459,
-        "candidate_featured": 2.6605
+        "candidate_featured": 2.6706
       }
     },
     "horizon_12h": {
@@ -122,36 +122,36 @@
         "climatology": 1.5905,
         "ridge_75": 1.8787,
         "gradient_boosted_tree_75": 1.3983,
-        "candidate_featured": 1.745,
-        "candidate_vs_persist_skill": 0.0465
+        "candidate_featured": 1.6119,
+        "candidate_vs_persist_skill": 0.1193
       },
       "heat_index_mae": {
         "persistence": 4.8042,
         "climatology": 3.8243,
         "ridge_75": 4.1942,
         "gradient_boosted_tree_75": 3.7375,
-        "candidate_featured": 4.2323
+        "candidate_featured": 3.9651
       },
       "rain_brier_score": {
         "persistence": 0.2483,
         "climatology": 0.2457,
         "ridge_75": 0.2436,
         "gradient_boosted_tree_75": 0.2176,
-        "candidate_featured": 0.1938
+        "candidate_featured": 0.1944
       },
       "wind_direction_circular_mae": {
         "persistence": 57.05,
         "climatology": 74.66,
         "ridge_75": 84.38,
         "gradient_boosted_tree_75": 84.21,
-        "candidate_featured": 59.94
+        "candidate_featured": 58.03
       },
       "precipitation_rainy_mae": {
         "persistence": 3.0973,
         "climatology": 2.7064,
         "ridge_75": 3.0887,
         "gradient_boosted_tree_75": 2.4952,
-        "candidate_featured": 2.5003
+        "candidate_featured": 2.5162
       }
     },
     "horizon_24h": {
@@ -160,36 +160,36 @@
         "climatology": 1.6259,
         "ridge_75": 1.6871,
         "gradient_boosted_tree_75": 1.2433,
-        "candidate_featured": 1.1791,
-        "candidate_vs_persist_skill": 0.0259
+        "candidate_featured": 1.2359,
+        "candidate_vs_persist_skill": -0.0211
       },
       "heat_index_mae": {
         "persistence": 3.1662,
         "climatology": 3.8969,
         "ridge_75": 4.0537,
         "gradient_boosted_tree_75": 3.308,
-        "candidate_featured": 3.1137
+        "candidate_featured": 3.2089
       },
       "rain_brier_score": {
         "persistence": 0.2728,
         "climatology": 0.2399,
         "ridge_75": 0.2096,
         "gradient_boosted_tree_75": 0.2329,
-        "candidate_featured": 0.2185
+        "candidate_featured": 0.2174
       },
       "wind_direction_circular_mae": {
         "persistence": 54.33,
         "climatology": 74.56,
         "ridge_75": 81.22,
         "gradient_boosted_tree_75": 83.36,
-        "candidate_featured": 54.45
+        "candidate_featured": 54.44
       },
       "precipitation_rainy_mae": {
         "persistence": 2.8745,
         "climatology": 2.5325,
         "ridge_75": 2.621,
         "gradient_boosted_tree_75": 2.3584,
-        "candidate_featured": 2.3773
+        "candidate_featured": 2.3896
       }
     }
   },

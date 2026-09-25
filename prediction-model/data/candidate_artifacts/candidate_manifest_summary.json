@@ -1,102 +1,102 @@
 {
   "summary_version": "2.0.0",
   "output_directory": "prediction-model/data/candidate_artifacts",
-  "generation_timestamp": "2026-09-25T04:48:50.932742+00:00",
+  "generation_timestamp": "2026-09-25T05:39:27.111439+00:00",
   "total_artifacts": 23,
   "research_decision": "GO",
   "operational_decision": "CONDITIONAL_GO",
   "artifacts": {
     "baseline_manifest.json": {
-      "sha256": "d781cf9ea7e5137ed84dd7cac93095206d785f11f28a439521d38dbabce3811c",
+      "sha256": "9fa4054fea9e84ee487753a4cbdc959a4d1e0cde34b8ab602abd2e4e72effcae",
       "size_bytes": 5683
     },
     "predictive_quality_scorecard.json": {
-      "sha256": "1547137bebd61dba586d60b80c6a9f82f252d749cf5f823369b84f3401bab823",
-      "size_bytes": 159346
+      "sha256": "1d0f4b69fc343a76ea95af39517d2790fc2928b59a88656a9ac54517b6ede2b2",
+      "size_bytes": 160340
     },
     "model_comparison_report.json": {
-      "sha256": "e25a95867e02ed5d762ceccd2d3f05cd5c51c9037e1a5df4cdb5f619a1a9293c",
-      "size_bytes": 6220
+      "sha256": "1c2b2917bf3cdc4422fc0386daa03a8df412a8aa12452dfa556207bb1c6f4082",
+      "size_bytes": 6225
     },
     "candidate_h1h.pt": {
-      "sha256": "0c8cbc9d4cb5cff449d0dd508e2d79f3b2e0770ce7593fac9f18010639f653f7",
+      "sha256": "c4a4a5d562624bb1a2c1ea8134d775ffe04f31fbdaefeea2d44d1d35f443681d",
       "size_bytes": 91095
     },
     "candidate_h1h_manifest.json": {
-      "sha256": "c3f5d43106f96ce8306ed57c17a4c1f9b2e83b22e5aeef392ae893ddd1bc1f37",
-      "size_bytes": 8385
+      "sha256": "729db8738e609e3629f1e30844778d33138896b0d143846eda18853bab9d5944",
+      "size_bytes": 8478
     },
     "candidate_h1h_calibration.json": {
-      "sha256": "c52f976f3d791fdc4e2e958253d064bcd0c770321092fa5f95d90b57a417f91f",
-      "size_bytes": 4391
+      "sha256": "accd8c37636acc256f99883f3154caada77f98f5818949d0c4f475f2053ff09b",
+      "size_bytes": 4395
     },
     "candidate_h1h_predictions.csv": {
-      "sha256": "1cdd57978ee02dbab6275fa378d0912f7188a380c7f43223eb9c4000ae11a261",
-      "size_bytes": 60564
+      "sha256": "5288537cd7f855c9516b06cbfb0cd955984234838369eb8aacb6b847c7ecc9be",
+      "size_bytes": 60524
     },
     "candidate_h3h.pt": {
-      "sha256": "3e6acb44e8bc1a8a403080f85b5e6c606fd1f97648d931e6fa40f5541f4d9e17",
+      "sha256": "67c9f2a9fe4234334c924c0b51358773c70f3e90703808228b2736584cf2dee7",
       "size_bytes": 91095
     },
     "candidate_h3h_manifest.json": {
-      "sha256": "7d94be03747976d05663d9a46593f040dc1aaa8c2cdaf9257149d0feeb23ad7f",
-      "size_bytes": 8385
+      "sha256": "5aeaf476ca04b72599d5bda208286c1641cf22a46547e10a8f99f8438f45921c",
+      "size_bytes": 8478
     },
     "candidate_h3h_calibration.json": {
-      "sha256": "e7bf9fd55b3fc3415e18521aadf8b74fb11869fa0030ef7f8d558ce8f0327c64",
-      "size_bytes": 4392
+      "sha256": "923fd829f31e998cb0f5227f7fbb8293ef61c9d414ca6938a985bf03a1e14f46",
+      "size_bytes": 4387
     },
     "candidate_h3h_predictions.csv": {
-      "sha256": "b544afd381263863ab984d798eaa2766963a53d5ab8446a25d237be754e75e6c",
-      "size_bytes": 60526
+      "sha256": "3ad96d7f34f1eea7105756ecff47e59d5c344a3107b5a0a7fa4093a30b13421f",
+      "size_bytes": 60437
     },
     "candidate_h6h.pt": {
-      "sha256": "a485428aaa510b0e848b3255b7df5514060421fab60b4a8364dc1b93ac68f92a",
+      "sha256": "2594b63bcc40411b1d42246eebed4364b2e997b26daf9c6f20c5ea4b567f73ae",
       "size_bytes": 91095
     },
     "candidate_h6h_manifest.json": {
-      "sha256": "71cff7583b98bb3d3b35b88629b62cc24e58514e4d5d7e0b43795d04d99959d8",
-      "size_bytes": 8385
+      "sha256": "795095d955da3d52e9dee6dbc742d94b40ec4932fdf78930c412813b9f59a7ed",
+      "size_bytes": 8478
     },
     "candidate_h6h_calibration.json": {
-      "sha256": "c5072404ea1d3dc14c6c2309b9d1a76f1d9a6ae9613d741db2ff912331844f3f",
-      "size_bytes": 4202
+      "sha256": "76449e9bb5b6fa0b9a9cebb2e2fa2d48df853b2e04f1315534f6401522995a20",
+      "size_bytes": 4237
     },
     "candidate_h6h_predictions.csv": {
-      "sha256": "5e38b19506f892543ea0a307316ef9dbe3223ebca0482c75dca640768dce1ea9",
-      "size_bytes": 60463
+      "sha256": "a08b4f6debd33941fbd32b770acde7a33afbb94e73bca1f4a9d94f5170046a6c",
+      "size_bytes": 60433
     },
     "candidate_h12h.pt": {
-      "sha256": "0dafef397cbcefe3740b025860ffa19e162596a6e613d3bc28562d96fba9d521",
+      "sha256": "031590ad40c8217444228cf199a4759d4866eb089744b4b2ade9f85863cb8d83",
       "size_bytes": 91149
     },
     "candidate_h12h_manifest.json": {
-      "sha256": "efb1ae61a693a649d119f90fd30c333eb2cd93c9eaa4a5962ba840c0fe970c8f",
-      "size_bytes": 8389
+      "sha256": "85b83e4e4c6c10e253a12b27c9de5c173d185acfbbdcdaf075d7ad503d773664",
+      "size_bytes": 8482
     },
     "candidate_h12h_calibration.json": {
-      "sha256": "b923f7841fadebf68b903e4579951167d4de51d4a031b5aed8a2a3888811b730",
-      "size_bytes": 4208
+      "sha256": "7c4ee24a2f1c170247c0d8d6e9fede367c8289594378a86c2ed6199da6921e09",
+      "size_bytes": 4058
     },
     "candidate_h12h_predictions.csv": {
-      "sha256": "e124a8a14a38a8bdf178aa7a84a316123f1e54c194c63b3c62a61383314fff4a",
-      "size_bytes": 60981
+      "sha256": "326d5079eef53b40358e8d916370b8e370841f5dd438e6ec14436ed9c14fd4be",
+      "size_bytes": 61044
     },
     "candidate_h24h.pt": {
-      "sha256": "a60e9e69161e76f4838f2dedf439b626a43cb05485c1769783a3bf8697748f61",
+      "sha256": "0894702f4b011dfd91e691eb2c46deb56d982008ea68ec044ddb0d6e745996ce",
       "size_bytes": 91149
     },
     "candidate_h24h_manifest.json": {
-      "sha256": "805979ec41f01556a498e49e40de5505657c5929ce700125c391e5503d0d3367",
-      "size_bytes": 8389
+      "sha256": "8a410cf0576b5285d47fc207451a87588d710f00a9be07255ea026826ab05329",
+      "size_bytes": 8482
     },
     "candidate_h24h_calibration.json": {
-      "sha256": "e0fbb77dda31d5bce15786ff2782990cd8069dcca9fa1ef7ae4c57f73ac8ac6c",
-      "size_bytes": 3901
+      "sha256": "a16bd995e7583b8437720da9d467a8c08944a83e342d6c32884e9ac704f2612c",
+      "size_bytes": 3747
     },
     "candidate_h24h_predictions.csv": {
-      "sha256": "93ee5b4f8ffa654634b215b000d6b9efacddee4b3e3e5d31b77a0815b926061d",
-      "size_bytes": 61037
+      "sha256": "d16b47689cf4361570d5f158a6f7d6a42352a19270b9814581a310dd2622f886",
+      "size_bytes": 61008
     }
   }
 }

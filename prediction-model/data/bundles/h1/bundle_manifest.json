@@ -5,7 +5,7 @@
   "artifact_commit": "b72b16ae960be6627b92dd2445dac10d84b99bef",
   "model_weights_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
   "checkpoint_sha256": "6604047d1539a11c58068d595bf606023fb98d8915b62f943bea145fb72a4285",
-  "policy_sha256": "f3aac1d7a000e72fcd12cf0a88f185933c8ddc08416edf5959bab518796faf44",
+  "policy_sha256": "27933186a1228f0044d631c9b0b43416ed91dcbdc433d5962b8de66b6f780a2b",
   "raw_weather_dataset_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
   "raw_water_dataset_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
   "feature_schema": [

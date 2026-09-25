@@ -322,7 +322,42 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             assert b_manifest["feature_schema"] == EXPECTED_FEATURES, (
                 f"Bundle h{h} feature_schema mismatch"
             )
-        print(f"[PASS] Model-Policy Bundles (all 5 horizons): manifest, checkpoint, policy, and hashes match")
+
+            # Metadata agreement between bundle_manifest.json and inference_policy.json (Phase 5)
+            with open(b_pol_path, "r", encoding="utf-8") as f:
+                b_policy = json.load(f)
+
+            assert b_policy.get("model_family") == b_manifest.get("model_family"), (
+                f"Bundle h{h} model_family mismatch: policy has {b_policy.get('model_family')}, manifest has {b_manifest.get('model_family')}"
+            )
+            assert b_policy.get("model_status") == "ACTIVE_PRODUCTION", (
+                f"Bundle h{h} policy model_status != ACTIVE_PRODUCTION"
+            )
+            assert b_manifest.get("model_status") == "ACTIVE_PRODUCTION", (
+                f"Bundle h{h} manifest model_status != ACTIVE_PRODUCTION"
+            )
+            assert b_policy.get("bundle_version") == b_manifest.get("bundle_version"), (
+                f"Bundle h{h} bundle_version mismatch"
+            )
+            assert b_policy.get("horizon_hours") == b_manifest.get("horizon_hours"), (
+                f"Bundle h{h} horizon_hours mismatch"
+            )
+            assert b_policy.get("checkpoint_sha256") == b_manifest.get("checkpoint_sha256"), (
+                f"Bundle h{h} checkpoint_sha256 mismatch between policy and manifest"
+            )
+            assert b_policy.get("implementation_commit") == b_manifest.get("implementation_commit"), (
+                f"Bundle h{h} implementation_commit mismatch between policy and manifest"
+            )
+            assert b_policy.get("artifact_commit") == b_manifest.get("artifact_commit"), (
+                f"Bundle h{h} artifact_commit mismatch between policy and manifest"
+            )
+            assert b_policy.get("model_weights_commit") == b_manifest.get("model_weights_commit"), (
+                f"Bundle h{h} model_weights_commit mismatch between policy and manifest"
+            )
+            assert b_policy.get("feature_schema") == b_manifest.get("feature_schema"), (
+                f"Bundle h{h} feature_schema mismatch between policy and manifest"
+            )
+        print(f"[PASS] Model-Policy Bundles (all 5 horizons): manifest, checkpoint, policy, metadata agreement, and hashes match")
 
     # 4f. Verify Candidate Artifacts (Phase 3 & 8 of Candidate Promotion Plan)
     cand_artifacts_dir = os.path.join(data_dir, "candidate_artifacts")
@@ -355,6 +390,8 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             assert c_manifest["implementation_commit"] in allowed_commits, f"Candidate h{h} implementation_commit mismatch"
             assert c_manifest["checkpoint_sha256"] == compute_sha256(c_ckpt_path), f"Candidate h{h} checkpoint hash mismatch"
             assert c_manifest["calibration_sha256"] == compute_sha256(c_calib_path), f"Candidate h{h} calibration hash mismatch"
+            if "predictions_sha256" in c_manifest:
+                assert c_manifest["predictions_sha256"] == compute_sha256(c_preds_path), f"Candidate h{h} predictions hash mismatch"
 
             with open(c_calib_path, "r", encoding="utf-8") as f:
                 c_calib = json.load(f)
@@ -372,6 +409,8 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
         assert "operational_decision" in sc_data, "Scorecard missing 'operational_decision'"
         assert sc_data["research_decision"] in ["GO", "CONDITIONAL_GO", "NO_GO"]
         assert sc_data["operational_decision"] in ["GO", "CONDITIONAL_GO", "NO_GO"]
+        if "artifacts_generated" in sc_data and len(sc_data["artifacts_generated"]) > 4:
+            assert len(sc_data["artifacts_generated"]) >= 20, f"Scorecard artifacts_generated has {len(sc_data['artifacts_generated'])} items, expected >= 20"
 
         print("[PASS] Candidate Artifacts (all 5 horizons): manifests, checkpoints, calibration, provenance, and decisions verified")
 

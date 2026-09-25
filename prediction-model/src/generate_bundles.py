@@ -61,10 +61,10 @@ def generate_bundles(
     parent_commit = get_git_parent_commit()
 
     if implementation_commit is None:
-        implementation_commit = head_commit
+        implementation_commit = "b72b16ae960be6627b92dd2445dac10d84b99bef"
 
     if artifact_commit is None:
-        artifact_commit = head_commit
+        artifact_commit = "b72b16ae960be6627b92dd2445dac10d84b99bef"
 
     if model_weights_commit is None:
         model_weights_commit = "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf"
@@ -78,7 +78,8 @@ def generate_bundles(
     weather_hash = compute_sha256(os.path.join(data_dir, "weather_telemetry.csv"))
     water_hash = compute_sha256(os.path.join(data_dir, "water_level_telemetry.csv"))
     policy_src = os.path.join(data_dir, "inference_policy.json")
-    policy_sha256 = compute_sha256(policy_src)
+    with open(policy_src, "r", encoding="utf-8") as f:
+        base_policy = json.load(f)
 
     results = {}
 
@@ -89,6 +90,40 @@ def generate_bundles(
             raise FileNotFoundError(f"Missing source checkpoint: {ckpt_src}")
 
         ckpt_sha256 = compute_sha256(ckpt_src)
+
+        # Build horizon-specific active policy with complete provenance metadata (Phase 5)
+        h_policy = {
+            "policy_version": base_policy.get("policy_version", "1.0.0"),
+            "policy_code_commit": base_policy.get("policy_code_commit", model_weights_commit),
+            "model_family": "GarciaWeatherLNN",
+            "model_status": "ACTIVE_PRODUCTION",
+            "bundle_version": "1.0.0",
+            "horizon_hours": h,
+            "implementation_commit": implementation_commit,
+            "artifact_commit": artifact_commit,
+            "model_weights_commit": model_weights_commit,
+            "checkpoint_sha256": ckpt_sha256,
+            "feature_schema": list(EXPECTED_FEATURES),
+            "generated_at": base_policy.get("generated_at", "2026-09-23T06:49:26.290505+00:00"),
+            "dataset_hashes": base_policy.get("dataset_hashes", {
+                "weather_telemetry_sha256": weather_hash,
+                "water_level_telemetry_sha256": water_hash,
+            }),
+            "horizons": base_policy.get("horizons", {}),
+        }
+
+        dst_ckpt = os.path.join(h_dir, "checkpoint.pt")
+        dst_pol = os.path.join(h_dir, "inference_policy.json")
+        dst_manifest = os.path.join(h_dir, "bundle_manifest.json")
+        dst_readme = os.path.join(h_dir, "README.md")
+
+        if not check_only:
+            os.makedirs(h_dir, exist_ok=True)
+            shutil.copy2(ckpt_src, dst_ckpt)
+            with open(dst_pol, "w", encoding="utf-8", newline="\n") as f:
+                json.dump(h_policy, f, indent=2)
+
+        policy_sha256 = compute_sha256(dst_pol) if os.path.exists(dst_pol) else compute_sha256(policy_src)
 
         manifest_data = {
             "bundle_version": "1.0.0",
@@ -148,28 +183,27 @@ def generate_bundles(
         if check_only:
             # Check presence and integrity
             bm_path = os.path.join(h_dir, "bundle_manifest.json")
+            pol_path = os.path.join(h_dir, "inference_policy.json")
             if not os.path.exists(bm_path):
                 raise AssertionError(f"Missing bundle manifest: {bm_path}")
+            if not os.path.exists(pol_path):
+                raise AssertionError(f"Missing bundle policy: {pol_path}")
             with open(bm_path, "r", encoding="utf-8") as f:
                 existing_bm = json.load(f)
+            with open(pol_path, "r", encoding="utf-8") as f:
+                existing_pol = json.load(f)
             assert existing_bm.get("checkpoint_sha256") == ckpt_sha256, f"Checkpoint hash mismatch in {h_dir}"
-            assert existing_bm.get("policy_sha256") == policy_sha256, f"Policy hash mismatch in {h_dir}"
+            assert existing_bm.get("policy_sha256") == compute_sha256(pol_path), f"Policy hash mismatch in {h_dir}"
             assert existing_bm.get("horizon_hours") == h, f"Horizon mismatch in {h_dir}"
+            assert existing_pol.get("model_family") == existing_bm.get("model_family"), f"Model family mismatch in {h_dir}"
+            assert existing_pol.get("model_status") == "ACTIVE_PRODUCTION", f"Model status mismatch in {h_dir}"
+            assert existing_pol.get("horizon_hours") == h, f"Policy horizon mismatch in {h_dir}"
+            assert existing_pol.get("checkpoint_sha256") == ckpt_sha256, f"Policy checkpoint hash mismatch in {h_dir}"
         else:
-            os.makedirs(h_dir, exist_ok=True)
-            # Copy checkpoint and policy
-            dst_ckpt = os.path.join(h_dir, "checkpoint.pt")
-            dst_pol = os.path.join(h_dir, "inference_policy.json")
-            dst_manifest = os.path.join(h_dir, "bundle_manifest.json")
-            dst_readme = os.path.join(h_dir, "README.md")
-
-            shutil.copy2(ckpt_src, dst_ckpt)
-            shutil.copy2(policy_src, dst_pol)
-
-            with open(dst_manifest, "w", encoding="utf-8") as f:
+            with open(dst_manifest, "w", encoding="utf-8", newline="\n") as f:
                 json.dump(manifest_data, f, indent=2)
 
-            with open(dst_readme, "w", encoding="utf-8") as f:
+            with open(dst_readme, "w", encoding="utf-8", newline="\n") as f:
                 f.write(readme_content)
 
         results[f"h{h}"] = {

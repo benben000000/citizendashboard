@@ -6,7 +6,7 @@
 - **Implementation Commit**: `b72b16ae960be6627b92dd2445dac10d84b99bef`
 - **Artifact Commit**: `b72b16ae960be6627b92dd2445dac10d84b99bef`
 - **Checkpoint SHA-256**: `73697f9d10427e7b64a567a6ffb243dcf969e03a5f9eb5538eb5ee01d80fb4e2`
-- **Policy SHA-256**: `f3aac1d7a000e72fcd12cf0a88f185933c8ddc08416edf5959bab518796faf44`
+- **Policy SHA-256**: `ad22a583845bb2a7a0c46c17c000405d8467c32d9db4665fe0a6abefaca305d8`
 
 ## Operational Status
 - **Surface Weather**: Production Operational (Persistence hybrid blending & frozen skill-gate threshold)
