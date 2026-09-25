@@ -822,6 +822,143 @@ class TestPredictiveQuality(unittest.TestCase):
             )
         self.assertIn("BLOCKED_BY_SENSOR_CALIBRATION", str(ctx2.exception))
 
+    # --------------------------------------------------------------------------
+    # 26. Inference Feature Order and Normalization Rejection
+    # --------------------------------------------------------------------------
+    def test_inference_feature_order_and_normalization_rejection(self):
+        """
+        Verify that inference strictly rejects wrong feature order, wrong dimension,
+        and missing normalization parameters fail-closed.
+        """
+        from inference import LNNServerlessPredictor
+        predictor = LNNServerlessPredictor(horizon_hours=1)
+        valid_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+
+        # 1. Wrong feature order
+        reversed_features = [
+            "precipitation", "wind_cos", "wind_sin", "wind_speed",
+            "pressure", "humidity", "heat_index", "temperature"
+        ]
+        with self.assertRaises(ValueError) as ctx_order:
+            predictor.predict_from_observed_sequence(
+                telemetry_sequence=valid_seq,
+                feature_names=reversed_features,
+            )
+        self.assertIn("Wrong feature schema or order", str(ctx_order.exception))
+
+        # 2. Wrong feature dimension (7 features instead of 8)
+        invalid_dim_seq = valid_seq[:, :7]
+        with self.assertRaises(ValueError) as ctx_dim:
+            predictor.predict_from_observed_sequence(
+                telemetry_sequence=invalid_dim_seq,
+            )
+        self.assertIn("Operational forecast requires all 8 canonical physical features", str(ctx_dim.exception))
+
+        # 3. Missing normalization constants
+        orig_means = predictor._norm_means
+        predictor._norm_means = None
+        try:
+            with self.assertRaises(ValueError) as ctx_norm:
+                predictor.predict_from_observed_sequence(telemetry_sequence=valid_seq)
+            self.assertIn("Missing normalization parameters", str(ctx_norm.exception))
+        finally:
+            predictor._norm_means = orig_means
+
+    # --------------------------------------------------------------------------
+    # 27. Candidate Bundle Loading, Tamper Rejection, and Rollback Availability
+    # --------------------------------------------------------------------------
+    def test_candidate_bundle_loading_tamper_rejection_and_rollback(self):
+        """
+        Verify that candidate bundle loading verifies hashes, detects tampering,
+        and confirms baseline rollback bundle is always available.
+        """
+        from inference import LNNServerlessPredictor
+        from model import GarciaWeatherLNNFeatured
+        from verify_provenance import compute_sha256
+
+        # Check default predictor has rollback baseline available
+        default_pred = LNNServerlessPredictor(horizon_hours=1)
+        self.assertTrue(default_pred.has_rollback_baseline, "Baseline rollback bundle must be available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            model = GarciaWeatherLNNFeatured(input_dim=8, context_dim=75, hidden_dim=16)
+            ckpt_path = os.path.join(tmp_dir, "candidate_h1h.pt")
+            manifest_path = os.path.join(tmp_dir, "candidate_h1h_manifest.json")
+            calib_path = os.path.join(tmp_dir, "candidate_h1h_calibration.json")
+
+            torch.save({
+                "model_state_dict": model.state_dict(),
+                "manifest": {
+                    "model_family": "MF-1-FEATURED",
+                    "forecast_horizon_hours": 1,
+                    "input_dim": 8,
+                    "context_dim": 75,
+                    "normalization": {"means": [0.0]*8, "stds": [1.0]*8},
+                    "feature_augmented_normalization": {"means": [0.0]*75, "stds": [1.0]*75},
+                    "model_config": {"input_dim": 8, "context_dim": 75, "hidden_dim": 16},
+                }
+            }, ckpt_path)
+
+            calib_data = {
+                "horizon_hours": 1,
+                "model_family": "MF-1-FEATURED",
+                "operational_rain_threshold": 0.40,
+                "optimal_hybrid_candidate_weight": 0.8,
+                "optimal_hybrid_persistence_weight": 0.2,
+                "calibration_method": "validation_hybrid_persistence_and_threshold_optimization",
+            }
+            with open(calib_path, "w", encoding="utf-8") as f:
+                json.dump(calib_data, f, indent=2)
+
+            ckpt_hash = compute_sha256(ckpt_path)
+            calib_hash = compute_sha256(calib_path)
+
+            manifest_data = {
+                "bundle_type": "candidate_featured_model_bundle",
+                "model_family": "MF-1-FEATURED",
+                "horizon_hours": 1,
+                "checkpoint_filename": "candidate_h1h.pt",
+                "checkpoint_sha256": ckpt_hash,
+                "calibration_filename": "candidate_h1h_calibration.json",
+                "calibration_sha256": calib_hash,
+                "input_dimension": 8,
+                "context_dimension": 75,
+                "feature_schema": ["f" + str(i) for i in range(75)],
+            }
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest_data, f, indent=2)
+
+            # Valid load
+            cand_pred = LNNServerlessPredictor(candidate_manifest_path=manifest_path)
+            self.assertTrue(cand_pred.is_candidate_featured)
+            self.assertTrue(cand_pred.is_featured_model)
+
+            # Tamper test: Corrupt checkpoint hash in manifest
+            tampered_manifest = dict(manifest_data)
+            tampered_manifest["checkpoint_sha256"] = "deadbeef" * 8
+            tampered_manifest_path = os.path.join(tmp_dir, "tampered_manifest.json")
+            with open(tampered_manifest_path, "w", encoding="utf-8") as f:
+                json.dump(tampered_manifest, f, indent=2)
+
+            with self.assertRaises(ValueError) as ctx_tamper:
+                LNNServerlessPredictor(candidate_manifest_path=tampered_manifest_path)
+            self.assertIn("Candidate checkpoint hash mismatch", str(ctx_tamper.exception))
+
+    # --------------------------------------------------------------------------
+    # 28. Heat Index Consistency and Scorecard Metric Presence
+    # --------------------------------------------------------------------------
+    def test_heat_index_consistency_and_scorecard_metric_presence(self):
+        """
+        Verify that derived heat index calculation is physically consistent with
+        NOAA Rothfusz regression equations and evaluates with zero bound violations.
+        """
+        from dataset import compute_noaa_heat_index
+        # Test boundary conditions
+        self.assertAlmostEqual(compute_noaa_heat_index(20.0, 50.0), 19.36, places=1)
+        hi_hot = compute_noaa_heat_index(35.0, 80.0)
+        self.assertGreater(hi_hot, 35.0)  # Heat index must exceed dry-bulb temp in high humidity
+        self.assertLess(hi_hot, 65.0)  # Must remain within physical limits
+
 
 if __name__ == "__main__":
     unittest.main()

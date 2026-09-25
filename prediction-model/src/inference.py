@@ -64,10 +64,69 @@ class LNNServerlessPredictor:
         model_weights_path: str = None,
         policy_path: str = None,
         bundle_dir: str = None,
+        candidate_manifest_path: str = None,
         horizon_hours: int = None,
         device: str = "cpu",
     ):
         self.device = torch.device(device)
+        self.is_candidate_featured = False
+        self.candidate_manifest = {}
+
+        repo_data_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"
+        )
+        self.has_rollback_baseline = os.path.exists(
+            os.path.join(repo_data_dir, "bundles", "h1", "checkpoint.pt")
+        )
+
+        if candidate_manifest_path is None and model_weights_path and model_weights_path.endswith("_manifest.json"):
+            candidate_manifest_path = model_weights_path
+            model_weights_path = None
+
+        if candidate_manifest_path is not None:
+            if not os.path.exists(candidate_manifest_path):
+                raise FileNotFoundError(f"Candidate manifest not found at: '{candidate_manifest_path}'.")
+            with open(candidate_manifest_path, "r", encoding="utf-8") as f:
+                c_manifest = json.load(f)
+
+            required_candidate_fields = [
+                "bundle_type", "model_family", "horizon_hours",
+                "checkpoint_filename", "checkpoint_sha256",
+                "calibration_filename", "calibration_sha256",
+                "input_dimension", "context_dimension", "feature_schema",
+            ]
+            for rf in required_candidate_fields:
+                if rf not in c_manifest:
+                    raise ValueError(f"Candidate manifest '{candidate_manifest_path}' missing required field: '{rf}'.")
+
+            c_dir = os.path.dirname(os.path.abspath(candidate_manifest_path))
+            c_ckpt = os.path.join(c_dir, c_manifest["checkpoint_filename"])
+            c_calib = os.path.join(c_dir, c_manifest["calibration_filename"])
+
+            if not os.path.exists(c_ckpt):
+                raise FileNotFoundError(f"Candidate checkpoint not found at: '{c_ckpt}'.")
+            if not os.path.exists(c_calib):
+                raise FileNotFoundError(f"Candidate calibration not found at: '{c_calib}'.")
+
+            actual_ckpt_h = compute_sha256(c_ckpt)
+            if actual_ckpt_h != c_manifest["checkpoint_sha256"]:
+                raise ValueError(
+                    f"Candidate checkpoint hash mismatch (tampered or corrupted): "
+                    f"expected {c_manifest['checkpoint_sha256']}, got {actual_ckpt_h}."
+                )
+
+            actual_calib_h = compute_sha256(c_calib)
+            if actual_calib_h != c_manifest["calibration_sha256"]:
+                raise ValueError(
+                    f"Candidate calibration hash mismatch (tampered or corrupted): "
+                    f"expected {c_manifest['calibration_sha256']}, got {actual_calib_h}."
+                )
+
+            model_weights_path = c_ckpt
+            policy_path = c_calib
+            horizon_hours = c_manifest["horizon_hours"]
+            self.is_candidate_featured = True
+            self.candidate_manifest = c_manifest
 
         if horizon_hours is None:
             # Auto-detect horizon from model_weights_path or bundle_dir if present
@@ -89,10 +148,6 @@ class LNNServerlessPredictor:
             raise ValueError(
                 f"Unsupported horizon {self.horizon_hours}h. Supported horizons are: {self.SUPPORTED_HORIZONS}"
             )
-
-        repo_data_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"
-        )
 
         # Check default bundle location if bundle_dir not explicitly passed
         if bundle_dir is None and model_weights_path is None:
@@ -262,6 +317,15 @@ class LNNServerlessPredictor:
         except Exception as e:
             raise ValueError(f"Malformed operational inference policy at '{policy_path}': {e}")
 
+        if self.is_candidate_featured and isinstance(self.policy, dict) and "horizons" not in self.policy:
+            self.policy = {
+                "policy_version": self.policy.get("candidate_bundle_version", "2.0.0-candidate"),
+                "policy_code_commit": self.manifest.get("code_commit", "unknown"),
+                "horizons": {
+                    str(self.horizon_hours): self.policy
+                }
+            }
+
         if not isinstance(self.policy, dict) or "horizons" not in self.policy:
             raise ValueError(f"Invalid operational inference policy at '{policy_path}': missing 'horizons' table.")
 
@@ -276,6 +340,16 @@ class LNNServerlessPredictor:
 
     def _normalize(self, features: np.ndarray) -> np.ndarray:
         """Normalize using checkpoint-stored constants (not module globals)."""
+        if (
+            self._norm_means is None
+            or self._norm_stds is None
+            or len(self._norm_means) != 8
+            or len(self._norm_stds) != 8
+            or (self._norm_stds <= 0).any()
+        ):
+            raise ValueError(
+                "Missing normalization parameters: normalization constants missing or malformed."
+            )
         return (features - self._norm_means) / self._norm_stds
 
     def predict_uv(self, *args, **kwargs):
@@ -292,6 +366,7 @@ class LNNServerlessPredictor:
         forecast_origin_timestamp: str = None,
         horizon_hours: int = None,
         current_water_level: float = None,
+        feature_names: list = None,
         request_uv: bool = False,
     ) -> dict:
         """
@@ -305,6 +380,7 @@ class LNNServerlessPredictor:
             forecast_origin_timestamp: ISO timestamp string of the last observation t0.
             horizon_hours: Number of hours ahead to forecast. Defaults to predictor.horizon_hours.
             current_water_level: Optional current river stage in meters.
+            feature_names: Optional list of 8 feature names to verify schema and order.
             request_uv: If True, raises ValueError because UV index is quarantined.
 
         Returns:
@@ -316,6 +392,27 @@ class LNNServerlessPredictor:
                 "UV index forecasting is blocked by sensor calibration audit: "
                 "BLOCKED_BY_SENSOR_CALIBRATION (uncalibrated sensor reported non-zero UV at night)."
             )
+
+        if (
+            self._norm_means is None
+            or self._norm_stds is None
+            or len(self._norm_means) != 8
+            or len(self._norm_stds) != 8
+            or (self._norm_stds <= 0).any()
+        ):
+            raise ValueError(
+                "Missing normalization parameters: normalization constants missing or malformed."
+            )
+
+        if feature_names is not None:
+            EXPECTED_8 = [
+                "temperature", "heat_index", "humidity", "pressure",
+                "wind_speed", "wind_sin", "wind_cos", "precipitation"
+            ]
+            if list(feature_names) != EXPECTED_8:
+                raise ValueError(
+                    f"Wrong feature schema or order: expected {EXPECTED_8}, got {list(feature_names)}"
+                )
 
         from dataset import compute_noaa_heat_index
 

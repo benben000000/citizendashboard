@@ -478,6 +478,8 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         persist_eval_rh = evaluate_continuous(rh_true, rh_orig, rh_orig, bounds=PHYSICAL_BOUNDS["humidity"])
         persist_eval_p = evaluate_continuous(p_true, p_orig, p_orig, bounds=PHYSICAL_BOUNDS["pressure"])
         persist_eval_ws = evaluate_continuous(ws_true, ws_orig, ws_orig, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        hi_orig = np.array([compute_noaa_heat_index(t_orig[i], rh_orig[i]) for i in range(len(t_orig))], dtype=np.float32)
+        persist_eval_hi = evaluate_continuous(hi_true, hi_orig, hi_orig, bounds=PHYSICAL_BOUNDS["heat_index"])
         persist_rain_prob = np.where(precip_orig >= 0.1, 0.85, 0.05)
         persist_eval_rain = evaluate_rain_occurrence(rain_true, persist_rain_prob, threshold=0.5)
         persist_eval_precip = evaluate_precipitation_amount(precip_true, precip_orig, precip_orig)
@@ -498,11 +500,13 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         v_clim = np.array([cp["wind_v"] for cp in clim_preds], dtype=np.float32)
         precip_clim = np.array([cp["precipitation_mm"] for cp in clim_preds], dtype=np.float32)
         rain_prob_clim = np.array([cp["rain_prob"] for cp in clim_preds], dtype=np.float32)
+        hi_clim = np.array([compute_noaa_heat_index(t_clim[i], rh_clim[i]) for i in range(len(t_clim))], dtype=np.float32)
 
         clim_eval_t = evaluate_continuous(t_true, t_clim, t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
         clim_eval_rh = evaluate_continuous(rh_true, rh_clim, rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
         clim_eval_p = evaluate_continuous(p_true, p_clim, p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
         clim_eval_ws = evaluate_continuous(ws_true, ws_clim, ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        clim_eval_hi = evaluate_continuous(hi_true, hi_clim, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
         clim_eval_rain = evaluate_rain_occurrence(rain_true, rain_prob_clim, threshold=0.5)
         clim_eval_precip = evaluate_precipitation_amount(precip_true, precip_clim, precip_orig, precip_clim)
         clim_eval_wdir = evaluate_wind_direction(u_true, v_true, u_clim, v_clim, ws_true)
@@ -525,10 +529,12 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
 
         X_test_75 = test_context.numpy()
         ridge_preds = ridge.predict(X_test_75)
+        ridge_hi = np.array([compute_noaa_heat_index(ridge_preds[i, 0], ridge_preds[i, 1]) for i in range(len(ridge_preds))], dtype=np.float32)
         ridge_eval_t = evaluate_continuous(t_true, ridge_preds[:, 0], t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
         ridge_eval_rh = evaluate_continuous(rh_true, ridge_preds[:, 1], rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
         ridge_eval_p = evaluate_continuous(p_true, ridge_preds[:, 2], p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
         ridge_eval_ws = evaluate_continuous(ws_true, ridge_preds[:, 3], ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        ridge_eval_hi = evaluate_continuous(hi_true, ridge_hi, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
         ridge_eval_wdir = evaluate_wind_direction(u_true, v_true, ridge_preds[:, 4], ridge_preds[:, 5], ws_true)
         ridge_eval_precip = evaluate_precipitation_amount(precip_true, ridge_preds[:, 6], precip_orig, precip_clim)
         ridge_eval_rain = evaluate_rain_occurrence(rain_true, ridge_preds[:, 7], threshold=0.5)
@@ -538,10 +544,12 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         gbm = GradientBoostedWeatherModel(n_estimators=25, learning_rate=0.1, random_state=seed)
         gbm.fit(X_train_75, Y_train_multi)
         gbm_preds = gbm.predict(X_test_75)
+        gbm_hi = np.array([compute_noaa_heat_index(gbm_preds[i, 0], gbm_preds[i, 1]) for i in range(len(gbm_preds))], dtype=np.float32)
         gbm_eval_t = evaluate_continuous(t_true, gbm_preds[:, 0], t_orig, t_clim, bounds=PHYSICAL_BOUNDS["temperature"])
         gbm_eval_rh = evaluate_continuous(rh_true, gbm_preds[:, 1], rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
         gbm_eval_p = evaluate_continuous(p_true, gbm_preds[:, 2], p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
         gbm_eval_ws = evaluate_continuous(ws_true, gbm_preds[:, 3], ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        gbm_eval_hi = evaluate_continuous(hi_true, gbm_hi, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
         gbm_eval_wdir = evaluate_wind_direction(u_true, v_true, gbm_preds[:, 4], gbm_preds[:, 5], ws_true)
         gbm_eval_precip = evaluate_precipitation_amount(precip_true, gbm_preds[:, 6], precip_orig, precip_clim)
         gbm_eval_rain = evaluate_rain_occurrence(rain_true, gbm_preds[:, 7], threshold=0.5)
@@ -550,22 +558,26 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         baseline_manifest["five_horizon_baseline_metrics"][f"horizon_{h}h"] = {
             "persistence": {
                 "temperature_mae": persist_eval_t["mae"],
+                "heat_index_mae": persist_eval_hi["mae"],
                 "rain_brier_score": persist_eval_rain["brier_score"],
                 "wind_direction_circular_mae": persist_eval_wdir["circular_mae_deg"],
                 "precipitation_rainy_mae": persist_eval_precip["rainy_hour_mae_mm"],
             },
             "climatology": {
                 "temperature_mae": clim_eval_t["mae"],
+                "heat_index_mae": clim_eval_hi["mae"],
                 "rain_brier_score": clim_eval_rain["brier_score"],
                 "wind_direction_circular_mae": clim_eval_wdir["circular_mae_deg"],
             },
             "ridge_75features": {
                 "temperature_mae": ridge_eval_t["mae"],
+                "heat_index_mae": ridge_eval_hi["mae"],
                 "rain_brier_score": ridge_eval_rain["brier_score"],
                 "wind_direction_circular_mae": ridge_eval_wdir["circular_mae_deg"],
             },
             "gradient_boosted_tree_75features": {
                 "temperature_mae": gbm_eval_t["mae"],
+                "heat_index_mae": gbm_eval_hi["mae"],
                 "rain_brier_score": gbm_eval_rain["brier_score"],
                 "wind_direction_circular_mae": gbm_eval_wdir["circular_mae_deg"],
             }
@@ -718,6 +730,8 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         cand_eval_rh = evaluate_continuous(rh_true, cand_rh, rh_orig, rh_clim, bounds=PHYSICAL_BOUNDS["humidity"])
         cand_eval_p = evaluate_continuous(p_true, cand_p, p_orig, p_clim, bounds=PHYSICAL_BOUNDS["pressure"])
         cand_eval_ws = evaluate_continuous(ws_true, cand_ws, ws_orig, ws_clim, bounds=PHYSICAL_BOUNDS["wind_speed"])
+        cand_hi = np.array([compute_noaa_heat_index(cand_t[i], cand_rh[i]) for i in range(len(cand_t))], dtype=np.float32)
+        cand_eval_hi = evaluate_continuous(hi_true, cand_hi, hi_orig, hi_clim, bounds=PHYSICAL_BOUNDS["heat_index"])
         cand_eval_wdir = evaluate_wind_direction(u_true, v_true, cand_u, cand_v, ws_true)
         cand_eval_rain = evaluate_rain_occurrence(rain_true, cand_rain_prob, threshold=best_thresh)
         cand_eval_precip = evaluate_precipitation_amount(precip_true, cand_precip_mm, precip_orig, precip_clim)
@@ -746,7 +760,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "cand_rain_brier": round(float(np.mean((st_rain_cand - st_rain_true) ** 2)), 4),
             }
 
-        # Step 6: Save Candidate Checkpoints & Artifacts (Workstream B)
+        # Step 6: Save Candidate Checkpoints & Artifacts (Workstream B & H)
         ckpt_filename = f"candidate_h{h}h.pt"
         manifest_filename = f"candidate_h{h}h_manifest.json"
         calib_filename = f"candidate_h{h}h_calibration.json"
@@ -779,13 +793,37 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         }, ckpt_path)
         ckpt_sha256 = compute_file_sha256(ckpt_path)
 
-        # Save calibration artifact
+        # Save calibration artifact (Workstream H policy fields)
         calib_data = {
             "horizon_hours": h,
+            "model_family": "MF-1-FEATURED",
+            "candidate_bundle_version": "2.0.0-candidate",
             "calibration_method": "validation_hybrid_persistence_and_threshold_optimization",
+            "target_specific_source": {
+                "temperature": "candidate_lnn_featured",
+                "humidity": "candidate_lnn_featured",
+                "pressure": "candidate_lnn_featured",
+                "wind_speed": "candidate_lnn_featured",
+                "wind_direction": "candidate_lnn_featured",
+                "heat_index": "derived_from_selected_temp_and_humidity",
+                "rain_occurrence": "validation_hybrid_blend",
+                "precipitation_amount": "candidate_lnn_featured",
+            },
+            "rain_blend_weights": {
+                "candidate_weight": best_alpha,
+                "persistence_weight": round(1.0 - best_alpha, 4),
+            },
             "optimal_hybrid_candidate_weight": best_alpha,
             "optimal_hybrid_persistence_weight": round(1.0 - best_alpha, 4),
             "operational_rain_threshold": round(best_thresh, 4),
+            "rain_threshold": round(best_thresh, 4),
+            "feature_schema": FEATURE_AUGMENTED_SCHEMA,
+            "anomaly_detector_version": "2.0.0",
+            "blocked_target_statuses": {
+                "uv_index": "BLOCKED_BY_SENSOR_CALIBRATION",
+                "light_intensity": "SECONDARY_BETA_DAYLIGHT_ONLY",
+            },
+            "uncertainty_status": "UNAVAILABLE",
             "validation_csi": round(best_csi, 4),
             "test_brier_score": cand_eval_rain["brier_score"],
             "test_expected_calibration_error": cand_eval_rain["expected_calibration_error"],
@@ -793,24 +831,60 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         }
         with open(calib_path, "w", encoding="utf-8") as f:
             json.dump(calib_data, f, indent=2)
+        calib_sha256 = compute_file_sha256(calib_path)
 
-        # Save candidate manifest
+        # Save candidate manifest (Workstream B complete schema)
         manifest_data = {
             "bundle_type": "candidate_featured_model_bundle",
+            "bundle_version": "2.0.0-candidate",
             "model_family": "MF-1-FEATURED",
             "horizon_hours": h,
-            "code_commit": head_commit,
+            "implementation_commit": head_commit,
+            "artifact_commit": head_commit,
+            "model_weight_commit": head_commit,
             "checkpoint_filename": ckpt_filename,
             "checkpoint_sha256": ckpt_sha256,
             "calibration_filename": calib_filename,
+            "calibration_sha256": calib_sha256,
             "predictions_filename": preds_filename,
             "input_dimension": 8,
             "context_dimension": NUM_FEATURE_AUGMENTED,
             "feature_schema": FEATURE_AUGMENTED_SCHEMA,
+            "feature_units": {
+                "temperature": "Celsius",
+                "humidity": "Percent (%)",
+                "pressure": "hPa",
+                "wind_speed": "km/h",
+                "wind_sin": "unitless (-1 to 1)",
+                "wind_cos": "unitless (-1 to 1)",
+                "precipitation": "mm/h",
+                "heat_index": "Celsius",
+            },
+            "normalization": {"means": norm_means.tolist(), "stds": norm_stds.tolist()},
+            "feature_augmented_normalization": {"means": feat_means.tolist(), "stds": feat_stds.tolist()},
+            "model_config": {
+                "input_dim": 8,
+                "context_dim": NUM_FEATURE_AUGMENTED,
+                "hidden_dim": 32,
+                "use_two_stage_precipitation": True,
+            },
+            "target_schema": [
+                "temperature", "humidity", "pressure", "wind_speed",
+                "wind_direction", "heat_index", "precipitation_amount", "rain_occurrence"
+            ],
             "weather_telemetry_sha256": raw_weather_hash,
             "water_telemetry_sha256": raw_water_hash,
             "seed": seed,
+            "anomaly_detector_config": {
+                "detector_version": "2.0.0",
+                "sensor_checks_enabled": True,
+                "physical_bounds_enabled": True,
+            },
             "status": "CANDIDATE_RESEARCH",
+            "limitations": [
+                "UV index forecasting blocked by sensor calibration defect: BLOCKED_BY_SENSOR_CALIBRATION",
+                "Protected baseline bundles preserved for operational rollback",
+            ],
         }
         with open(manifest_path, "w", encoding="utf-8") as f:
             json.dump(manifest_data, f, indent=2)
@@ -821,6 +895,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             writer.writerow([
                 "station_id", "target_timestamp", "horizon_hours",
                 "temp_true", "temp_pred", "temp_persist",
+                "hi_true", "hi_pred",
                 "rain_true", "rain_prob", "rain_pred",
                 "wind_u_true", "wind_u_pred", "wind_v_true", "wind_v_pred",
                 "precip_true", "precip_pred"
@@ -830,6 +905,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 writer.writerow([
                     m["station_id"], m["target_timestamp"], h,
                     round(float(t_true[i]), 3), round(float(cand_t[i]), 3), round(float(t_orig[i]), 3),
+                    round(float(hi_true[i]), 3), round(float(cand_hi[i]), 3),
                     int(rain_true[i]), round(float(cand_rain_prob[i]), 4), int(cand_rain_prob[i] >= best_thresh),
                     round(float(u_true[i]), 4), round(float(cand_u[i]), 4),
                     round(float(v_true[i]), 4), round(float(cand_v[i]), 4),
@@ -852,6 +928,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "humidity": persist_eval_rh,
                 "pressure": persist_eval_p,
                 "wind_speed": persist_eval_ws,
+                "heat_index": persist_eval_hi,
                 "wind_direction": persist_eval_wdir,
                 "rain_occurrence": persist_eval_rain,
                 "precipitation_amount": persist_eval_precip,
@@ -861,6 +938,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "humidity": clim_eval_rh,
                 "pressure": clim_eval_p,
                 "wind_speed": clim_eval_ws,
+                "heat_index": clim_eval_hi,
                 "wind_direction": clim_eval_wdir,
                 "rain_occurrence": clim_eval_rain,
                 "precipitation_amount": clim_eval_precip,
@@ -870,6 +948,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "humidity": ridge_eval_rh,
                 "pressure": ridge_eval_p,
                 "wind_speed": ridge_eval_ws,
+                "heat_index": ridge_eval_hi,
                 "wind_direction": ridge_eval_wdir,
                 "rain_occurrence": ridge_eval_rain,
                 "precipitation_amount": ridge_eval_precip,
@@ -879,6 +958,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "humidity": gbm_eval_rh,
                 "pressure": gbm_eval_p,
                 "wind_speed": gbm_eval_ws,
+                "heat_index": gbm_eval_hi,
                 "wind_direction": gbm_eval_wdir,
                 "rain_occurrence": gbm_eval_rain,
                 "precipitation_amount": gbm_eval_precip,
@@ -888,6 +968,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "humidity": cand_eval_rh,
                 "pressure": cand_eval_p,
                 "wind_speed": cand_eval_ws,
+                "heat_index": cand_eval_hi,
                 "wind_direction": cand_eval_wdir,
                 "rain_occurrence": cand_eval_rain,
                 "precipitation_amount": cand_eval_precip,
@@ -903,6 +984,13 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 "gradient_boosted_tree_75": gbm_eval_t["mae"],
                 "candidate_featured": cand_eval_t["mae"],
                 "candidate_vs_persist_skill": cand_eval_t.get("persistence_skill", 0.0),
+            },
+            "heat_index_mae": {
+                "persistence": persist_eval_hi["mae"],
+                "climatology": clim_eval_hi["mae"],
+                "ridge_75": ridge_eval_hi["mae"],
+                "gradient_boosted_tree_75": gbm_eval_hi["mae"],
+                "candidate_featured": cand_eval_hi["mae"],
             },
             "rain_brier_score": {
                 "persistence": persist_eval_rain["brier_score"],
