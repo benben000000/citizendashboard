@@ -1,6 +1,7 @@
 {
-  "generated_at": "2026-09-25T13:50:05.546524+00:00",
-  "code_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
+  "generated_at": "2026-09-25T20:47:27.860299+00:00",
+  "code_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "parent_baseline_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
   "horizons": {
     "horizon_1h": {
       "temperature_mae": {

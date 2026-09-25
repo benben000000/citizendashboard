@@ -1,7 +1,9 @@
 {
   "manifest_type": "baseline_freeze_reference",
-  "generated_at": "2026-09-25T13:50:05.546524+00:00",
-  "baseline_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
+  "generated_at": "2026-09-25T20:47:27.860299+00:00",
+  "baseline_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "code_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "parent_baseline_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
   "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
   "water_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
   "canonical_feature_schema": [

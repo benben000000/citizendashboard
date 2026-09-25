@@ -3,16 +3,23 @@
   "bundle_version": "2.0.0-candidate",
   "model_family": "MF-1-FEATURED",
   "horizon_hours": 24,
-  "implementation_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
-  "artifact_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
-  "model_weights_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
-  "model_weight_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
+  "implementation_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "artifact_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "model_weights_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "model_weight_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "code_commit": "99a3fc290bcf9a96c4e3f98575f5c7e8b487bac6",
+  "parent_baseline_commit": "4ecb09f18c3ef8fa0fa8286c76a43ad104690fcf",
   "checkpoint_filename": "candidate_h24h.pt",
-  "checkpoint_sha256": "e3c6599e9325f53dbfc35ef5863b388519c8c9b65845125b6a57ef966048d696",
+  "checkpoint_sha256": "e1212e73a764988dc13a6480ff6ea403349760761d534361f2de3d1f762759cc",
   "calibration_filename": "candidate_h24h_calibration.json",
   "calibration_sha256": "e0fbb77dda31d5bce15786ff2782990cd8069dcca9fa1ef7ae4c57f73ac8ac6c",
   "predictions_filename": "candidate_h24h_predictions.csv",
   "predictions_sha256": "c4c1764496d5a755486af67211eb989b678e7a704a54f7b5d6a2f4214d4660a5",
+  "artifact_hashes": {
+    "checkpoint_sha256": "e1212e73a764988dc13a6480ff6ea403349760761d534361f2de3d1f762759cc",
+    "calibration_sha256": "e0fbb77dda31d5bce15786ff2782990cd8069dcca9fa1ef7ae4c57f73ac8ac6c",
+    "predictions_sha256": "c4c1764496d5a755486af67211eb989b678e7a704a54f7b5d6a2f4214d4660a5"
+  },
   "input_dimension": 8,
   "context_dimension": 75,
   "feature_schema": [
@@ -103,9 +110,51 @@
     "wind_speed_lag_6h"
   ],
   "feature_schema_hash": "a1ac286b97b15d33df0a93f90b11a1c3a41b0dafd9eede401094b43b93cc0765",
+  "label_schema_hash": "da2b86f865f6ecec9334fa33a2084d4132b320c6e5e092d22c8421cb60d22127",
   "training_config_hash": "ec6b83816b98c20626196b2f601d2cd1ecbd94b79f4a18d9644a409a155c84f5",
+  "training_seed": 42,
   "seed": 42,
-  "generated_at_utc": "2026-09-25T13:52:26.514147+00:00",
+  "raw_data_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "fold_definitions": [
+    [
+      "2026-07-20T03:00:00+00:00",
+      "2026-07-25T11:00:00+00:00"
+    ],
+    [
+      "2026-07-27T11:00:00+00:00",
+      "2026-08-01T18:00:00+00:00"
+    ],
+    [
+      "2026-08-03T18:00:00+00:00",
+      "2026-08-13T22:00:00+00:00"
+    ]
+  ],
+  "target_name": "all_weather_targets",
+  "baseline_name": "persistence_and_multi_reference",
+  "policy_decision": {
+    "temperature": "PROMOTE_CANDIDATE",
+    "humidity": "KEEP_BASELINE",
+    "pressure": "KEEP_BASELINE",
+    "wind_speed": "KEEP_BASELINE",
+    "wind_direction": "KEEP_PERSISTENCE",
+    "rain_occurrence": "PROMOTE_CANDIDATE",
+    "precipitation_amount": "PROMOTE_CANDIDATE",
+    "heat_index": "DERIVED_FROM_SELECTED_TEMP_AND_HUMIDITY",
+    "uv_index": "BLOCKED_BY_SENSOR_CALIBRATION",
+    "light_intensity": "DAYLIGHT_ONLY_BETA"
+  },
+  "metrics": {
+    "candidate_temp_mae": 1.1791,
+    "candidate_rain_brier": 0.2185,
+    "candidate_wind_direction_circ_mae": 54.45,
+    "residual_temp_mae": 2.7132,
+    "damped_temp_mae": 1.4745,
+    "persistence_temp_mae": 1.2104
+  },
+  "generated_at_utc": "2026-09-25T20:48:52.954932+00:00",
   "evaluation_schema": [
     "issue_timestamp_utc",
     "target_timestamp_utc",
