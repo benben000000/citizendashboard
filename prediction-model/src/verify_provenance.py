@@ -91,8 +91,8 @@ def compute_sha256(filepath: str) -> str:
     if not os.path.exists(filepath):
         return "file_not_found"
     ext = os.path.splitext(filepath)[1].lower()
-    # Normalize line endings for JSON and text policy/manifest files to ensure identical hashes across OSes
-    if ext in [".json", ".md", ".txt"]:
+    # Normalize line endings for JSON, Markdown, text, and prediction logs to ensure identical hashes across OSes
+    if ext in [".json", ".md", ".txt"] or filepath.endswith("_predictions.csv"):
         with open(filepath, "rb") as f:
             content = f.read().replace(b"\r\n", b"\n")
         return hashlib.sha256(content).hexdigest()

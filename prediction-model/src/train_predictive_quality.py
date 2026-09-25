@@ -897,7 +897,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
 
         # Save test predictions log (hygienic, relative basenames, no machine paths)
         with open(preds_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
+            writer = csv.writer(f, lineterminator="\n")
             writer.writerow([
                 "station_id", "target_timestamp", "horizon_hours",
                 "temp_true", "temp_pred", "temp_persist",
