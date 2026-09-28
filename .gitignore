@@ -23,6 +23,7 @@ scratch/
 BETA/
 .vscode/
 prediction-model/data/cache_2month/
+prediction-model/data/mqtt_observation_history.json
 
 # python & virtual environments
 .venv/

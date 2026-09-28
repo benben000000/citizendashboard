@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { TelemetryPublicDTO } from "@/types/telemetry";
 import { CACHE_CONFIG } from "@/lib/config/cache.config";
 
@@ -39,6 +39,7 @@ export function useStationData(
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastRefreshAtRef = useRef(0);
 
   useEffect(() => {
     if (!stationId) {
@@ -56,6 +57,8 @@ export function useStationData(
     const fetchData = async () => {
       // Avoid overlapping dashboard refreshes from interval/focus events.
       if (isFetching) return;
+      const now = Date.now();
+      if (now - lastRefreshAtRef.current < DASHBOARD_REFRESH_INTERVAL_MS) return;
       isFetching = true;
       setIsRefreshing(true);
       setError(null);
@@ -68,6 +71,7 @@ export function useStationData(
 
         if (isMounted && result.success && Array.isArray(result.data)) {
           setDashboardStations(result.data as TelemetryPublicDTO[]);
+          lastRefreshAtRef.current = Date.now();
         } else if (isMounted) {
           setError(result.message || "Failed to load station data");
         }
