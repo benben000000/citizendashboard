@@ -33,6 +33,7 @@ CA_PATH = os.environ["MQTT_CA_PATH"]
 CERT_PATH = os.environ["MQTT_CERT_PATH"]
 PRIVATE_KEY_PATH = os.environ["MQTT_PRIVATE_KEY_PATH"]
 CACHE_PATH = Path(os.getenv("MQTT_LIVE_CACHE_PATH", str(ROOT / "prediction-model/data/mqtt_live_predictions.json")))
+STATION_CACHE_MAX_AGE_SECONDS = int(os.getenv("MQTT_STATION_CACHE_MAX_AGE_SECONDS", "900"))
 
 STOP = threading.Event()
 CACHE_LOCK = threading.Lock()
@@ -67,6 +68,19 @@ def write_cache(cache: dict[str, Any]) -> None:
     temp_path.replace(CACHE_PATH)
 
 
+def is_recent(entry: Any, now: datetime) -> bool:
+    if not isinstance(entry, dict):
+        return False
+    value = entry.get("timestamp")
+    if not isinstance(value, str):
+        return False
+    try:
+        observed_at = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return (now - observed_at).total_seconds() <= STATION_CACHE_MAX_AGE_SECONDS
+
+
 def on_message(topic: str, payload: bytes, **_: Any) -> None:
     try:
         message = json.loads(payload.decode("utf-8"))
@@ -94,7 +108,12 @@ def on_message(topic: str, payload: bytes, **_: Any) -> None:
 
     with CACHE_LOCK:
         cache = load_cache()
-        stations = cache.setdefault("stations", {})
+        existing = cache.get("stations", {})
+        stations = {
+            key: entry for key, entry in existing.items()
+            if is_recent(entry, datetime.now(timezone.utc))
+        } if isinstance(existing, dict) else {}
+        cache["stations"] = stations
         stations[station_id] = {
             "timestamp": timestamp,
             "station_id": station_id,
@@ -121,6 +140,7 @@ def main() -> None:
     while not STOP.is_set():
         connection = None
         try:
+            print(f"Connecting to AWS IoT at {ENDPOINT}:{PORT} as {CLIENT_ID}", flush=True)
             connection = mqtt_connection_builder.mtls_from_path(
                 endpoint=ENDPOINT,
                 port=PORT,
