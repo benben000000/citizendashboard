@@ -1,0 +1,117 @@
+{
+  "report_name": "major_improvement_baseline_freeze",
+  "freeze_version": "1.0.0",
+  "frozen_at_utc": "2026-09-26T03:49:36.286001+00:00",
+  "code_commit": "9b58618900940d43ef65b093ca9527e2e6ff4d43",
+  "seed": 42,
+  "raw_data_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "success_thresholds": {
+    "continuous_target_mae_relative_improvement": 0.05,
+    "rain_brier_relative_improvement": 0.05,
+    "wind_direction_circular_mae_improvement": 0.05,
+    "uncertainty_coverage_tolerance_pct": 5.0,
+    "anomaly_false_alarm_budget_per_day": 2.0,
+    "worst_fold_regression_tolerance": 0.1,
+    "inference_latency_budget_ms": 500.0,
+    "min_samples_reliable": 100,
+    "min_labeled_events": 20,
+    "nominal_coverage_pct": 80.0
+  },
+  "untouched_test_period": {
+    "split_strategy": "chronological_60_20_20_with_48h_embargo",
+    "test_start": "2026-08-15T22:00:00+00:00",
+    "test_end": "2026-08-26T02:00:00+00:00",
+    "isolation_status": "STRICTLY_ISOLATED_NEVER_USED_FOR_MODEL_SELECTION"
+  },
+  "baseline_summary_by_horizon": {},
+  "champion_operational_policy": {
+    "temperature": "RETAIN_BASELINE",
+    "humidity": "RETAIN_BASELINE",
+    "pressure": "RETAIN_BASELINE",
+    "wind_speed": "PROMOTED",
+    "wind_direction": "RETAIN_PERSISTENCE",
+    "precipitation_occurrence": "PROMOTED",
+    "precipitation_amount": "PROMOTED",
+    "heat_index": "PROMOTED_DERIVED",
+    "uv_index": "BLOCKED",
+    "light_intensity": "CONDITIONAL_BETA"
+  },
+  "target_specific_source_policy": {
+    "1": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
+    },
+    "3": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
+    },
+    "6": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
+    },
+    "12": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
+    },
+    "24": {
+      "temperature": "baseline",
+      "humidity": "baseline",
+      "pressure": "baseline",
+      "wind_speed": "candidate",
+      "wind_direction": "persistence",
+      "precipitation_occurrence": "candidate",
+      "precipitation_amount": "candidate",
+      "heat_index": "derived_noaa",
+      "uv_index": "blocked",
+      "light_intensity": "daylight_beta",
+      "rain_occurrence": "candidate"
+    }
+  },
+  "current_limitations": [
+    "temperature loses to persistence at 1h, 3h, and 6h under local-only telemetry",
+    "wind direction loses to persistence at every horizon under local-only telemetry",
+    "humidity and pressure are classified information-limited under local-only telemetry",
+    "UV index blocked by sensor calibration",
+    "light intensity is beta daylight-only"
+  ],
+  "frozen_status": "LOCKED"
+}

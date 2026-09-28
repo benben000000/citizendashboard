@@ -10326,5 +10326,15 @@
     "UV index forecasting blocked by sensor calibration defect: BLOCKED_BY_SENSOR_CALIBRATION",
     "Protected baseline bundles preserved for operational rollback",
     "Local-station information ceiling: temperature at 1h, 3h, 6h and wind direction retain persistence fallback under local-telemetry-only constraints"
-  ]
+  ],
+  "low_evidence_warnings": [
+    {
+      "path": "anomaly_metrics.empirical_false_alarms_per_day",
+      "value": 0.0,
+      "status": "LOW_EVIDENCE",
+      "reason": "Empirical false alarm count evaluated on limited extreme events; flagged as LOW_EVIDENCE per Phase 9/11 policy."
+    }
+  ],
+  "major_improvement_freeze_ref": "major_improvement_baseline_freeze.json",
+  "champion_challenger_report_ref": "champion_challenger_report.json"
 }
