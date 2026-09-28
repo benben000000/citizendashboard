@@ -1,0 +1,11 @@
+# Phase 2: independent paired-row evidence
+
+`recompute_paired_evidence.py` is read-only. It recomputes 80% temperature interval coverage and rain Brier score from a separate, held-out paired CSV; it never trains, promotes, rewrites reports, or produces anomaly scores. The existing artifacts do not automatically satisfy this contract.
+
+Required CSV fields: `station_id,issue_timestamp_utc,target_timestamp_utc,horizon_hours,split_name,label_quality_status,forecast_temperature_p10,forecast_temperature_p90,observed_temperature_c,rain_probability,rain_observed`. Times must be explicit UTC; target time must equal issue time plus the declared hourly horizon. Every row must be from the `test` split with a quality-controlled `valid` label. No duplicates or missing horizons are allowed. Rain observed is binary `0` or `1`; choose and document the rain accumulation interval, gauge detection limit, and missing/trace-rain treatment before exporting. The audit refuses ambiguous labels rather than treating them as dry.
+
+The upstream export must freeze forecasts at issue time, join observations at valid time and station, and retain provenance of original raw values, QC decisions, feature availability, and artifact hashes. Do not assemble paired rows using future data to reconstruct issue-time features. Check calibration/test disjointness separately. No current model-performance claim follows from a fixture test.
+
+Run `python prediction-model/src/test_recompute_paired_evidence.py` to exercise the fixture tests. Once a real held-out paired CSV exists, run `python prediction-model/src/recompute_paired_evidence.py --paired-csv PATH --candidate-dir prediction-model/data/candidate_artifacts`. It requires at least 100 pairs for each existing 1/3/6/12/24-hour horizon and exits nonzero if recomputed values contradict checked-in reports. Do not create synthetic rows to reach that count. In addition, the Phase 1 structural gate remains NO-GO until measured event labels, exposure, and evidence files exist.
+
+This is only the first independently recomputed slice: anomaly detection still needs human-reviewed event labels and station-day exposure; coverage uncertainty by station/regime and baseline skill remain unverified. The separate 15/30/45/60-minute objective needs its own target definition, datasets, and scorecard.
