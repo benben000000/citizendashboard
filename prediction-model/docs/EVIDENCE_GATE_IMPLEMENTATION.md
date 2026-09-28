@@ -1,0 +1,9 @@
+# Prediction evidence release gate: Phase 1
+
+This branch introduces a read-only structural gate. It intentionally fails on the current checked-in candidate reports: 80% temperature interval coverage is reported as 64.76%, 48.70%, 43.83%, and 30.09% at 3, 6, 12, and 24 hours while the uncertainty report says PASS; anomaly PASS lacks event-count and exposure evidence. The scorecard also includes nonzero rain Brier scores with [0, 0] Brier confidence intervals. Existing weights, forecasts, inference policy, and active bundles are untouched.
+
+Run from the repository root: `python prediction-model/src/check_evidence_gate.py` (expected nonzero exit until reports are rebuilt); `python prediction-model/src/test_evidence_gate.py` (fixture-only tests). Do not change the validator to make the current artifacts pass. Do not add this expected-failing production gate to the existing CI as a green check until validated replacement evidence exists; add the fixture tests immediately as an independent CI job when CI is edited.
+
+The gate checks internal consistency, minimum sample counts, report-to-scorecard agreement, and SHA-256 of referenced evidence files. The test fixture's small CSV is deliberately not real forecast evidence. A PASS here alone is never scientific proof: Phase 2 must independently recompute coverage and event metrics from paired, quality-controlled forecast/observation rows with station, issue time, valid time, label definitions, and reviewed event labels. Enforce a safe path and hash for every evidence reference; separate calibration, model selection, and final test data. Release should remain NO-GO until those independent calculations, chronological folds, baseline comparisons, operational inference parity, and rollback checks pass.
+
+Do not promise the 15/30/45/60-minute product based on existing 1/3/6/12/24-hour artifacts. Define and evaluate short-horizon targets separately. No changes in this phase constitute a production promotion.
