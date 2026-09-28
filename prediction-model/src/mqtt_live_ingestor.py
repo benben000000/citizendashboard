@@ -121,6 +121,7 @@ def main() -> None:
     while not STOP.is_set():
         connection = None
         try:
+            print(f"Connecting to AWS IoT at {ENDPOINT}:{PORT} as {CLIENT_ID}", flush=True)
             connection = mqtt_connection_builder.mtls_from_path(
                 endpoint=ENDPOINT,
                 port=PORT,
