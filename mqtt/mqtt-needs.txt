@@ -21,6 +21,7 @@ Wawa Limay AWS - KT-94AD8332A7B0
 Alasas AWS - KT-BC25B61815AC
 Sapang Buho AWS - KT-3C50AD182EC8
 Popolon AWS - KT-8050AD182EC8
+Hermosa - KT-E01ED2215788
 
 MQTT Topic Format:
 kloudtrack/[ID]/data
