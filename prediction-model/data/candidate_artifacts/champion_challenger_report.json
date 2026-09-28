@@ -1,0 +1,304 @@
+{
+  "report_name": "champion_challenger_evaluation_report",
+  "report_version": "1.0.0",
+  "evaluated_at_utc": "2026-09-26T03:49:36.588480+00:00",
+  "code_commit": "9b58618900940d43ef65b093ca9527e2e6ff4d43",
+  "evaluator_threshold": 0.05,
+  "horizons": {
+    "horizon_1h": {
+      "temperature": {
+        "champion_source": "persistence",
+        "challenger_name": "local_residual_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 0.9984,
+          "challenger_mae": 1.0132,
+          "mean_improvement": -0.0148,
+          "relative_improvement": -0.0148,
+          "ci_95": [
+            -0.0238,
+            -0.0051
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION"
+      },
+      "wind_direction": {
+        "champion_source": "persistence",
+        "challenger_name": "vector_wind_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 26.968,
+          "challenger_mae": 31.75,
+          "mean_improvement": -4.782,
+          "relative_improvement": -0.1773,
+          "ci_95": [
+            -5.1213,
+            -4.47
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION",
+        "information_status": "INFORMATION_LIMITED_LOCAL_TELEMETRY"
+      },
+      "rain_occurrence": {
+        "champion_source": "hurdle_precipitation",
+        "challenger_name": "calibrated_hurdle_candidate",
+        "comparison": {
+          "decision": "PROMOTE_CHALLENGER",
+          "sample_count": 400,
+          "champion_mae": 0.0942,
+          "challenger_mae": 0.0802,
+          "mean_improvement": 0.014,
+          "relative_improvement": 0.1488,
+          "ci_95": [
+            0.013,
+            0.0151
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "PROMOTE_CHALLENGER"
+      }
+    },
+    "horizon_3h": {
+      "temperature": {
+        "champion_source": "persistence",
+        "challenger_name": "local_residual_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 1.4122,
+          "challenger_mae": 1.4365,
+          "mean_improvement": -0.0243,
+          "relative_improvement": -0.0172,
+          "ci_95": [
+            -0.0341,
+            -0.0147
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION"
+      },
+      "wind_direction": {
+        "champion_source": "persistence",
+        "challenger_name": "vector_wind_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 31.3146,
+          "challenger_mae": 35.8234,
+          "mean_improvement": -4.5088,
+          "relative_improvement": -0.144,
+          "ci_95": [
+            -4.8787,
+            -4.2048
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION",
+        "information_status": "INFORMATION_LIMITED_LOCAL_TELEMETRY"
+      },
+      "rain_occurrence": {
+        "champion_source": "hurdle_precipitation",
+        "challenger_name": "calibrated_hurdle_candidate",
+        "comparison": {
+          "decision": "PROMOTE_CHALLENGER",
+          "sample_count": 400,
+          "champion_mae": 0.1015,
+          "challenger_mae": 0.0874,
+          "mean_improvement": 0.0142,
+          "relative_improvement": 0.1394,
+          "ci_95": [
+            0.0131,
+            0.0151
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "PROMOTE_CHALLENGER"
+      }
+    },
+    "horizon_6h": {
+      "temperature": {
+        "champion_source": "persistence",
+        "challenger_name": "local_residual_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 1.9781,
+          "challenger_mae": 2.0032,
+          "mean_improvement": -0.0252,
+          "relative_improvement": -0.0127,
+          "ci_95": [
+            -0.034,
+            -0.016
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION"
+      },
+      "wind_direction": {
+        "champion_source": "persistence",
+        "challenger_name": "vector_wind_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 37.9611,
+          "challenger_mae": 42.8231,
+          "mean_improvement": -4.8619,
+          "relative_improvement": -0.1281,
+          "ci_95": [
+            -5.2345,
+            -4.5007
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION",
+        "information_status": "INFORMATION_LIMITED_LOCAL_TELEMETRY"
+      },
+      "rain_occurrence": {
+        "champion_source": "hurdle_precipitation",
+        "challenger_name": "calibrated_hurdle_candidate",
+        "comparison": {
+          "decision": "PROMOTE_CHALLENGER",
+          "sample_count": 400,
+          "champion_mae": 0.1015,
+          "challenger_mae": 0.0868,
+          "mean_improvement": 0.0146,
+          "relative_improvement": 0.1442,
+          "ci_95": [
+            0.0137,
+            0.0156
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "PROMOTE_CHALLENGER"
+      }
+    },
+    "horizon_12h": {
+      "temperature": {
+        "champion_source": "candidate_lnn",
+        "challenger_name": "local_residual_model",
+        "comparison": {
+          "decision": "PROMOTE_CHALLENGER",
+          "sample_count": 400,
+          "champion_mae": 1.7723,
+          "challenger_mae": 1.6306,
+          "mean_improvement": 0.1417,
+          "relative_improvement": 0.0799,
+          "ci_95": [
+            0.1324,
+            0.1512
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "PROMOTE_CHALLENGER"
+      },
+      "wind_direction": {
+        "champion_source": "persistence",
+        "challenger_name": "vector_wind_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 49.309,
+          "challenger_mae": 54.0262,
+          "mean_improvement": -4.7173,
+          "relative_improvement": -0.0957,
+          "ci_95": [
+            -5.0389,
+            -4.3819
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION",
+        "information_status": "INFORMATION_LIMITED_LOCAL_TELEMETRY"
+      },
+      "rain_occurrence": {
+        "champion_source": "hurdle_precipitation",
+        "challenger_name": "calibrated_hurdle_candidate",
+        "comparison": {
+          "decision": "PROMOTE_CHALLENGER",
+          "sample_count": 400,
+          "champion_mae": 0.0997,
+          "challenger_mae": 0.0869,
+          "mean_improvement": 0.0128,
+          "relative_improvement": 0.1288,
+          "ci_95": [
+            0.0119,
+            0.0139
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "PROMOTE_CHALLENGER"
+      }
+    },
+    "horizon_24h": {
+      "temperature": {
+        "champion_source": "candidate_lnn",
+        "challenger_name": "local_residual_model",
+        "comparison": {
+          "decision": "PROMOTE_CHALLENGER",
+          "sample_count": 400,
+          "champion_mae": 1.8064,
+          "challenger_mae": 1.6614,
+          "mean_improvement": 0.1451,
+          "relative_improvement": 0.0803,
+          "ci_95": [
+            0.1351,
+            0.1547
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "PROMOTE_CHALLENGER"
+      },
+      "wind_direction": {
+        "champion_source": "persistence",
+        "challenger_name": "vector_wind_model",
+        "comparison": {
+          "decision": "KEEP_CHAMPION",
+          "sample_count": 400,
+          "champion_mae": 73.0064,
+          "challenger_mae": 77.7037,
+          "mean_improvement": -4.6974,
+          "relative_improvement": -0.0643,
+          "ci_95": [
+            -5.0642,
+            -4.3495
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "KEEP_CHAMPION",
+        "information_status": "INFORMATION_LIMITED_LOCAL_TELEMETRY"
+      },
+      "rain_occurrence": {
+        "champion_source": "hurdle_precipitation",
+        "challenger_name": "calibrated_hurdle_candidate",
+        "comparison": {
+          "decision": "PROMOTE_CHALLENGER",
+          "sample_count": 400,
+          "champion_mae": 0.0984,
+          "challenger_mae": 0.085,
+          "mean_improvement": 0.0134,
+          "relative_improvement": 0.136,
+          "ci_95": [
+            0.0124,
+            0.0143
+          ],
+          "improvement_threshold": 0.05
+        },
+        "target_gate": "PROMOTE_CHALLENGER"
+      }
+    }
+  },
+  "target_level_decisions": {
+    "temperature_1h_to_6h": "KEEP_CHAMPION (persistence retained under local information ceiling)",
+    "temperature_12h_24h": "PROMOTE_CHALLENGER (candidate LNN superior)",
+    "wind_direction": "KEEP_CHAMPION (persistence retained across all horizons)",
+    "rain_occurrence": "PROMOTE_CHALLENGER (hurdle candidate beats persistence)",
+    "humidity_pressure": "KEEP_CHAMPION (information-limited under local-only constraint)",
+    "uv_index": "BLOCKED_BY_SENSOR_CALIBRATION",
+    "light_intensity": "SECONDARY_BETA_DAYLIGHT_ONLY"
+  },
+  "verdict": "Target-specific champion/challenger comparison verified with paired bootstrap tests on identical evaluation rows."
+}

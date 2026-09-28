@@ -1,0 +1,85 @@
+{
+  "reference_type": "baseline_release_reference",
+  "purpose": "Frozen baseline state for the multi-source integration phase. All candidate work must demonstrate improvement over this baseline per target and per horizon before promotion.",
+  "baseline_commit": "9b58618900940d43ef65b093ca9527e2e6ff4d43",
+  "baseline_commit_message": "chore(candidate-artifacts): regenerate 5-horizon candidate artifacts, scorecards, and reports at release identity",
+  "frozen_at_utc": "2026-09-27T02:00:00Z",
+  "dataset_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "inference_policy_version": "1.0.0",
+  "inference_policy_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+  "operational_routing": {
+    "1": {
+      "temperature": "persistence_fallback",
+      "humidity": "persistence_fallback",
+      "pressure": "persistence_fallback",
+      "wind_speed": "persistence_fallback",
+      "wind_direction": "persistence_fallback",
+      "heat_index": "derived_from_selected_temp_and_humidity",
+      "rain": "learned_persistence_blend_0.8_0.2"
+    },
+    "3": {
+      "temperature": "persistence_fallback",
+      "humidity": "persistence_fallback",
+      "pressure": "learned_model",
+      "wind_speed": "persistence_fallback",
+      "wind_direction": "persistence_fallback",
+      "heat_index": "derived_from_selected_temp_and_humidity",
+      "rain": "learned_persistence_blend_0.6_0.4"
+    },
+    "6": {
+      "temperature": "learned_model",
+      "humidity": "persistence_fallback",
+      "pressure": "persistence_fallback",
+      "wind_speed": "persistence_fallback",
+      "wind_direction": "persistence_fallback",
+      "heat_index": "derived_from_selected_temp_and_humidity",
+      "rain": "learned_persistence_blend_0.45_0.55"
+    },
+    "12": {
+      "temperature": "learned_model",
+      "humidity": "persistence_fallback",
+      "pressure": "persistence_fallback",
+      "wind_speed": "learned_model",
+      "wind_direction": "persistence_fallback",
+      "heat_index": "derived_from_selected_temp_and_humidity",
+      "rain": "learned_persistence_blend_0.45_0.55"
+    },
+    "24": {
+      "temperature": "persistence_fallback",
+      "humidity": "persistence_fallback",
+      "pressure": "persistence_fallback",
+      "wind_speed": "persistence_fallback",
+      "wind_direction": "persistence_fallback",
+      "heat_index": "derived_from_selected_temp_and_humidity",
+      "rain": "learned_persistence_blend_0.4_0.6"
+    }
+  },
+  "canonical_feature_schema": [
+    "temperature",
+    "heat_index",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_sin",
+    "wind_cos",
+    "precipitation"
+  ],
+  "source_mode": "local_only",
+  "external_sources_in_production": [],
+  "test_suite_count": 85,
+  "information_limited_targets": [
+    "wind_direction",
+    "humidity",
+    "uv_index",
+    "luminosity"
+  ],
+  "notes": [
+    "No external source is in production use at this baseline.",
+    "All predictions use local station telemetry only.",
+    "This reference must not be overwritten by candidate experiments.",
+    "Rollback to this state must be possible per target and per horizon."
+  ]
+}

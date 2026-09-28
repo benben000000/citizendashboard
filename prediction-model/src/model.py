@@ -1412,3 +1412,540 @@ def evaluate_heat_index_risk_categories(
         "category_distribution_true": {int(c): int(np.sum(true_cats == c)) for c in range(5)},
         "category_distribution_pred": {int(c): int(np.sum(pred_cats == c)) for c in range(5)},
     }
+
+
+# ---------------------------------------------------------------------------
+# Major Improvement Plan: New Model Components
+# ---------------------------------------------------------------------------
+
+
+class RegimeGatedResidualHead:
+    """
+    Regime-Gated Residual Temperature Model (Phase 4).
+
+    Trains separate ridge-regularized residual models for distinct weather regimes
+    (stable, warming, cooling, volatile) and uses a gating function based on recent
+    temperature trend, pressure tendency, and wind speed to blend predictions.
+
+    forecast = baseline + gate_weights · [residual_stable, residual_warming,
+                                          residual_cooling, residual_volatile]
+
+    The regime gate uses features available at issue time only:
+      - recent temperature slope (3h, 6h)
+      - pressure tendency (3h)
+      - wind speed magnitude
+      - time-of-day harmonics
+    """
+
+    def __init__(self, alpha: float = 5.0, bounds: Tuple[float, float] = (-10.0, 60.0),
+                 n_regimes: int = 4, trend_threshold: float = 0.5):
+        self.alpha = alpha
+        self.bounds = bounds
+        self.n_regimes = n_regimes
+        self.trend_threshold = trend_threshold
+        self.regime_models = [None] * n_regimes
+        self.regime_quantiles = [{"p10": -1.0, "p50": 0.0, "p90": 1.0} for _ in range(n_regimes)]
+        self.global_weights = None
+        self.global_quantiles = {"p10": -1.0, "p50": 0.0, "p90": 1.0}
+
+    def _classify_regime(self, X: np.ndarray) -> np.ndarray:
+        """
+        Classify each sample into a regime based on feature heuristics.
+        Expects X to contain temperature slope features in early columns.
+        Uses simple threshold-based classification:
+          0 = stable (|slope| < threshold)
+          1 = warming (slope >= threshold)
+          2 = cooling (slope <= -threshold)
+          3 = volatile (high rolling std, inferred from magnitude of recent changes)
+        """
+        N = X.shape[0]
+        regimes = np.zeros(N, dtype=np.int32)
+
+        if X.shape[1] >= 2:
+            # Use first feature as temperature slope proxy, second as volatility proxy
+            slope = X[:, 0]
+            vol = np.abs(X[:, 1]) if X.shape[1] > 1 else np.zeros(N)
+
+            regimes[slope >= self.trend_threshold] = 1
+            regimes[slope <= -self.trend_threshold] = 2
+            # Volatile: high volatility regardless of slope direction
+            vol_threshold = np.percentile(vol, 75) if N > 10 else self.trend_threshold * 2
+            regimes[vol > vol_threshold] = 3
+
+        return regimes
+
+    def fit(self, X: np.ndarray, y_true: np.ndarray, y_baseline: np.ndarray):
+        """Fit regime-specific residual models and a global fallback."""
+        residuals = (y_true - y_baseline).astype(np.float32)
+        N, D = X.shape
+        regimes = self._classify_regime(X)
+
+        # Fit per-regime residual models
+        for r in range(self.n_regimes):
+            mask = regimes == r
+            count = int(np.sum(mask))
+            if count < 10:
+                # Not enough samples; will use global fallback
+                continue
+
+            X_r = X[mask]
+            res_r = residuals[mask]
+            X_aug = np.hstack([np.ones((count, 1), dtype=np.float32), X_r.astype(np.float32)])
+            reg = self.alpha * np.eye(D + 1, dtype=np.float32)
+            reg[0, 0] = 0.0
+            A = X_aug.T @ X_aug + reg
+            b = X_aug.T @ res_r
+            w = np.linalg.solve(A, b)
+            self.regime_models[r] = w
+
+            pred_res = X_aug @ w
+            val_errors = res_r - pred_res
+            self.regime_quantiles[r]["p10"] = float(np.quantile(val_errors, 0.10))
+            self.regime_quantiles[r]["p50"] = float(np.quantile(val_errors, 0.50))
+            self.regime_quantiles[r]["p90"] = float(np.quantile(val_errors, 0.90))
+
+        # Fit global fallback
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+        reg = self.alpha * np.eye(D + 1, dtype=np.float32)
+        reg[0, 0] = 0.0
+        A = X_aug.T @ X_aug + reg
+        b = X_aug.T @ residuals
+        self.global_weights = np.linalg.solve(A, b)
+        pred_res = X_aug @ self.global_weights
+        val_errors = residuals - pred_res
+        self.global_quantiles["p10"] = float(np.quantile(val_errors, 0.10))
+        self.global_quantiles["p50"] = float(np.quantile(val_errors, 0.50))
+        self.global_quantiles["p90"] = float(np.quantile(val_errors, 0.90))
+
+        return self
+
+    def predict(self, X: np.ndarray, y_baseline: np.ndarray) -> Dict[str, np.ndarray]:
+        """Predict using regime-specific models with global fallback."""
+        N, D = X.shape
+        regimes = self._classify_regime(X)
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+
+        predictions = np.zeros(N, dtype=np.float32)
+        p10_arr = np.zeros(N, dtype=np.float32)
+        p50_arr = np.zeros(N, dtype=np.float32)
+        p90_arr = np.zeros(N, dtype=np.float32)
+        regime_labels = np.array(["stable", "warming", "cooling", "volatile"])[regimes]
+
+        for r in range(self.n_regimes):
+            mask = regimes == r
+            if not np.any(mask):
+                continue
+
+            if self.regime_models[r] is not None:
+                w = self.regime_models[r]
+                q = self.regime_quantiles[r]
+            else:
+                w = self.global_weights
+                q = self.global_quantiles
+
+            if w is None:
+                continue
+
+            learned_res = X_aug[mask] @ w
+            predictions[mask] = learned_res
+            p10_arr[mask] = learned_res + q["p10"]
+            p50_arr[mask] = learned_res + q["p50"]
+            p90_arr[mask] = learned_res + q["p90"]
+
+        point_pred = np.clip(y_baseline + predictions, self.bounds[0], self.bounds[1])
+        p10_out = np.clip(y_baseline + p10_arr, self.bounds[0], self.bounds[1])
+        p50_out = np.clip(y_baseline + p50_arr, self.bounds[0], self.bounds[1])
+        p90_out = np.clip(y_baseline + p90_arr, self.bounds[0], self.bounds[1])
+
+        return {
+            "prediction": point_pred,
+            "p10": p10_out,
+            "p50": p50_out,
+            "p90": p90_out,
+            "residual": predictions,
+            "regime": regime_labels,
+        }
+
+
+class SpatialVectorWindHead:
+    """
+    Spatial-Aware Vector Wind Direction Head (Phase 5).
+
+    Uses vector (u, v) decomposition with spatial pressure gradient features when
+    available, falling back to local-only features. Includes calm-wind persistence
+    fallback and mixture gating by wind speed regime.
+
+    Track A (local-only): Uses local wind history, pressure tendency, time harmonics.
+    Track B (multi-source): Adds spatial pressure gradients, nearby station vectors,
+                            NWP wind correction (requires external data).
+    """
+
+    def __init__(self, alpha: float = 5.0, calm_threshold_kmh: float = 3.6):
+        self.alpha = alpha
+        self.calm_threshold_kmh = calm_threshold_kmh
+        self.u_weights = None
+        self.v_weights = None
+        self.has_spatial = False
+
+    def fit(self, X: np.ndarray, u_true: np.ndarray, v_true: np.ndarray,
+            ws_true: np.ndarray):
+        """Fit vector component models on non-calm wind samples."""
+        non_calm = ws_true >= self.calm_threshold_kmh
+        count = int(np.sum(non_calm))
+        if count < 10:
+            return self
+
+        X_nc = X[non_calm]
+        u_nc = u_true[non_calm].astype(np.float32)
+        v_nc = v_true[non_calm].astype(np.float32)
+
+        N, D = X_nc.shape
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X_nc.astype(np.float32)])
+        reg = self.alpha * np.eye(D + 1, dtype=np.float32)
+        reg[0, 0] = 0.0
+        A = X_aug.T @ X_aug + reg
+
+        self.u_weights = np.linalg.solve(A, X_aug.T @ u_nc)
+        self.v_weights = np.linalg.solve(A, X_aug.T @ v_nc)
+
+        return self
+
+    def predict(self, X: np.ndarray, ws_pred: np.ndarray,
+                u_persist: np.ndarray = None, v_persist: np.ndarray = None) -> Dict[str, np.ndarray]:
+        """Predict (u, v) with calm-wind persistence fallback."""
+        N = X.shape[0]
+        X_aug = np.hstack([np.ones((N, 1), dtype=np.float32), X.astype(np.float32)])
+
+        if self.u_weights is not None and self.v_weights is not None:
+            u_pred = X_aug @ self.u_weights
+            v_pred = X_aug @ self.v_weights
+        else:
+            u_pred = np.zeros(N, dtype=np.float32)
+            v_pred = np.zeros(N, dtype=np.float32)
+
+        # Calm-wind persistence fallback
+        calm = ws_pred < self.calm_threshold_kmh
+        if u_persist is not None and v_persist is not None:
+            u_pred[calm] = u_persist[calm]
+            v_pred[calm] = v_persist[calm]
+
+        direction = np.degrees(np.arctan2(v_pred, u_pred)) % 360.0
+
+        return {
+            "u": u_pred,
+            "v": v_pred,
+            "direction_deg": direction,
+            "calm_fallback_count": int(np.sum(calm)),
+            "has_spatial_features": self.has_spatial,
+        }
+
+
+class CausalFusionNowcastModel(nn.Module):
+    """
+    Causal Fusion Nowcasting Model (Phase 3).
+
+    Multi-encoder architecture with target-specific forecast heads:
+      - Local encoder: processes station-level temporal features
+      - Spatial encoder: processes nearby station features (scaffold, awaiting data)
+      - NWP encoder: processes numerical weather prediction features (scaffold)
+      - Fusion layer: causal attention combining available encoders
+      - Target heads: separate regression/classification heads per target
+
+    Local-compute discipline:
+      - Compact hidden dimensions (default 32)
+      - Single horizon per training run
+      - Early stopping compatible
+      - CPU-friendly inference
+    """
+
+    def __init__(self, local_dim: int = 75, spatial_dim: int = 0, nwp_dim: int = 0,
+                 hidden_dim: int = 32, n_targets: int = 8, dropout: float = 0.1):
+        super().__init__()
+        self.local_dim = local_dim
+        self.spatial_dim = spatial_dim
+        self.nwp_dim = nwp_dim
+        self.hidden_dim = hidden_dim
+        self.n_targets = n_targets
+
+        # Local encoder (always available)
+        self.local_encoder = nn.Sequential(
+            nn.Linear(local_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+
+        # Spatial encoder (scaffold — activated when spatial_dim > 0)
+        self.spatial_encoder = None
+        if spatial_dim > 0:
+            self.spatial_encoder = nn.Sequential(
+                nn.Linear(spatial_dim, hidden_dim),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, hidden_dim),
+            )
+
+        # NWP encoder (scaffold — activated when nwp_dim > 0)
+        self.nwp_encoder = None
+        if nwp_dim > 0:
+            self.nwp_encoder = nn.Sequential(
+                nn.Linear(nwp_dim, hidden_dim),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, hidden_dim),
+            )
+
+        # Fusion: simple gated combination of available encoders
+        n_sources = 1 + (1 if spatial_dim > 0 else 0) + (1 if nwp_dim > 0 else 0)
+        self.fusion_gate = nn.Linear(hidden_dim * n_sources, hidden_dim)
+        self.n_sources = n_sources
+
+        # Target-specific heads: each produces point + quantiles (p10, p50, p90)
+        self.target_heads = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim // 2),
+                nn.GELU(),
+                nn.Linear(hidden_dim // 2, 4),  # [point, p10, p50, p90]
+            )
+            for _ in range(n_targets)
+        ])
+
+        # Rain occurrence head (binary classification)
+        self.rain_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.GELU(),
+            nn.Linear(hidden_dim // 2, 1),
+        )
+
+    def forward(self, local_x: torch.Tensor,
+                spatial_x: Optional[torch.Tensor] = None,
+                nwp_x: Optional[torch.Tensor] = None) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass through multi-encoder fusion architecture.
+
+        Args:
+            local_x: [B, local_dim] local station features
+            spatial_x: [B, spatial_dim] spatial station features (optional)
+            nwp_x: [B, nwp_dim] NWP features (optional)
+
+        Returns:
+            Dict with target predictions and rain probability.
+        """
+        local_h = self.local_encoder(local_x)  # [B, hidden_dim]
+
+        encoder_outputs = [local_h]
+
+        if self.spatial_encoder is not None and spatial_x is not None:
+            spatial_h = self.spatial_encoder(spatial_x)
+            encoder_outputs.append(spatial_h)
+
+        if self.nwp_encoder is not None and nwp_x is not None:
+            nwp_h = self.nwp_encoder(nwp_x)
+            encoder_outputs.append(nwp_h)
+
+        # Pad with zeros if encoders are available but data is missing
+        while len(encoder_outputs) < self.n_sources:
+            encoder_outputs.append(torch.zeros_like(local_h))
+
+        # Fuse
+        fused = torch.cat(encoder_outputs, dim=-1)  # [B, hidden_dim * n_sources]
+        fused_h = torch.relu(self.fusion_gate(fused))  # [B, hidden_dim]
+
+        # Target-specific outputs
+        target_outputs = {}
+        for i, head in enumerate(self.target_heads):
+            out = head(fused_h)  # [B, 4]
+            target_outputs[f"target_{i}"] = out
+
+        # Rain probability
+        rain_logit = self.rain_head(fused_h)  # [B, 1]
+        target_outputs["rain_probability"] = torch.sigmoid(rain_logit)
+
+        target_outputs["fused_representation"] = fused_h
+
+        return target_outputs
+
+
+class ChampionChallengerEvaluator:
+    """
+    Champion/Challenger Evaluation System (Phase 10).
+
+    Compares a champion model against challenger models using paired-error
+    bootstrap comparison on identical rows with worst-regime evaluation.
+
+    Generates target-specific promotion decisions:
+      PROMOTE_CHALLENGER — challenger reliably better
+      KEEP_CHAMPION — no significant improvement
+      INCONCLUSIVE — not enough evidence
+      LOW_EVIDENCE — insufficient sample count for reliable comparison
+    """
+
+    # Minimum sample count thresholds for reliable evidence
+    MIN_SAMPLES_RELIABLE = 100
+    MIN_SAMPLES_REGIME = 30
+    MIN_LABELED_EVENTS = 20
+
+    def __init__(self, improvement_threshold: float = 0.05, n_boot: int = 500,
+                 ci_level: float = 0.95, seed: int = 42):
+        self.improvement_threshold = improvement_threshold
+        self.n_boot = n_boot
+        self.ci_level = ci_level
+        self.seed = seed
+
+    def compare_paired(self, champion_errors: np.ndarray,
+                       challenger_errors: np.ndarray) -> Dict[str, Any]:
+        """
+        Paired bootstrap comparison of absolute errors.
+        Returns improvement estimate, confidence interval, and decision.
+        """
+        n = len(champion_errors)
+        if n < self.MIN_SAMPLES_RELIABLE:
+            return {
+                "decision": "LOW_EVIDENCE",
+                "sample_count": n,
+                "reason": f"Only {n} samples; need {self.MIN_SAMPLES_RELIABLE} for reliable comparison",
+            }
+
+        diff = champion_errors - challenger_errors  # positive = challenger is better
+        mean_diff = float(np.mean(diff))
+        champion_mae = float(np.mean(champion_errors))
+        challenger_mae = float(np.mean(challenger_errors))
+
+        # Bootstrap CI on the difference
+        rng = np.random.default_rng(self.seed)
+        boot_diffs = []
+        for _ in range(self.n_boot):
+            idx = rng.choice(n, size=n, replace=True)
+            boot_diffs.append(float(np.mean(diff[idx])))
+
+        alpha = (1.0 - self.ci_level) / 2.0
+        ci_low = float(np.percentile(boot_diffs, alpha * 100))
+        ci_high = float(np.percentile(boot_diffs, (1.0 - alpha) * 100))
+
+        # Relative improvement
+        rel_improvement = mean_diff / max(1e-6, champion_mae)
+
+        if ci_low > 0 and rel_improvement >= self.improvement_threshold:
+            decision = "PROMOTE_CHALLENGER"
+        elif ci_high < 0:
+            decision = "KEEP_CHAMPION"
+        else:
+            decision = "INCONCLUSIVE"
+
+        return {
+            "decision": decision,
+            "sample_count": n,
+            "champion_mae": round(champion_mae, 4),
+            "challenger_mae": round(challenger_mae, 4),
+            "mean_improvement": round(mean_diff, 4),
+            "relative_improvement": round(rel_improvement, 4),
+            "ci_95": [round(ci_low, 4), round(ci_high, 4)],
+            "improvement_threshold": self.improvement_threshold,
+        }
+
+    def evaluate_by_regime(self, champion_errors: np.ndarray,
+                           challenger_errors: np.ndarray,
+                           regime_labels: np.ndarray) -> Dict[str, Any]:
+        """Evaluate champion vs challenger within each regime."""
+        results = {}
+        unique_regimes = np.unique(regime_labels)
+        worst_regime = None
+        worst_degradation = 0.0
+
+        for regime in unique_regimes:
+            mask = regime_labels == regime
+            count = int(np.sum(mask))
+
+            if count < self.MIN_SAMPLES_REGIME:
+                results[str(regime)] = {
+                    "decision": "LOW_EVIDENCE",
+                    "sample_count": count,
+                }
+                continue
+
+            result = self.compare_paired(
+                champion_errors[mask],
+                challenger_errors[mask],
+            )
+            results[str(regime)] = result
+
+            # Track worst regime
+            if result.get("mean_improvement", 0) < worst_degradation:
+                worst_degradation = result["mean_improvement"]
+                worst_regime = str(regime)
+
+        return {
+            "regime_results": results,
+            "worst_regime": worst_regime,
+            "worst_degradation": round(worst_degradation, 4) if worst_regime else None,
+        }
+
+
+def compute_low_evidence_warnings(report_data: Dict[str, Any],
+                                  min_samples: int = 100,
+                                  min_events: int = 20) -> List[Dict[str, str]]:
+    """
+    Scan a report for metrics computed from insufficient sample counts.
+
+    Returns a list of LOW_EVIDENCE warnings with field paths and sample counts.
+    A perfect score from a tiny sample is not sufficient production evidence.
+    """
+    warnings = []
+
+    def _scan(data, path=""):
+        if isinstance(data, dict):
+            # Check for sample_count fields
+            sample_count = data.get("sample_count", data.get("n_samples"))
+            if sample_count is not None and isinstance(sample_count, (int, float)):
+                if sample_count < min_samples:
+                    # Check if there's a perfect or suspiciously clean metric
+                    for key in ["recall", "precision", "accuracy", "f1",
+                                "heavy_rain_recall", "extreme_heat_recall",
+                                "rapid_temp_change_recall", "category_accuracy_pct"]:
+                        val = data.get(key)
+                        if val is not None and (val == 1.0 or val == 100.0 or val == 0.0):
+                            warnings.append({
+                                "path": f"{path}.{key}" if path else key,
+                                "sample_count": int(sample_count),
+                                "value": val,
+                                "status": "LOW_EVIDENCE",
+                                "reason": f"Perfect {key}={val} from only {int(sample_count)} samples; "
+                                          f"need {min_samples} for reliable claim",
+                            })
+
+            # Check event-specific counts
+            event_count = data.get("event_count", data.get("n_events",
+                                   data.get("labeled_events")))
+            if event_count is not None and isinstance(event_count, (int, float)):
+                if event_count < min_events:
+                    warnings.append({
+                        "path": path,
+                        "event_count": int(event_count),
+                        "status": "LOW_EVIDENCE",
+                        "reason": f"Only {int(event_count)} labeled events; "
+                                  f"need {min_events} for reliable metrics",
+                    })
+
+            for key, val in data.items():
+                _scan(val, f"{path}.{key}" if path else key)
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                _scan(item, f"{path}[{i}]")
+
+    _scan(report_data)
+    return warnings
+
+
+# Minimum improvement thresholds for major improvement gates (Phase 0)
+MAJOR_IMPROVEMENT_THRESHOLDS = {
+    "continuous_target_mae_relative_improvement": 0.05,
+    "rain_brier_relative_improvement": 0.05,
+    "wind_direction_circular_mae_improvement": 0.05,
+    "uncertainty_coverage_tolerance_pct": 5.0,
+    "anomaly_false_alarm_budget_per_day": 2.0,
+    "worst_fold_regression_tolerance": 0.10,
+    "inference_latency_budget_ms": 500.0,
+    "min_samples_reliable": ChampionChallengerEvaluator.MIN_SAMPLES_RELIABLE,
+    "min_labeled_events": ChampionChallengerEvaluator.MIN_LABELED_EVENTS,
+    "nominal_coverage_pct": 80.0,
+}

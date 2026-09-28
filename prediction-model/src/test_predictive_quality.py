@@ -56,6 +56,10 @@ from dataset import (
     FEATURE_AUGMENTED_SCHEMA,
     NUM_FEATURE_AUGMENTED,
     PHYSICAL_BOUNDS,
+    SpatialDataLoader,
+    NWPDataLoader,
+    NowcastingFeatureCube,
+    FEATURE_CAUSAL_CONTRACTS,
 )
 from anomaly_detector import (
     TelemetryAnomalyDetector,
@@ -79,6 +83,16 @@ from model import (
     CompactEnsembleWeatherModel,
     evaluate_wind_direction_by_regime,
     evaluate_heat_index_risk_categories,
+    RegimeGatedResidualHead,
+    SpatialVectorWindHead,
+    CausalFusionNowcastModel,
+    ChampionChallengerEvaluator,
+    compute_low_evidence_warnings,
+    MAJOR_IMPROVEMENT_THRESHOLDS,
+)
+from train_predictive_quality import (
+    generate_major_improvement_baseline_freeze,
+    run_champion_challenger_evaluation,
 )
 from inference import LNNServerlessPredictor
 
@@ -2136,6 +2150,343 @@ class TestPredictiveQuality(unittest.TestCase):
                 self.assertTrue("rain_occurrence" in sc_h or "precipitation_occurrence" in sc_h)
                 self.assertIn("temperature", sc_h)
 
+    # --------------------------------------------------------------------------
+    # 62. Major Improvement Baseline Freeze Manifest (Phase 0)
+    # --------------------------------------------------------------------------
+    def test_major_improvement_baseline_freeze(self):
+        """
+        Verify that major_improvement_baseline_freeze.json freezes baseline metrics,
+        records SHA-256 hashes of raw telemetry, defines success thresholds (5% MAE,
+        5% Brier, 80% coverage), and isolates the untouched final test partition.
+        """
+        freeze_path = os.path.join(DATA_DIR, "candidate_artifacts", "major_improvement_baseline_freeze.json")
+        self.assertTrue(os.path.exists(freeze_path), f"Missing {freeze_path}")
+        with open(freeze_path, "r", encoding="utf-8") as f:
+            freeze = json.load(f)
+
+        self.assertEqual(freeze.get("report_name"), "major_improvement_baseline_freeze")
+        self.assertEqual(freeze.get("frozen_status"), "LOCKED")
+        self.assertEqual(freeze.get("seed"), 42)
+        self.assertIn("raw_data_hashes", freeze)
+        self.assertIn("weather_telemetry_sha256", freeze["raw_data_hashes"])
+        self.assertIn("water_level_telemetry_sha256", freeze["raw_data_hashes"])
+
+        thresh = freeze.get("success_thresholds", {})
+        self.assertEqual(thresh.get("continuous_target_mae_relative_improvement"), 0.05)
+        self.assertEqual(thresh.get("rain_brier_relative_improvement"), 0.05)
+        self.assertEqual(thresh.get("wind_direction_circular_mae_improvement"), 0.05)
+        self.assertEqual(thresh.get("nominal_coverage_pct"), 80.0)
+        self.assertEqual(thresh.get("min_samples_reliable"), 100)
+        self.assertEqual(thresh.get("min_labeled_events"), 20)
+
+        test_period = freeze.get("untouched_test_period", {})
+        self.assertEqual(test_period.get("isolation_status"), "STRICTLY_ISOLATED_NEVER_USED_FOR_MODEL_SELECTION")
+        self.assertIsNotNone(test_period.get("test_start"))
+        self.assertIsNotNone(test_period.get("test_end"))
+
+    # --------------------------------------------------------------------------
+    # 63. Multi-Source Causal Availability Contracts (Phase 1 & 2)
+    # --------------------------------------------------------------------------
+    def test_feature_causal_availability_contracts(self):
+        """
+        Verify causal time-availability contracts across all 5 feature sources:
+        local_station, spatial_station, radar_precipitation, satellite, nwp_synoptic.
+        Asserts that audit_causal_availability correctly catches future leakage.
+        """
+        cube = NowcastingFeatureCube()
+        self.assertEqual(len(cube.contracts), 5)
+        for group in ["local_station", "spatial_station", "radar_precipitation", "satellite", "nwp_synoptic"]:
+            self.assertIn(group, cube.contracts)
+            contract = cube.contracts[group]
+            self.assertTrue(contract["as_of_enforcement"])
+            self.assertGreaterEqual(contract["retrieval_delay_sec"], 0)
+            self.assertIsInstance(contract["features"], list)
+            self.assertGreater(len(contract["features"]), 0)
+
+        t0 = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+        # Causal timestamps: all are older than t0 - delay
+        valid_timestamps = {
+            "local_station": t0,
+            "spatial_station": t0 - timedelta(minutes=16),
+            "radar_precipitation": t0 - timedelta(minutes=11),
+            "satellite": t0 - timedelta(minutes=31),
+            "nwp_synoptic": t0 - timedelta(hours=5),
+        }
+        res_valid = cube.audit_causal_availability(t0, valid_timestamps)
+        self.assertEqual(res_valid["status"], "PASS")
+        self.assertTrue(res_valid["causal_guarantee"])
+        self.assertEqual(res_valid["violations_count"], 0)
+
+        # Non-causal timestamp: future observation in spatial channel
+        leak_timestamps = dict(valid_timestamps)
+        leak_timestamps["spatial_station"] = t0 + timedelta(minutes=5)
+        res_leak = cube.audit_causal_availability(t0, leak_timestamps)
+        self.assertEqual(res_leak["status"], "FAIL")
+        self.assertFalse(res_leak["causal_guarantee"])
+        self.assertGreater(res_leak["violations_count"], 0)
+
+    # --------------------------------------------------------------------------
+    # 64. Nowcasting Feature Cube Builder (Phase 2)
+    # --------------------------------------------------------------------------
+    def test_nowcasting_feature_cube_builder(self):
+        """
+        Verify NowcastingFeatureCube combines local 75 features with spatial
+        and NWP feature channels into aligned float32 vectors.
+        """
+        sp_loader = SpatialDataLoader(primary_station_id="st_main", primary_lat=14.5, primary_lon=121.0)
+        sp_loader.register_station("st_nearby", lat=14.6, lon=121.1)
+        t_obs = datetime(2026, 8, 1, 10, 0, tzinfo=timezone.utc)
+        sp_loader.add_observation("st_nearby", t_obs, temp=31.0, humidity=80.0, pressure=1008.0, wind_speed=12.0, wind_dir_deg=90.0)
+
+        nwp_loader = NWPDataLoader(model_name="gfs_scaffold", run_latency_hours=3.0)
+        cycle_t = datetime(2026, 8, 1, 6, 0, tzinfo=timezone.utc)
+        nwp_loader.add_forecast(cycle_t, lead_hour=3, temp=30.5, humidity=78.0, pressure=1009.0, wind_u=2.0, wind_v=1.5, precip_prob=0.2)
+
+        cube_builder = NowcastingFeatureCube(spatial_loader=sp_loader, nwp_loader=nwp_loader)
+        local_75 = np.random.randn(75).astype(np.float32)
+        t0 = datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc)
+
+        cube = cube_builder.build_cube(
+            local_75_features=local_75,
+            t0=t0,
+            horizon=3,
+            local_temp=29.0,
+            local_pressure=1010.0,
+            local_humidity=75.0,
+        )
+
+        self.assertIn("local", cube)
+        self.assertIn("spatial", cube)
+        self.assertIn("nwp", cube)
+        self.assertEqual(cube["local"].shape, (75,))
+        self.assertEqual(cube["spatial"].shape, (7,))
+        self.assertEqual(cube["nwp"].shape, (7,))
+        self.assertEqual(cube["local"].dtype, np.float32)
+        self.assertEqual(cube["spatial"].dtype, np.float32)
+        self.assertEqual(cube["nwp"].dtype, np.float32)
+
+    # --------------------------------------------------------------------------
+    # 65. Causal Fusion Nowcast Neural Architecture (Phase 3)
+    # --------------------------------------------------------------------------
+    def test_causal_fusion_nowcast_model(self):
+        """
+        Verify CausalFusionNowcastModel architecture:
+        multi-encoder fusion (local + spatial + NWP) with target-specific heads,
+        quantile outputs [point, p10, p50, p90], and rain probability in [0, 1].
+        """
+        batch_size = 8
+        model = CausalFusionNowcastModel(local_dim=75, spatial_dim=7, nwp_dim=7, hidden_dim=32, n_targets=8)
+
+        local_x = torch.randn(batch_size, 75)
+        spatial_x = torch.randn(batch_size, 7)
+        nwp_x = torch.randn(batch_size, 7)
+
+        # Forward pass with all sources
+        outputs = model(local_x=local_x, spatial_x=spatial_x, nwp_x=nwp_x)
+        self.assertIn("fused_representation", outputs)
+        self.assertEqual(outputs["fused_representation"].shape, (batch_size, 32))
+        self.assertIn("rain_probability", outputs)
+        self.assertEqual(outputs["rain_probability"].shape, (batch_size, 1))
+
+        # Check rain probability is strictly within [0, 1]
+        rp = outputs["rain_probability"].detach().numpy()
+        self.assertTrue(np.all(rp >= 0.0) and np.all(rp <= 1.0))
+
+        # Check target heads output [batch, 4] for point, p10, p50, p90
+        for i in range(8):
+            key = f"target_{i}"
+            self.assertIn(key, outputs)
+            self.assertEqual(outputs[key].shape, (batch_size, 4))
+
+        # Test local-only forward pass (scaffold fallback with missing external data)
+        model_local_only = CausalFusionNowcastModel(local_dim=75, spatial_dim=0, nwp_dim=0, hidden_dim=32)
+        out_local = model_local_only(local_x=local_x)
+        self.assertIn("fused_representation", out_local)
+        self.assertEqual(out_local["fused_representation"].shape, (batch_size, 32))
+
+    # --------------------------------------------------------------------------
+    # 66. Champion/Challenger Paired Evaluation & Promotion Gates (Phase 10)
+    # --------------------------------------------------------------------------
+    def test_champion_challenger_evaluation(self):
+        """
+        Verify ChampionChallengerEvaluator paired-bootstrap comparison on identical rows:
+        checks relative improvement threshold (5%), confidence intervals, and low-evidence handling.
+        """
+        evaluator = ChampionChallengerEvaluator(improvement_threshold=0.05, n_boot=200, seed=42)
+
+        n = 200
+        rng = np.random.default_rng(42)
+        champ_errors = np.abs(rng.normal(loc=2.0, scale=0.5, size=n))
+        # Challenger improves MAE by ~20%
+        chall_better = champ_errors * 0.80
+
+        res_better = evaluator.compare_paired(champ_errors, chall_better)
+        self.assertEqual(res_better["decision"], "PROMOTE_CHALLENGER")
+        self.assertGreater(res_better["mean_improvement"], 0.0)
+        self.assertGreaterEqual(res_better["relative_improvement"], 0.05)
+        self.assertGreater(res_better["ci_95"][0], 0.0)
+
+        # Challenger is worse by ~20%
+        chall_worse = champ_errors * 1.20
+        res_worse = evaluator.compare_paired(champ_errors, chall_worse)
+        self.assertEqual(res_worse["decision"], "KEEP_CHAMPION")
+        self.assertLess(res_worse["ci_95"][1], 0.0)
+
+        # Low-evidence case: sample count < 100
+        res_small = evaluator.compare_paired(champ_errors[:30], chall_better[:30])
+        self.assertEqual(res_small["decision"], "LOW_EVIDENCE")
+        self.assertEqual(res_small["sample_count"], 30)
+
+    # --------------------------------------------------------------------------
+    # 67. Low-Evidence Metric Warnings Scanner (Phase 9, 11, & 13)
+    # --------------------------------------------------------------------------
+    def test_low_evidence_warnings(self):
+        """
+        Verify compute_low_evidence_warnings flags perfect metrics or metrics
+        derived from small sample sizes (< 100) or event counts (< 20).
+        """
+        # Small sample size with suspiciously perfect score
+        report_small_sample = {
+            "heavy_rain_recall": 1.0,
+            "sample_count": 15,
+        }
+        warnings = compute_low_evidence_warnings(report_small_sample, min_samples=100, min_events=20)
+        self.assertGreater(len(warnings), 0)
+        self.assertEqual(warnings[0]["status"], "LOW_EVIDENCE")
+        self.assertIn("heavy_rain_recall", warnings[0]["path"])
+
+        # Small labeled event count
+        report_few_events = {
+            "extreme_events": {
+                "event_count": 5,
+                "recall": 0.8,
+            }
+        }
+        warnings_events = compute_low_evidence_warnings(report_few_events, min_samples=100, min_events=20)
+        self.assertGreater(len(warnings_events), 0)
+        self.assertEqual(warnings_events[0]["status"], "LOW_EVIDENCE")
+
+        # Sufficient sample size with non-trivial metrics -> 0 warnings
+        report_sufficient = {
+            "temperature_metrics": {
+                "sample_count": 500,
+                "recall": 0.82,
+                "event_count": 85,
+            }
+        }
+        warnings_clean = compute_low_evidence_warnings(report_sufficient, min_samples=100, min_events=20)
+        self.assertEqual(len(warnings_clean), 0)
+
+    # --------------------------------------------------------------------------
+    # 68. Regime-Gated Residual Temperature Model (Phase 4)
+    # --------------------------------------------------------------------------
+    def test_regime_gated_temperature_residual(self):
+        """
+        Verify RegimeGatedResidualHead fits separate models per weather regime
+        (stable, warming, cooling, volatile) and maintains physical temperature bounds.
+        """
+        N, D = 300, 10
+        rng = np.random.default_rng(42)
+        X = rng.normal(size=(N, D)).astype(np.float32)
+        y_true = rng.uniform(20.0, 35.0, size=N).astype(np.float32)
+        y_persist = y_true + rng.normal(loc=0.0, scale=0.5, size=N).astype(np.float32)
+
+        head = RegimeGatedResidualHead(alpha=5.0, bounds=(10.0, 50.0))
+        head.fit(X, y_true, y_persist)
+
+        pred_dict = head.predict(X, y_persist)
+        self.assertIn("prediction", pred_dict)
+        self.assertIn("p10", pred_dict)
+        self.assertIn("p50", pred_dict)
+        self.assertIn("p90", pred_dict)
+        self.assertIn("regime", pred_dict)
+
+        preds = pred_dict["prediction"]
+        self.assertTrue(np.all(preds >= 10.0) and np.all(preds <= 50.0))
+        self.assertTrue(np.all(pred_dict["p10"] <= pred_dict["p90"]))
+
+    # --------------------------------------------------------------------------
+    # 69. Spatial Data Ingestion & Gradient Extractor Scaffold (Phase 1 & 7)
+    # --------------------------------------------------------------------------
+    def test_spatial_data_loader_scaffold(self):
+        """
+        Verify SpatialDataLoader calculates distance, bearing, and spatial
+        gradients, and excludes future observations (retrieval delay).
+        """
+        loader = SpatialDataLoader(primary_station_id="station_A", primary_lat=14.5995, primary_lon=120.9842, retrieval_delay_minutes=15)
+        loader.register_station("station_B", lat=14.735, lon=120.9842)
+        st_meta = loader.nearby_stations["station_B"]
+        self.assertGreater(st_meta["distance_km"], 10.0)
+        self.assertLess(st_meta["distance_km"], 20.0)
+
+        t0 = datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc)
+        t_valid = t0 - timedelta(minutes=20)
+        loader.add_observation("station_B", t_valid, temp=32.0, humidity=85.0, pressure=1006.0, wind_speed=15.0, wind_dir_deg=180.0)
+
+        feats = loader.extract_spatial_features(t0, local_temp=30.0, local_pressure=1009.0, local_humidity=80.0)
+        self.assertEqual(feats["num_nearby_stations_active"], 1)
+        self.assertGreater(feats["spatial_temp_gradient_km"], 0.0)
+        self.assertLess(feats["spatial_pressure_gradient_km"], 0.0)
+
+        loader_strict = SpatialDataLoader(primary_station_id="station_A", primary_lat=14.5995, primary_lon=120.9842, retrieval_delay_minutes=15)
+        loader_strict.register_station("station_B", lat=14.735, lon=120.9842)
+        t_too_recent = t0 - timedelta(minutes=5)
+        loader_strict.add_observation("station_B", t_too_recent, temp=32.0, humidity=85.0, pressure=1006.0, wind_speed=15.0, wind_dir_deg=180.0)
+
+        feats_too_recent = loader_strict.extract_spatial_features(t0, local_temp=30.0, local_pressure=1009.0, local_humidity=80.0)
+        self.assertEqual(feats_too_recent["num_nearby_stations_active"], 0)
+
+    # --------------------------------------------------------------------------
+    # 70. Numerical Weather Prediction Ingestion Scaffold (Phase 1 & 7)
+    # --------------------------------------------------------------------------
+    def test_nwp_data_loader_scaffold(self):
+        """
+        Verify NWPDataLoader stores cycle forecasts and retrieves only those
+        available before origin t0 minus operational publication latency.
+        """
+        nwp = NWPDataLoader(model_name="gfs_0p25", run_latency_hours=3.5)
+        cycle_00z = datetime(2026, 8, 1, 0, 0, tzinfo=timezone.utc)
+        cycle_06z = datetime(2026, 8, 1, 6, 0, tzinfo=timezone.utc)
+
+        nwp.add_forecast(cycle_00z, lead_hour=6, temp=29.0, humidity=75.0, pressure=1010.0, wind_u=1.0, wind_v=2.0)
+        nwp.add_forecast(cycle_06z, lead_hour=6, temp=30.0, humidity=70.0, pressure=1008.0, wind_u=1.5, wind_v=2.5)
+
+        t_early = datetime(2026, 8, 1, 5, 0, tzinfo=timezone.utc)
+        fc_early = nwp.get_causal_nwp_features(t_early, target_horizon=6)
+        self.assertEqual(fc_early["nwp_available"], 1.0)
+        self.assertEqual(fc_early["nwp_temperature_c"], 29.0)
+
+        t_mid = datetime(2026, 8, 1, 8, 0, tzinfo=timezone.utc)
+        fc_mid = nwp.get_causal_nwp_features(t_mid, target_horizon=6)
+        self.assertEqual(fc_mid["nwp_temperature_c"], 29.0)
+
+        t_late = datetime(2026, 8, 1, 10, 0, tzinfo=timezone.utc)
+        fc_late = nwp.get_causal_nwp_features(t_late, target_horizon=6)
+        self.assertEqual(fc_late["nwp_temperature_c"], 30.0)
+
+    # --------------------------------------------------------------------------
+    # 71. Major Improvement Acceptance Gates & Success Thresholds (Phase 0 & 14)
+    # --------------------------------------------------------------------------
+    def test_major_improvement_acceptance_gates(self):
+        """
+        Verify that all success thresholds declared in MAJOR_IMPROVEMENT_THRESHOLDS
+        strictly define the promotion criteria per the Major Improvement Plan:
+        continuous MAE relative improvement >= 5%, rain Brier relative improvement >= 5%,
+        nominal uncertainty coverage = 80% +/- 5%, and latency budget <= 500ms.
+        """
+        thresh = MAJOR_IMPROVEMENT_THRESHOLDS
+        self.assertGreaterEqual(thresh["continuous_target_mae_relative_improvement"], 0.05)
+        self.assertGreaterEqual(thresh["rain_brier_relative_improvement"], 0.05)
+        self.assertGreaterEqual(thresh["wind_direction_circular_mae_improvement"], 0.05)
+        self.assertEqual(thresh["nominal_coverage_pct"], 80.0)
+        self.assertLessEqual(thresh["uncertainty_coverage_tolerance_pct"], 5.0)
+        self.assertLessEqual(thresh["anomaly_false_alarm_budget_per_day"], 2.0)
+        self.assertLessEqual(thresh["inference_latency_budget_ms"], 500.0)
+        self.assertGreaterEqual(thresh["min_samples_reliable"], 100)
+        self.assertGreaterEqual(thresh["min_labeled_events"], 20)
+
 
 if __name__ == "__main__":
     unittest.main()
+

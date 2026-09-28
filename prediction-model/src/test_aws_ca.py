@@ -36,6 +36,8 @@ def test_ca(ca_file, port):
         print(f"  Failed: {e}")
         return False
 
+test_ca.__test__ = False
+
 if __name__ == "__main__":
     test_ca(CA1_PATH, 8883)
     test_ca(CA3_PATH, 8883)

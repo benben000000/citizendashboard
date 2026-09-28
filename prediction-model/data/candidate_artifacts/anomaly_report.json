@@ -21,6 +21,21 @@
   "empirical_false_alarms_per_day": 0.0,
   "within_false_alarm_budget": true,
   "status": "PASS",
+  "low_evidence_warnings": [
+    {
+      "path": "empirical_false_alarms_per_day",
+      "value": 0.0,
+      "status": "LOW_EVIDENCE",
+      "reason": "Perfect 0.0 false alarms/day from limited labeled events; requires extended multi-season catalog for unconditional production claim."
+    },
+    {
+      "path": "horizons.horizon_1h.heavy_rain_recall",
+      "value": 1.0,
+      "status": "LOW_EVIDENCE",
+      "reason": "Perfect heavy_rain_recall=1.0 from small extreme event subset; LOW_EVIDENCE warning flagged per Phase 9/11 policy."
+    }
+  ],
+  "sample_evidence_note": "Evaluated on historical dataset. Rare-event metrics flagged as LOW_EVIDENCE per Major Improvement Plan Phase 9 & 11.",
   "horizons": {
     "horizon_1h": {
       "heavy_rain_recall": 1.0,

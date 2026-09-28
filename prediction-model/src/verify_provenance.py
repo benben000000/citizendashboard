@@ -428,7 +428,14 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
             sc_path = os.path.join(cand_artifacts_dir, sc_name)
             assert os.path.exists(sc_path), f"Missing {sc_name} in candidate_artifacts"
 
-        for rep_name in ["uncertainty_report.json", "anomaly_report.json", "information_ceiling_report.json", "model_selection_report.json"]:
+        for rep_name in [
+            "uncertainty_report.json",
+            "anomaly_report.json",
+            "information_ceiling_report.json",
+            "model_selection_report.json",
+            "major_improvement_baseline_freeze.json",
+            "champion_challenger_report.json",
+        ]:
             rep_path = os.path.join(cand_artifacts_dir, rep_name)
             if os.path.exists(rep_path):
                 with open(rep_path, "r", encoding="utf-8") as f:
@@ -587,10 +594,97 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
     )
     print("[PASS] Active Scripts: 0 active canonical scripts reference deleted artifacts")
 
+    # ── Source Registry Gate ──────────────────────────────────────────
+    source_registry_result = verify_source_registry(data_dir=data_dir)
+    print(f"[PASS] Source Registry: {source_registry_result['summary']}")
+
     print("=" * 80)
     print("ALL PROVENANCE GATE CHECKS PASSED SUCCESSFULLY!")
     print("=" * 80)
-    return {"status": "PASS", "commit": expected_commit, "test_rows": row_count}
+    result = {"status": "PASS", "commit": expected_commit, "test_rows": row_count}
+    result["source_registry"] = source_registry_result
+    return result
+
+
+def verify_source_registry(data_dir: str = DATA_DIR) -> Dict[str, Any]:
+    """
+    Verify the external source registry exists, is parseable, and all
+    production-used sources are properly gated.
+
+    Returns a summary dict. Raises AssertionError on failure.
+    """
+    registry_path = os.path.join(data_dir, "external_source_registry.json")
+
+    # 1. Registry file must exist
+    assert os.path.exists(registry_path), (
+        f"External source registry not found: {registry_path}"
+    )
+
+    # 2. Must be valid JSON
+    with open(registry_path, "r", encoding="utf-8") as f:
+        raw = f.read()
+
+    registry_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    try:
+        registry_data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise AssertionError(f"External source registry is not valid JSON: {e}")
+
+    # 3. Must have sources section
+    sources = registry_data.get("sources", {})
+    assert isinstance(sources, dict), "Registry 'sources' must be a dict"
+    assert len(sources) > 0, "Registry must contain at least one source"
+
+    # 4. Each source must have required fields
+    required_fields = ["source_id", "provider", "product", "decision"]
+    valid_decisions = {
+        "APPROVED_FREE_COMMERCIAL",
+        "APPROVED_WITH_EXPLICIT_NO_COST_PERMISSION",
+        "UNKNOWN_BLOCKED",
+        "PENDING_REVIEW",
+        "RESEARCH_ONLY",
+        "NOT_ALLOWED",
+    }
+
+    eligible_count = 0
+    blocked_count = 0
+    for sid, record in sources.items():
+        for field in required_fields:
+            assert field in record, (
+                f"Source '{sid}' missing required field '{field}'"
+            )
+        decision = record.get("decision", "")
+        assert decision in valid_decisions, (
+            f"Source '{sid}' has invalid decision '{decision}'"
+        )
+        if decision in {"APPROVED_FREE_COMMERCIAL", "APPROVED_WITH_EXPLICIT_NO_COST_PERMISSION"}:
+            eligible_count += 1
+        else:
+            blocked_count += 1
+
+    # 5. Baseline release reference must exist
+    baseline_ref_path = os.path.join(
+        data_dir, "candidate_artifacts", "baseline_release_reference.json"
+    )
+    assert os.path.exists(baseline_ref_path), (
+        f"Baseline release reference not found: {baseline_ref_path}"
+    )
+
+    summary = (
+        f"registry_hash={registry_hash[:16]}..., "
+        f"sources={len(sources)}, "
+        f"eligible={eligible_count}, blocked={blocked_count}"
+    )
+
+    return {
+        "status": "PASS",
+        "registry_hash": registry_hash,
+        "source_count": len(sources),
+        "eligible_count": eligible_count,
+        "blocked_count": blocked_count,
+        "summary": summary,
+    }
 
 
 if __name__ == "__main__":

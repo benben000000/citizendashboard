@@ -1577,3 +1577,368 @@ def build_rolling_origin_splits(
             })
 
     return splits
+
+
+# ---------------------------------------------------------------------------
+# Major Improvement Plan: Multi-Source Causal Feature Infrastructure (Phase 1 & 2)
+# ---------------------------------------------------------------------------
+
+FEATURE_CAUSAL_CONTRACTS = {
+    "local_station": {
+        "source": "local_station_raw",
+        "valid_time_rule": "t <= t0",
+        "retrieval_delay_sec": 0,
+        "revision_policy": "immutable_raw_readings",
+        "as_of_enforcement": True,
+        "features": list(FEATURE_AUGMENTED_SCHEMA),
+    },
+    "spatial_station": {
+        "source": "nearby_station_raw",
+        "valid_time_rule": "t <= (t0 - 15m)",
+        "retrieval_delay_sec": 900,
+        "revision_policy": "as_received_telemetry",
+        "as_of_enforcement": True,
+        "features": [
+            "spatial_temp_gradient_km",
+            "spatial_pressure_gradient_km",
+            "spatial_humidity_gradient_km",
+            "nearby_station_temp_mean",
+            "nearby_station_pressure_mean",
+            "regional_wind_disagreement_deg",
+            "upwind_temperature_advection",
+        ],
+    },
+    "radar_precipitation": {
+        "source": "radar_raw",
+        "valid_time_rule": "t <= (t0 - 10m)",
+        "retrieval_delay_sec": 600,
+        "revision_policy": "volume_scan_calibrated",
+        "as_of_enforcement": True,
+        "features": [
+            "radar_reflectivity_dbz_station",
+            "nearest_cell_distance_km",
+            "cell_approach_speed_kmh",
+            "cell_bearing_deg",
+            "echo_top_height_km",
+        ],
+    },
+    "satellite": {
+        "source": "satellite_raw",
+        "valid_time_rule": "t <= (t0 - 30m)",
+        "retrieval_delay_sec": 1800,
+        "revision_policy": "geostationary_l1b",
+        "as_of_enforcement": True,
+        "features": [
+            "cloud_fraction_10km",
+            "cloud_top_temperature_k",
+            "infrared_brightness_temp",
+            "daylight_fraction",
+            "solar_zenith_angle_deg",
+        ],
+    },
+    "nwp_synoptic": {
+        "source": "nwp_raw",
+        "valid_time_rule": "run_time + latency <= t0",
+        "retrieval_delay_sec": 14400,
+        "revision_policy": "operational_cycle_frozen",
+        "as_of_enforcement": True,
+        "features": [
+            "nwp_temperature_c",
+            "nwp_humidity_pct",
+            "nwp_pressure_hpa",
+            "nwp_wind_u_ms",
+            "nwp_wind_v_ms",
+            "nwp_precip_prob",
+            "nwp_precip_rate_mmh",
+        ],
+    },
+}
+
+
+class SpatialDataLoader:
+    """
+    Spatial Data Ingestion and Feature Extractor (Phase 1 & 2, Track B Scaffold).
+
+    Manages regional telemetry networks with distance, bearing, and spatial
+    gradient computations while enforcing causal time-availability contracts.
+    """
+    def __init__(self, primary_station_id: str = "station_0",
+                 primary_lat: float = 14.5995, primary_lon: float = 120.9842,
+                 retrieval_delay_minutes: int = 15):
+        self.primary_station_id = primary_station_id
+        self.primary_lat = primary_lat
+        self.primary_lon = primary_lon
+        self.retrieval_delay = timedelta(minutes=retrieval_delay_minutes)
+        self.nearby_stations: Dict[str, Dict[str, Any]] = {}
+        self.observations: Dict[str, Dict[datetime, Dict[str, float]]] = defaultdict(dict)
+
+    def register_station(self, station_id: str, lat: float, lon: float, elevation_m: float = 10.0):
+        """Register a nearby station and compute distance and bearing from primary."""
+        dlat = math.radians(lat - self.primary_lat)
+        dlon = math.radians(lon - self.primary_lon)
+        a = (math.sin(dlat / 2.0) ** 2 +
+             math.cos(math.radians(self.primary_lat)) * math.cos(math.radians(lat)) *
+             math.sin(dlon / 2.0) ** 2)
+        c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+        distance_km = 6371.0 * c
+
+        y = math.sin(dlon) * math.cos(math.radians(lat))
+        x = (math.cos(math.radians(self.primary_lat)) * math.sin(math.radians(lat)) -
+             math.sin(math.radians(self.primary_lat)) * math.cos(math.radians(lat)) * math.cos(dlon))
+        bearing_deg = (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
+
+        self.nearby_stations[station_id] = {
+            "station_id": station_id,
+            "lat": lat,
+            "lon": lon,
+            "elevation_m": elevation_m,
+            "distance_km": round(distance_km, 2),
+            "bearing_deg": round(bearing_deg, 2),
+        }
+
+    def add_observation(self, station_id: str, timestamp: datetime,
+                        temp: float, humidity: float, pressure: float,
+                        wind_speed: float, wind_dir_deg: float, precip_mm: float = 0.0):
+        """Ingest timestamped observation from a station."""
+        self.observations[station_id][timestamp] = {
+            "temperature": temp,
+            "humidity": humidity,
+            "pressure": pressure,
+            "wind_speed": wind_speed,
+            "wind_direction": wind_dir_deg,
+            "precipitation": precip_mm,
+        }
+
+    def extract_spatial_features(self, t0: datetime, local_temp: float,
+                                 local_pressure: float, local_humidity: float,
+                                 local_wind_u: float = 0.0, local_wind_v: float = 0.0) -> Dict[str, float]:
+        """
+        Extract causal spatial features as of t0.
+        Enforces retrieval delay (only observations <= t0 - retrieval_delay are accessible).
+        """
+        cutoff = t0 - self.retrieval_delay
+        available_obs = []
+
+        for st_id, st_meta in self.nearby_stations.items():
+            st_records = self.observations.get(st_id, {})
+            valid_times = [t for t in st_records.keys() if t <= cutoff]
+            if valid_times:
+                latest_t = max(valid_times)
+                obs = st_records[latest_t]
+                available_obs.append({
+                    "meta": st_meta,
+                    "obs": obs,
+                    "age_minutes": (t0 - latest_t).total_seconds() / 60.0,
+                })
+
+        if not available_obs:
+            return {
+                "spatial_temp_gradient_km": 0.0,
+                "spatial_pressure_gradient_km": 0.0,
+                "spatial_humidity_gradient_km": 0.0,
+                "nearby_station_temp_mean": local_temp,
+                "nearby_station_pressure_mean": local_pressure,
+                "regional_wind_disagreement_deg": 0.0,
+                "upwind_temperature_advection": 0.0,
+                "num_nearby_stations_active": 0,
+            }
+
+        temp_grads = []
+        pres_grads = []
+        hum_grads = []
+        temps = []
+        pressures = []
+
+        for item in available_obs:
+            dist = max(1.0, item["meta"]["distance_km"])
+            temp_diff = item["obs"]["temperature"] - local_temp
+            pres_diff = item["obs"]["pressure"] - local_pressure
+            hum_diff = item["obs"]["humidity"] - local_humidity
+
+            temp_grads.append(temp_diff / dist)
+            pres_grads.append(pres_diff / dist)
+            hum_grads.append(hum_diff / dist)
+            temps.append(item["obs"]["temperature"])
+            pressures.append(item["obs"]["pressure"])
+
+        return {
+            "spatial_temp_gradient_km": float(np.mean(temp_grads)),
+            "spatial_pressure_gradient_km": float(np.mean(pres_grads)),
+            "spatial_humidity_gradient_km": float(np.mean(hum_grads)),
+            "nearby_station_temp_mean": float(np.mean(temps)),
+            "nearby_station_pressure_mean": float(np.mean(pressures)),
+            "regional_wind_disagreement_deg": 0.0,
+            "upwind_temperature_advection": float(local_wind_u * np.mean(temp_grads)),
+            "num_nearby_stations_active": len(available_obs),
+        }
+
+
+class NWPDataLoader:
+    """
+    Numerical Weather Prediction Data Ingestion and Feature Extractor (Phase 1 & 2, Track B Scaffold).
+
+    Provides causal access to NWP cycle forecasts (e.g. GFS, ECMWF, WRF) ensuring
+    that only model runs completed and published before forecast origin t0 are used.
+    """
+    def __init__(self, model_name: str = "local_nwp", run_latency_hours: float = 4.0):
+        self.model_name = model_name
+        self.run_latency = timedelta(hours=run_latency_hours)
+        self.forecasts: Dict[Tuple[datetime, int], Dict[str, float]] = {}
+
+    def add_forecast(self, cycle_time: datetime, lead_hour: int,
+                     temp: float, humidity: float, pressure: float,
+                     wind_u: float, wind_v: float, precip_prob: float = 0.0,
+                     precip_rate_mmh: float = 0.0):
+        """Register NWP forecast issued at cycle_time for target lead_hour."""
+        self.forecasts[(cycle_time, lead_hour)] = {
+            "nwp_temperature_c": temp,
+            "nwp_humidity_pct": humidity,
+            "nwp_pressure_hpa": pressure,
+            "nwp_wind_u_ms": wind_u,
+            "nwp_wind_v_ms": wind_v,
+            "nwp_precip_prob": precip_prob,
+            "nwp_precip_rate_mmh": precip_rate_mmh,
+            "cycle_time": cycle_time.isoformat(),
+            "lead_hour": lead_hour,
+        }
+
+    def get_causal_nwp_features(self, t0: datetime, target_horizon: int,
+                                default_temp: float = 28.0,
+                                default_humidity: float = 75.0,
+                                default_pressure: float = 1010.0) -> Dict[str, float]:
+        """
+        Retrieve NWP features causal to origin t0.
+        Requires cycle_time + run_latency <= t0.
+        """
+        valid_cycles = [
+            cycle for (cycle, lead) in self.forecasts.keys()
+            if lead == target_horizon and (cycle + self.run_latency) <= t0
+        ]
+
+        if not valid_cycles:
+            return {
+                "nwp_temperature_c": default_temp,
+                "nwp_humidity_pct": default_humidity,
+                "nwp_pressure_hpa": default_pressure,
+                "nwp_wind_u_ms": 0.0,
+                "nwp_wind_v_ms": 0.0,
+                "nwp_precip_prob": 0.0,
+                "nwp_precip_rate_mmh": 0.0,
+                "nwp_available": 0.0,
+            }
+
+        latest_cycle = max(valid_cycles)
+        fc = self.forecasts[(latest_cycle, target_horizon)]
+        out = dict(fc)
+        out["nwp_available"] = 1.0
+        return out
+
+
+class NowcastingFeatureCube:
+    """
+    Unified Multi-Source Nowcasting Feature Cube (Phase 2).
+
+    Integrates:
+      1. Local Station Temporal Features (75 zero-leakage engineered features)
+      2. Spatial Telemetry Features (SpatialDataLoader)
+      3. NWP Synoptic Forecast Features (NWPDataLoader)
+      4. Radar & Satellite Features (Scaffold / Placeholders)
+
+    Guarantees strict causal time availability: no feature incorporates observations
+    or model outputs from after origin t0 minus respective channel latencies.
+    """
+    def __init__(self, spatial_loader: Optional[SpatialDataLoader] = None,
+                 nwp_loader: Optional[NWPDataLoader] = None):
+        self.spatial_loader = spatial_loader
+        self.nwp_loader = nwp_loader
+        self.contracts = FEATURE_CAUSAL_CONTRACTS
+
+    def audit_causal_availability(self, t0: datetime,
+                                  feature_timestamps: Dict[str, datetime]) -> Dict[str, Any]:
+        """
+        Audit causal availability for a feature set produced at t0.
+        Asserts that each source's latest timestamp obeys its causal contract.
+        """
+        violations = []
+        audit_results = {}
+
+        for group_name, contract in self.contracts.items():
+            delay_sec = contract["retrieval_delay_sec"]
+            max_allowed_time = t0 - timedelta(seconds=delay_sec)
+            actual_time = feature_timestamps.get(group_name, t0)
+
+            is_causal = actual_time <= max_allowed_time
+            if not is_causal:
+                violations.append({
+                    "group": group_name,
+                    "t0": t0.isoformat(),
+                    "actual_time": actual_time.isoformat(),
+                    "max_allowed_time": max_allowed_time.isoformat(),
+                    "delay_sec": delay_sec,
+                })
+
+            audit_results[group_name] = {
+                "is_causal": is_causal,
+                "max_allowed_time": max_allowed_time.isoformat(),
+                "actual_time": actual_time.isoformat(),
+                "contract_rule": contract["valid_time_rule"],
+            }
+
+        return {
+            "status": "PASS" if not violations else "FAIL",
+            "causal_guarantee": len(violations) == 0,
+            "violations_count": len(violations),
+            "violations": violations,
+            "channel_audits": audit_results,
+        }
+
+    def build_cube(self, local_75_features: np.ndarray,
+                   t0: datetime, horizon: int,
+                   local_temp: float, local_pressure: float, local_humidity: float,
+                   local_wind_u: float = 0.0, local_wind_v: float = 0.0) -> Dict[str, np.ndarray]:
+        """
+        Build aligned feature arrays for local, spatial, and NWP encoders.
+        Returns dict suitable for CausalFusionNowcastModel.
+        """
+        local_arr = np.asarray(local_75_features, dtype=np.float32)
+
+        if self.spatial_loader is not None:
+            sp = self.spatial_loader.extract_spatial_features(
+                t0=t0, local_temp=local_temp, local_pressure=local_pressure,
+                local_humidity=local_humidity, local_wind_u=local_wind_u, local_wind_v=local_wind_v,
+            )
+            spatial_arr = np.array([
+                sp["spatial_temp_gradient_km"],
+                sp["spatial_pressure_gradient_km"],
+                sp["spatial_humidity_gradient_km"],
+                sp["nearby_station_temp_mean"],
+                sp["nearby_station_pressure_mean"],
+                sp["regional_wind_disagreement_deg"],
+                sp["upwind_temperature_advection"],
+            ], dtype=np.float32)
+        else:
+            spatial_arr = np.zeros(7, dtype=np.float32)
+
+        if self.nwp_loader is not None:
+            nwp = self.nwp_loader.get_causal_nwp_features(
+                t0=t0, target_horizon=horizon, default_temp=local_temp,
+                default_humidity=local_humidity, default_pressure=local_pressure,
+            )
+            nwp_arr = np.array([
+                nwp["nwp_temperature_c"],
+                nwp["nwp_humidity_pct"],
+                nwp["nwp_pressure_hpa"],
+                nwp["nwp_wind_u_ms"],
+                nwp["nwp_wind_v_ms"],
+                nwp["nwp_precip_prob"],
+                nwp["nwp_precip_rate_mmh"],
+            ], dtype=np.float32)
+        else:
+            nwp_arr = np.zeros(7, dtype=np.float32)
+
+        return {
+            "local": local_arr,
+            "spatial": spatial_arr,
+            "nwp": nwp_arr,
+        }
+
