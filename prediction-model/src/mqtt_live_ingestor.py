@@ -8,6 +8,7 @@ cache. Run it on a persistent worker/VM/container, never in a Vercel function.
 from __future__ import annotations
 
 import json
+import math
 import os
 import signal
 import tempfile
@@ -17,9 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from awscrt import io, mqtt
 from awsiot import mqtt_connection_builder
+from dataset import compute_noaa_heat_index
 from dotenv import load_dotenv
+from inference import LNNServerlessPredictor
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,6 +38,9 @@ CERT_PATH = os.environ["MQTT_CERT_PATH"]
 PRIVATE_KEY_PATH = os.environ["MQTT_PRIVATE_KEY_PATH"]
 CACHE_PATH = Path(os.getenv("MQTT_LIVE_CACHE_PATH", str(ROOT / "prediction-model/data/mqtt_live_predictions.json")))
 STATION_CACHE_MAX_AGE_SECONDS = int(os.getenv("MQTT_STATION_CACHE_MAX_AGE_SECONDS", "900"))
+HISTORY_PATH = Path(os.getenv("MQTT_OBSERVATION_HISTORY_PATH", str(ROOT / "prediction-model/data/mqtt_observation_history.json")))
+SEQUENCE_LENGTH = int(os.getenv("MQTT_PREDICTION_SEQUENCE_LENGTH", "24"))
+PREDICTION_INTERVAL_SECONDS = int(os.getenv("MQTT_PREDICTION_INTERVAL_SECONDS", "300"))
 
 STOP = threading.Event()
 CACHE_LOCK = threading.Lock()
@@ -68,6 +75,24 @@ def write_cache(cache: dict[str, Any]) -> None:
     temp_path.replace(CACHE_PATH)
 
 
+def load_json(path: Path) -> dict[str, Any]:
+    try:
+        with path.open("r", encoding="utf-8") as source:
+            data = json.load(source)
+            return data if isinstance(data, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def write_json(path: Path, data: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=path.parent) as temp:
+        json.dump(data, temp, ensure_ascii=False, indent=2)
+        temp.write("\n")
+        temp_path = Path(temp.name)
+    temp_path.replace(path)
+
+
 def is_recent(entry: Any, now: datetime) -> bool:
     if not isinstance(entry, dict):
         return False
@@ -79,6 +104,74 @@ def is_recent(entry: Any, now: datetime) -> bool:
     except ValueError:
         return False
     return (now - observed_at).total_seconds() <= STATION_CACHE_MAX_AGE_SECONDS
+
+
+def parse_timestamp(value: Any) -> float | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
+def observed_features(raw: dict[str, float | None]) -> list[float] | None:
+    required = ("temperature_c", "humidity_pct", "pressure_hpa", "wind_speed_kmh", "wind_direction_deg", "rain_mm")
+    if any(raw.get(key) is None for key in required):
+        return None
+    temperature = float(raw["temperature_c"])
+    humidity = float(raw["humidity_pct"])
+    wind_direction = math.radians(float(raw["wind_direction_deg"]))
+    return [
+        temperature,
+        float(compute_noaa_heat_index(temperature, humidity)),
+        humidity,
+        float(raw["pressure_hpa"]),
+        float(raw["wind_speed_kmh"]),
+        math.sin(wind_direction),
+        math.cos(wind_direction),
+        float(raw["rain_mm"]),
+    ]
+
+
+def record_observation(station_id: str, timestamp: str, raw: dict[str, float | None]) -> list[dict[str, Any]]:
+    features = observed_features(raw)
+    history = load_json(HISTORY_PATH)
+    stations = history.setdefault("stations", {})
+    station_history = stations.setdefault(station_id, [])
+    if features is not None:
+        station_history.append({"timestamp": timestamp, "features": features, "water_level_m": raw.get("water_level_m")})
+        del station_history[:-SEQUENCE_LENGTH]
+    write_json(HISTORY_PATH, history)
+    return station_history
+
+
+def predict(station_history: list[dict[str, Any]], timestamp: str) -> dict[str, Any] | None:
+    if len(station_history) < SEQUENCE_LENGTH:
+        return None
+    features = np.asarray([entry["features"] for entry in station_history], dtype=np.float32)
+    if features.shape != (SEQUENCE_LENGTH, 8) or not np.isfinite(features).all():
+        return None
+    latest_water = station_history[-1].get("water_level_m")
+    predictor = get_predictor()
+    result = predictor.predict_from_observed_sequence(
+        telemetry_sequence=features,
+        forecast_origin_timestamp=timestamp,
+        horizon_hours=1,
+        current_water_level=float(latest_water) if latest_water is not None else None,
+        feature_names=["temperature", "heat_index", "humidity", "pressure", "wind_speed", "wind_sin", "wind_cos", "precipitation"],
+    )
+    return {"generated_at": timestamp, "source": "mqtt_observed_sequence", "sequence_length": SEQUENCE_LENGTH, "forecast": result}
+
+
+PREDICTOR: LNNServerlessPredictor | None = None
+
+
+def get_predictor() -> LNNServerlessPredictor:
+    global PREDICTOR
+    if PREDICTOR is None:
+        PREDICTOR = LNNServerlessPredictor(horizon_hours=1)
+    return PREDICTOR
 
 
 def on_message(topic: str, payload: bytes, **_: Any) -> None:
@@ -102,6 +195,7 @@ def on_message(topic: str, payload: bytes, **_: Any) -> None:
         "humidity_pct": number(message, "humidity", "hum", "rh"),
         "pressure_hpa": number(message, "pressure", "pres", "baro"),
         "wind_speed_kmh": number(message, "wind_speed", "wind", "wind_kmh"),
+        "wind_direction_deg": number(message, "wind_direction", "wind_dir", "wind_direction_deg", "direction"),
         "water_level_m": number(message, "water_level", "water", "level_m"),
         "rain_mm": number(message, "rain", "rain_mm", "precipitation"),
     }
@@ -114,12 +208,27 @@ def on_message(topic: str, payload: bytes, **_: Any) -> None:
             if is_recent(entry, datetime.now(timezone.utc))
         } if isinstance(existing, dict) else {}
         cache["stations"] = stations
+        station_history = record_observation(station_id, timestamp, raw)
+        prior = stations.get(station_id, {})
+        prior_prediction = prior.get("operational_prediction") if isinstance(prior, dict) else None
+        prior_generated = parse_timestamp(prior_prediction.get("generated_at")) if isinstance(prior_prediction, dict) else None
+        should_predict = prior_generated is None or (datetime.now(timezone.utc).timestamp() - prior_generated) >= PREDICTION_INTERVAL_SECONDS
+        operational_prediction = prior_prediction
+        prediction_error = None
+        if should_predict:
+            try:
+                operational_prediction = predict(station_history, timestamp)
+            except Exception as error:
+                prediction_error = str(error)
         stations[station_id] = {
             "timestamp": timestamp,
             "station_id": station_id,
             "topic": topic,
             "qc_status": "RAW",
             "raw_telemetry": raw,
+            "operational_prediction": operational_prediction,
+            "prediction_status": "READY" if operational_prediction else "WAITING_FOR_COMPLETE_SEQUENCE",
+            "prediction_error": prediction_error,
         }
         cache["last_updated"] = timestamp
         cache["total_active_stations"] = len(stations)

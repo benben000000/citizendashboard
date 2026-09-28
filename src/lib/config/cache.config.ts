@@ -3,13 +3,13 @@ export const CACHE_CONFIG = {
   // Telemetry data caches
   telemetry: {
     stationDashboard: 300, // 5 minutes - Dashboard telemetry data
-    stationDashboardClientRefresh: 60, // 1 minute - Client polling cadence
+    stationDashboardClientRefresh: 300, // 5 minutes - Client polling cadence
     parameterHistory: 600, // 10 minutes - Parameter-specific history data
   },
 
   waterLevel: {
     stationDashboard: 300,
-    stationDashboardClientRefresh: 60,
+    stationDashboardClientRefresh: 300,
     parameterHistory: 600,
   },
 
@@ -25,12 +25,12 @@ export const CACHE_CONFIG = {
   // HTTP Cache-Control headers
   http: {
     telemetry: {
-      sMaxAge: 60,
-      staleWhileRevalidate: 30,
+      sMaxAge: 300,
+      staleWhileRevalidate: 60,
     },
     waterLevel: {
-      sMaxAge: 60,
-      staleWhileRevalidate: 30,
+      sMaxAge: 300,
+      staleWhileRevalidate: 60,
     },
     insights: {
       sMaxAge: 300,
