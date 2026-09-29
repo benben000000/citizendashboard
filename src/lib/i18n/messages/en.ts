@@ -129,6 +129,8 @@ export const en = {
         waterLevelFlood: "Water Level & Flood Risk",
         precipitation: "Precipitation",
         floodRisk: "Flood Risk in Area",
+        rainRisk: "Rain Risk",
+        heatRisk: "Heat Risk",
         humidity: "Humidity",
         uvIndex: "UV Index",
         yes: "YES",

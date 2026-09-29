@@ -19,8 +19,6 @@ import {
   Waves,
   Sun,
   Droplets,
-  ShieldAlert,
-  ShieldCheck,
 } from "lucide-react";
 
 interface PredictionWeatherForecastProps {
@@ -214,31 +212,71 @@ export default function PredictionWeatherForecast({
     ? Math.max(0, Math.min(11, Math.round(9.2 * Math.sin((Math.PI * (phHour - 6)) / 12) * 10) / 10))
     : 0.0;
 
-  // Flood Risk (YES / NO / POSSIBLE) evaluation
-  const floodRiskBadge = useMemo(() => {
-    if (targetData.riskStatus === "critical" || targetData.riskStatus === "warning") {
+  // The weather dashboard should only describe risks measured or forecast for
+  // the selected station. Flood-stage risk belongs to a water-level station.
+  const weatherRiskCard = useMemo(() => {
+    if (targetData.heatIndex >= 33) {
+      if (targetData.heatIndex >= 52) {
+        return {
+          title: t("cards.heatRisk"),
+          level: t("riskBadges.critical"),
+          bgColor: "#e11d48",
+          textColor: "#ffffff",
+          detail: `${targetData.heatIndex.toFixed(1)}Â°C ${t("cards.heatIndex")}`,
+          isHeat: true,
+        };
+      }
+      if (targetData.heatIndex >= 42) {
+        return {
+          title: t("cards.heatRisk"),
+          level: t("riskBadges.warning"),
+          bgColor: "#f97316",
+          textColor: "#ffffff",
+          detail: `${targetData.heatIndex.toFixed(1)}Â°C ${t("cards.heatIndex")}`,
+          isHeat: true,
+        };
+      }
       return {
-        text: t("cards.yes"),
-        bgColor: "#e11d48",
-        textColor: "#ffffff",
-        subtext: t("cards.highRisk"),
-      };
-    }
-    if (targetData.riskStatus === "advisory") {
-      return {
-        text: t("cards.possible"),
+        title: t("cards.heatRisk"),
+        level: t("riskBadges.advisory"),
         bgColor: "#eab308",
         textColor: "#1e293b",
-        subtext: t("cards.moderateRisk"),
+        detail: `${targetData.heatIndex.toFixed(1)}Â°C ${t("cards.heatIndex")}`,
+        isHeat: true,
+      };
+    }
+
+    if (targetData.rainProbability >= 70 || targetData.precipitationMm >= 5) {
+      return {
+        title: t("cards.rainRisk"),
+        level: t("riskBadges.warning"),
+        bgColor: "#e11d48",
+        textColor: "#ffffff",
+        detail: `${targetData.rainProbability}% ${t("cards.rainChance")}`,
+        isHeat: false,
+      };
+    }
+    if (targetData.rainProbability >= 40 || targetData.precipitationMm >= 1) {
+      return {
+        title: t("cards.rainRisk"),
+        level: t("riskBadges.advisory"),
+        bgColor: "#eab308",
+        textColor: "#1e293b",
+        detail: `${targetData.rainProbability}% ${t("cards.rainChance")}`,
+        isHeat: false,
       };
     }
     return {
-      text: t("cards.no"),
+      title: t("cards.rainRisk"),
+      level: t("riskBadges.normal"),
       bgColor: "#22c55e",
       textColor: "#ffffff",
-      subtext: t("cards.lowRisk"),
+      detail: `${targetData.rainProbability}% ${t("cards.rainChance")}`,
+      isHeat: false,
     };
-  }, [targetData.riskStatus, t]);
+  }, [targetData.heatIndex, targetData.precipitationMm, targetData.rainProbability, t]);
+
+  const RiskIcon = weatherRiskCard.isHeat ? Flame : CloudRain;
 
   return (
     <div className="w-full pt-1 pb-0">
@@ -341,16 +379,12 @@ export default function PredictionWeatherForecast({
                   </div>
                 </div>
 
-                {/* 2. Flood Risk Card (YES / NO with Risk Level) */}
+                {/* 2. Station-specific weather risk: heat takes priority over rain. */}
                 <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
                   <div className="flex items-center gap-2">
-                    {targetData.riskStatus === "normal" ? (
-                      <ShieldCheck className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
-                    ) : (
-                      <ShieldAlert className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
-                    )}
+                    <RiskIcon className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
                     <span className="text-xs md:text-sm text-light font-medium leading-tight">
-                      {t("cards.floodRisk")}
+                      {weatherRiskCard.title}
                     </span>
                   </div>
 
@@ -358,19 +392,19 @@ export default function PredictionWeatherForecast({
                     <span
                       className="inline-flex items-center rounded-lg px-2.5 py-1 text-lg md:text-xl font-extrabold tracking-wide shadow-xs"
                       style={{
-                        backgroundColor: floodRiskBadge.bgColor,
-                        color: floodRiskBadge.textColor,
+                        backgroundColor: weatherRiskCard.bgColor,
+                        color: weatherRiskCard.textColor,
                       }}
                     >
-                      {floodRiskBadge.text}
+                      {weatherRiskCard.level}
                     </span>
                     <span className="text-[11px] font-semibold text-light/90 truncate">
-                      {floodRiskBadge.subtext}
+                      {weatherRiskCard.isHeat ? t("cards.heatRisk") : t("cards.rainRisk")}
                     </span>
                   </div>
 
                   <div className="text-[11px] font-semibold text-light/85 truncate flex items-center gap-1">
-                    <span>{riskDetails.waterStatusLabel}</span>
+                    <span>{weatherRiskCard.detail}</span>
                   </div>
                 </div>
 
