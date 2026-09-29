@@ -131,6 +131,8 @@ export const fil = {
       waterLevelFlood: "Antas ng Tubig at Baha",
       precipitation: "Buhos ng Ulan",
       floodRisk: "Panganib sa Baha",
+      rainRisk: "Panganib sa Ulan",
+      heatRisk: "Panganib sa Init",
       humidity: "Alinsangan / Humidity",
       uvIndex: "UV Index",
       yes: "MERON",
