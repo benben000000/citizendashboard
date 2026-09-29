@@ -41,9 +41,13 @@ STATION_CACHE_MAX_AGE_SECONDS = int(os.getenv("MQTT_STATION_CACHE_MAX_AGE_SECOND
 HISTORY_PATH = Path(os.getenv("MQTT_OBSERVATION_HISTORY_PATH", str(ROOT / "prediction-model/data/mqtt_observation_history.json")))
 SEQUENCE_LENGTH = int(os.getenv("MQTT_PREDICTION_SEQUENCE_LENGTH", "24"))
 PREDICTION_INTERVAL_SECONDS = int(os.getenv("MQTT_PREDICTION_INTERVAL_SECONDS", "300"))
+NO_MESSAGE_TIMEOUT_SECONDS = int(os.getenv("MQTT_NO_MESSAGE_TIMEOUT_SECONDS", "180"))
+HISTORY_MAX_AGE_SECONDS = int(os.getenv("MQTT_HISTORY_MAX_AGE_SECONDS", "3600"))
+MAX_SEQUENCE_GAP_SECONDS = int(os.getenv("MQTT_MAX_SEQUENCE_GAP_SECONDS", "180"))
 
 STOP = threading.Event()
 CACHE_LOCK = threading.Lock()
+LAST_MESSAGE_AT = time.monotonic()
 
 
 def number(payload: dict[str, Any], *keys: str) -> float | None:
@@ -138,10 +142,20 @@ def record_observation(station_id: str, timestamp: str, raw: dict[str, float | N
     features = observed_features(raw)
     history = load_json(HISTORY_PATH)
     stations = history.setdefault("stations", {})
-    station_history = stations.setdefault(station_id, [])
+    now_epoch = parse_timestamp(timestamp)
+    station_history = [
+        entry for entry in stations.get(station_id, [])
+        if now_epoch is not None
+        and (entry_epoch := parse_timestamp(entry.get("timestamp"))) is not None
+        and 0 <= now_epoch - entry_epoch <= HISTORY_MAX_AGE_SECONDS
+    ]
     if features is not None:
+        last_epoch = parse_timestamp(station_history[-1].get("timestamp")) if station_history else None
+        if now_epoch is not None and last_epoch is not None and now_epoch - last_epoch > MAX_SEQUENCE_GAP_SECONDS:
+            station_history = []
         station_history.append({"timestamp": timestamp, "features": features, "water_level_m": raw.get("water_level_m")})
         del station_history[:-SEQUENCE_LENGTH]
+    stations[station_id] = station_history
     write_json(HISTORY_PATH, history)
     return station_history
 
@@ -152,16 +166,30 @@ def predict(station_history: list[dict[str, Any]], timestamp: str) -> dict[str, 
     features = np.asarray([entry["features"] for entry in station_history], dtype=np.float32)
     if features.shape != (SEQUENCE_LENGTH, 8) or not np.isfinite(features).all():
         return None
+    observation_times = [parse_timestamp(entry.get("timestamp")) for entry in station_history]
+    if any(value is None for value in observation_times):
+        return None
+    deltas_seconds = [observation_times[idx] - observation_times[idx - 1] for idx in range(1, len(observation_times))]
+    if any(delta <= 0 or delta > MAX_SEQUENCE_GAP_SECONDS for delta in deltas_seconds):
+        return None
+    dt_hours = np.asarray([deltas_seconds[0], *deltas_seconds], dtype=np.float32) / 3600.0
     latest_water = station_history[-1].get("water_level_m")
     predictor = get_predictor()
     result = predictor.predict_from_observed_sequence(
         telemetry_sequence=features,
+        dt_sequence=dt_hours,
         forecast_origin_timestamp=timestamp,
         horizon_hours=1,
         current_water_level=float(latest_water) if latest_water is not None else None,
         feature_names=["temperature", "heat_index", "humidity", "pressure", "wind_speed", "wind_sin", "wind_cos", "precipitation"],
     )
-    return {"generated_at": timestamp, "source": "mqtt_observed_sequence", "sequence_length": SEQUENCE_LENGTH, "forecast": result}
+    return {
+        "generated_at": timestamp,
+        "source": "mqtt_observed_sequence",
+        "sequence_length": SEQUENCE_LENGTH,
+        "max_sequence_gap_seconds": MAX_SEQUENCE_GAP_SECONDS,
+        "forecast": result,
+    }
 
 
 PREDICTOR: LNNServerlessPredictor | None = None
@@ -175,6 +203,8 @@ def get_predictor() -> LNNServerlessPredictor:
 
 
 def on_message(topic: str, payload: bytes, **_: Any) -> None:
+    global LAST_MESSAGE_AT
+    LAST_MESSAGE_AT = time.monotonic()
     try:
         message = json.loads(payload.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -237,6 +267,7 @@ def on_message(topic: str, payload: bytes, **_: Any) -> None:
 
 
 def main() -> None:
+    global LAST_MESSAGE_AT
     required_paths = [CA_PATH, CERT_PATH, PRIVATE_KEY_PATH]
     missing = [path for path in required_paths if not Path(path).is_file()]
     if missing:
@@ -263,8 +294,13 @@ def main() -> None:
             )
             connection.connect().result(timeout=20)
             connection.subscribe(topic=TOPIC, qos=mqtt.QoS.AT_LEAST_ONCE, callback=on_message)[0].result(timeout=20)
+            LAST_MESSAGE_AT = time.monotonic()
             print(f"MQTT connected: {ENDPOINT}:{PORT}, subscribed to {TOPIC} as {CLIENT_ID}")
-            STOP.wait()
+            while not STOP.wait(1):
+                if time.monotonic() - LAST_MESSAGE_AT > NO_MESSAGE_TIMEOUT_SECONDS:
+                    raise TimeoutError(
+                        f"No MQTT messages received for {NO_MESSAGE_TIMEOUT_SECONDS}s; reconnecting"
+                    )
         except Exception as error:
             print(f"MQTT connection failed ({error}); retrying in 10 seconds")
             STOP.wait(10)
