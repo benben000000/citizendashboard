@@ -119,9 +119,16 @@ def load_nwp():
 
     out = {}
     for base, entries in grouped.items():
-        # Ascending span; later window end breaks ties. Applied in this order so
-        # the most recent targeted fetch wins the overlap.
-        entries.sort(key=lambda t: (t[0], t[1]))
+        # Application order decides the winner, because the inner loop only fills
+        # timestamps that are still missing. So:
+        #   span ASCENDING  -> a narrow, recent re-fetch is applied first and
+        #                      therefore wins wherever it overlaps.
+        #   end  DESCENDING -> among equal spans, the window reaching furthest
+        #                      into the present is applied first and wins. This
+        #                      had to be descending once fill-if-missing made
+        #                      "first applied" authoritative; with an ascending
+        #                      sort the OLDEST window won every tie.
+        entries.sort(key=lambda t: (t[0], [-ord(c) for c in t[1]]))
         merged = {}
         for _span, _end, v in entries:
             for i, t in enumerate(v.get("time", [])):
@@ -131,6 +138,14 @@ def load_nwp():
                 for fld in FIELDS:
                     arr = v.get(fld)
                     if arr is not None and i < len(arr) and arr[i] is not None:
+                        # Fill only what is still missing. An unconditional write
+                        # here inverted the documented precedence: entries are
+                        # applied shortest-first, so writing every value meant
+                        # the LONGEST window landed last and won every overlap
+                        # -- the original longest-wins rule, just spread across a
+                        # timestamp map where it was no longer visible.
+                        if fld in row:
+                            continue
                         row[fld] = arr[i]
         times_sorted = sorted(merged)
         out[base] = {
@@ -151,16 +166,48 @@ def bootstrap_ci(err, n_boot=400, ci=0.95, seed=42):
             float(np.percentile(m, 100 * (1 + ci) / 2))]
 
 
-def metrics(pred, truth):
-    p = np.asarray(pred, float)
-    t = np.asarray(truth, float)
-    m = np.isfinite(p) & np.isfinite(t)
-    p, t = p[m], t[m]
-    if len(p) == 0:
+MIN_COVERAGE = 0.5
+
+
+def metrics(pred, truth, min_coverage=MIN_COVERAGE):
+    """
+    MAE/RMSE/bias over the rows where BOTH prediction and truth are finite.
+
+    Non-finite rows are dropped, and the dropped fraction is checked. This matters
+    more than it looks: a score computed on 12% of the rows is not a score of the
+    model, it is a score of whichever rows happened to be present, and it is
+    indistinguishable from a full-coverage score by the number alone.
+
+    That is not hypothetical. When NWP window selection picked a cached series
+    that did not overlap the test split, every NWP lookup missed, coverage fell
+    to zero, and the run printed `n/a` for all seven models while still emitting
+    a rank. `coverage` is returned so a caller can see this, and a score below
+    MIN_COVERAGE returns None rather than a confident number.
+
+    Rows dropped for missing data are reported in the returned dict rather than
+    vanishing, so the loss is auditable.
+    """
+    p_all = np.asarray(pred, float)
+    t_all = np.asarray(truth, float)
+    finite = np.isfinite(p_all) & np.isfinite(t_all)
+    total = len(p_all)
+    kept = int(finite.sum())
+    coverage = kept / total if total else 0.0
+    if kept == 0:
+        return None
+    p, t = p_all[finite], t_all[finite]
+    if coverage < min_coverage:
         return None
     e = np.abs(p - t)
     return {"mae": float(e.mean()), "rmse": float(np.sqrt((e ** 2).mean())),
-            "bias": float((t - p).mean()), "n": int(len(p)),
+            # Bias is forecast MINUS observed, per WMO. This was the opposite
+            # sign, so the same forecast read as over-predicting on the
+            # operational dashboard (monitoring.py, which uses pred - truth)
+            # and under-predicting here. Someone triaging a systematic bias from
+            # the dashboard would have chased the wrong side of the model.
+            "bias": float((p - t).mean()), "n": int(len(p)),
+            "coverage": coverage,
+            "rows_dropped_nonfinite": total - kept,
             "ci95_mae": bootstrap_ci(e)}
 
 
@@ -363,8 +410,15 @@ def main():
             print(f"  {v}  (MAE, {UNITS[v]})")
             print(f"    {'method':<22}{'MAE':>9}{'RMSE':>9}{'bias':>9}{'n':>8}{'vs persist':>12}  {'rank':>5}")
             scored = [(r[0], r[1]) for r in rows if r[1]]
+            # Rank only among rows that actually produced a score, and say so.
+            # Ranking across the full `rows` list let unscored models still occupy
+            # rank positions, so a run where every NWP lookup missed still
+            # reported the LNN's rank against a denominator inflated by seven
+            # models that were never evaluated.
             order = sorted(range(len(rows)), key=lambda i: rows[i][1]["mae"] if rows[i][1] else 9e9)
             rank = {rows[i][0]: k + 1 for k, i in enumerate(order)}
+            n_scored = len(scored)
+            n_unscored = len(rows) - n_scored
             for name, m, _ in rows:
                 if not m:
                     print(f"    {name:<22}{'n/a':>9}")
@@ -377,8 +431,18 @@ def main():
                 name: (m if m else None) for name, m, _ in rows
             }
             best = min((x for x in scored), key=lambda x: x[1]["mae"])
+            # Denominator counts only methods that produced a score. Using
+            # len(rows) - 1 inflated the denominator with models that were never
+            # evaluated, so a run where every NWP lookup missed still printed
+            # "rank 1/8" -- a flattering number describing a run that had scored
+            # nothing to compare against.
+            denom = f"{max(n_scored - 1, 1)}"
+            note = ""
+            if n_unscored:
+                note = (f"   [WARNING: {n_unscored} of {len(rows)} methods produced "
+                        f"no score; this rank is NOT comparable to a full run]")
             print(f"    -> best: {best[0]}  MAE {best[1]['mae']:.3f} {UNITS[v]}"
-                  f"   |  LNN rank {rank[args.label]}/{len(rows) - 1}")
+                  f"   |  LNN rank {rank[args.label]}/{denom}{note}")
 
         # --- rain occurrence ---
         # IMPORTANT: the persistence rain probability must use the LAST OBSERVED
