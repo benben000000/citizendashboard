@@ -60,9 +60,20 @@ USER_AGENT = "Kloudtrack-Audit/4.0"
 
 MODEL_STATIONS = [
     "lMAZe9b3", "QgbGldAY", "Rjz2dbXW", "4VAl2p9k", "nDby4YpR", "03pqkGAj",
-    "3nzr8bGo", "nDbyYbR1", "rqAkmpKG", "Bkpj1zRO", "wkAWlzlm", "1Zb102pg",
+    "3nzr8bGo", "nDbyYbR1", "rqAkmpKG", "Bkpj1zRO", "wkAWLzlm", "1Zb102pg",
     "3nzr48bG", "VEpdDpBK", "2Dpo5DAK", "95pM7BAV",
 ]
+
+# Station ids are case-SENSITIVE and this list once carried "wkAWlzlm" (lowercase
+# l) instead of "wkAWLzlm". The API returned 404, the client treated 4xx as
+# "genuinely absent" and returned an empty list WITHOUT writing a cache file, and
+# the station silently vanished from the refetch -- 15 of 16 stations, reported as
+# an apparent hardware outage rather than a typo in our own roster. The station
+# was healthy: 50,000 rows, 835 hourly bins, and the highest wind calibration
+# factor in the fleet.
+#
+# validate_roster() now fails loudly on any id that does not match the canonical
+# index, so this class of bug cannot present itself as a dead sensor again.
 
 CSV_FIELDS = [
     "station_id", "station_name", "location", "recorded_at",
@@ -88,6 +99,48 @@ def load_key():
     except OSError:
         pass
     return None
+
+
+def validate_roster(stations, strict=True):
+    """
+    Fail loudly when MODEL_STATIONS disagrees with the canonical station index.
+
+    A mistyped id 404s, and a 404 is indistinguishable from a dead station unless
+    something checks. That is exactly how a lowercase "l" for an uppercase "L"
+    turned one healthy station into an apparent hardware outage.
+    """
+    index_path = os.path.join(DATA_DIR, "station_index.json")
+    try:
+        with open(index_path, encoding="utf-8") as f:
+            canonical = {s["station_id"] for s in json.load(f)}
+    except (OSError, ValueError, KeyError, TypeError):
+        print(f"  [warn] could not read {index_path}; roster not validated")
+        return []
+
+    known = {s for s in stations if s in canonical}
+    unknown = sorted(set(stations) - canonical)
+    # Case-insensitive match catches the exact failure mode without needing a
+    # second source of truth.
+    by_fold = {s.lower(): s for s in canonical}
+    for bad in list(unknown):
+        guess = by_fold.get(bad.lower())
+        if guess:
+            print(f"  [ERROR] roster id {bad!r} differs from the canonical id "
+                  f"{guess!r} by case only. Station ids are case-sensitive.")
+        else:
+            print(f"  [ERROR] roster id {bad!r} is not in station_index.json")
+
+    missing = sorted(canonical - set(stations))
+    if missing:
+        print(f"  [warn] {len(missing)} station(s) in the index are absent from "
+              f"MODEL_STATIONS: {', '.join(missing)}")
+
+    if unknown and strict:
+        raise SystemExit(
+            f"Roster validation failed for {len(unknown)} station id(s). "
+            f"Fix MODEL_STATIONS before fetching; a wrong id looks exactly like "
+            f"a dead station and the cache will not record the difference.")
+    return sorted(canonical - set(stations))
 
 
 def station_meta():
@@ -230,6 +283,9 @@ def main() -> int:
     ap.add_argument("--delay", type=float, default=3.5,
                     help="seconds between requests; the API allows 20/minute")
     ap.add_argument("--stations", default=None)
+    ap.add_argument("--no-roster-check", action="store_true",
+                    help="Skip validation of station ids against station_index.json. "
+                         "Only for deliberately fetching an unknown station.")
     ap.add_argument("--filter-outliers", action="store_true",
                     help="let the API drop out-of-range readings (default: keep them "
                          "and let the pipeline quarantine with a recorded reason)")
@@ -237,6 +293,7 @@ def main() -> int:
 
     stations = ([s.strip() for s in args.stations.split(",") if s.strip()]
                 if args.stations else MODEL_STATIONS)
+    validate_roster(stations, strict=not args.no_roster_check)
     client = HistoryClient(load_key(), base=args.base, delay=args.delay)
     meta = station_meta()
 

@@ -995,7 +995,16 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 60,
                 v_scores.append(float(np.mean(np.abs(
                     v_rh - val_tgt_w_np[:, 1])) / 10.0)
                     if val_meta else 0.0)
-                v_rain_p = torch.sigmoid(val_out_ep["rain_prob"]).squeeze(-1).numpy()
+                # rain_prob is ALREADY a probability: model.py applies sigmoid to
+                # the occurrence logit before returning it. This line used to apply
+                # a second sigmoid. sigmoid(already-a-probability) lands in
+                # (0.5, 0.731), so the `> 0.5` test below was true for EVERY
+                # window and the rain term collapsed to the constant
+                # (1 - wet_hour_base_rate) -- identical at every epoch. The 5.0 rain
+                # weight therefore selected on nothing, which is how a rain head
+                # that is worse than production at all five horizons survived
+                # checkpoint selection.
+                v_rain_p = val_out_ep["rain_prob"].squeeze(-1).numpy()
                 v_rain_t = val_rain.squeeze(-1).numpy()
                 v_scores.append(float(np.mean(np.abs(
                     (v_rain_p > 0.5).astype(float) - v_rain_t))) * 5.0)

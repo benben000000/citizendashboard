@@ -320,6 +320,25 @@ class TelemetryDataPipeline:
                         continue
                     parsed[_field] = _val
 
+                # Physical-bounds screening runs BEFORE the completeness short-circuit.
+                #
+                # It used to run after, so a row that was both incomplete AND
+                # corrupt was counted only as a coverage gap: 347 of 4,056
+                # weather_missing_field rows (8.6%) also carried out-of-range
+                # values, and no weather_bounds_* counter ever saw them. An
+                # operator reading the quarantine report then chased a sensor
+                # outage that did not exist, while the corrupt reading itself
+                # vanished. Each violated field is now counted under its own
+                # reason regardless of whether the row is also incomplete.
+                _bounds_violated = False
+                for _field, _val in parsed.items():
+                    _lo, _hi = PHYSICAL_BOUNDS.get(_field, (None, None))
+                    if _lo is None:
+                        continue
+                    if not (_lo <= _val <= _hi):
+                        self.quarantine_counts[f"weather_bounds_{_field}"] += 1
+                        _bounds_violated = True
+
                 if missing_fields:
                     self.quarantine_counts["weather_missing_field"] += 1
                     for _mf in missing_fields:
@@ -327,6 +346,10 @@ class TelemetryDataPipeline:
                             f"weather_missing_{_mf}", 0
                         )
                         self.quarantine_counts[f"weather_missing_{_mf}"] += 1
+                    continue
+                if _bounds_violated:
+                    # Already counted above under the specific field reasons.
+                    self.quarantine_counts["weather_bounds_any"] += 1
                     continue
 
                 t = parsed["temperature"]

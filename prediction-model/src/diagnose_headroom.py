@@ -62,7 +62,12 @@ def mae(p, t):
     if m.sum() == 0:
         return float("nan"), float("nan")
     e = np.abs(p[m] - t[m])
-    return float(e.mean()), float((t[m] - p[m]).mean())
+    # Bias is forecast MINUS observed (WMO), matching monitoring.py and every other
+    # scorer in the repo except benchmark_independent.py. This one was inverted
+    # too, and escaped the earlier audit because it returns a TUPLE rather than a
+    # dict, so the dict-returning-scorer sweep never counted it. There were two
+    # inversions, not one.
+    return float(e.mean()), float((p[m] - t[m]).mean())
 
 
 def raw_window(pipe, arr, dt):

@@ -170,6 +170,27 @@ AUDITED_VARIABLES = (
     ("wind_speed", "wind_speed_kmh", "wind_speed_kmh"),
 )
 
+# Policy source tokens -> audit producer labels. The audit schema already allows
+# `persistence` as a producer, so no new vocabulary is introduced. Anything the
+# policy reports that we do not recognise becomes "unknown" rather than being
+# folded into "lln": an unrecognised source is a fact worth surfacing, and
+# defaulting it to model authorship is precisely the bug this fixes.
+_PRODUCER_BY_SOURCE = {
+    "learned_model": "lln",
+    "persistence_fallback": "persistence",
+    "persistence": "persistence",
+    "derived": "derived",
+    "nwp": "nwp",
+    "blend": "blend",
+}
+
+
+def _producer_label(source: object) -> str:
+    if not isinstance(source, str) or not source.strip():
+        # No policy statement at all. Do NOT assume the model produced it.
+        return "unknown"
+    return _PRODUCER_BY_SOURCE.get(source.strip().lower(), "unknown")
+
 
 def audit_prediction(station_id: str, timestamp: str, prediction: dict[str, Any] | None,
                      error: str | None) -> None:
@@ -186,11 +207,18 @@ def audit_prediction(station_id: str, timestamp: str, prediction: dict[str, Any]
         forecast = (prediction or {}).get("forecast") or {}
         if not isinstance(forecast, dict):
             forecast = {}
+        # The policy serves most cells by persistence, not by the network. Labelling
+        # every value "lln" claimed model authorship for numbers the network never
+        # produced, which corrupts the audit trail and, once records mature, would
+        # attribute persistence error to the model in verify_predictions.py.
+        selected = (prediction or {}).get("selected_source_by_variable") or {}
+        if not isinstance(selected, dict):
+            selected = {}
         variables = {}
         for name, model_key, _cache_key in AUDITED_VARIABLES:
             if model_key in forecast:
                 variables[name] = variable_entry(
-                    forecast[model_key], producer="lln",
+                    forecast[model_key], producer=_producer_label(selected.get(name)),
                     nwp_raw=None, nwp_corrected=None)
         try:
             horizon = int(str((prediction or {}).get("horizon", "1h")).rstrip("h"))
