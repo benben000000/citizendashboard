@@ -1,0 +1,1559 @@
+{
+  "experiment": "candidate_rain_head_recoverability",
+  "generated_at_utc": "2026-09-30T10:45:09.073317Z",
+  "brier_definition": "mean((clip(prob,1e-6,1-1e-6) - rain_true_binary)**2); identical to evaluate_rain_occurrence() in train_predictive_quality.py",
+  "input_contract": "NORMALISED res[0] from build_feature_augmented_forecast_windows (never de-normalised X_raw)",
+  "pairing_rule": "every arm pairs a checkpoint with its TRAINING corpus; persistence, climatology and the production bundle are all scored on that same corpus so each arm is like-for-like. Excluded: candidate_artifacts_leaky_olddata (ablation arm).",
+  "corpus_sha256": {
+    "weather_telemetry.csv (OLD)": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "weather_telemetry_current.csv (CURRENT)": "fc8f7b4edc11a0f6828aca6a9d49b4577e5b0e8a44dd574f433b605f81304bed"
+  },
+  "class_imbalance": {
+    "corpora": [
+      {
+        "file": "weather_telemetry.csv",
+        "rows": 756156,
+        "wet_hours": 65264,
+        "wet_hour_base_rate": 0.08631
+      },
+      {
+        "file": "weather_telemetry_current.csv",
+        "rows": 30470,
+        "wet_hours": 7641,
+        "wet_hour_base_rate": 0.250771
+      }
+    ],
+    "note": "candidate_artifacts trained on OLD (86ce9064); candidate_artifacts_windfix trained on CURRENT (fc8f7b4e). A wet-hour base-rate shift between corpora is the main reason a prior-shifted head can collapse on a foreign corpus."
+  },
+  "arms": {
+    "PRIMARY_windfix_on_current": {
+      "arm": "PRIMARY_windfix_on_current",
+      "role": "promotion candidate, correctly paired",
+      "checkpoint_dir": "candidate_artifacts_windfix",
+      "corpus_file": "weather_telemetry_current.csv",
+      "corpus_label": "CURRENT",
+      "pairing": "checkpoint=candidate_artifacts_windfix, corpus=weather_telemetry_current.csv",
+      "baselines_scored_on_same_corpus": true,
+      "corpus_time_range": {
+        "min": "2026-06-20T00:00:00+00:00",
+        "max": "2026-09-29T23:00:00+00:00",
+        "train_end": "2026-08-20T04:00:00+00:00",
+        "val_start": "2026-08-22T04:00:00+00:00",
+        "val_end": "2026-09-09T14:00:00+00:00",
+        "test_start": "2026-09-11T14:00:00+00:00"
+      },
+      "horizons": {
+        "h1h": {
+          "pairing": "checkpoint=candidate_artifacts_windfix, corpus=weather_telemetry_current.csv",
+          "n_test_windows": 3209,
+          "observed_wet_hour_base_rate": 0.1546,
+          "candidate_mean_raw_rain_prob": 0.3925,
+          "candidate_mean_raw_wet": 0.687,
+          "candidate_mean_raw_dry": 0.3387,
+          "candidate_raw_std": 0.2951,
+          "candidate_raw_min": 0.0127,
+          "candidate_raw_max": 0.9999,
+          "candidate_corr_with_truth": 0.4267627668101371,
+          "candidate_auc_roc": 0.8014748284841207,
+          "production_mean_raw_rain_prob": 0.0872,
+          "production_corr_with_truth": 0.4749869044710557,
+          "production_auc_roc": 0.8275652325125145,
+          "brier": {
+            "candidate_raw_head": 0.1833,
+            "candidate_hard01_at_stored_threshold": 0.244,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.1335,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.1324,
+            "PRODUCTION_bundle_as_shipped": 0.0935,
+            "production_raw_head": 0.1057,
+            "persistence_soft_085_005": 0.0978,
+            "persistence_hard_1_0": 0.1153,
+            "climatology_station_hour": 0.207,
+            "climatology_constant_base_rate": 0.1307,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.514
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.7000000000000001,
+            "persistence_weight": 0.3,
+            "rain_threshold": 0.55,
+            "validation_csi": 0.5731,
+            "test_brier_at_training_time": 0.1335,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.8,
+            "rain_persistence_weight": 0.2,
+            "operational_rain_threshold": 0.25
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.0978
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.096
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.0965
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.0993
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.1044
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.1118
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.1215
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.1335
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.1478
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.1644
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.1833
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.1,
+            "brier": 0.096
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.2782,
+            "candidate_raw_at_stored_threshold": 0.3003,
+            "candidate_calibrated_at_stored_threshold": 0.3787,
+            "production_blend_at_policy_threshold": 0.4306,
+            "persistence_at_0_5": 0.4567
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.4358,
+            "val_mean_raw_rain_prob": 0.4924,
+            "refit_alpha_on_val": 0.6,
+            "logit_shift_fitted_on_val": -0.3877,
+            "alpha_refit_after_shift": 0.7,
+            "test_brier_stored_alpha": 0.1335,
+            "test_brier_refit_alpha": 0.1215,
+            "test_brier_shift_then_stored_alpha": 0.117,
+            "test_brier_shift_then_refit_alpha": 0.117,
+            "test_brier_alpha0_persistence_only": 0.0978,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.096
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.4358,
+            "val_mean_raw_rain_prob": 0.4924,
+            "val_min_raw_rain_prob": 0.0236,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.56422,
+            "rain_term_CORRECT_single_sigmoid": 0.266055,
+            "degenerate_constant_1_minus_base_rate": 0.56422,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 2.8211,
+            "weighted_by_5_correct": 1.3303
+          }
+        },
+        "h3h": {
+          "pairing": "checkpoint=candidate_artifacts_windfix, corpus=weather_telemetry_current.csv",
+          "n_test_windows": 3177,
+          "observed_wet_hour_base_rate": 0.1552,
+          "candidate_mean_raw_rain_prob": 0.5289,
+          "candidate_mean_raw_wet": 0.7007,
+          "candidate_mean_raw_dry": 0.4973,
+          "candidate_raw_std": 0.2623,
+          "candidate_raw_min": 0.0189,
+          "candidate_raw_max": 0.9977,
+          "candidate_corr_with_truth": 0.2807356589279756,
+          "candidate_auc_roc": 0.7234653252842326,
+          "production_mean_raw_rain_prob": 0.1644,
+          "production_corr_with_truth": 0.3618763868427078,
+          "production_auc_roc": 0.7670932548979302,
+          "brier": {
+            "candidate_raw_head": 0.2862,
+            "candidate_hard01_at_stored_threshold": 0.5417,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.1707,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.1697,
+            "PRODUCTION_bundle_as_shipped": 0.106,
+            "production_raw_head": 0.1141,
+            "persistence_soft_085_005": 0.1282,
+            "persistence_hard_1_0": 0.1533,
+            "climatology_station_hour": 0.2071,
+            "climatology_constant_base_rate": 0.1311,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.3531
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.6000000000000001,
+            "persistence_weight": 0.4,
+            "rain_threshold": 0.4,
+            "validation_csi": 0.5101,
+            "test_brier_at_training_time": 0.1707,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.6,
+            "rain_persistence_weight": 0.4,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.1282
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.1244
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.1249
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.1298
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.1391
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.1527
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.1707
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.1931
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.2198
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.2508
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.2862
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.1,
+            "brier": 0.1244
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.2225,
+            "candidate_raw_at_stored_threshold": 0.2029,
+            "candidate_calibrated_at_stored_threshold": 0.2439,
+            "production_blend_at_policy_threshold": 0.2691,
+            "persistence_at_0_5": 0.3401
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.4349,
+            "val_mean_raw_rain_prob": 0.5425,
+            "refit_alpha_on_val": 0.6,
+            "logit_shift_fitted_on_val": -0.5805,
+            "alpha_refit_after_shift": 0.7,
+            "test_brier_stored_alpha": 0.1707,
+            "test_brier_refit_alpha": 0.1707,
+            "test_brier_shift_then_stored_alpha": 0.1443,
+            "test_brier_shift_then_refit_alpha": 0.1575,
+            "test_brier_alpha0_persistence_only": 0.1282,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.1244
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.4349,
+            "val_mean_raw_rain_prob": 0.5425,
+            "val_min_raw_rain_prob": 0.0282,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.565059,
+            "rain_term_CORRECT_single_sigmoid": 0.342801,
+            "degenerate_constant_1_minus_base_rate": 0.565059,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 2.8253,
+            "weighted_by_5_correct": 1.714
+          }
+        },
+        "h6h": {
+          "pairing": "checkpoint=candidate_artifacts_windfix, corpus=weather_telemetry_current.csv",
+          "n_test_windows": 3132,
+          "observed_wet_hour_base_rate": 0.1561,
+          "candidate_mean_raw_rain_prob": 0.6259,
+          "candidate_mean_raw_wet": 0.7122,
+          "candidate_mean_raw_dry": 0.6099,
+          "candidate_raw_std": 0.2537,
+          "candidate_raw_min": 0.0287,
+          "candidate_raw_max": 0.9989,
+          "candidate_corr_with_truth": 0.1463078586251342,
+          "candidate_auc_roc": 0.6152950998392946,
+          "production_mean_raw_rain_prob": 0.1817,
+          "production_corr_with_truth": 0.25889227064156944,
+          "production_auc_roc": 0.7118653510024164,
+          "brier": {
+            "candidate_raw_head": 0.3898,
+            "candidate_hard01_at_stored_threshold": 0.6542,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.2228,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.2229,
+            "PRODUCTION_bundle_as_shipped": 0.1318,
+            "production_raw_head": 0.1236,
+            "persistence_soft_085_005": 0.1582,
+            "persistence_hard_1_0": 0.1909,
+            "climatology_station_hour": 0.2077,
+            "climatology_constant_base_rate": 0.1318,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.2706
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.6000000000000001,
+            "persistence_weight": 0.4,
+            "rain_threshold": 0.4,
+            "validation_csi": 0.4451,
+            "test_brier_at_training_time": 0.2228,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.45,
+            "rain_persistence_weight": 0.55,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.1582
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.1535
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.155
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.1626
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.1765
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.1966
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.2228
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.2553
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.2939
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.3388
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.3898
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.1,
+            "brier": 0.1535
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.18,
+            "candidate_raw_at_stored_threshold": 0.1758,
+            "candidate_calibrated_at_stored_threshold": 0.1966,
+            "production_blend_at_policy_threshold": 0.2395,
+            "persistence_at_0_5": 0.244
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.4352,
+            "val_mean_raw_rain_prob": 0.5664,
+            "refit_alpha_on_val": 0.6,
+            "logit_shift_fitted_on_val": -0.6809,
+            "alpha_refit_after_shift": 0.7,
+            "test_brier_stored_alpha": 0.2228,
+            "test_brier_refit_alpha": 0.2228,
+            "test_brier_shift_then_stored_alpha": 0.1896,
+            "test_brier_shift_then_refit_alpha": 0.2101,
+            "test_brier_alpha0_persistence_only": 0.1582,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.1535
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.4352,
+            "val_mean_raw_rain_prob": 0.5664,
+            "val_min_raw_rain_prob": 0.0658,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.56484,
+            "rain_term_CORRECT_single_sigmoid": 0.431818,
+            "degenerate_constant_1_minus_base_rate": 0.56484,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 2.8242,
+            "weighted_by_5_correct": 2.1591
+          }
+        },
+        "h12h": {
+          "pairing": "checkpoint=candidate_artifacts_windfix, corpus=weather_telemetry_current.csv",
+          "n_test_windows": 3046,
+          "observed_wet_hour_base_rate": 0.1582,
+          "candidate_mean_raw_rain_prob": 0.7983,
+          "candidate_mean_raw_wet": 0.8162,
+          "candidate_mean_raw_dry": 0.7949,
+          "candidate_raw_std": 0.1644,
+          "candidate_raw_min": 0.1704,
+          "candidate_raw_max": 0.9986,
+          "candidate_corr_with_truth": 0.04721307636076597,
+          "candidate_auc_roc": 0.5492892329801076,
+          "production_mean_raw_rain_prob": 0.1954,
+          "production_corr_with_truth": 0.14753523928154327,
+          "production_auc_roc": 0.6384211488791501,
+          "brier": {
+            "candidate_raw_head": 0.5642,
+            "candidate_hard01_at_stored_threshold": 0.8411,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.254,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.2569,
+            "PRODUCTION_bundle_as_shipped": 0.1495,
+            "production_raw_head": 0.1319,
+            "persistence_soft_085_005": 0.1814,
+            "persistence_hard_1_0": 0.22,
+            "climatology_station_hour": 0.2082,
+            "climatology_constant_base_rate": 0.1332,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.1678
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.5,
+            "persistence_weight": 0.5,
+            "rain_threshold": 0.2,
+            "validation_csi": 0.4317,
+            "test_brier_at_training_time": 0.254,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.45,
+            "rain_persistence_weight": 0.55,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.1814
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.1769
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.1819
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.1965
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.2205
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.254
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.2971
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.3496
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.4116
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.4832
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.5642
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.1,
+            "brier": 0.1769
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.1614,
+            "candidate_raw_at_stored_threshold": 0.1578,
+            "candidate_calibrated_at_stored_threshold": 0.1594,
+            "production_blend_at_policy_threshold": 0.1981,
+            "persistence_at_0_5": 0.1849
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.4398,
+            "val_mean_raw_rain_prob": 0.6748,
+            "refit_alpha_on_val": 0.5,
+            "logit_shift_fitted_on_val": -1.1803,
+            "alpha_refit_after_shift": 0.7,
+            "test_brier_stored_alpha": 0.254,
+            "test_brier_refit_alpha": 0.254,
+            "test_brier_shift_then_stored_alpha": 0.2067,
+            "test_brier_shift_then_refit_alpha": 0.2566,
+            "test_brier_alpha0_persistence_only": 0.1814,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.1769
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.4398,
+            "val_mean_raw_rain_prob": 0.6748,
+            "val_min_raw_rain_prob": 0.0382,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.56019,
+            "rain_term_CORRECT_single_sigmoid": 0.526958,
+            "degenerate_constant_1_minus_base_rate": 0.56019,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 2.8009,
+            "weighted_by_5_correct": 2.6348
+          }
+        },
+        "h24h": {
+          "pairing": "checkpoint=candidate_artifacts_windfix, corpus=weather_telemetry_current.csv",
+          "n_test_windows": 2891,
+          "observed_wet_hour_base_rate": 0.1574,
+          "candidate_mean_raw_rain_prob": 0.7384,
+          "candidate_mean_raw_wet": 0.7649,
+          "candidate_mean_raw_dry": 0.7335,
+          "candidate_raw_std": 0.1219,
+          "candidate_raw_min": 0.2307,
+          "candidate_raw_max": 0.9813,
+          "candidate_corr_with_truth": 0.0937188098551132,
+          "candidate_auc_roc": 0.5854553492484527,
+          "production_mean_raw_rain_prob": 0.2434,
+          "production_corr_with_truth": 0.13092730275382825,
+          "production_auc_roc": 0.5948113462891788,
+          "brier": {
+            "candidate_raw_head": 0.4768,
+            "candidate_hard01_at_stored_threshold": 0.8423,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.2093,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.2075,
+            "PRODUCTION_bundle_as_shipped": 0.124,
+            "production_raw_head": 0.1377,
+            "persistence_soft_085_005": 0.1415,
+            "persistence_hard_1_0": 0.1705,
+            "climatology_station_hour": 0.2093,
+            "climatology_constant_base_rate": 0.1326,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.1666
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.5,
+            "persistence_weight": 0.5,
+            "rain_threshold": 0.3,
+            "validation_csi": 0.4469,
+            "test_brier_at_training_time": 0.2093,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.4,
+            "rain_persistence_weight": 0.6,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.1415
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.1391
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.1447
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.1582
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.1798
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.2093
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.2469
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.2924
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.3459
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.4073
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.4768
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.1,
+            "brier": 0.1391
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.1548,
+            "candidate_raw_at_stored_threshold": 0.1566,
+            "candidate_calibrated_at_stored_threshold": 0.1648,
+            "production_blend_at_policy_threshold": 0.2008,
+            "persistence_at_0_5": 0.3076
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.4502,
+            "val_mean_raw_rain_prob": 0.7172,
+            "refit_alpha_on_val": 0.5,
+            "logit_shift_fitted_on_val": -1.3024,
+            "alpha_refit_after_shift": 0.7,
+            "test_brier_stored_alpha": 0.2093,
+            "test_brier_refit_alpha": 0.2093,
+            "test_brier_shift_then_stored_alpha": 0.1462,
+            "test_brier_shift_then_refit_alpha": 0.1716,
+            "test_brier_alpha0_persistence_only": 0.1415,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.1391
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.4502,
+            "val_mean_raw_rain_prob": 0.7172,
+            "val_min_raw_rain_prob": 0.25,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.549841,
+            "rain_term_CORRECT_single_sigmoid": 0.525537,
+            "degenerate_constant_1_minus_base_rate": 0.549841,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 2.7492,
+            "weighted_by_5_correct": 2.6277
+          }
+        }
+      },
+      "normalisation_check": {
+        "corpus_norm_means": [
+          27.825712,
+          32.15921,
+          87.619194,
+          1005.209534
+        ],
+        "checkpoint_trained_norm_means": [
+          27.825712,
+          32.15921,
+          87.619194,
+          1005.209534
+        ],
+        "corpus_equals_checkpoint": true,
+        "checkpoint_trained_on_sha_prefix": "fc8f7b4edc11"
+      },
+      "split_base_rates": {
+        "h1h": {
+          "train": {
+            "n_windows": 16072,
+            "wet_hour_base_rate": 0.2567
+          },
+          "val": {
+            "n_windows": 3052,
+            "wet_hour_base_rate": 0.4358
+          },
+          "test": {
+            "n_windows": 3209,
+            "wet_hour_base_rate": 0.1546
+          },
+          "test_minus_train_pp": -10.21
+        },
+        "h24h": {
+          "train": {
+            "n_windows": 15512,
+            "wet_hour_base_rate": 0.2533
+          },
+          "val": {
+            "n_windows": 2839,
+            "wet_hour_base_rate": 0.4502
+          },
+          "test": {
+            "n_windows": 2891,
+            "wet_hour_base_rate": 0.1574
+          },
+          "test_minus_train_pp": -9.59
+        }
+      }
+    },
+    "SECONDARY_old_candidate_on_old": {
+      "arm": "SECONDARY_old_candidate_on_old",
+      "role": "reference arm, correctly paired",
+      "checkpoint_dir": "candidate_artifacts",
+      "corpus_file": "weather_telemetry.csv",
+      "corpus_label": "OLD",
+      "pairing": "checkpoint=candidate_artifacts, corpus=weather_telemetry.csv",
+      "baselines_scored_on_same_corpus": true,
+      "corpus_time_range": {
+        "min": "2026-06-20T10:00:00+00:00",
+        "max": "2026-08-26T02:00:00+00:00",
+        "train_end": "2026-08-01T18:00:00+00:00",
+        "val_start": "2026-08-03T18:00:00+00:00",
+        "val_end": "2026-08-13T22:00:00+00:00",
+        "test_start": "2026-08-15T22:00:00+00:00"
+      },
+      "horizons": {
+        "h1h": {
+          "pairing": "checkpoint=candidate_artifacts, corpus=weather_telemetry.csv",
+          "n_test_windows": 2273,
+          "observed_wet_hour_base_rate": 0.4311,
+          "candidate_mean_raw_rain_prob": 0.5292,
+          "candidate_mean_raw_wet": 0.7712,
+          "candidate_mean_raw_dry": 0.3458,
+          "candidate_raw_std": 0.3479,
+          "candidate_raw_min": 0.0141,
+          "candidate_raw_max": 1.0,
+          "candidate_corr_with_truth": 0.6055890805121641,
+          "candidate_auc_roc": 0.8532837729059141,
+          "production_mean_raw_rain_prob": 0.4021,
+          "production_corr_with_truth": 0.6712067976802447,
+          "production_auc_roc": 0.8704949729311678,
+          "brier": {
+            "candidate_raw_head": 0.1672,
+            "candidate_hard01_at_stored_threshold": 0.275,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.1455,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.1499,
+            "PRODUCTION_bundle_as_shipped": 0.1363,
+            "production_raw_head": 0.1383,
+            "persistence_soft_085_005": 0.1633,
+            "persistence_hard_1_0": 0.1905,
+            "climatology_station_hour": 0.2805,
+            "climatology_constant_base_rate": 0.2453,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.5765
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.6000000000000001,
+            "persistence_weight": 0.4,
+            "rain_threshold": 0.4,
+            "validation_csi": 0.7175,
+            "test_brier_at_training_time": 0.1325,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.8,
+            "rain_persistence_weight": 0.2,
+            "operational_rain_threshold": 0.25
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.1633
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.1561
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.1506
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.1468
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.1447
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.1443
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.1455
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.1484
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.153
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.1593
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.1672
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.5,
+            "brier": 0.1443
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.5845,
+            "candidate_raw_at_stored_threshold": 0.5672,
+            "candidate_calibrated_at_stored_threshold": 0.6084,
+            "production_blend_at_policy_threshold": 0.6288,
+            "persistence_at_0_5": 0.6392
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.6278,
+            "val_mean_raw_rain_prob": 0.5425,
+            "refit_alpha_on_val": 0.6,
+            "logit_shift_fitted_on_val": 0.7338,
+            "alpha_refit_after_shift": 0.6,
+            "test_brier_stored_alpha": 0.1455,
+            "test_brier_refit_alpha": 0.1455,
+            "test_brier_shift_then_stored_alpha": 0.1576,
+            "test_brier_shift_then_refit_alpha": 0.1576,
+            "test_brier_alpha0_persistence_only": 0.1633,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.1443
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.6278,
+            "val_mean_raw_rain_prob": 0.5425,
+            "val_min_raw_rain_prob": 0.0003,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.372204,
+            "rain_term_CORRECT_single_sigmoid": 0.254492,
+            "degenerate_constant_1_minus_base_rate": 0.372204,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 1.861,
+            "weighted_by_5_correct": 1.2725
+          }
+        },
+        "h3h": {
+          "pairing": "checkpoint=candidate_artifacts, corpus=weather_telemetry.csv",
+          "n_test_windows": 2243,
+          "observed_wet_hour_base_rate": 0.428,
+          "candidate_mean_raw_rain_prob": 0.3731,
+          "candidate_mean_raw_wet": 0.5501,
+          "candidate_mean_raw_dry": 0.2406,
+          "candidate_raw_std": 0.2788,
+          "candidate_raw_min": 0.028,
+          "candidate_raw_max": 0.9859,
+          "candidate_corr_with_truth": 0.5494683555200996,
+          "candidate_auc_roc": 0.8041577357755261,
+          "production_mean_raw_rain_prob": 0.3706,
+          "production_corr_with_truth": 0.44688246595520303,
+          "production_auc_roc": 0.7480473824369966,
+          "brier": {
+            "candidate_raw_head": 0.174,
+            "candidate_hard01_at_stored_threshold": 0.3308,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.1712,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.1748,
+            "PRODUCTION_bundle_as_shipped": 0.1844,
+            "production_raw_head": 0.2002,
+            "persistence_soft_085_005": 0.2133,
+            "persistence_hard_1_0": 0.2537,
+            "climatology_station_hour": 0.2779,
+            "climatology_constant_base_rate": 0.2448,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.5137
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.6000000000000001,
+            "persistence_weight": 0.4,
+            "rain_threshold": 0.2,
+            "validation_csi": 0.6433,
+            "test_brier_at_training_time": 0.1542,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.6,
+            "rain_persistence_weight": 0.4,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.2133
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.2024
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.1931
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.1853
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.179
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.1743
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.1712
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.1696
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.1695
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.171
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.174
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.8,
+            "brier": 0.1695
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.482,
+            "candidate_raw_at_stored_threshold": 0.5201,
+            "candidate_calibrated_at_stored_threshold": 0.5526,
+            "production_blend_at_policy_threshold": 0.4816,
+            "persistence_at_0_5": 0.5466
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.6316,
+            "val_mean_raw_rain_prob": 0.4296,
+            "refit_alpha_on_val": 0.6,
+            "logit_shift_fitted_on_val": 1.1485,
+            "alpha_refit_after_shift": 0.8,
+            "test_brier_stored_alpha": 0.1712,
+            "test_brier_refit_alpha": 0.1712,
+            "test_brier_shift_then_stored_alpha": 0.177,
+            "test_brier_shift_then_refit_alpha": 0.1818,
+            "test_brier_alpha0_persistence_only": 0.2133,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.1695
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.6316,
+            "val_mean_raw_rain_prob": 0.4296,
+            "val_min_raw_rain_prob": 0.0299,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.368362,
+            "rain_term_CORRECT_single_sigmoid": 0.379502,
+            "degenerate_constant_1_minus_base_rate": 0.368362,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 1.8418,
+            "weighted_by_5_correct": 1.8975
+          }
+        },
+        "h6h": {
+          "pairing": "checkpoint=candidate_artifacts, corpus=weather_telemetry.csv",
+          "n_test_windows": 2199,
+          "observed_wet_hour_base_rate": 0.4193,
+          "candidate_mean_raw_rain_prob": 0.6474,
+          "candidate_mean_raw_wet": 0.7253,
+          "candidate_mean_raw_dry": 0.5912,
+          "candidate_raw_std": 0.2425,
+          "candidate_raw_min": 0.0279,
+          "candidate_raw_max": 0.9968,
+          "candidate_corr_with_truth": 0.2729647255050153,
+          "candidate_auc_roc": 0.6739103477680368,
+          "production_mean_raw_rain_prob": 0.2536,
+          "production_corr_with_truth": 0.23996870925582717,
+          "production_auc_roc": 0.6390817347463975,
+          "brier": {
+            "candidate_raw_head": 0.289,
+            "candidate_hard01_at_stored_threshold": 0.5457,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.223,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.2302,
+            "PRODUCTION_bundle_as_shipped": 0.2172,
+            "production_raw_head": 0.2573,
+            "persistence_soft_085_005": 0.2456,
+            "persistence_hard_1_0": 0.2956,
+            "climatology_station_hour": 0.2706,
+            "climatology_constant_base_rate": 0.2435,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.3721
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.6000000000000001,
+            "persistence_weight": 0.4,
+            "rain_threshold": 0.2,
+            "validation_csi": 0.635,
+            "test_brier_at_training_time": 0.223,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.45,
+            "rain_persistence_weight": 0.55,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.2456
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.2317
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.2218
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.216
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.2143
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.2166
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.223
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.2334
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.2479
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.2664
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.289
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.4,
+            "brier": 0.2143
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.4029,
+            "candidate_raw_at_stored_threshold": 0.4297,
+            "candidate_calibrated_at_stored_threshold": 0.4245,
+            "production_blend_at_policy_threshold": 0.4545,
+            "persistence_at_0_5": 0.4886
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.6335,
+            "val_mean_raw_rain_prob": 0.4528,
+            "refit_alpha_on_val": 0.6,
+            "logit_shift_fitted_on_val": 0.9452,
+            "alpha_refit_after_shift": 0.8,
+            "test_brier_stored_alpha": 0.223,
+            "test_brier_refit_alpha": 0.223,
+            "test_brier_shift_then_stored_alpha": 0.252,
+            "test_brier_shift_then_refit_alpha": 0.3011,
+            "test_brier_alpha0_persistence_only": 0.2456,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.2143
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.6335,
+            "val_mean_raw_rain_prob": 0.4528,
+            "val_min_raw_rain_prob": 0.0249,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.36649,
+            "rain_term_CORRECT_single_sigmoid": 0.430408,
+            "degenerate_constant_1_minus_base_rate": 0.36649,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 1.8325,
+            "weighted_by_5_correct": 2.152
+          }
+        },
+        "h12h": {
+          "pairing": "checkpoint=candidate_artifacts, corpus=weather_telemetry.csv",
+          "n_test_windows": 2120,
+          "observed_wet_hour_base_rate": 0.4127,
+          "candidate_mean_raw_rain_prob": 0.4412,
+          "candidate_mean_raw_wet": 0.5346,
+          "candidate_mean_raw_dry": 0.3756,
+          "candidate_raw_std": 0.1998,
+          "candidate_raw_min": 0.0663,
+          "candidate_raw_max": 0.9145,
+          "candidate_corr_with_truth": 0.3917372620739455,
+          "candidate_auc_roc": 0.7067529546758462,
+          "production_mean_raw_rain_prob": 0.2038,
+          "production_corr_with_truth": 0.17491633380207008,
+          "production_auc_roc": 0.6106143430866322,
+          "brier": {
+            "candidate_raw_head": 0.2061,
+            "candidate_hard01_at_stored_threshold": 0.5472,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.2053,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.2163,
+            "PRODUCTION_bundle_as_shipped": 0.2315,
+            "production_raw_head": 0.2787,
+            "persistence_soft_085_005": 0.2646,
+            "persistence_hard_1_0": 0.3208,
+            "climatology_station_hour": 0.2645,
+            "climatology_constant_base_rate": 0.2424,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.3807
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.5,
+            "persistence_weight": 0.5,
+            "rain_threshold": 0.2,
+            "validation_csi": 0.5848,
+            "test_brier_at_training_time": 0.1938,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.45,
+            "rain_persistence_weight": 0.55,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.2646
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.248
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.2337
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.2218
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.2123
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.2053
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.2006
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.1984
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.1985
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.2011
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.2061
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.7,
+            "brier": 0.1984
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.4219,
+            "candidate_raw_at_stored_threshold": 0.4112,
+            "candidate_calibrated_at_stored_threshold": 0.4383,
+            "production_blend_at_policy_threshold": 0.4425,
+            "persistence_at_0_5": 0.4564
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.6365,
+            "val_mean_raw_rain_prob": 0.3265,
+            "refit_alpha_on_val": 0.5,
+            "logit_shift_fitted_on_val": 1.4154,
+            "alpha_refit_after_shift": 0.8,
+            "test_brier_stored_alpha": 0.2053,
+            "test_brier_refit_alpha": 0.2053,
+            "test_brier_shift_then_stored_alpha": 0.2327,
+            "test_brier_shift_then_refit_alpha": 0.2682,
+            "test_brier_alpha0_persistence_only": 0.2646,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.1984
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.6365,
+            "val_mean_raw_rain_prob": 0.3265,
+            "val_min_raw_rain_prob": 0.0918,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.363494,
+            "rain_term_CORRECT_single_sigmoid": 0.50803,
+            "degenerate_constant_1_minus_base_rate": 0.363494,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 1.8175,
+            "weighted_by_5_correct": 2.5401
+          }
+        },
+        "h24h": {
+          "pairing": "checkpoint=candidate_artifacts, corpus=weather_telemetry.csv",
+          "n_test_windows": 1984,
+          "observed_wet_hour_base_rate": 0.3982,
+          "candidate_mean_raw_rain_prob": 0.336,
+          "candidate_mean_raw_wet": 0.3822,
+          "candidate_mean_raw_dry": 0.3055,
+          "candidate_raw_std": 0.1147,
+          "candidate_raw_min": 0.1699,
+          "candidate_raw_max": 0.7667,
+          "candidate_corr_with_truth": 0.32730198276924827,
+          "candidate_auc_roc": 0.6581843818247355,
+          "production_mean_raw_rain_prob": 0.2131,
+          "production_corr_with_truth": 0.15898841423286916,
+          "production_auc_roc": 0.599980387167907,
+          "brier": {
+            "candidate_raw_head": 0.2199,
+            "candidate_hard01_at_stored_threshold": 0.5907,
+            "candidate_STORED_CALIBRATION_soft_persist": 0.2309,
+            "candidate_STORED_CALIBRATION_hard_persist": 0.2495,
+            "PRODUCTION_bundle_as_shipped": 0.2459,
+            "production_raw_head": 0.268,
+            "persistence_soft_085_005": 0.2895,
+            "persistence_hard_1_0": 0.3543,
+            "climatology_station_hour": 0.2573,
+            "climatology_constant_base_rate": 0.2396,
+            "always_0_5": 0.25,
+            "anti_correlated_head": 0.3602
+          },
+          "stored_calibration": {
+            "candidate_weight_alpha": 0.4,
+            "persistence_weight": 0.6,
+            "rain_threshold": 0.2,
+            "validation_csi": 0.5561,
+            "test_brier_at_training_time": 0.2185,
+            "weights_sum_to_one": true
+          },
+          "production_policy": {
+            "rain_model_weight": 0.4,
+            "rain_persistence_weight": 0.6,
+            "operational_rain_threshold": 0.1
+          },
+          "alpha_sweep": [
+            {
+              "alpha": 0.0,
+              "brier": 0.2895
+            },
+            {
+              "alpha": 0.1,
+              "brier": 0.271
+            },
+            {
+              "alpha": 0.2,
+              "brier": 0.2551
+            },
+            {
+              "alpha": 0.3,
+              "brier": 0.2417
+            },
+            {
+              "alpha": 0.4,
+              "brier": 0.2309
+            },
+            {
+              "alpha": 0.5,
+              "brier": 0.2227
+            },
+            {
+              "alpha": 0.6,
+              "brier": 0.217
+            },
+            {
+              "alpha": 0.7,
+              "brier": 0.2139
+            },
+            {
+              "alpha": 0.8,
+              "brier": 0.2133
+            },
+            {
+              "alpha": 0.9,
+              "brier": 0.2153
+            },
+            {
+              "alpha": 1.0,
+              "brier": 0.2199
+            }
+          ],
+          "best_alpha_on_test": {
+            "alpha": 0.8,
+            "brier": 0.2133
+          },
+          "csi": {
+            "candidate_raw_at_0_5": 0.2425,
+            "candidate_raw_at_stored_threshold": 0.3946,
+            "candidate_calibrated_at_stored_threshold": 0.411,
+            "production_blend_at_policy_threshold": 0.4227,
+            "persistence_at_0_5": 0.4122
+          },
+          "post_hoc_recalibration": {
+            "val_base_rate": 0.6363,
+            "val_mean_raw_rain_prob": 0.2994,
+            "refit_alpha_on_val": 0.4,
+            "logit_shift_fitted_on_val": 1.5002,
+            "alpha_refit_after_shift": 0.8,
+            "test_brier_stored_alpha": 0.2309,
+            "test_brier_refit_alpha": 0.2309,
+            "test_brier_shift_then_stored_alpha": 0.2459,
+            "test_brier_shift_then_refit_alpha": 0.2646,
+            "test_brier_alpha0_persistence_only": 0.2895,
+            "alpha0_is_best": false,
+            "best_test_brier_over_all_blends": 0.2133
+          },
+          "checkpoint_rain_term_audit": {
+            "val_base_rate": 0.6363,
+            "val_mean_raw_rain_prob": 0.2994,
+            "val_min_raw_rain_prob": 0.1542,
+            "rain_term_AS_WRITTEN_double_sigmoid": 0.363713,
+            "rain_term_CORRECT_single_sigmoid": 0.569089,
+            "degenerate_constant_1_minus_base_rate": 0.363713,
+            "as_written_equals_constant": true,
+            "weighted_by_5_as_written": 1.8186,
+            "weighted_by_5_correct": 2.8454
+          }
+        }
+      },
+      "normalisation_check": {
+        "corpus_norm_means": [
+          27.855196,
+          32.205807,
+          86.723701,
+          1005.930359
+        ],
+        "checkpoint_trained_norm_means": [
+          27.907408,
+          32.218407,
+          86.135597,
+          1005.754822
+        ],
+        "corpus_equals_checkpoint": false,
+        "checkpoint_trained_on_sha_prefix": "86ce906453aa"
+      },
+      "split_base_rates": {
+        "h1h": {
+          "train": {
+            "n_windows": 3494,
+            "wet_hour_base_rate": 0.2041
+          },
+          "val": {
+            "n_windows": 2727,
+            "wet_hour_base_rate": 0.6278
+          },
+          "test": {
+            "n_windows": 2273,
+            "wet_hour_base_rate": 0.4311
+          },
+          "test_minus_train_pp": 22.7
+        },
+        "h24h": {
+          "train": {
+            "n_windows": 3213,
+            "wet_hour_base_rate": 0.2123
+          },
+          "val": {
+            "n_windows": 2381,
+            "wet_hour_base_rate": 0.6363
+          },
+          "test": {
+            "n_windows": 1984,
+            "wet_hour_base_rate": 0.3982
+          },
+          "test_minus_train_pp": 18.59
+        }
+      }
+    }
+  },
+  "verdict": {
+    "PRIMARY_windfix_on_current": {
+      "pairing": "checkpoint=candidate_artifacts_windfix, corpus=weather_telemetry_current.csv",
+      "n_horizons": 5,
+      "raw_beats_climatology": "1/5",
+      "raw_beats_persistence": "0/5",
+      "stored_calibration_beats_persistence": "0/5",
+      "stored_calibration_beats_production": "0/5",
+      "stored_calibration_beats_production_horizons": [],
+      "stored_calibration_LOSES_to_production_horizons": [
+        1,
+        3,
+        6,
+        12,
+        24
+      ],
+      "post_hoc_best_brier_per_horizon": [
+        0.117,
+        0.1443,
+        0.1896,
+        0.2067,
+        0.1462
+      ],
+      "ORACLE_best_blend_brier_per_horizon": [
+        0.096,
+        0.1244,
+        0.1535,
+        0.1769,
+        0.1391
+      ],
+      "ORACLE_alpha0_persistence_brier_per_horizon": [
+        0.0978,
+        0.1282,
+        0.1582,
+        0.1814,
+        0.1415
+      ],
+      "post_hoc_beats_persistence": "0/5",
+      "post_hoc_beats_production": "0/5",
+      "ORACLE_head_adds_value_over_persistence": true,
+      "recoverable_without_retraining": false,
+      "one_line": "NO - at least one horizon cannot be made to clear the production bundle by calibration alone; that horizon needs retraining",
+      "split_wet_rate_drift": {
+        "h1h": {
+          "train_wet_rate": 0.2567,
+          "val_wet_rate": 0.4358,
+          "test_wet_rate": 0.1546
+        },
+        "h24h": {
+          "train_wet_rate": 0.2533,
+          "val_wet_rate": 0.4502,
+          "test_wet_rate": 0.1574
+        }
+      },
+      "mean_prob_minus_base_rate_per_horizon": [
+        0.2379,
+        0.3737,
+        0.4698,
+        0.6401,
+        0.581
+      ],
+      "all_horizons_overconfident": true,
+      "candidate_corr_with_truth_per_horizon": [
+        0.4268,
+        0.2807,
+        0.1463,
+        0.0472,
+        0.0937
+      ],
+      "all_horizons_positively_correlated_NOT_anticorrelated": true,
+      "root_cause": "The head is POSITIVELY but weakly correlated with truth and is badly OVER-CONFIDENT / wet-biased: mean rain_prob sits far above the observed wet-hour base rate at every horizon, which inflates Brier. It is NOT anti-correlated and NOT a broken/inverted head. Cause is a wet-rate mismatch between the window the stored calibration was fitted on (VAL) and the window it is applied to (TEST), combined with a checkpoint-selection rain term that carries no information."
+    },
+    "SECONDARY_old_candidate_on_old": {
+      "pairing": "checkpoint=candidate_artifacts, corpus=weather_telemetry.csv",
+      "n_horizons": 5,
+      "raw_beats_climatology": "4/5",
+      "raw_beats_persistence": "3/5",
+      "stored_calibration_beats_persistence": "5/5",
+      "stored_calibration_beats_production": "3/5",
+      "stored_calibration_beats_production_horizons": [
+        3,
+        12,
+        24
+      ],
+      "stored_calibration_LOSES_to_production_horizons": [
+        1,
+        6
+      ],
+      "post_hoc_best_brier_per_horizon": [
+        0.1455,
+        0.1712,
+        0.223,
+        0.2053,
+        0.2309
+      ],
+      "ORACLE_best_blend_brier_per_horizon": [
+        0.1443,
+        0.1695,
+        0.2143,
+        0.1984,
+        0.2133
+      ],
+      "ORACLE_alpha0_persistence_brier_per_horizon": [
+        0.1633,
+        0.2133,
+        0.2456,
+        0.2646,
+        0.2895
+      ],
+      "post_hoc_beats_persistence": "5/5",
+      "post_hoc_beats_production": "3/5",
+      "ORACLE_head_adds_value_over_persistence": true,
+      "recoverable_without_retraining": false,
+      "one_line": "NO - at least one horizon cannot be made to clear the production bundle by calibration alone; that horizon needs retraining",
+      "split_wet_rate_drift": {
+        "h1h": {
+          "train_wet_rate": 0.2041,
+          "val_wet_rate": 0.6278,
+          "test_wet_rate": 0.4311
+        },
+        "h24h": {
+          "train_wet_rate": 0.2123,
+          "val_wet_rate": 0.6363,
+          "test_wet_rate": 0.3982
+        }
+      },
+      "mean_prob_minus_base_rate_per_horizon": [
+        0.0981,
+        -0.0549,
+        0.2281,
+        0.0285,
+        -0.0622
+      ],
+      "all_horizons_overconfident": false,
+      "candidate_corr_with_truth_per_horizon": [
+        0.6056,
+        0.5495,
+        0.273,
+        0.3917,
+        0.3273
+      ],
+      "all_horizons_positively_correlated_NOT_anticorrelated": true,
+      "root_cause": "mixed / not a uniform over-confidence failure"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "generated_at_epoch": 1790765435,
+  "commit": "0640f7e6204368224d28eaf17280fa725108e1d9",
+  "corpus": "prediction-model/data/weather_telemetry_current.csv",
+  "corpus_sha_note": "recorded in each candidate manifest",
+  "horizons": "1,3,6,12,24",
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "epochs_max": 60,
+  "patience": 12,
+  "runs": [
+    {
+      "floor": "relu",
+      "seed": 101,
+      "output_dir": "prediction-model/data/seed_sweep/relu_s101",
+      "returncode": 0,
+      "elapsed_s": 1099.8,
+      "log": "scratch/seed_sweep/relu_s101.log",
+      "tag": "relu_s101"
+    },
+    {
+      "floor": "relu",
+      "seed": 202,
+      "output_dir": "prediction-model/data/seed_sweep/relu_s202",
+      "returncode": 0,
+      "elapsed_s": 910.6,
+      "log": "scratch/seed_sweep/relu_s202.log",
+      "tag": "relu_s202"
+    },
+    {
+      "floor": "relu",
+      "seed": 303,
+      "output_dir": "prediction-model/data/seed_sweep/relu_s303",
+      "returncode": 0,
+      "elapsed_s": 1425.0,
+      "log": "scratch/seed_sweep/relu_s303.log",
+      "tag": "relu_s303"
+    },
+    {
+      "floor": "leaky",
+      "seed": 101,
+      "output_dir": "prediction-model/data/seed_sweep/leaky_s101",
+      "returncode": 0,
+      "elapsed_s": 1348.7,
+      "log": "scratch/seed_sweep/leaky_s101.log",
+      "tag": "leaky_s101"
+    },
+    {
+      "floor": "leaky",
+      "seed": 202,
+      "output_dir": "prediction-model/data/seed_sweep/leaky_s202",
+      "returncode": 0,
+      "elapsed_s": 1014.4,
+      "log": "scratch/seed_sweep/leaky_s202.log",
+      "tag": "leaky_s202"
+    },
+    {
+      "floor": "leaky",
+      "seed": 303,
+      "output_dir": "prediction-model/data/seed_sweep/leaky_s303",
+      "returncode": 0,
+      "elapsed_s": 8579.7,
+      "log": "scratch/seed_sweep/leaky_s303.log",
+      "tag": "leaky_s303"
+    }
+  ]
+}

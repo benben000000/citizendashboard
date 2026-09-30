@@ -1,0 +1,569 @@
+{
+  "leaky": {
+    "101": {
+      "1": {
+        "halves": {},
+        "temperature": 0.7261485683697108,
+        "first_half": {
+          "temperature": 0.7125501323375623,
+          "humidity": 1.944785024729638,
+          "pressure": 0.3930437186141329,
+          "wind_speed": 0.3317684783892319
+        },
+        "second_half": {
+          "temperature": 0.7397385318560447,
+          "humidity": 2.049212491827715,
+          "pressure": 0.39437416397783526,
+          "wind_speed": 0.33171615685475897
+        },
+        "humidity": 1.99701502930814,
+        "pressure": 0.3937091485950436,
+        "wind_speed": 0.331742309469684
+      },
+      "3": {
+        "halves": {},
+        "temperature": 1.437288019232,
+        "first_half": {
+          "temperature": 1.4216646261015842,
+          "humidity": 4.061928951267928,
+          "pressure": 0.8513940431965128,
+          "wind_speed": 0.4992335261818257
+        },
+        "second_half": {
+          "temperature": 1.4529015801452156,
+          "humidity": 4.3889991559952195,
+          "pressure": 0.9230313932419505,
+          "wind_speed": 0.48842096257117407
+        },
+        "humidity": 4.225515528325425,
+        "pressure": 0.8872239925897141,
+        "wind_speed": 0.4938255426825102
+      },
+      "6": {
+        "halves": {},
+        "temperature": 2.5121257108015715,
+        "first_half": {
+          "temperature": 2.401354434788443,
+          "humidity": 7.126927332453816,
+          "pressure": 1.0380088810041992,
+          "wind_speed": 0.6340660171904411
+        },
+        "second_half": {
+          "temperature": 2.6228969868147,
+          "humidity": 8.63909339849149,
+          "pressure": 1.1206665346319236,
+          "wind_speed": 0.5611636002310534
+        },
+        "humidity": 7.8830103654726535,
+        "pressure": 1.0793377078180613,
+        "wind_speed": 0.5976148087107472
+      },
+      "12": {
+        "halves": {},
+        "temperature": 1.9834976770670187,
+        "first_half": {
+          "temperature": 2.015354088665704,
+          "humidity": 6.644527023334352,
+          "pressure": 1.1250640193654535,
+          "wind_speed": 0.6423250708869449
+        },
+        "second_half": {
+          "temperature": 1.9516412654683337,
+          "humidity": 7.372692298891357,
+          "pressure": 1.105447492852182,
+          "wind_speed": 0.5905311627254154
+        },
+        "humidity": 7.008609661112855,
+        "pressure": 1.1152557561088177,
+        "wind_speed": 0.6164281168061801
+      },
+      "24": {
+        "halves": {},
+        "temperature": 1.5174168518019078,
+        "first_half": {
+          "temperature": 1.5110417916525287,
+          "humidity": 3.8009386177157816,
+          "pressure": 1.3214495112049403,
+          "wind_speed": 0.5379117757241628
+        },
+        "second_half": {
+          "temperature": 1.5237875031959969,
+          "humidity": 3.6910860928976152,
+          "pressure": 0.8291220271918142,
+          "wind_speed": 0.4683807873421823
+        },
+        "humidity": 3.745993356253634,
+        "pressure": 1.0752006208960574,
+        "wind_speed": 0.5031342561114532
+      }
+    },
+    "202": {
+      "1": {
+        "halves": {},
+        "temperature": 0.5955341938311518,
+        "first_half": {
+          "temperature": 0.605251245226431,
+          "humidity": 1.7717467247084642,
+          "pressure": 0.3596132437955129,
+          "wind_speed": 0.3576060016383586
+        },
+        "second_half": {
+          "temperature": 0.5858231966735021,
+          "humidity": 1.9105465808580135,
+          "pressure": 0.3447616002113321,
+          "wind_speed": 0.3570830291389769
+        },
+        "humidity": 1.841168279435802,
+        "pressure": 0.35218510794240915,
+        "wind_speed": 0.357344433903392
+      },
+      "3": {
+        "halves": {},
+        "temperature": 1.2353267925157845,
+        "first_half": {
+          "temperature": 1.2273633543225166,
+          "humidity": 3.609692367338343,
+          "pressure": 0.7170147506167479,
+          "wind_speed": 0.524034910483579
+        },
+        "second_half": {
+          "temperature": 1.2432852191054065,
+          "humidity": 3.98050376516757,
+          "pressure": 0.7454169391220157,
+          "wind_speed": 0.5184517473668669
+        },
+        "humidity": 3.7951564249872702,
+        "pressure": 0.7312203148392441,
+        "wind_speed": 0.5212424502404391
+      },
+      "6": {
+        "halves": {},
+        "temperature": 2.7873369973471047,
+        "first_half": {
+          "temperature": 2.598673298596372,
+          "humidity": 6.899386103469804,
+          "pressure": 1.0806653146624292,
+          "wind_speed": 0.6402226977607172
+        },
+        "second_half": {
+          "temperature": 2.976000696097837,
+          "humidity": 8.137340580988905,
+          "pressure": 1.2473061266543048,
+          "wind_speed": 0.6153448699640199
+        },
+        "humidity": 7.518363342229354,
+        "pressure": 1.1639857206583668,
+        "wind_speed": 0.6277837838623685
+      },
+      "12": {
+        "halves": {},
+        "temperature": 2.2777065228841544,
+        "first_half": {
+          "temperature": 2.2368205017852767,
+          "humidity": 7.7611701702679525,
+          "pressure": 0.9210753676415391,
+          "wind_speed": 0.5963649520281568
+        },
+        "second_half": {
+          "temperature": 2.318592543983032,
+          "humidity": 8.862308331845373,
+          "pressure": 0.9359843339680547,
+          "wind_speed": 0.5849535689607115
+        },
+        "humidity": 8.311739251056661,
+        "pressure": 0.9285298508047969,
+        "wind_speed": 0.5906592604944342
+      },
+      "24": {
+        "halves": {},
+        "temperature": 1.0776710911610377,
+        "first_half": {
+          "temperature": 1.1892740733479243,
+          "humidity": 3.405579764108752,
+          "pressure": 1.3121028844342884,
+          "wind_speed": 0.5178531207695798
+        },
+        "second_half": {
+          "temperature": 0.9661452894597573,
+          "humidity": 3.0366479318338886,
+          "pressure": 0.8354616880783471,
+          "wind_speed": 0.4389392056878083
+        },
+        "humidity": 3.221050041013127,
+        "pressure": 1.0736998509058584,
+        "wind_speed": 0.47838251502477125
+      }
+    },
+    "303": {
+      "1": {
+        "halves": {},
+        "temperature": 0.6619411466036639,
+        "first_half": {
+          "temperature": 0.672617445459864,
+          "humidity": 1.9219262712896876,
+          "pressure": 0.38078882774356543,
+          "wind_speed": 0.3358065457267142
+        },
+        "second_half": {
+          "temperature": 0.6512714996470628,
+          "humidity": 2.0706034373484634,
+          "pressure": 0.3837936951420693,
+          "wind_speed": 0.3309503237105417
+        },
+        "humidity": 1.9962880199728708,
+        "pressure": 0.38229172963655345,
+        "wind_speed": 0.33337767806203455
+      },
+      "3": {
+        "halves": {},
+        "temperature": 1.9085278806891766,
+        "first_half": {
+          "temperature": 1.8608351523437336,
+          "humidity": 4.84593037323126,
+          "pressure": 0.8072682577920735,
+          "wind_speed": 0.5190392671571237
+        },
+        "second_half": {
+          "temperature": 1.9561905947310665,
+          "humidity": 5.138435582241626,
+          "pressure": 0.8617779412459478,
+          "wind_speed": 0.49942960111290247
+        },
+        "humidity": 4.9922290125505775,
+        "pressure": 0.834531678317162,
+        "wind_speed": 0.5092313479426862
+      },
+      "6": {
+        "halves": {},
+        "temperature": 2.090283381386715,
+        "first_half": {
+          "temperature": 1.9679869035990825,
+          "humidity": 6.124837352276316,
+          "pressure": 1.0148768230468153,
+          "wind_speed": 0.6755872058660943
+        },
+        "second_half": {
+          "temperature": 2.212579859174348,
+          "humidity": 7.316699302663554,
+          "pressure": 1.0294291751754765,
+          "wind_speed": 0.7740702970836212
+        },
+        "humidity": 6.720768327469936,
+        "pressure": 1.0221529991111458,
+        "wind_speed": 0.7248287514748578
+      },
+      "12": {
+        "halves": {},
+        "temperature": 3.1740382954731574,
+        "first_half": {
+          "temperature": 3.0177724065425933,
+          "humidity": 8.774831745060565,
+          "pressure": 1.0789976859053454,
+          "wind_speed": 0.6889741257983374
+        },
+        "second_half": {
+          "temperature": 3.3303041844037216,
+          "humidity": 10.184082204991537,
+          "pressure": 0.9786607047185771,
+          "wind_speed": 0.6658624768734606
+        },
+        "humidity": 9.479456975026052,
+        "pressure": 1.0288291953119613,
+        "wind_speed": 0.677418301335899
+      }
+    }
+  },
+  "relu": {
+    "101": {
+      "1": {
+        "halves": {},
+        "temperature": 0.7260978811639499,
+        "first_half": {
+          "temperature": 0.7125118947632394,
+          "humidity": 1.9447552039758889,
+          "pressure": 0.39293595579461915,
+          "wind_speed": 0.33195929130751917
+        },
+        "second_half": {
+          "temperature": 0.7396754027756258,
+          "humidity": 2.0491795974911686,
+          "pressure": 0.3942666204128041,
+          "wind_speed": 0.3319553036593818
+        },
+        "humidity": 1.9969836712840918,
+        "pressure": 0.39360149543693357,
+        "wind_speed": 0.33195729686212794
+      },
+      "3": {
+        "halves": {},
+        "temperature": 1.4275131788110957,
+        "first_half": {
+          "temperature": 1.414424301171885,
+          "humidity": 4.043141019612339,
+          "pressure": 0.8486406296145032,
+          "wind_speed": 0.4992074828655513
+        },
+        "second_half": {
+          "temperature": 1.4405938192711758,
+          "humidity": 4.362322178222845,
+          "pressure": 0.9177278952962765,
+          "wind_speed": 0.4880750242483119
+        },
+        "humidity": 4.202781832024078,
+        "pressure": 0.883195135490593,
+        "wind_speed": 0.49363950151748914
+      },
+      "6": {
+        "halves": {},
+        "temperature": 2.5344537481734024,
+        "first_half": {
+          "temperature": 2.417423713414269,
+          "humidity": 7.175207021697602,
+          "pressure": 1.028155624818889,
+          "wind_speed": 0.6327331858002873
+        },
+        "second_half": {
+          "temperature": 2.651483782932536,
+          "humidity": 8.718936177355976,
+          "pressure": 1.118034178046572,
+          "wind_speed": 0.5585247154706305
+        },
+        "humidity": 7.947071599526789,
+        "pressure": 1.0730949014327305,
+        "wind_speed": 0.595628950635459
+      },
+      "12": {
+        "halves": {},
+        "temperature": 1.997937934933427,
+        "first_half": {
+          "temperature": 2.039046088142836,
+          "humidity": 6.514532041744722,
+          "pressure": 1.0924287865521864,
+          "wind_speed": 0.6223637651959313
+        },
+        "second_half": {
+          "temperature": 1.9568297817240177,
+          "humidity": 7.167950600054447,
+          "pressure": 1.0948404545527417,
+          "wind_speed": 0.6077218681550637
+        },
+        "humidity": 6.841241320899584,
+        "pressure": 1.093634620552464,
+        "wind_speed": 0.6150428166754977
+      },
+      "24": {
+        "halves": {},
+        "temperature": 1.599370309107076,
+        "first_half": {
+          "temperature": 1.5881828580151789,
+          "humidity": 4.0404111528839906,
+          "pressure": 1.3286307409753413,
+          "wind_speed": 0.5389636397789932
+        },
+        "second_half": {
+          "temperature": 1.6105500233724919,
+          "humidity": 4.016501354324788,
+          "pressure": 0.8347039208496035,
+          "wind_speed": 0.4650655504333468
+        },
+        "humidity": 4.028452118391909,
+        "pressure": 1.0815819060041145,
+        "wind_speed": 0.5020018143919974
+      }
+    },
+    "202": {
+      "1": {
+        "halves": {},
+        "temperature": 0.5955071861043685,
+        "first_half": {
+          "temperature": 0.6052358664729465,
+          "humidity": 1.7716870139104877,
+          "pressure": 0.3595602756299892,
+          "wind_speed": 0.3579765948311339
+        },
+        "second_half": {
+          "temperature": 0.5857845672188864,
+          "humidity": 1.9104644781151203,
+          "pressure": 0.3447091093178028,
+          "wind_speed": 0.3574434916898604
+        },
+        "humidity": 1.8410973691764383,
+        "pressure": 0.3521323784872472,
+        "wind_speed": 0.35770996019674817
+      },
+      "3": {
+        "halves": {},
+        "temperature": 1.2359468195301968,
+        "first_half": {
+          "temperature": 1.2279543079074837,
+          "humidity": 3.6103444095240396,
+          "pressure": 0.7167697875186746,
+          "wind_speed": 0.5239994692791116
+        },
+        "second_half": {
+          "temperature": 1.2439343012525812,
+          "humidity": 3.981385209144544,
+          "pressure": 0.7453216028993521,
+          "wind_speed": 0.5184099142878961
+        },
+        "humidity": 3.795923204172129,
+        "pressure": 0.7310501887273295,
+        "wind_speed": 0.5212038120927591
+      },
+      "6": {
+        "halves": {},
+        "temperature": 2.7770491666803627,
+        "first_half": {
+          "temperature": 2.5903586675101606,
+          "humidity": 6.874730097977836,
+          "pressure": 1.091065478203937,
+          "wind_speed": 0.6421522938984364
+        },
+        "second_half": {
+          "temperature": 2.963739665850565,
+          "humidity": 8.11146265848552,
+          "pressure": 1.2393244426496968,
+          "wind_speed": 0.6197139075366884
+        },
+        "humidity": 7.4930963782316775,
+        "pressure": 1.165194960426817,
+        "wind_speed": 0.6309331007175624
+      },
+      "12": {
+        "halves": {},
+        "temperature": 2.2956146040270937,
+        "first_half": {
+          "temperature": 2.2553905154243696,
+          "humidity": 7.815111959022136,
+          "pressure": 0.9166954903006959,
+          "wind_speed": 0.5971557252589182
+        },
+        "second_half": {
+          "temperature": 2.335838692629818,
+          "humidity": 8.931367652511927,
+          "pressure": 0.9311017666453014,
+          "wind_speed": 0.5885908553832209
+        },
+        "humidity": 8.373239805767032,
+        "pressure": 0.9238986284729986,
+        "wind_speed": 0.5928732903210696
+      },
+      "24": {
+        "halves": {},
+        "temperature": 1.0776716902176127,
+        "first_half": {
+          "temperature": 1.189274776888977,
+          "humidity": 3.4055811210322084,
+          "pressure": 1.312102377567939,
+          "wind_speed": 0.5179540498442914
+        },
+        "second_half": {
+          "temperature": 0.9661457841041123,
+          "humidity": 3.036648496387979,
+          "pressure": 0.8354615614493922,
+          "wind_speed": 0.43907738264952023
+        },
+        "humidity": 3.2210510016148595,
+        "pressure": 1.0736995342239684,
+        "wind_speed": 0.478502074485025
+      }
+    },
+    "303": {
+      "1": {
+        "halves": {},
+        "temperature": 0.6619098967558238,
+        "first_half": {
+          "temperature": 0.6725923597823342,
+          "humidity": 1.9218956990120384,
+          "pressure": 0.38075378199611765,
+          "wind_speed": 0.3357793433640478
+        },
+        "second_half": {
+          "temperature": 0.651234089469517,
+          "humidity": 2.070526754181998,
+          "pressure": 0.38381004724000545,
+          "wind_speed": 0.33095808133313837
+        },
+        "humidity": 1.9962343850661934,
+        "pressure": 0.3822823908201874,
+        "wind_speed": 0.33336796113917727
+      },
+      "3": {
+        "halves": {},
+        "temperature": 1.9321357500827157,
+        "first_half": {
+          "temperature": 1.876223300544165,
+          "humidity": 4.830546043556039,
+          "pressure": 0.8029131430357318,
+          "wind_speed": 0.5232508888471731
+        },
+        "second_half": {
+          "temperature": 1.9880130124283526,
+          "humidity": 5.148508125469616,
+          "pressure": 0.848748856742495,
+          "wind_speed": 0.5027002344821938
+        },
+        "humidity": 4.989577125759587,
+        "pressure": 0.8258382135676949,
+        "wind_speed": 0.5129723273785071
+      },
+      "6": {
+        "halves": {},
+        "temperature": 2.08912212649642,
+        "first_half": {
+          "temperature": 2.0173109071260518,
+          "humidity": 6.409941292922913,
+          "pressure": 1.0450342012363332,
+          "wind_speed": 0.6671930257330844
+        },
+        "second_half": {
+          "temperature": 2.1609333458667885,
+          "humidity": 7.511093142548416,
+          "pressure": 1.026952538325337,
+          "wind_speed": 0.7446502812321552
+        },
+        "humidity": 6.960517217735665,
+        "pressure": 1.0359933697808352,
+        "wind_speed": 0.7059216534826197
+      },
+      "12": {
+        "halves": {},
+        "temperature": 3.1143747485252664,
+        "first_half": {
+          "temperature": 3.0182813721997728,
+          "humidity": 8.348087514160076,
+          "pressure": 1.2097498825111062,
+          "wind_speed": 0.65458062439635
+        },
+        "second_half": {
+          "temperature": 3.21046812485076,
+          "humidity": 9.713770293464247,
+          "pressure": 1.0693059139452559,
+          "wind_speed": 0.6438013410398222
+        },
+        "humidity": 9.030928903812162,
+        "pressure": 1.139527898228181,
+        "wind_speed": 0.6491909827180861
+      },
+      "24": {
+        "halves": {},
+        "temperature": 1.382141889925722,
+        "first_half": {
+          "temperature": 1.422126449106649,
+          "humidity": 3.6018923936907115,
+          "pressure": 1.3359435911861965,
+          "wind_speed": 0.5282084234360898
+        },
+        "second_half": {
+          "temperature": 1.3421849825837864,
+          "humidity": 3.325634867102129,
+          "pressure": 0.831238426908089,
+          "wind_speed": 0.44762002993586825
+        },
+        "humidity": 3.4637158515090825,
+        "pressure": 1.083503720018385,
+        "wind_speed": 0.48790028888011594
+      }
+    }
+  }
+}
