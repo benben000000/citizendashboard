@@ -112,7 +112,35 @@ def clamp_var(v, x):
 
 
 def main():
-    pipe = TelemetryDataPipeline()
+    import argparse
+
+    ap = argparse.ArgumentParser(
+        description="Refit the inference policy from measured validation skill.")
+    ap.add_argument("--weather-csv", default=None,
+                    help="Telemetry corpus to refit against. Defaults to "
+                         "data/weather_telemetry.csv. This MUST match the corpus "
+                         "the model under test was trained on: the refit chooses "
+                         "between persistence and the model, so evaluating a "
+                         "candidate against a different corpus silently selects "
+                         "on out-of-distribution data.")
+    ap.add_argument("--bundle-dir", default=None,
+                    help="Bundle directory to evaluate (h1/ h3/ ...). Defaults to "
+                         "the served bundles. Point this at a candidate's bundles "
+                         "to refit FOR that candidate.")
+    ap.add_argument("--out", default=None,
+                    help="Where to write the refit policy. Defaults to "
+                         "data/inference_policy_refit.json. The live policy is "
+                         "never overwritten; it is copied over deliberately.")
+    args = ap.parse_args()
+
+    weather_csv = args.weather_csv or os.path.join(DATA_DIR, "weather_telemetry.csv")
+    bundle_root = args.bundle_dir or os.path.join(DATA_DIR, "bundles")
+    out_path = args.out or os.path.join(DATA_DIR, "inference_policy_refit.json")
+
+    pipe = TelemetryDataPipeline(weather_csv=weather_csv)
+    print(f"corpus        : {os.path.basename(weather_csv)}")
+    print(f"bundle root   : {os.path.relpath(bundle_root, DATA_DIR)}")
+    print(f"policy written: {os.path.basename(out_path)}")
     with open(POLICY_PATH, "r", encoding="utf-8") as f:
         base_policy = json.load(f)
 
@@ -121,7 +149,7 @@ def main():
 
     for h in HORIZONS:
         predictor = LNNServerlessPredictor(
-            bundle_dir=os.path.join(DATA_DIR, "bundles", f"h{h}"))
+            bundle_dir=os.path.join(bundle_root, f"h{h}"))
         print(f"\n+{h}h  collecting TRAIN ...", flush=True)
         tr_head, tr_pers, tr_truth = collect(pipe, predictor, "train", h)
         print(f"     collecting VAL   ...", flush=True)
@@ -206,13 +234,13 @@ def main():
         "horizons": horizons_out,
     }
 
-    with open(OUT_PATH, "w", encoding="utf-8", newline="\n") as f:
+    with open(out_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(new_policy, f, indent=2)
     with open(os.path.join(DATA_DIR, "policy_refit_report.json"), "w",
               encoding="utf-8", newline="\n") as f:
         json.dump(report, f, indent=2)
 
-    print(f"\nwritten: {OUT_PATH}")
+    print(f"\nwritten: {out_path}")
     print(f"written: {os.path.join(DATA_DIR, 'policy_refit_report.json')}")
     print("\nReview the table above, then copy the refit policy over the live one:")
     print(f"  copy inference_policy_refit.json -> inference_policy.json")

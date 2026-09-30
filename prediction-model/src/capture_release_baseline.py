@@ -70,7 +70,16 @@ def skill(persist_mae, model_mae):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--benchmark", default=os.path.join(DATA, "nwp_benchmark_production.json"))
-    ap.add_argument("--corpus", default=os.path.join(DATA, "weather_telemetry.csv"))
+    ap.add_argument("--corpus", default=os.path.join(DATA, "weather_telemetry.csv"),
+                    help="Telemetry corpus the benchmark was run against. The "
+                         "recorded SHA-256 must be the corpus the scores actually "
+                         "came from, or the release gate will refuse every later "
+                         "comparison with CORPUS_MISMATCH.")
+    ap.add_argument("--model-label", default="LNN production",
+                    help="Key the model-under-test was written under in the "
+                         "benchmark JSON. Hard-coding this silently produced an "
+                         "EMPTY baseline -- 0 of 0 cells -- whenever a benchmark "
+                         "was run with a different --label, and nothing said so.")
     ap.add_argument("--bundle-dir", default=os.path.join(DATA, "bundles"))
     ap.add_argument("--out", default=os.path.join(DATA, "release_baseline.md"))
     ap.add_argument("--check", action="store_true",
@@ -81,6 +90,7 @@ def main() -> int:
         print(f"missing benchmark results: {args.benchmark}")
         return 1
     results = json.load(open(args.benchmark, encoding="utf-8"))["results"]
+    model_label = args.model_label
 
     corpus_sha = sha256_file(args.corpus)
     bundle_shas = {}
@@ -143,7 +153,7 @@ def main() -> int:
             if key not in results or var not in results[key]:
                 continue
             row = results[key][var]
-            ours = row.get("LNN production") or row.get("LNN (this project)")
+            ours = row.get(model_label) or row.get("LNN production") or row.get("LNN (this project)")
             if not ours:
                 continue
             pers = row["persistence"]["mae"]
@@ -167,12 +177,12 @@ def main() -> int:
         if key not in results or "_rain_brier" not in results[key]:
             continue
         b = results[key]["_rain_brier"]
-        ours = b.get("LNN production") or b.get("LNN (this project)")
+        ours = b.get(model_label) or b.get("LNN production") or b.get("LNN (this project)")
         if not ours:
             continue
         clim = b.get("climatology (constant)")
         nwp_vals = [v for k, v in b.items()
-                    if k not in ("LNN production", "LNN (this project)",
+                    if k not in (model_label, "LNN production", "LNN (this project)",
                                  "persistence", "climatology (constant)")]
         best_nwp = min(nwp_vals) if nwp_vals else None
         L.append(f"| +{h}h | {ours:.4f} | {b['persistence']:.4f} | "
@@ -188,7 +198,7 @@ def main() -> int:
             if key not in results or var not in results[key]:
                 continue
             row = results[key][var]
-            ours = row.get("LNN production") or row.get("LNN (this project)")
+            ours = row.get(model_label) or row.get("LNN production") or row.get("LNN (this project)")
             if not ours:
                 continue
             sk = skill(row["persistence"]["mae"], ours["mae"])
@@ -220,6 +230,15 @@ def main() -> int:
     L.append("")
 
     text = "\n".join(L)
+
+    # A baseline with no rows is a silent failure: the script used to exit 0 with
+    # "0 / 0 cells with real skill", which reads like a result. Refuse instead.
+    if not any(line.startswith("| +") for line in L):
+        print(f"REFUSING to write an empty baseline: no scoreboard rows were "
+              f"parsed from {os.path.basename(args.benchmark)} under model label "
+              f"{args.model_label!r}. Check the --benchmark path and --model-label.",
+              file=sys.stderr)
+        return 1
 
     if args.check:
         if not os.path.exists(args.out):

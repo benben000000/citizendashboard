@@ -18,6 +18,7 @@ import sys
 import json
 import shutil
 import hashlib
+import torch
 import argparse
 from datetime import datetime, timezone
 from typing import Dict, Any, List
@@ -49,6 +50,7 @@ def generate_bundles(
     implementation_commit: str = None,
     artifact_commit: str = None,
     model_weights_commit: str = None,
+      candidate_dir: str = None,
 ) -> Dict[str, Any]:
     """
     Generate or verify bundle directories for all canonical horizons.
@@ -68,7 +70,13 @@ def generate_bundles(
         artifact_commit = "b72b16ae960be6627b92dd2445dac10d84b99bef"
 
     if model_weights_commit is None:
-        model_weights_commit = "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf"
+        if candidate_dir:
+            # Overwritten per-horizon below from each candidate checkpoint's own
+            # manifest, so the policy commit and the model commit agree by
+            # construction. See the candidate branch in the loop.
+            model_weights_commit = head_commit
+        else:
+            model_weights_commit = "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf"
 
     # Read base manifest for normalization constants
     clean_manifest_path = os.path.join(data_dir, "cleaned_data_manifest.json")
@@ -86,7 +94,40 @@ def generate_bundles(
 
     for h in CANONICAL_HORIZONS:
         h_dir = os.path.join(output_dir, f"h{h}")
-        ckpt_src = os.path.join(data_dir, f"lnn_weather_water_h{h}.pt")
+        if candidate_dir:
+            # Candidate checkpoints are a DIFFERENT ARCHITECTURE from the served
+            # bundles: GarciaWeatherLNNFeatured (feature-augmented, 75-dim
+            # context) versus GarciaWeatherLNN (8-dim sequence). inference.py
+            # already selects the class from model_family, so the manifest must
+            # record the candidate's real family and dimensions. Writing
+            # "GarciaWeatherLNN" here would make load_state_dict fail with 10
+            # missing and 10 unexpected tensors -- a packaging step that appears
+            # to work and produces a bundle that cannot load.
+            ckpt_src = os.path.join(candidate_dir, f"candidate_h{h}h.pt")
+            ck = torch.load(ckpt_src, map_location="cpu", weights_only=False)
+            _man = ck.get("manifest", {}) or {}
+            model_family = _man.get("model_family", "MF-1-FEATURED")
+            model_dims = {"input_dim": int(_man.get("input_dim", 8)),
+                          "hidden_dim": int(_man.get("hidden_dim", 32)),
+                          "context_dim": int(_man.get("context_dim", 75))}
+            # The commit the weights were TRAINED at, taken from the checkpoint's
+            # own manifest -- not HEAD. inference.py compares the policy commit
+            # against the checkpoint manifest's code_commit and fails closed on a
+            # mismatch, because a policy fitted for one model version must not be
+            # served with another. Stamping HEAD here guarantees a mismatch every
+            # time any commit lands after training, which is every time.
+            # The pair that is truthful is: these weights, and a policy refitted
+            # against them, both attributable to the training commit.
+            model_commit = _man.get("code_commit") or head_commit
+        else:
+            ckpt_src = os.path.join(data_dir, f"lnn_weather_water_h{h}.pt")
+            model_family = "GarciaWeatherLNN"
+            model_dims = {"input_dim": 8, "hidden_dim": 32, "context_dim": 0}
+            model_commit = None
+        if candidate_dir:
+            # Keep the manifest's model_weights_commit and the policy's
+            # policy_code_commit on the SAME commit, or inference.py fails closed.
+            model_weights_commit = model_commit
         if not os.path.exists(ckpt_src):
             raise FileNotFoundError(f"Missing source checkpoint: {ckpt_src}")
 
@@ -95,8 +136,18 @@ def generate_bundles(
         # Build horizon-specific active policy with complete provenance metadata (Phase 5)
         h_policy = {
             "policy_version": base_policy.get("policy_version", "1.0.0"),
-            "policy_code_commit": base_policy.get("policy_code_commit", model_weights_commit),
-            "model_family": "GarciaWeatherLNN",
+            # Stamped with the commit being packaged, NOT carried forward from the
+            # previous policy. inference.py fails closed when the policy commit and
+            # the model commit disagree, on the grounds that a policy fitted for a
+            # different model version must not be served with this one. Carrying a
+            # stale commit forward guaranteed that mismatch for every candidate
+            # bundle, so a correctly-packaged candidate could never load.
+            #
+            # This is only honest because the release order is: refit the policy
+            # against this candidate, THEN package. Packaging stamps the commit at
+            # which that pairing was made.
+            "policy_code_commit": (model_commit if candidate_dir else head_commit),
+            "model_family": model_family,
             "model_status": "ACTIVE_PRODUCTION",
             "bundle_version": "1.0.0",
             "horizon_hours": h,
@@ -146,11 +197,12 @@ def generate_bundles(
                 "means": norm.get("means", []),
                 "stds": norm.get("stds", []),
             },
-            "model_family": "GarciaWeatherLNN",
+            "model_family": model_family,
             "model_dimensions": {
-                "input_dim": 8,
-                "hidden_dim": 32,
+                "input_dim": model_dims.get("input_dim", 8),
+                "hidden_dim": model_dims.get("hidden_dim", 32),
                 "output_dim": 8,
+                "context_dim": model_dims.get("context_dim", 0),
             },
             "random_seed": 42,
             "training_config": {
@@ -259,6 +311,14 @@ def main():
         default=None,
         help="Explicit model weights commit hash",
     )
+    parser.add_argument(
+        "--candidate-dir",
+        type=str,
+        default=None,
+        help="Package candidate_h<N>h.pt from this directory instead of the "
+             "production lnn_weather_water_h<N>.pt. Records the candidate's real "
+             "model family and dimensions so inference.py loads the right class.",
+    )
     args = parser.parse_args()
 
     try:
@@ -269,6 +329,7 @@ def main():
             implementation_commit=args.implementation_commit,
             artifact_commit=args.artifact_commit,
             model_weights_commit=args.model_weights_commit,
+            candidate_dir=args.candidate_dir,
         )
         print("\nAll 5 canonical bundles successfully packaged and verified!")
         sys.exit(0)
