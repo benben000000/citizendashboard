@@ -136,8 +136,15 @@ def validate_roster(stations, strict=True):
               f"MODEL_STATIONS: {', '.join(missing)}")
 
     if unknown and strict:
+        # The offending ids belong in the exception message, not only on stdout.
+        # A caller that captures the exception without the console output (cron,
+        # CI, a wrapper) must still learn which id is wrong and what it should be.
+        detail = "; ".join(
+            f"{bad!r} -> {by_fold.get(bad.lower())!r} (case only)"
+            if bad.lower() in by_fold else f"{bad!r} (not in station_index.json)"
+            for bad in unknown)
         raise SystemExit(
-            f"Roster validation failed for {len(unknown)} station id(s). "
+            f"Roster validation failed for {len(unknown)} station id(s): {detail}. "
             f"Fix MODEL_STATIONS before fetching; a wrong id looks exactly like "
             f"a dead station and the cache will not record the difference.")
     return sorted(canonical - set(stations))

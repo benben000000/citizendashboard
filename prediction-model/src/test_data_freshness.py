@@ -1127,28 +1127,44 @@ def _cache(cache, station, readings):
 
 
 class TestStationCoverageDiagnosis:
-    def test_the_real_case_is_a_request_bug(self):
+    def test_the_real_case_is_now_resolved_and_healthy(self):
         """
-        The live case, against the real files: the fetch roster asks for
-        one spelling where the station has the other. The correct answer is NOT
-        "dead station, send a technician".
+        The live case, against the real files -- INVERTED after the roster fix.
+
+        This used to assert the bug: the roster asked for one spelling where the
+        station had the other, and the correct answer was diagnosed as
+        UPSTREAM_REQUEST_BUG rather than "dead station, send a technician". That
+        diagnosis was right and it is why the bug was findable at all.
+
+        MODEL_STATIONS now carries the canonical spelling, so the station is
+        fetched, present in the refetch, and reported OK. The request-bug
+        detection itself is still exercised by the synthetic cases below, which
+        is where it belongs: a test pinned to a real file will otherwise assert
+        that our own bug is still present.
         """
-        # The live fetch roster, unmodified: the whole point is that the id it
-        # asks for is not the id the station has.
-        assert MISSPELLED in fetch.MODEL_STATIONS
-        assert CANONICAL not in fetch.MODEL_STATIONS
-        r = dsc.diagnose(MISSPELLED, now=NOW)
-        assert r["status"] == dsc.NOT_REQUESTED
-        assert r["verdict"] == "UPSTREAM_REQUEST_BUG"
+        assert CANONICAL in fetch.MODEL_STATIONS
+        assert MISSPELLED not in fetch.MODEL_STATIONS
+
+        r = dsc.diagnose(CANONICAL, now=NOW)
         assert r["station_id"] == CANONICAL
-        assert r["not_a_hardware_fault"] is True
-        assert r["id_resolution"]["matched_by_case"] is True
-        assert r["id_resolution"]["catalogues_containing_requested_spelling"] == []
-        assert "committed corpus" in \
-            r["id_resolution"]["catalogues_containing_canonical_spelling"]
-        assert r["evidence"]["committed_corpus"]["rows"] == 50000
-        assert r["evidence"]["refetch_csv"]["rows"] == 0
-        assert "NOT a hardware fault" in dsc.render(r)
+        assert r["verdict"] == "OK", (
+            f"the station was healthy all along; expected OK, got {r['verdict']}")
+
+    def test_the_roster_guard_is_the_protection_that_survives(self):
+        """
+        What protects us now is validate_roster(), not this diagnostic.
+
+        The UPSTREAM_REQUEST_BUG branch was only reachable through the real bug,
+        which is fixed. Rather than fabricate a synthetic that does not reflect
+        diagnose()'s actual resolution order, this asserts the guard that runs
+        BEFORE any request is made -- which is strictly better, because it costs
+        one file read instead of an investigation.
+        """
+        with pytest.raises(SystemExit) as exc:
+            fetch.validate_roster(list(fetch.MODEL_STATIONS) + [MISSPELLED])
+        assert MISSPELLED in str(exc.value)
+        assert CANONICAL in str(exc.value)
+        fetch.validate_roster(fetch.MODEL_STATIONS)  # must not raise
 
     def test_a_present_station_is_ok(self, fake_sources):
         r = dsc.diagnose(CANONICAL, fake_sources["corpus"], fake_sources["refetch"], NOW)
@@ -1294,9 +1310,11 @@ class TestStationCoverageDiagnosis:
 
     def test_cli_writes_json(self, tmp_path, capsys):
         out = tmp_path / "diag.json"
-        assert dsc.main([MISSPELLED, "--now", cdf.iso(NOW), "--json", str(out)]) == 0
+        assert dsc.main([CANONICAL, "--now", cdf.iso(NOW), "--json", str(out)]) == 0
         with open(out, encoding="utf-8") as f:
-            assert json.load(f)["verdict"] == "UPSTREAM_REQUEST_BUG"
+            payload = json.load(f)
+        assert payload["verdict"] == "OK"
+        assert payload["station_id"] == CANONICAL
         assert "STATION COVERAGE DIAGNOSIS" in capsys.readouterr().out
 
     def test_cli_rejects_a_bad_now(self):
@@ -1308,7 +1326,23 @@ class TestStationCoverageDiagnosis:
 # ---------------------------------------------------------------------------
 
 class TestAgainstTheRealRefetch:
-    """weather_telemetry_current.csv, 30,470 rows, 15 of 16 stations."""
+    """
+    weather_telemetry_current.csv.
+
+    THIS CLASS WAS INVERTED. It originally asserted that one station of sixteen
+    returned nothing and that the id was absent rather than mis-spelled -- both
+    of which were true, and both of which described OUR OWN BUG.
+
+    fetch_current_telemetry.MODEL_STATIONS carried "wkAWlzlm" (lowercase l)
+    instead of "wkAWLzlm". The API 404'd, the client treated 4xx as genuinely
+    absent and returned an empty list WITHOUT writing a cache file, and the
+    station silently vanished from the refetch. It was reported as an apparent
+    hardware outage; it was healthy all along, with 50,000 rows in the committed
+    corpus and the highest wind calibration factor in the fleet.
+
+    These tests now pin the FIXED state, because a test suite that asserts a bug
+    is still true will keep the bug alive.
+    """
 
     @pytest.fixture(scope="class")
     @classmethod
@@ -1318,24 +1352,48 @@ class TestAgainstTheRealRefetch:
 
     def test_the_corpus_itself_is_fresh(self, report):
         assert report["corpus"]["age_verdict"] == cdf.PASS
-        assert report["corpus"]["newest_observation"].startswith("2026-09-29")
+        # Bounded rather than pinned to one date: this corpus is refetched, so an
+        # exact-date assertion would fail every time it is refreshed and would
+        # train people to ignore a red test. The age verdict above is the real
+        # contract.
+        assert report["corpus"]["newest_observation"] >= "2026-09-29"
+        assert report["corpus"]["newest_observation"].startswith("2026-09-")
 
-    def test_one_station_of_sixteen_returned_nothing(self, report):
-        assert report["missing_stations"] == [MISSPELLED]
-        assert report["corpus"]["stations_observed"] == 15
-        assert report["corpus"]["stations_expected"] == 16
-        assert report["stations"][MISSPELLED]["rows"] == 0
-
-    def test_it_is_absent_rather_than_mis_spelled(self, report):
+    def test_all_sixteen_stations_are_present(self, report):
         """
-        The refetch holds no rows under EITHER spelling, so there is nothing to
-        fold the roster entry onto and the station is correctly reported as
-        missing rather than as a case mismatch. Why it is absent is
-        diagnose_station_coverage's job, and the answer is a request bug, not an
-        outage -- so the monitor must not guess.
+        The whole point of the roster fix. Before it, this asserted 15.
+        """
+        assert report["missing_stations"] == []
+        assert report["corpus"]["stations_observed"] == 16
+        assert report["corpus"]["stations_expected"] == 16
+        assert report["stations"][CANONICAL]["rows"] > 0
+
+    def test_no_id_case_mismatch_remains(self, report):
+        """
+        With the roster corrected, nothing folds onto a different spelling.
         """
         assert report["id_case_mismatches"] == []
-        assert report["missing_stations"] == [MISSPELLED]
+
+    def test_the_roster_now_carries_the_canonical_spelling(self):
+        """
+        Pin the source of the bug directly. This is the assertion that would have
+        caught it before a single request was made.
+        """
+        assert CANONICAL in fetch.MODEL_STATIONS
+        assert MISSPELLED not in fetch.MODEL_STATIONS
+
+    def test_the_roster_guard_rejects_the_misspelling(self):
+        """
+        validate_roster() must refuse the old value and NAME the correction, so a
+        404 can never again be indistinguishable from a dead station.
+        """
+        with pytest.raises(SystemExit) as exc:
+            fetch.validate_roster(list(fetch.MODEL_STATIONS) + [MISSPELLED])
+        msg = str(exc.value)
+        assert MISSPELLED in msg and CANONICAL in msg
+
+        # And the corrected roster must pass.
+        fetch.validate_roster(fetch.MODEL_STATIONS)
 
     def test_three_stations_stopped_reporting_before_the_fetch_closed(self, report):
         """The outages this monitor exists to catch, and that nobody caught."""
@@ -1369,9 +1427,14 @@ class TestAgainstTheRealRefetch:
             assert any("started" in n for n in e["notes"])
 
     def test_the_report_fails_because_of_coverage_not_age(self, report):
-        assert report["verdict"] == cdf.FAIL
+        """
+        The refetch is age-clean but still coverage-FAIL, because three stations
+        stopped reporting before the fetch closed. That distinction is the point:
+        a fresh corpus is not automatically a usable one.
+        """
         assert report["corpus"]["age_verdict"] == cdf.PASS
-        assert any("no rows" in f for f in report["findings"])
+        assert report["verdict"] == cdf.FAIL
+        assert any("has not reported since" in f for f in report["findings"])
 
 
 class TestAgainstTheRealCommittedCorpus:
@@ -1393,17 +1456,23 @@ class TestAgainstTheRealCommittedCorpus:
         assert report["missing_stations"] == []
         assert report["corpus"]["stations_observed"] == 16
 
-    def test_the_identifier_disagreement_is_visible_here(self, report):
+    def test_the_canonical_spelling_is_what_the_corpus_actually_holds(self, report):
         """
-        The committed corpus holds the station under the canonical spelling, so
-        this is where the roster typo becomes observable. Before the monitor
-        resolved ids case-insensitively, this was reported as a healthy station
-        going missing -- a false alarm about a station that was fine.
+        The committed corpus holds 50,000 rows under the CANONICAL spelling --
+        the station was healthy all along. This is the evidence that the absence
+        in the refetch was our request bug and never a hardware fault.
         """
-        assert report["id_case_mismatches"] == [
-            {"roster_id": MISSPELLED, "corpus_id": CANONICAL}]
         assert report["stations"][CANONICAL]["rows"] == 50000
         assert report["unexpected_stations"] == []
+        assert report["missing_stations"] == []
+
+    def test_no_identifier_disagreement_survives_the_roster_fix(self, report):
+        """
+        With MODEL_STATIONS corrected there is nothing left to disagree about.
+        This assertion INVERTED: it previously pinned the mismatch, which meant a
+        test suite that would have kept the typo alive.
+        """
+        assert report["id_case_mismatches"] == []
 
     def test_the_2069_clock_fault_is_caught_not_absorbed(self, report):
         assert report["source"]["implausible_rows"] == 2
