@@ -5,3 +5,8 @@ numpy>=1.24.0
 python-dateutil>=2.8.0
 awsiotsdk>=1.22.0
 python-dotenv>=1.0.1
+
+# Live NOAA GFS forecasts for the NWP-corrected hybrid router
+# (external_sources/gfs.py). Pure-python bindings; the wheel carries the
+# ECMWF ecCodes binaries, so no separate system install is needed.
+eccodes>=2.30,<3.0

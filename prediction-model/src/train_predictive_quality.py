@@ -348,7 +348,31 @@ def evaluate_precipitation_amount(y_true_mm: np.ndarray, y_pred_mm: np.ndarray, 
 # Training Candidate Models Pipeline
 # ---------------------------------------------------------------------------
 
-def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr: float = 1e-3, seed: int = DEFAULT_SEED, commit: str = None):
+def _wind_excluded_stations(pipeline) -> list:
+    """
+    Stations whose wind channel is unusable, judged from the training data.
+
+    Kept local to training rather than hard-coded so the verdict is derived
+    from the data every run. These stations still contribute temperature,
+    humidity and pressure; only their wind target is masked.
+    """
+    from sensor_health import assess_fleet
+    per = {sid: [r.get("wind_speed") for r in obs.values()]
+           for sid, obs in pipeline.station_hourly.items()}
+    assessment = assess_fleet(per)
+    bad = [sid for sid, r in assessment.items()
+           if not sid.startswith("_") and r.get("verdict") in ("dead", "absent")]
+    if bad:
+        print(f"  [wind gate] excluding wind target for {len(bad)} station(s): "
+              f"{', '.join(sorted(bad))}")
+    return sorted(bad)
+
+
+def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 60,
+                                    lr: float = 1e-3, seed: int = DEFAULT_SEED,
+                                    commit: str = None, patience: int = 12,
+                                    weather_csv_path: str = None,
+                                    horizons_only: list = None):
     """
     Main execution pipeline fulfilling Workstreams A through I of the Proper Implementation Plan:
       1. Freezes baseline manifest (Workstream A).
@@ -373,10 +397,19 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     else:
         head_commit = get_git_commit()
 
-    pipeline = get_telemetry_pipeline()
-    horizons = DEFAULT_HORIZONS  # [1, 3, 6, 12, 24]
+    # The training corpus is resolved BEFORE the pipeline is built. Resolved after,
+    # the cached singleton would already hold the default CSV and the new path
+    # would be ignored, so scores would silently describe the old data.
+    weather_csv_path = weather_csv_path or os.path.join(DATA_DIR, "weather_telemetry.csv")
+    pipeline = get_telemetry_pipeline(weather_csv=weather_csv_path, force_reload=True)
+    # Trained one horizon at a time during this work so each run can be checked
+    # on its own before committing; pass --horizons to select.
+    horizons = [int(x) for x in horizons_only] if horizons_only else list(DEFAULT_HORIZONS)
 
-    weather_csv_path = os.path.join(DATA_DIR, "weather_telemetry.csv")
+    # The training corpus is selectable. It defaults to the committed history
+    # file; a refetched history (see fetch_current_telemetry.py) can be passed in
+    # with --weather-csv. Whichever is used, its SHA-256 is recorded in the
+    # manifest so a score can always be traced back to the exact bytes trained on.
     water_csv_path = os.path.join(DATA_DIR, "water_level_telemetry.csv")
     raw_weather_hash = compute_file_sha256(weather_csv_path)
     raw_water_hash = compute_file_sha256(water_csv_path)
@@ -396,7 +429,9 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     weekly_clim_model = WeeklyClimatologyWeatherModel()
     train_metadata_all = []
     for h in [1]:
-        res = build_forecast_windows(pipeline, split="train", horizon=h, return_metadata=True)
+        res = build_forecast_windows(pipeline, split="train", horizon=h,
+                                 return_metadata=True,
+                                 wind_excluded_stations=_wind_excluded_stations(pipeline))
         if res is not None:
             train_metadata_all.extend(res[6])
     clim_model.fit_from_metadata(train_metadata_all)
@@ -507,6 +542,7 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         print(f"Loading Validation windows (+{h}h)...")
         val_data = build_feature_augmented_forecast_windows(
             pipeline=pipeline, split="val", horizon=h,
+        wind_excluded_stations=_wind_excluded_stations(pipeline),
             norm_means=norm_means, norm_stds=norm_stds,
             feat_means=feat_means, feat_stds=feat_stds,
             return_metadata=True
@@ -859,28 +895,63 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         ]), dtype=torch.float32)
 
         val_tgt_t = np.array([m["target_temperature"] for m in val_meta], dtype=np.float32)
+        # Validation targets for the non-temperature heads, needed by the blended
+        # checkpoint score. Previously only temperature was scored, which is how
+        # the rain, water and wind heads ended up selected on temperature.
+        val_tgt_w_np = np.column_stack([
+            [m["target_temperature"] for m in val_meta],
+            [m["target_humidity"] for m in val_meta],
+            [m["target_pressure"] for m in val_meta],
+            [m["target_wind_speed"] for m in val_meta],
+            [m["target_wind_u"] for m in val_meta],
+            [m["target_wind_v"] for m in val_meta],
+        ]).astype(np.float32)
         test_orig_w = torch.tensor(np.column_stack([t_orig, rh_orig, p_orig, ws_orig, u_orig, v_orig]), dtype=torch.float32)
 
-        train_dataset = TensorDataset(train_telemetry, train_context, train_dt, train_rain, train_precip, train_orig_w, train_tgt_w)
+        # Per-window flag marking stations whose wind channel is excluded. A
+        # window from a dead anemometer still carries real temperature, humidity
+        # and pressure history, so the window is kept -- but its wind TARGET is
+        # a known artefact and must not train the wind head.
+        train_wind_valid_np = np.array(
+            [0.0 if m.get("wind_channel_excluded") else 1.0 for m in train_meta],
+            dtype=np.float32)
+        train_wind_valid = torch.tensor(train_wind_valid_np)
+        val_wind_valid_np = np.array(
+            [0.0 if m.get("wind_channel_excluded") else 1.0 for m in val_meta],
+            dtype=np.float32)
+
+        train_dataset = TensorDataset(train_telemetry, train_context, train_dt, train_rain, train_precip, train_orig_w, train_tgt_w, train_wind_valid)
         train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 
         best_val_mae = float("inf")
         best_state = copy.deepcopy(candidate_model.state_dict())
+        best_epoch = -1
+        bad_epochs = 0
 
         candidate_model.train()
         for ep in range(epochs):
-            for b_telemetry, b_context, b_dt, b_rain, b_precip, b_orig_w, b_tgt_w in train_loader:
+            for b_telemetry, b_context, b_dt, b_rain, b_precip, b_orig_w, b_tgt_w, b_wind_valid in train_loader:
+                wmask = b_wind_valid > 0.5
                 optimizer.zero_grad()
                 out = candidate_model(b_telemetry, b_context, b_dt, origin_weather=b_orig_w)
 
                 loss_t = nn.functional.smooth_l1_loss(out["temperature"], b_tgt_w[:, 0:1])
                 loss_rh = 0.05 * nn.functional.smooth_l1_loss(out["humidity"], b_tgt_w[:, 1:2])
                 loss_p = 0.1 * nn.functional.smooth_l1_loss(out["pressure"], b_tgt_w[:, 2:3])
-                loss_ws = 0.5 * nn.functional.smooth_l1_loss(out["wind_speed"], b_tgt_w[:, 3:4])
+                # Wind speed loss, masked to windows with a usable anemometer.
+                # Unmasked, the dead stations contribute targets that are
+                # identically zero, which is how "calm" became the dominant
+                # training signal for the wind head.
+                if wmask.any():
+                    loss_ws = 0.5 * nn.functional.smooth_l1_loss(
+                        out["wind_speed"][wmask], b_tgt_w[wmask, 3:4])
+                else:
+                    loss_ws = torch.tensor(0.0)
 
-                # Mask wind direction loss to NON-CALM samples only!
+                # Mask wind direction loss to NON-CALM samples only, and to
+                # windows with a usable anemometer.
                 ws_target = b_tgt_w[:, 3]
-                non_calm_mask = ws_target >= 1.0
+                non_calm_mask = (ws_target >= 1.0) & wmask
                 if non_calm_mask.any():
                     loss_uv = nn.functional.mse_loss(out["wind_u"][non_calm_mask], b_tgt_w[non_calm_mask, 4:5]) + \
                               nn.functional.mse_loss(out["wind_v"][non_calm_mask], b_tgt_w[non_calm_mask, 5:6])
@@ -900,16 +971,47 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
                 nn.utils.clip_grad_norm_(candidate_model.parameters(), max_norm=1.0)
                 optimizer.step()
 
-            # Validation check for early stopping
+            # Validation check for checkpoint selection and early stopping.
+            # `bad_epochs` counts epochs since the blended score last improved,
+            # so a run stops when further epochs stop helping rather than always
+            # consuming the full budget.
             candidate_model.eval()
             with torch.no_grad():
                 val_out_ep = candidate_model(val_telemetry, val_context, val_dt, origin_weather=val_orig_w)
                 v_t_pred = val_out_ep["temperature"].squeeze(-1).numpy()
-                v_mae = float(np.mean(np.abs(v_t_pred - val_tgt_t)))
-                if v_mae < best_val_mae:
+                # Checkpoint on a BLENDED validation score, not temperature
+                # alone. Selecting on temperature meant the rain, water AND wind
+                # heads were all chosen on temperature performance, so a model
+                # could be its best-ever for wind and still be discarded. Each
+                # head is scored on its own scale and normalised by a
+                # persistence baseline, so no head dominates by unit size.
+                v_scores = [float(np.mean(np.abs(v_t_pred - val_tgt_t)))]
+                v_ws = val_out_ep["wind_speed"].squeeze(-1).numpy()
+                vw = val_wind_valid_np > 0.5
+                if vw.any():
+                    v_scores.append(float(np.mean(np.abs(
+                        v_ws[vw] - val_tgt_w_np[vw, 3]))) * 2.0)
+                v_rh = val_out_ep["humidity"].squeeze(-1).numpy()
+                v_scores.append(float(np.mean(np.abs(
+                    v_rh - val_tgt_w_np[:, 1])) / 10.0)
+                    if val_meta else 0.0)
+                v_rain_p = torch.sigmoid(val_out_ep["rain_prob"]).squeeze(-1).numpy()
+                v_rain_t = val_rain.squeeze(-1).numpy()
+                v_scores.append(float(np.mean(np.abs(
+                    (v_rain_p > 0.5).astype(float) - v_rain_t))) * 5.0)
+                v_mae = float(np.mean(v_scores))
+                if v_mae < best_val_mae - 1e-6:
                     best_val_mae = v_mae
                     best_state = copy.deepcopy(candidate_model.state_dict())
+                    best_epoch = ep
+                    bad_epochs = 0
+                else:
+                    bad_epochs += 1
             candidate_model.train()
+            if patience and bad_epochs >= patience:
+                print(f"  early stop at epoch {ep} (best {best_epoch}, "
+                      f"score {best_val_mae:.5f})")
+                break
 
         # Load best validation checkpoint
         candidate_model.load_state_dict(best_state)
@@ -1622,7 +1724,19 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     print("WORKSTREAM G: CANDIDATE PROMOTION RULES AUDIT (RESEARCH & OPERATIONAL SEPARATION)")
     print("=" * 80)
 
-    h1_eval = scorecard["horizon_evaluations"]["horizon_1h"]
+    # The promotion audit is defined on the 1h horizon. A partial run (--horizons)
+    # has no 1h result, so skip the audit rather than crash at the reporting
+    # stage after a successful training run.
+    _h1_key = "horizon_1h"
+    if _h1_key not in scorecard.get("horizon_evaluations", {}):
+        print("\n  [promotion audit skipped: this run did not include the 1h horizon]")
+        return {
+            "scorecard": scorecard,
+            "promotion_audit": None,
+            "note": "partial run: no horizon_1h evaluation, promotion audit not applicable",
+        }
+
+    h1_eval = scorecard["horizon_evaluations"][_h1_key]
     c_t = h1_eval["candidate_featured_model"]["temperature"]["mae"]
     p_t = h1_eval["persistence"]["temperature"]["mae"]
     temp_improved_or_non_inferior = bool(c_t <= p_t * 1.05)  # Within 5% non-inferiority
@@ -1642,6 +1756,20 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
         scorecard["horizon_evaluations"][f"horizon_{h}h"]["candidate_featured_model"]["wind_speed"]["bound_violations"]
         for h in horizons
     )
+
+    # Gates 5-10 verify observable facts. A gate that cannot be evaluated from
+    # real state reports NOT_EVALUATED; it never asserts PASS unconditionally.
+    _horizon_keys_present = [
+        f"horizon_{h}h" in scorecard["horizon_evaluations"] for h in (1, 3, 6, 12, 24)
+    ]
+    _num_stations = len(h1_eval.get("station_metrics", {}) or {})
+    _expected_per_horizon = ["{h}h.pt", "{h}h_manifest.json", "{h}h_calibration.json", "{h}h_predictions.csv"]
+    _missing_artifacts = []
+    for h in horizons:
+        for tmpl in _expected_per_horizon:
+            fn = os.path.join(output_dir, f"candidate_" + tmpl.format(h=f"h{h}"))
+            if not os.path.exists(fn):
+                _missing_artifacts.append(os.path.basename(fn))
 
     promotion_gates = {
         "gate_1_continuous_target_accuracy": {
@@ -1664,32 +1792,56 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "total_violations": violations_total
         },
         "gate_5_five_horizon_coverage": {
-            "status": "PASS",
-            "horizons_evaluated": horizons
+            "status": "PASS" if all(_horizon_keys_present) and len(horizons) == 5 else "FAIL",
+            "horizons_evaluated": horizons,
+            "horizons_present_in_scorecard": _horizon_keys_present,
         },
         "gate_6_multi_station_audit": {
-            "status": "PASS",
-            "num_stations_evaluated": len(h1_eval["station_metrics"])
+            "status": "PASS" if _num_stations > 1 else "FAIL",
+            "num_stations_evaluated": _num_stations,
+            "minimum_required": 2,
         },
         "gate_7_anomaly_detector_integration": {
-            "status": "PASS",
-            "detector_version": "2.0.0"
+            # TelemetryAnomalyDetector is NOT invoked by this training pipeline.
+            # Reporting PASS here previously asserted an integration that does
+            # not exist; anomaly metrics are reported separately as NOT_EVALUATED.
+            "status": "NOT_EVALUATED",
+            "reason": (
+                "The anomaly detector is not executed by this pipeline. "
+                "Detector-based promotion gating is not implemented."
+            ),
         },
         "gate_8_reproducibility_artifacts": {
-            "status": "PASS",
-            "artifacts_generated": all_candidate_artifacts
+            "status": "PASS" if not _missing_artifacts else "FAIL",
+            "artifacts_checked": len(_expected_per_horizon) * 5,
+            "missing_artifacts": _missing_artifacts,
         },
         "gate_9_uv_sensor_quarantine_enforced": {
-            "status": "PASS",
-            "quarantine_reason": "Nighttime calibration defect: BLOCKED_BY_SENSOR_CALIBRATION"
+            "status": (
+                "PASS"
+                if scorecard["horizon_evaluations"]["horizon_1h"]["candidate_featured_model"]
+                .get("blocked_target_statuses", {}).get("uv_index") == "BLOCKED_BY_SENSOR_CALIBRATION"
+                else "FAIL"
+            ),
+            "quarantine_reason": "Nighttime calibration defect: BLOCKED_BY_SENSOR_CALIBRATION",
         },
         "gate_10_luminosity_daylight_conditional": {
-            "status": "PASS",
-            "status_label": "SECONDARY_BETA_DAYLIGHT_ONLY"
+            "status": (
+                "PASS"
+                if scorecard["horizon_evaluations"]["horizon_1h"]["candidate_featured_model"]
+                .get("blocked_target_statuses", {}).get("light_intensity") == "SECONDARY_BETA_DAYLIGHT_ONLY"
+                else "FAIL"
+            ),
+            "status_label": "SECONDARY_BETA_DAYLIGHT_ONLY",
         }
     }
 
+    # A NOT_EVALUATED gate is not a pass. Promotion requires every gate to be an
+    # explicit PASS; unknown gates block promotion rather than silently allowing it.
     all_passed = all(g["status"] == "PASS" for g in promotion_gates.values())
+    gates_not_evaluated = [
+        k for k, g in promotion_gates.items() if g["status"] == "NOT_EVALUATED"
+    ]
 
     # Separate Research Decision and Operational Decision (Phase 4)
     # Research decision: GO if all 5 horizons complete, 0 bound violations, valid calibration, zero-leakage causal windows
@@ -1701,44 +1853,117 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     )
     research_decision = "GO" if research_passed else "NO_GO"
 
-    # Operational decision: Target-specific policy routing
-    # Promotes targets that strictly outperform persistence: rain occurrence, rain amount, wind speed, derived heat index.
-    # Retains baseline/persistence for targets where candidate does not strictly beat persistence: temperature, wind direction.
-    # Blocks UV and keeps luminosity beta.
-    operational_target_status = {
-        "temperature": "RETAIN_BASELINE",
-        "humidity": "RETAIN_BASELINE",
-        "pressure": "RETAIN_BASELINE",
-        "wind_speed": "PROMOTED",
-        "wind_direction": "RETAIN_PERSISTENCE",
-        "precipitation_occurrence": "PROMOTED",
-        "precipitation_amount": "PROMOTED",
-        "heat_index": "PROMOTED_DERIVED",
-        "uv_index": "BLOCKED",
-        "light_intensity": "CONDITIONAL_BETA",
-    }
+    # Operational decision: target-specific policy routing.
+    # Routing is DERIVED from measured candidate-vs-persistence skill on the
+    # untouched test split, not asserted. A target is promoted only when the
+    # candidate strictly beats persistence by a meaningful margin across the
+    # evaluated horizons; otherwise the baseline is retained.
+    #
+    # "meaningful" = candidate MAE/Brier strictly better than persistence AND
+    # the relative improvement clears PROMOTION_MIN_RELATIVE_IMPROVEMENT.
+    PROMOTION_MIN_RELATIVE_IMPROVEMENT = 0.02
+    MIN_HORIZONS_FOR_PROMOTION = 3
 
+    def _skill_by_horizon(target: str, metric: str, block: str = "candidate_featured_model"):
+        """Return {horizon: relative improvement} where positive == candidate better."""
+        out = {}
+        for h_num in horizons:
+            try:
+                ev = scorecard["horizon_evaluations"][f"horizon_{h_num}h"]
+                cand_v = ev[block][target][metric]
+                pers_v = ev["persistence"][target][metric]
+            except (KeyError, TypeError):
+                continue
+            if not isinstance(cand_v, (int, float)) or not isinstance(pers_v, (int, float)):
+                continue
+            if pers_v == 0:
+                continue
+            out[h_num] = (pers_v - cand_v) / abs(pers_v)
+        return out
+
+    def _route(metric_name: str, target: str, metric: str, block: str = "candidate_featured_model"):
+        rel = _skill_by_horizon(target, metric, block)
+        if not rel:
+            return "INSUFFICIENT_EVIDENCE", rel
+        wins = sum(1 for v in rel.values() if v > 0)
+        strong = sum(1 for v in rel.values() if v >= PROMOTION_MIN_RELATIVE_IMPROVEMENT)
+        if strong >= MIN_HORIZONS_FOR_PROMOTION and wins >= MIN_HORIZONS_FOR_PROMOTION:
+            return "PROMOTED", rel
+        return "RETAIN_BASELINE", rel
+
+    _target_routes = {}
+    # Each entry is (label, target, metric, block). The block names which
+    # scorecard model is being audited; all of these are the feature-augmented
+    # candidate. The fourth field was missing from every row, so this loop raised
+    # "not enough values to unpack" and the entire promotion audit was skipped on
+    # every run -- including the ones that appeared to succeed. The audit runs last,
+    # after all checkpoints are written, so a crash here still leaves valid
+    # artifacts on disk while silently discarding the promotion verdict.
+    for _label, _target, _metric, _block in [
+        ("temperature", "temperature", "mae", "candidate_featured_model"),
+        ("humidity", "humidity", "mae", "candidate_featured_model"),
+        ("pressure", "pressure", "mae", "candidate_featured_model"),
+        ("wind_speed", "wind_speed", "mae", "candidate_featured_model"),
+        ("rain_occurrence", "rain_occurrence", "brier_score", "candidate_featured_model"),
+        ("precipitation_amount", "precipitation", "mae", "candidate_featured_model"),
+        ("heat_index", "heat_index", "mae", "candidate_featured_model"),
+    ]:
+        _status, _rel = _route(_label, _target, _metric, _block)
+        _target_routes[_label] = {
+            "status": _status,
+            "relative_improvement_by_horizon": {str(k): round(v, 5) for k, v in sorted(_rel.items())},
+        }
+
+    operational_target_status = {k: v["status"] for k, v in _target_routes.items()}
+    # Wind direction is reported by circular MAE, which is structurally
+    # uninformative against a persistence baseline and is never auto-promoted.
+    operational_target_status["wind_direction"] = "RETAIN_PERSISTENCE"
+    # Feasibility-governed statuses are not performance claims.
+    operational_target_status["uv_index"] = "BLOCKED"
+    operational_target_status["light_intensity"] = "CONDITIONAL_BETA"
+
+    _status_to_source = {
+        "PROMOTED": "candidate",
+        "RETAIN_BASELINE": "baseline",
+        "RETAIN_PERSISTENCE": "persistence",
+    }
     target_specific_source_policy = {}
     for h_num in horizons:
         target_specific_source_policy[str(h_num)] = {
-            "temperature": "baseline",
-            "humidity": "baseline",
-            "pressure": "baseline",
-            "wind_speed": "candidate",
-            "wind_direction": "persistence",
-            "precipitation_occurrence": "candidate",
-            "rain_occurrence": "candidate",
-            "precipitation_amount": "candidate",
-            "heat_index": "derived_noaa",
-            "uv_index": "blocked",
-            "light_intensity": "daylight_beta",
+            target: _status_to_source.get(status, "baseline")
+            for target, status in operational_target_status.items()
+            if target not in ("uv_index", "light_intensity")
         }
+        target_specific_source_policy[str(h_num)]["heat_index"] = "derived_noaa"
+        target_specific_source_policy[str(h_num)]["uv_index"] = "blocked"
+        target_specific_source_policy[str(h_num)]["light_intensity"] = "daylight_beta"
 
-    operational_decision = "CONDITIONAL_GO"
+    # Operational decision is DERIVED. A NOT_EVALUATED gate or a failed gate
+    # blocks unconditional GO; the candidate can never be promoted globally
+    # while a critical target retains insufficient evidence.
+    _blocking_gates = [
+        k for k, g in promotion_gates.items() if g["status"] != "PASS"
+    ]
+    if research_decision == "NO_GO":
+        operational_decision = "NO_GO"
+    elif _blocking_gates:
+        operational_decision = "CONDITIONAL_GO"
+    elif all_passed:
+        operational_decision = "GO"
+    else:
+        operational_decision = "CONDITIONAL_GO"
+
+    _promoted = sorted(t for t, s in operational_target_status.items() if s == "PROMOTED")
+    _retained = sorted(
+        t for t, s in operational_target_status.items()
+        if s in ("RETAIN_BASELINE", "RETAIN_PERSISTENCE")
+    )
     operational_decision_narrative = (
-        "CONDITIONAL GO — candidate committed for research and target-specific routing "
-        "(precipitation occurrence, precipitation volume, wind speed, and derived heat index promoted to candidate; "
-        "temperature, humidity, pressure, and wind direction retain baseline/persistence; UV remains blocked)."
+        f"{operational_decision} — derived from measured test-split skill. "
+        f"Promoted: {', '.join(_promoted) if _promoted else 'none'}. "
+        f"Retained baseline/persistence: {', '.join(_retained) if _retained else 'none'}. "
+        f"UV remains blocked; luminosity remains secondary beta. "
+        f"Non-PASS gates: {', '.join(_blocking_gates) if _blocking_gates else 'none'}."
     )
 
     final_decision_str = (
@@ -1798,27 +2023,28 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
             "wind_speed_ci_95": cand_m.get("wind_speed", {}).get("ci_95_mae", [0.0, 0.0]),
         }
 
+    # Anomaly detection is NOT executed by this pipeline, so no empirical
+    # false-alarm rate can be claimed. Reporting 0.0/day previously asserted a
+    # perfect detector that was never run.
     anomaly_metrics = {
-        "detector_version": "2.0.0",
+        "detector_executed": False,
+        "detector_version": "not_invoked",
         "false_alarm_budget_per_day": 2.0,
-        "empirical_false_alarms_per_day": 0.0,
-        "within_false_alarm_budget": True,
-        "evaluated_event_types": [
-            "extreme_heat",
-            "extreme_cold",
-            "rapid_temperature_change",
-            "pressure_drop",
-            "heavy_rain",
-            "rapid_wind_increase",
-            "wind_direction_shift",
-            "humidity_excursion",
-            "sensor_anomaly",
-        ],
-        "status": "PASS",
+        "empirical_false_alarms_per_day": None,
+        "within_false_alarm_budget": None,
+        "evaluated_event_types": [],
+        "status": "NOT_EVALUATED",
+        "reason": (
+            "TelemetryAnomalyDetector.evaluate_anomaly_events_with_budget is not "
+            "invoked by this training pipeline. No false-alarm rate, recall, or "
+            "budget-compliance claim can be made from this run."
+        ),
     }
 
-    worst_fold = 3
-    worst_regime = "heavy_rain_rapid_wind_transition"
+    # Worst-fold / worst-regime are derived below from rolling-origin fold
+    # results once computed; unset markers are reported explicitly.
+    worst_fold = None
+    worst_regime = "NOT_COMPUTED"
 
     scorecard["research_decision"] = research_decision
     scorecard["operational_decision"] = operational_decision
@@ -1872,43 +2098,74 @@ def train_and_evaluate_all_horizons(output_dir: str = None, epochs: int = 5, lr:
     comparison_report["operational_target_status"] = operational_target_status
 
     # Phase 11 dedicated reports
+    # NOTE ON METHOD: the underlying ResidualWeatherModel fits its residual
+    # quantiles IN-SAMPLE on the evaluation rows. That is a fitted error band,
+    # NOT split-conformal prediction. It is labelled as such here and must not
+    # be cited as conformal coverage evidence.
+    _interval_status = "IN_SAMPLE_FITTED_BAND_NOT_CONFORMAL"
+    _coverage_ok = True
+    try:
+        for _h_key, _hm in interval_metrics.items():
+            _cov = _hm.get("empirical_coverage_pct")
+            if _cov is not None and abs(float(_cov) - 80.0) > 5.0:
+                _coverage_ok = False
+                break
+    except (TypeError, ValueError):
+        _coverage_ok = False
+
     uncertainty_report = {
         "report_name": "predictive_uncertainty_and_calibration_report",
-        "report_version": "2.0.0",
+        "report_version": "3.0.0",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "code_commit": head_commit,
         "artifact_commit": head_commit,
         "release_commit": head_commit,
         "target_nominal_coverage_pct": 80.0,
-        "uncertainty_method": "conformal_residual_quantiles_p10_p50_p90",
-        "status": "PASS",
+        "uncertainty_method": "in_sample_fitted_residual_quantiles_p10_p50_p90",
+        "is_split_conformal": False,
+        "conformal_caveat": (
+            "Quantiles are fitted on the same evaluation rows they are scored "
+            "against. This band is optimistically biased and is NOT conformal "
+            "prediction. Weather prediction intervals remain UNAVAILABLE."
+        ),
+        "status": _interval_status if _coverage_ok else "COVERAGE_OUT_OF_TOLERANCE",
         "horizons": interval_metrics,
-        "verdict": "Uncertainty intervals empirically validated with monotonic quantiles and declared 80% coverage within tolerance.",
+        "verdict": (
+            "In-sample fitted error band, reported for diagnostics only. "
+            "Not a conformal guarantee and not a valid coverage claim."
+        ),
     }
 
     anomaly_report = {
         "report_name": "telemetry_anomaly_and_extreme_weather_event_report",
-        "report_version": "2.0.0",
+        "report_version": "3.0.0",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "code_commit": head_commit,
         "artifact_commit": head_commit,
         "release_commit": head_commit,
-        "detector_version": "2.0.0",
+        "detector_version": anomaly_metrics["detector_version"],
+        "detector_executed": False,
         "evaluated_event_types": anomaly_metrics["evaluated_event_types"],
         "false_alarm_budget_per_day": 2.0,
-        "empirical_false_alarms_per_day": 0.0,
-        "within_false_alarm_budget": True,
-        "status": "PASS",
+        "empirical_false_alarms_per_day": None,
+        "within_false_alarm_budget": None,
+        "status": "NOT_EVALUATED",
+        "reason": anomaly_metrics["reason"],
         "horizons": {
             f"horizon_{h_num}h": {
-                "heavy_rain_recall": 1.0,
-                "extreme_heat_recall": 1.0,
-                "rapid_temp_change_recall": 1.0,
-                "false_alarm_rate_per_day": 0.0,
+                "heavy_rain_recall": None,
+                "extreme_heat_recall": None,
+                "rapid_temp_change_recall": None,
+                "false_alarm_rate_per_day": None,
+                "status": "NOT_EVALUATED",
             }
             for h_num in horizons
         },
-        "verdict": "Anomaly detection adheres to false-alarm budget (0.0 FA/day <= 2.0 FA/day budget) and distinguishes physical weather extremes from sensor defects.",
+        "verdict": (
+            "NOT EVALUATED. The anomaly detector was not run against the test "
+            "split in this pipeline, so no recall, false-alarm rate, or "
+            "budget-compliance claim is made."
+        ),
     }
 
     information_ceiling_report = {
@@ -2181,6 +2438,47 @@ def generate_major_improvement_baseline_freeze(
     return baseline_freeze
 
 
+def _load_logged_test_rows(preds_path: str) -> list:
+    """
+    Load verified, untouched-test evaluation rows from a candidate predictions log.
+
+    Returns [] when the log is absent or unusable. Never synthesises rows.
+    """
+    if not os.path.exists(preds_path):
+        return []
+    rows = []
+    with open(preds_path, "r", newline="", encoding="utf-8") as f:
+        for rec in csv.DictReader(f):
+            if rec.get("split_name") != "test":
+                continue
+            if rec.get("label_quality_status") != "VERIFIED_VALID":
+                continue
+            rows.append(rec)
+    return rows
+
+
+def _paired_errors_from_log(rows: list, truth_key: str, cand_key: str, champ_key: str):
+    """
+    Build paired absolute-error vectors for champion and challenger on IDENTICAL rows.
+    Returns (champ_err, chall_err, n_rows) or (None, None, 0) when unavailable.
+    """
+    champ, chall = [], []
+    for rec in rows:
+        try:
+            t = float(rec[truth_key])
+            c = float(rec[cand_key])
+            p = float(rec[champ_key])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not all(np.isfinite(v) for v in (t, c, p)):
+            continue
+        champ.append(abs(t - p))
+        chall.append(abs(t - c))
+    if len(champ) < 30:
+        return None, None, len(champ)
+    return np.array(champ), np.array(chall), len(champ)
+
+
 def run_champion_challenger_evaluation(
     output_dir: str = None,
     data_dir: str = None,
@@ -2190,13 +2488,19 @@ def run_champion_challenger_evaluation(
     """
     Phase 10: Champion/Challenger Evaluation System.
 
-    Compares current production champion routing against candidate challengers:
-      - Challenger 1: Local-only residual / vector / hurdle model
-      - Challenger 2: Spatial nowcasting model (scaffold)
-      - Challenger 3: Compact ensemble
+    Compares the operational champion (persistence) against the candidate model
+    using PAIRED bootstrap on IDENTICAL, logged, untouched-test evaluation rows.
 
-    Uses paired bootstrap comparison on identical evaluation rows and evaluates
-    regime-specific performance with low-evidence detection.
+    INTEGRITY CONTRACT
+    ------------------
+    Every error vector in this report is read from
+    ``candidate_artifacts/candidate_h{h}h_predictions.csv``, which records
+    per-sample truth, candidate prediction, and the persistence baseline that was
+    actually used at inference time.
+
+    This function MUST NOT synthesise error vectors, and MUST NOT publish a
+    "verified" verdict for a target it did not evaluate. Targets without a
+    logged baseline are reported as ``NOT_EVALUATED`` with an explicit reason.
     """
     if data_dir is None:
         data_dir = DATA_DIR
@@ -2209,68 +2513,119 @@ def run_champion_challenger_evaluation(
         seed=seed,
     )
 
-    rng = np.random.default_rng(seed)
     horizons = [1, 3, 6, 12, 24]
     comparison_results = {}
+    evaluated_targets = []
+    not_evaluated_targets = []
 
     for h in horizons:
         h_key = f"horizon_{h}h"
         comparison_results[h_key] = {}
 
-        n_samples = 400
-        if h in (1, 3, 6):
-            champ_err = np.abs(rng.normal(loc=0.8 + 0.2 * h, scale=0.3, size=n_samples))
-            chall_err = np.abs(champ_err + rng.normal(loc=0.02, scale=0.1, size=n_samples))
+        preds_path = os.path.join(output_dir, f"candidate_h{h}h_predictions.csv")
+        rows = _load_logged_test_rows(preds_path)
+
+        if not rows:
+            comparison_results[h_key]["_provenance"] = {
+                "status": "NOT_EVALUATED",
+                "reason": f"No verified test rows found in {os.path.basename(preds_path)}.",
+            }
+            for target in ("temperature", "wind_direction", "rain_occurrence"):
+                comparison_results[h_key][target] = {
+                    "evaluation_status": "NOT_EVALUATED",
+                    "reason": "No logged test-split evaluation rows available for this horizon.",
+                }
+                not_evaluated_targets.append(f"{target}@{h}h")
+            continue
+
+        comparison_results[h_key]["_provenance"] = {
+            "status": "EVALUATED",
+            "source_file": os.path.basename(preds_path),
+            "rows_used": len(rows),
+            "split": "test",
+            "label_quality_status": "VERIFIED_VALID",
+        }
+
+        # --- Temperature: candidate vs persistence, paired on identical rows ---
+        champ_err, chall_err, n_temp = _paired_errors_from_log(
+            rows, "temp_true", "temp_pred", "temp_persist"
+        )
+        if champ_err is not None:
+            t_res = evaluator.compare_paired(champ_err, chall_err)
+            comparison_results[h_key]["temperature"] = {
+                "evaluation_status": "EVALUATED",
+                "champion_source": "persistence",
+                "challenger_name": "candidate_lnn_featured",
+                "rows_compared": n_temp,
+                "comparison": t_res,
+                "target_gate": t_res.get("decision", "KEEP_CHAMPION"),
+            }
+            evaluated_targets.append(f"temperature@{h}h")
         else:
-            champ_err = np.abs(rng.normal(loc=1.8, scale=0.4, size=n_samples))
-            chall_err = np.abs(champ_err - rng.normal(loc=0.15, scale=0.1, size=n_samples))
+            comparison_results[h_key]["temperature"] = {
+                "evaluation_status": "NOT_EVALUATED",
+                "reason": f"Only {n_temp} usable paired rows (minimum 30 required).",
+            }
+            not_evaluated_targets.append(f"temperature@{h}h")
 
-        t_res = evaluator.compare_paired(champ_err, chall_err)
-        comparison_results[h_key]["temperature"] = {
-            "champion_source": "persistence" if h in (1, 3, 6) else "candidate_lnn",
-            "challenger_name": "local_residual_model",
-            "comparison": t_res,
-            "target_gate": "KEEP_CHAMPION" if h in (1, 3, 6) else "PROMOTE_CHALLENGER",
-        }
-
-        wd_champ_err = np.abs(rng.normal(loc=25.0 + 2.0 * h, scale=10.0, size=n_samples))
-        wd_chall_err = wd_champ_err + np.abs(rng.normal(loc=3.0, scale=5.0, size=n_samples))
-        wd_res = evaluator.compare_paired(wd_champ_err, wd_chall_err)
+        # --- Wind direction: NO persistence baseline is logged ---
+        # The predictions log records only candidate wind vectors. A paired
+        # champion/challenger comparison is therefore NOT SUPPORTED by the
+        # available evidence, and is reported as such rather than simulated.
         comparison_results[h_key]["wind_direction"] = {
-            "champion_source": "persistence",
-            "challenger_name": "vector_wind_model",
-            "comparison": wd_res,
-            "target_gate": "KEEP_CHAMPION",
-            "information_status": "INFORMATION_LIMITED_LOCAL_TELEMETRY",
+            "evaluation_status": "NOT_EVALUATED",
+            "reason": (
+                "The evaluation log records candidate wind vectors only; no "
+                "persistence wind baseline is logged, so a paired comparison "
+                "cannot be constructed from real rows."
+            ),
         }
+        not_evaluated_targets.append(f"wind_direction@{h}h")
 
-        rain_champ = np.abs(rng.normal(loc=0.10, scale=0.05, size=n_samples))
-        rain_chall = np.maximum(0.01, rain_champ - rng.normal(loc=0.015, scale=0.01, size=n_samples))
-        rain_res = evaluator.compare_paired(rain_champ, rain_chall)
+        # --- Rain occurrence: candidate Brier/CSI vs an unlogged baseline ---
         comparison_results[h_key]["rain_occurrence"] = {
-            "champion_source": "hurdle_precipitation",
-            "challenger_name": "calibrated_hurdle_candidate",
-            "comparison": rain_res,
-            "target_gate": "PROMOTE_CHALLENGER" if rain_res.get("decision") == "PROMOTE_CHALLENGER" else "KEEP_CHAMPION",
+            "evaluation_status": "NOT_EVALUATED",
+            "reason": (
+                "The evaluation log records candidate rain probability only; the "
+                "persistence rain baseline used for the production hybrid blend is "
+                "not logged per-row, so a paired comparison cannot be constructed."
+            ),
         }
+        not_evaluated_targets.append(f"rain_occurrence@{h}h")
+
+    if evaluated_targets:
+        verdict = (
+            f"Paired bootstrap on identical logged test rows completed for "
+            f"{len(evaluated_targets)} target/horizon combination(s). "
+            f"{len(not_evaluated_targets)} combination(s) NOT EVALUATED for lack of "
+            f"logged baseline evidence."
+        )
+    else:
+        verdict = (
+            "No target/horizon combination had sufficient logged baseline evidence. "
+            "NO promotion decision can be made from this report."
+        )
 
     report = {
         "report_name": "champion_challenger_evaluation_report",
-        "report_version": "1.0.0",
+        "report_version": "2.0.0",
         "evaluated_at_utc": datetime.now(timezone.utc).isoformat(),
         "code_commit": head_commit,
         "evaluator_threshold": MAJOR_IMPROVEMENT_THRESHOLDS["continuous_target_mae_relative_improvement"],
+        "data_source": "candidate_artifacts/candidate_h{h}h_predictions.csv (verified test rows)",
+        "synthetic_data_used": False,
+        "evaluated_targets": sorted(evaluated_targets),
+        "not_evaluated_targets": sorted(not_evaluated_targets),
         "horizons": comparison_results,
         "target_level_decisions": {
-            "temperature_1h_to_6h": "KEEP_CHAMPION (persistence retained under local information ceiling)",
-            "temperature_12h_24h": "PROMOTE_CHALLENGER (candidate LNN superior)",
-            "wind_direction": "KEEP_CHAMPION (persistence retained across all horizons)",
-            "rain_occurrence": "PROMOTE_CHALLENGER (hurdle candidate beats persistence)",
-            "humidity_pressure": "KEEP_CHAMPION (information-limited under local-only constraint)",
-            "uv_index": "BLOCKED_BY_SENSOR_CALIBRATION",
-            "light_intensity": "SECONDARY_BETA_DAYLIGHT_ONLY",
+            note: "SEE_PER_HORIZON_EVALUATION_STATUS"
+            for note in (
+                "temperature",
+                "wind_direction",
+                "rain_occurrence",
+            )
         },
-        "verdict": "Target-specific champion/challenger comparison verified with paired bootstrap tests on identical evaluation rows.",
+        "verdict": verdict,
     }
 
     os.makedirs(output_dir, exist_ok=True)
@@ -2283,11 +2638,30 @@ def run_champion_challenger_evaluation(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train and Evaluate Predictive Quality Models")
-    parser.add_argument("--epochs", type=int, default=5, help="Training epochs for candidate model")
+    # Default raised from 5. On ~3.4k windows an 11k-parameter network at 5
+    # epochs is barely trained, and the earlier figure was itself the reason the
+    # wind head never learned anything: the checkpoint was chosen on temperature
+    # MAE alone, so a wind-improving epoch could be discarded.
+    parser.add_argument("--epochs", type=int, default=60,
+                        help="Training epochs for candidate model (max; early stopping applies)")
+    parser.add_argument("--patience", type=int, default=12,
+                        help="Early-stopping patience on the blended validation score")
+    parser.add_argument("--horizons", type=str, default=None,
+                        help="Comma-separated horizons to train, e.g. '6'. Default: all.")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed")
     parser.add_argument("--output-dir", type=str, default=DEFAULT_CANDIDATE_DIR, help="Output directory")
+    parser.add_argument("--weather-csv", type=str, default=None,
+                        help="Weather telemetry CSV to train on. Defaults to "
+                             "data/weather_telemetry.csv. Point this at "
+                             "weather_telemetry_current.csv to train on a "
+                             "refetched, more recent history.")
     parser.add_argument("--commit", type=str, default=None, help="Explicit commit hash override for candidate provenance metadata")
     args = parser.parse_args()
 
-    train_and_evaluate_all_horizons(output_dir=args.output_dir, epochs=args.epochs, lr=args.lr, seed=args.seed, commit=args.commit)
+    train_and_evaluate_all_horizons(output_dir=args.output_dir, epochs=args.epochs,
+                                    lr=args.lr, seed=args.seed, commit=args.commit,
+                                    patience=args.patience,
+                                    weather_csv_path=args.weather_csv,
+                                    horizons_only=(args.horizons.split(",")
+                                                   if args.horizons else None))
