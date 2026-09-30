@@ -137,6 +137,18 @@ def main():
     bundle_root = args.bundle_dir or os.path.join(DATA_DIR, "bundles")
     out_path = args.out or os.path.join(DATA_DIR, "inference_policy_refit.json")
 
+    import hashlib as _hashlib
+
+    def _sha256_file(path):
+        h = _hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    corpus_sha256 = _sha256_file(weather_csv)
+    print(f"corpus sha256  : {corpus_sha256[:16]}...")
+
     pipe = TelemetryDataPipeline(weather_csv=weather_csv)
     print(f"corpus        : {os.path.basename(weather_csv)}")
     print(f"bundle root   : {os.path.relpath(bundle_root, DATA_DIR)}")
@@ -230,7 +242,18 @@ def main():
             "Calibration fitted on TRAIN, source selection and shrinkage chosen on "
             "VALIDATION. The TEST split was not read during refitting."
         ),
-        "dataset_hashes": base_policy.get("dataset_hashes", {}),
+        # The corpus this policy was ACTUALLY refitted against, not the one the
+        # previous policy was fitted on. Carrying the old hashes forward made a
+        # refit-on-new-data policy claim to describe old data, which the release
+        # gate correctly refuses with POLICY_CORPUS_DIVERGED. A policy that
+        # misstates its own training data is worse than no policy: it makes the
+        # provenance record a lie while appearing to satisfy it.
+        "dataset_hashes": {
+            "weather_telemetry_sha256": corpus_sha256,
+            "water_telemetry_sha256": base_policy.get("dataset_hashes", {}).get(
+                "water_telemetry_sha256"),
+            "weather_csv_path": os.path.basename(weather_csv),
+        },
         "horizons": horizons_out,
     }
 

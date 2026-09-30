@@ -121,7 +121,12 @@ def paired_block(inc_err, cand_err, order_key, label, source):
         "stderr": stderr,
         "split": "validation",
         "source": source,
-        "sample_ids": [str(k) for k in order_key[:200]],
+        # EVERY paired row identity, not a truncated prefix. The gate derives the
+        # pair count from these ids and uses them to verify that the two halves
+        # partition the full period. Truncating to 200 made a 3,396-row span
+        # report as 200 while its halves reported 400, and every cell failed with
+        # HALVES_DO_NOT_PARTITION_THE_PERIOD.
+        "sample_ids": [str(k) for k in order_key],
         "_note": f"mean_difference over {n} paired rows; positive = challenger better",
     }, {}
 
@@ -135,7 +140,12 @@ def channel_row_errors(channel, cand_out, inc, meta):
     Returns (candidate_errors, incumbent_errors, sample_keys).
     """
     inc_pred, inc_rain = inc
-    keys = [f"{m['station_id']}@{m['target_timestamp']}" for m in meta]
+    # TIME FIRST. The gate verifies that each half is chronologically ordered by
+    # checking these ids sort lexicographically within the block, so an id shaped
+    # station@timestamp is non-chronological by construction and every cell failed
+    # with HALVES_NOT_CHRONOLOGICALLY_ORDERED. Timestamp-first makes the ordering
+    # verifiable from the evidence itself rather than trusted.
+    keys = [f"{m['target_timestamp']}@{m['station_id']}" for m in meta]
 
     if channel == RAIN_CHANNEL:
         y = np.array([float(m.get("target_precipitation", 0.0) or 0.0) > 0.1
@@ -196,7 +206,7 @@ def main() -> int:
               "baseline_path": os.path.join(DATA, "release_baseline.md"),
               "policy_path": os.path.join(DATA, "inference_policy.json"),
               "channels": channels, "horizons": horizons,
-              "candidate": {}, "incumbent": {},
+              "challenger": {}, "incumbent": {},
               "_generated_utc": datetime.now(timezone.utc).isoformat(),
               "_generated_by": "build_promotion_evidence.py"}
 
@@ -314,7 +324,7 @@ def main() -> int:
                 "test": None,
                 "paired": paired,
             }
-            bundle["candidate"][key] = node
+            bundle["challenger"][key] = node
             bundle["incumbent"][key] = {
                 "validation": {"value": float(np.mean(i_err)), "n_rows": n,
                                "split": "validation",
@@ -343,7 +353,7 @@ def main() -> int:
     with open(args.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(bundle, f, indent=2)
     print(f"\nwritten: {args.out}")
-    print(f"  candidate cells: {len(bundle['candidate'])}")
+    print(f"  challenger cells: {len(bundle['challenger'])}")
     print(f"  incumbent cells: {len(bundle['incumbent'])}")
     print("\nThe gate will refuse this bundle with CORPUS_MISMATCH while the served")
     print("bundles were built from an older corpus than the evidence. That refusal is")
