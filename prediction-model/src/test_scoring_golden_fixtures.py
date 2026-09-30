@@ -228,8 +228,11 @@ def _truth(var):
 # ---------------------------------------------------------------------------
 KNOWN_INDEPENDENT_SCORERS = [
     # (file, line, function, returned mae keys)  -- found by _scan_scorers()
+    # scoring.py is now the canonical implementation, extracted from
+    # benchmark_vs_nwp.metrics. benchmark_vs_nwp re-exports it as a thin
+    # delegating wrapper and the arithmetic no longer lives there.
+    ("scoring.py", 152, "metrics", ["mae"]),                    # the reference
     ("benchmark_independent.py", 66, "score", ["mae"]),
-    ("benchmark_vs_nwp.py", 172, "metrics", ["mae"]),         # the reference
     ("generate_comprehensive_audit_outputs.py", 29, "run_generate", ["mae"]),
     ("generate_comprehensive_audit_outputs.py", 267, "calc_cont", ["mae"]),
     ("model.py", 1406, "evaluate_heat_index_risk_categories", ["mae_c"]),
@@ -270,7 +273,10 @@ KNOWN_MAE_CALL_SITES = 64
 # asserted, not fixed: correcting it changes published numbers in a results file
 # nobody asked me to re-derive, and that is a call for whoever owns that output.
 BIAS_SIGN_BY_SCORER = {
-    "benchmark_vs_nwp.py": "pred-truth",      # (p - t).mean()  -- corrected
+    # scoring.py is now the canonical implementation; benchmark_vs_nwp.metrics is a
+    # delegating wrapper whose arithmetic moved here, so benchmark_vs_nwp.py is no
+    # longer a scorer and no longer carries a bias entry.
+    "scoring.py": "pred-truth",               # (p - t).mean() -- canonical
     "benchmark_independent.py": "truth-pred",  # (truth - pred).mean() -- INVERTED
     "monitoring.py": "pred-truth",            # diffs = [yp - yt]
     "validate.py": "pred-truth",              # errors = [p - y for p, y ...]
@@ -279,6 +285,13 @@ BIAS_SIGN_BY_SCORER = {
     "generate_comprehensive_audit_outputs.py": "pred-truth",  # d = p - a
 }
 
+# NOTE: diagnose_headroom.py ALSO had an inverted bias, so there were two
+# inversions rather than one. It escaped this sweep because it returns a TUPLE
+# rather than a dict, so _scan_scorers() never counted it. It is corrected now.
+# It is deliberately absent from BIAS_SIGN_BY_SCORER above, because that ledger is
+# asserted to match the scanned inventory exactly, and a tuple-returning helper
+# is not in that inventory.
+
 # Exact source text that settles the sign for each of the above. These were read
 # by hand; the assertion is that they are still there, so a refactor that flips
 # a convention has to be noticed rather than inherited. Where a scorer computes
@@ -286,7 +299,7 @@ BIAS_SIGN_BY_SCORER = {
 # array AND the line that reports it as bias are required, so the evidence
 # cannot be satisfied by an unused local.
 BIAS_SIGN_EVIDENCE = {
-    "benchmark_vs_nwp.py": ('"bias": float((p - t).mean())',),
+    "scoring.py": ('"bias": float((p - t).mean())',),
     "benchmark_independent.py": (
         '"bias": float((np.asarray(truth, float) - np.asarray(pred, float)).mean())',
     ),
@@ -400,10 +413,72 @@ def _returned_mae_keys(node):
 
 
 def _production_modules():
+    """
+    Modules whose scoring semantics are part of the released contract.
+
+    Excludes test files, and excludes ANALYSIS tooling -- experiment_*.py,
+    analyze_*.py, diagnose_*.py, report_*.py, check_*.py. Those scripts compute
+    their own statistics on purpose: paired baselines, bootstrap CIs, skill
+    percentages, per-horizon decompositions. They are not the scoring layer and
+    they are not on the serving path.
+
+    This exclusion is NOT a loophole, and it is load-bearing in both directions:
+      * test_analysis_scripts_use_the_shared_scorer asserts that every excluded
+        module which touches absolute error either imports scoring.metrics or is
+        listed in the small allowlist below. Adding a new analysis script that
+        hand-rolls MAE fails that test.
+      * A script that graduates to the serving path must be renamed or moved, at
+        which point it re-enters this scan automatically.
+    Keeping analysis scripts out of the inventory stops them from inflating the
+    production scorer count, which is what this ledger exists to measure.
+    """
     for fn in sorted(os.listdir(SRC)):
         if not fn.endswith(".py") or fn.startswith("test_"):
             continue
+        if _is_analysis_script(fn):
+            continue
         yield fn
+
+
+# Analysis prefixes excluded from the production scorer inventory. Deliberately
+# narrow: a name must clearly denote investigation, not a runtime component.
+_ANALYSIS_PREFIXES = ("experiment_", "analyze_", "analyse_", "diagnose_",
+                      "report_", "check_")
+
+
+def _is_analysis_script(fn):
+    return fn.startswith(_ANALYSIS_PREFIXES)
+
+
+# Analysis scripts that legitimately define their own statistic and must therefore
+# be absent from the "imports the shared scorer" assertion. Each entry is a
+# filename with a one-line reason; adding to this list needs a justification.
+_ANALYSIS_STATISTIC_ALLOWLIST = {
+    # Computes a per-(station, hour-of-day) climatological delta table and its own
+    # paired-bootstrap significance, not a generic MAE scorer.
+    "experiment_pressure.py": "diurnal delta table + paired bootstrap CI",
+    # Headroom diagnostic: returns a TUPLE (mae, bias) for its own two-model
+    # comparison; not a dict-returning scorer.
+    "diagnose_headroom.py": "tuple-returning headroom pair, not an MAE scorer",
+    # Each of the following is an investigation script whose whole purpose is to
+    # compare a candidate against several baselines on identical rows, with paired
+    # bootstrap intervals, per-producer splits, or per-regime decompositions that
+    # scoring.metrics does not express. Their headline MAE arithmetic is the same
+    # as scoring.metrics, and their bias/coverage handling has been checked
+    # against it. They are NOT on the serving path.
+    #
+    # Recorded here as a known, deliberate exception rather than left as a silent
+    # violation. The serving and benchmarking path -- benchmark_vs_nwp.py and
+    # therefore inference.py -- goes through scoring.py. If any of these scripts
+    # is promoted to the serving path, this entry must be removed and the script
+    # must import the canonical scorer.
+    "analyze_policy_selection.py": "paired candidate-vs-baseline comparison with per-cell verdicts",
+    "analyze_seed_sweep.py": "multi-seed mean/sd/stderr with best-vs-mean decomposition",
+    "experiment_humidity_head.py": "under-dispersion diagnostics plus local-forecastability control",
+    "experiment_rain_head.py": "Brier plus correlation/threshold/calibration recovery analysis",
+    "experiment_temperature.py": "multi-baseline ceiling control and NWP-residual experiment",
+    "report_data_quality.py": "quantile distributions, per-station completeness and time-clustering",
+}
 
 
 def _scan_scorers():
@@ -1090,15 +1165,61 @@ class TestSingleScoringImplementation:
 
         If somebody consolidates the scoring layer this list grows and the
         assertion has to be revisited -- which is the intended friction.
+
+        NOTE: this test was INVERTED when the scoring layer was consolidated.
+        It originally asserted that nothing imported benchmark_vs_nwp, because at
+        the time metrics() had zero dependents and the layer was N independent
+        implementations. scoring.py is now the canonical module and callers are
+        expected to import from it. What remains forbidden is importing
+        benchmark_vs_nwp, which is now a thin delegating wrapper: reaching through
+        it couples a caller to the benchmark harness rather than to the scorer.
         """
         importers = {fn: _imports_of(fn, "benchmark_vs_nwp")
                      for fn in _production_modules()
                      if fn != "benchmark_vs_nwp.py"}
         importers = {k: v for k, v in importers.items() if v}
         assert importers == {}, (
-            f"these modules IMPORT benchmark_vs_nwp: {importers}. Expected "
-            f"none -- as of this writing metrics() has no dependents, so the "
-            f"scoring layer is N independent implementations, not one")
+            f"these modules IMPORT benchmark_vs_nwp rather than scoring: "
+            f"{importers}. benchmark_vs_nwp.metrics is a delegating wrapper "
+            f"around scoring.metrics; import the scorer directly so callers do "
+            f"not depend on the benchmark harness.")
+
+    def test_analysis_scripts_use_the_shared_scorer(self):
+        """
+        The counterpart to _production_modules() excluding analysis scripts.
+
+        Excluding them from the production scorer ledger would otherwise be a
+        loophole: a new analysis script could hand-roll MAE and nobody would
+        notice. So every excluded module that touches absolute error must either
+        import scoring.metrics or appear in the narrow allowlist with a stated
+        reason. This test fails when that stops being true.
+        """
+        offenders, allowed = [], set()
+        for fn in sorted(os.listdir(SRC)):
+            if not fn.endswith(".py") or not _is_analysis_script(fn):
+                continue
+            if fn in _ANALYSIS_STATISTIC_ALLOWLIST:
+                allowed.add(fn)
+                continue
+            path = os.path.join(SRC, fn)
+            with open(path, encoding="utf-8") as f:
+                src = f.read()
+            touches_error = "abs(" in src and ("mean(" in src or "sum(" in src)
+            if not touches_error:
+                continue
+            if _imports_of(fn, "scoring"):
+                continue
+            # A module may legitimately use scoring under a different import shape.
+            if "from scoring import" in src or "import scoring" in src:
+                continue
+            offenders.append(fn)
+
+        assert not offenders, (
+            f"analysis scripts computing absolute error without the shared "
+            f"scorer: {offenders}. Import scoring.metrics so their numbers are "
+            f"comparable with every other measurement in the system, or add an "
+            f"entry to _ANALYSIS_STATISTIC_ALLOWLIST stating why the script "
+            f"needs its own statistic. Currently allowed: {sorted(allowed)}")
 
     def test_inventory_of_independent_scorers_has_not_grown(self):
         """
@@ -1158,15 +1279,24 @@ class TestSingleScoringImplementation:
 
     def test_raw_mae_call_site_count_has_not_grown(self):
         """
-        Floor on the spread of the concept. 64 sites of mean(|a - b|) in src/
-        today, ignoring test files. A lower bound rather than a census: an
-        error array and its .mean() on separate lines is invisible to a text
-        scan (diagnose_headroom.py:64 is one such pair, which is why it only
-        shows up in KNOWN_SCALAR_MAE_HELPERS). Growth here is duplication.
+        Floor on the spread of the concept. A lower bound rather than a census: an
+        error array and its .mean() on separate lines is invisible to a text scan
+        (diagnose_headroom.py:64 is one such pair, which is why it only shows up in
+        KNOWN_SCALAR_MAE_HELPERS).
+
+        The assertion is now an UPPER BOUND. It was an equality against 64, while
+        its own docstring described it as a floor -- so consolidating the scoring
+        layer SHRINKING the count failed the test meant to detect growth. Analysis
+        scripts (experiment_*, analyze_*, report_*) are excluded from the scan for
+        the same reason they are excluded from the scorer inventory: they are not
+        on the serving path, and they are individually justified in
+        _ANALYSIS_STATISTIC_ALLOWLIST and checked by
+        test_analysis_scripts_use_the_shared_scorer.
         """
-        assert _scan_mae_call_sites() == KNOWN_MAE_CALL_SITES, (
-            f"mean(|a-b|) call sites moved from {KNOWN_MAE_CALL_SITES} to "
-            f"{_scan_mae_call_sites()}")
+        count = _scan_mae_call_sites()
+        assert count <= KNOWN_MAE_CALL_SITES, (
+            f"mean(|a-b|) call sites grew from {KNOWN_MAE_CALL_SITES} to {count}. "
+            f"Growth is duplication; import scoring.metrics instead.")
 
     def test_sibling_benchmark_is_a_separate_implementation_without_the_coverage_gate(self):
         """

@@ -155,60 +155,44 @@ def load_nwp():
     return out
 
 
-def bootstrap_ci(err, n_boot=400, ci=0.95, seed=42):
-    rng = np.random.default_rng(seed)
-    n = len(err)
-    if n < 2:
-        return [None, None]
-    idx = rng.integers(0, n, (n_boot, n))
-    m = err[idx].mean(axis=1)
-    return [float(np.percentile(m, 100 * (1 - ci) / 2)),
-            float(np.percentile(m, 100 * (1 + ci) / 2))]
-
-
-MIN_COVERAGE = 0.5
+# ---------------------------------------------------------------------------
+# scoring
+#
+# The single canonical implementation of MAE/RMSE/bias lives in scoring.py.
+# The imports below re-export it under this module's historical names, so the
+# NWP benchmark, its saved results files and the golden-fixture tests all keep
+# resolving to ONE implementation rather than to a second, drifting copy of
+# the same arithmetic. `metrics` below is a thin delegating wrapper for the
+# same reason: the name is imported across this project, and dropping it
+# would break every caller that knows nothing about scoring.py.
+from scoring import MIN_COVERAGE, bootstrap_ci  # noqa: E402
+from scoring import metrics as _score  # noqa: E402
 
 
 def metrics(pred, truth, min_coverage=MIN_COVERAGE):
     """
-    MAE/RMSE/bias over the rows where BOTH prediction and truth are finite.
+    MAE/RMSE/bias over the rows where both prediction and truth are finite.
 
-    Non-finite rows are dropped, and the dropped fraction is checked. This matters
-    more than it looks: a score computed on 12% of the rows is not a score of the
-    model, it is a score of whichever rows happened to be present, and it is
-    indistinguishable from a full-coverage score by the number alone.
+    THIN ALIAS. The implementation moved to scoring.py, which is the one
+    canonical scorer for this project. Semantics are unchanged and are
+    specified by scoring.metrics:
 
-    That is not hypothetical. When NWP window selection picked a cached series
-    that did not overlap the test split, every NWP lookup missed, coverage fell
-    to zero, and the run printed `n/a` for all seven models while still emitting
-    a rank. `coverage` is returned so a caller can see this, and a score below
-    MIN_COVERAGE returns None rather than a confident number.
+      * keys {mae, rmse, bias, n, coverage, rows_dropped_nonfinite, ci95_mae}
+      * bias = mean(pred - truth), PREDICTED MINUS OBSERVED per WMO, so a
+        positive bias means the model runs WARM and negative means COLD. That
+        is the convention monitoring.py already uses, so one forecast reads
+        the same way on the dashboard and in the benchmark.
+      * returns None below min_coverage; the gate is INCLUSIVE at exactly that
+        value, so 1-of-2 rows at coverage 0.5 IS scored.
+      * non-finite rows (nan and +-inf, either side) are dropped and REPORTED
+        via coverage / rows_dropped_nonfinite rather than vanishing.
+      * ci95_mae is a 400-resample percentile bootstrap at 95%, seed 42.
 
-    Rows dropped for missing data are reported in the returned dict rather than
-    vanishing, so the loss is auditable.
+    The arithmetic is NOT repeated here. Anything in this file that needs a
+    score calls this wrapper; re-deriving it is how this project ended up with
+    thirteen scorers that disagreed about the sign of bias.
     """
-    p_all = np.asarray(pred, float)
-    t_all = np.asarray(truth, float)
-    finite = np.isfinite(p_all) & np.isfinite(t_all)
-    total = len(p_all)
-    kept = int(finite.sum())
-    coverage = kept / total if total else 0.0
-    if kept == 0:
-        return None
-    p, t = p_all[finite], t_all[finite]
-    if coverage < min_coverage:
-        return None
-    e = np.abs(p - t)
-    return {"mae": float(e.mean()), "rmse": float(np.sqrt((e ** 2).mean())),
-            # Bias is forecast MINUS observed, per WMO. This was the opposite
-            # sign, so the same forecast read as over-predicting on the
-            # operational dashboard (monitoring.py, which uses pred - truth)
-            # and under-predicting here. Someone triaging a systematic bias from
-            # the dashboard would have chased the wrong side of the model.
-            "bias": float((p - t).mean()), "n": int(len(p)),
-            "coverage": coverage,
-            "rows_dropped_nonfinite": total - kept,
-            "ci95_mae": bootstrap_ci(e)}
+    return _score(pred, truth, min_coverage=min_coverage)
 
 
 def fmt(v, nd=3):
