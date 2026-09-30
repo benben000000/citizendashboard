@@ -103,8 +103,17 @@ prediction-model/data/seed_sweep_analysis.json
 prediction-model/data/nwp_benchmark_candidate_*.json
 prediction-model/data/nwp_bm_ctrl_*.json
 
-# Stray temp dirs from interrupted jobs
-prediction-model/data/tmp*/
+# Stray temp artifacts from interrupted jobs. These appear as FILES as well as
+# directories, so the pattern must not end in a slash: `tmp*/` only matches
+# directories and a 558 KB file named tmpXXXXXXXX slipped through.
+prediction-model/data/tmp*
+
+# Live ingestor output. mqtt_live_ingestor.py rewrites this continuously while
+# the service runs, so while it was tracked it dirtied the worktree on every
+# publish. That made the provenance gate's read-only-worktree assertion fail
+# intermittently -- it passed in isolation and failed in suite order, which is
+# the worst possible failure mode for a test you are trying to trust.
+prediction-model/data/mqtt_live_predictions.json
 
 # analysis scratch
 scratch/
