@@ -1,0 +1,34 @@
+{
+  "horizon_h": 6,
+  "nwp_model": "gfs_seamless",
+  "chosen": {
+    "temperature": {
+      "mode": "per_station",
+      "lambda": 0.4,
+      "val_mae": 1.1145327811005685,
+      "raw_nwp_mae": 1.1721512254160362,
+      "persistence_mae": 1.3714624432677762
+    },
+    "humidity": {
+      "mode": "per_station",
+      "lambda": 1.0,
+      "val_mae": 5.2023141862708915,
+      "raw_nwp_mae": 7.437366191376702,
+      "persistence_mae": 2.864534655824508
+    },
+    "pressure": {
+      "mode": "per_station",
+      "lambda": 1.0,
+      "val_mae": 1.32764322457046,
+      "raw_nwp_mae": 3.0079998865355524,
+      "persistence_mae": 1.4300810892586988
+    },
+    "wind_speed": {
+      "mode": "pooled",
+      "lambda": 0.0,
+      "val_mae": 1.636997245914477,
+      "raw_nwp_mae": 2.9612279037233153,
+      "persistence_mae": 1.4197237885779121
+    }
+  }
+}

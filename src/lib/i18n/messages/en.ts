@@ -146,6 +146,11 @@ export const en = {
         uvHigh: "High / Sun Protection",
         uvModerate: "Moderate Exposure",
         uvLow: "Low / Minimal",
+        // The engine quarantines UV (sensors report up to 11.0 at midnight), so
+        // no value is rendered. The scale labels above are retained for the case
+        // where a calibrated UV feed is ever connected.
+        uvWithheld: "Not available",
+        uvBlockedReason: "Withheld — sensor calibration defect",
       },
       heatIndexCategories: {
         extremeDanger: "Extreme Danger",
@@ -173,57 +178,99 @@ export const en = {
       },
       advisories: {
         normal: "Warm weather conditions. Keep hydrated and take shade if active outdoors.",
-        rainNormal: "Passing light drizzle. Bring light rain gear if heading outdoors.",
-        advisory: "Scattered rain showers. Monitor low-lying areas and road drainage as rain continues.",
-        warning: "Heavy rainfall detected. Prepare essentials and stay alert for localized street flooding.",
-        critical: "Critical heavy storm and flooding risk. Follow immediate safety notices from local authorities.",
+        rainNormal: "Passing light drizzle observed. Bring light rain gear if heading outdoors.",
+        advisory: "Scattered rain showers indicated. Monitor low-lying areas and road drainage as rain continues.",
+        warning: "Heavy rainfall indicated by station telemetry. Prepare essentials and stay alert for localized street flooding.",
+        critical: "Very heavy rainfall indicated. This is a research-model estimate, not an official warning — follow PAGASA and local authority bulletins.",
+      },
+      /**
+       * Model governance banner.
+       *
+       * Rendered from the engine's own metadata
+       * (`prediction-model/src/inference.py`). These strings must reflect the
+       * model status verbatim; they are not marketing copy.
+       */
+      governance: {
+        researchPrototypeBadge: "Research Prototype — Not an Official Warning",
+        notForLifeSafetyNotice:
+          "Forecasts on this page come from a research-stage model and are provided for " +
+          "monitoring and research purposes only. Do not use them for evacuation, life-safety " +
+          "decisions, or emergency action. Always follow PAGASA and your local government unit.",
+        modelStatus: "Model status: {status}",
+        modelVersion: "Model version: {version} · policy {policyVersion}",
+        horizon: "Forecast horizon: {horizon}",
+        freshness: "Model output age: {age}s (budget {budget}s)",
+        provenance: "Model commit {commit} · checkpoint {checkpoint}",
+        uncertaintyUnavailable:
+          "Weather prediction intervals are not available for this model. Probabilities are " +
+          "calibrated point estimates without uncertainty bands.",
+        sourceLearned: "model",
+        sourcePersistence: "last observation (persistence)",
+        sourceQuarantined: "suppressed — input failed the data quality gate",
+        inputQuarantinedNotice:
+          "The incoming telemetry failed the data quality check, so the model's forecast was " +
+          "suppressed. Values shown are the last valid observation.",
+        inputWarningNotice:
+          "The incoming telemetry raised a data quality warning. Review values before relying on them.",
+        noForecastTitle: "No validated forecast available",
+        confidenceNote:
+          "Data freshness only — this is not a measure of forecast accuracy.",
+        uvBlocked: "UV index withheld: {reason}",
+        lightBeta: "Daylight intensity (secondary, uncalibrated): {reason}",
+        waterBeta: "River-stage figures are a beta research capability and are not approved for flood warning use.",
       },
       peakSection: {
-        crestTitle: "Road & Flood Passability",
-        crestSubtitle: "Is it safe to travel or will roads flood in your area?",
+        crestTitle: "Road & Flood Conditions (Research Estimate)",
+        crestSubtitle: "Modelled river-stage trend from a beta capability — advisory information only",
         umbrellaTitle: "Rain & Umbrella Guide",
         umbrellaSubtitle: "Should you bring an umbrella or raincoat today?",
-        mountainTitle: "Mountain Flash Flood Alert",
-        mountainSubtitle: "Water runoff risk from nearby mountains and watersheds",
-        
-        passableSafe: "SAFE TO PASS / ROADS CLEAR",
-        passableCaution: "CAUTION: ROADS MAY BE WET",
-        passableDanger: "DANGER: FLOODED / DO NOT PASS",
-        
-        passableSafeDesc: "Roads are dry and river levels are safe. Clear for all motorbikes, cars, and pedestrians.",
-        passableCautionDesc: "Ankle to gutter-deep water in low-lying roads. Small vehicles and motorbikes take extra care.",
-        passableDangerDesc: "Knee to waist-deep flood! High risk for light vehicles and motorbikes. Take alternate routes.",
+        mountainTitle: "Upstream Runoff Watch",
+        mountainSubtitle: "Rainfall in nearby upland areas can precede downstream river rise",
+
+        // These are MODEL OBSERVATIONS, not instructions. The engine is marked
+        // `not_for_life_safety: true` and its river-stage output loses to a
+        // persistence baseline at 1h/3h/6h/12h (MODEL_REGISTRY.md 4.3), so it
+        // must not issue "DO NOT PASS" style directives. Official warnings come
+        // from PAGASA / local government units.
+        passableSafe: "No elevated river stage indicated",
+        passableCaution: "Elevated river stage indicated — use caution",
+        passableDanger: "Elevated river stage indicated — avoid low-lying roads if you can",
+
+        passableSafeDesc: "Modelled river stage is near baseline. Note this is a research estimate, not a measurement of road conditions.",
+        passableCautionDesc: "Modelled river stage is elevated. Water on low-lying roads is possible. Drive with care.",
+        passableDangerDesc: "Modelled river stage is well above baseline. Deep water on low roads is possible. Consider an alternate route, and follow official advisories.",
 
         umbrellaNoRain: "CLEAR / NO UMBRELLA NEEDED",
         umbrellaLight: "BRING AN UMBRELLA (PASSING SHOWERS)",
-        umbrellaHeavy: "HEAVY DOWNPOUR COMING! BRING RAINGEAR",
-        
+        umbrellaHeavy: "HEAVY RAIN INDICATED — BRING RAINGEAR",
+
         umbrellaNoRainDesc: "Dry and clear skies. No rain protection needed.",
         umbrellaLightDesc: "Light passing drizzle expected around {time} lasting ~{duration}. Carry an umbrella.",
-        umbrellaHeavyDesc: "Sudden heavy cloudburst around {time}. Bring a raincoat/umbrella and seek shelter if driving.",
+        umbrellaHeavyDesc: "Heavy rainfall indicated around {time}. Bring a raincoat or umbrella and take shelter if driving.",
 
-        mountainSafe: "MOUNTAIN RUNOFF SAFE",
-        mountainCaution: "ACTIVE MOUNTAIN RAIN (MONITOR)",
-        mountainDanger: "FLASH FLOOD SURGE FROM MOUNTAINS!",
-        
-        mountainSafeDesc: "No heavy rain in the mountains. Safe for communities near mountain slopes and riverbanks.",
-        mountainCautionDesc: "Rain detected in the mountains. Watch out for delayed rising river water in low areas.",
-        mountainDangerDesc: "Heavy storm in the mountains! Flash floods may surge downstream even if it's not raining in your area.",
+        mountainSafe: "NO HEAVY UPLAND RAIN INDICATED",
+        mountainCaution: "UPLAND RAIN INDICATED (MONITOR)",
+        mountainDanger: "HEAVY UPLAND RAIN INDICATED",
 
-        expectedAt: "Projected peak around {time}",
-        clearanceNormal: "{clearance}m clearance below Critical Flood Stage ({critical}m)",
-        clearanceExceeded: "Exceeds Critical Flood Level by {clearance}m",
+        mountainSafeDesc: "No heavy rainfall indicated in the uplands. Note this is a research estimate from a limited station network.",
+        mountainCautionDesc: "Rainfall indicated in the uplands. Downstream river levels can rise with a delay; keep an eye on local conditions.",
+        mountainDangerDesc: "Heavy rainfall indicated in the uplands. Rapid downstream rises are possible even where it is not raining locally. Follow official bulletins.",
+
+        expectedAt: "Modelled peak around {time}",
+        clearanceNormal: "{clearance}m below the modelled critical stage ({critical}m)",
+        clearanceExceeded: "{clearance}m above the modelled critical stage",
         watershedTitle: "Upstream Watershed & Inflow",
-        watershedSubtitle: "Mountain runoff & upstream station accumulation",
+        watershedSubtitle: "Upland rainfall & upstream station accumulation",
         inflowStatus: "Upstream Inflow Status",
         inflowNormal: "Normal / Gentle Inflow",
         inflowElevated: "Elevated Runoff",
-        inflowCritical: "Surge Runoff Detected",
+        inflowCritical: "Surge Runoff Indicated",
         mountainRain: "Upstream Rain Rate",
-        runoffDescriptionNormal: "No heavy rainfall detected upstream that would cause sudden river surges.",
-        runoffDescriptionElevated: "Active rainfall detected in upstream mountains. Monitor river level for delayed runoff surge.",
+        runoffDescriptionNormal: "No heavy rainfall indicated upstream that would cause sudden river surges.",
+        runoffDescriptionElevated: "Rainfall indicated in the upstream uplands. River level can respond with a delay.",
+        runoffDescriptionCritical: "Heavy upstream rainfall indicated. Sudden downstream surges are possible — monitor official bulletins.",
         thresholdLabels: {
-          normal: "Safe (<{val}m)",
+          normal: "Baseline (<{val}m)",
           advisory: "Gutter / Ankle",
           warning: "Knee Deep",
           critical: "Critical ({val}m)",

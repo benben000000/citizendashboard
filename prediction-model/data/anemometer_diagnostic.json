@@ -1,0 +1,28 @@
+{
+  "model": "ecmwf_ifs025",
+  "n_observations": 2531,
+  "n_stations": 11,
+  "station_mean_ms": 1.5722579462662978,
+  "nwp_mean_ms": 2.6691689714210463,
+  "ratio_of_means": 0.5890439920067102,
+  "pooled_factor": 0.5842263433684796,
+  "pooled_residual_rms": 2.0149617297949387,
+  "pearson_r": 0.3581314973045307,
+  "variance_ratio": 2.496214401676836,
+  "per_station_factor": {
+    "1Zb102pg": 0.4448359031114525,
+    "3nzr48bG": 1.2945247316133124,
+    "3nzr8bGo": 0.9084051697929006,
+    "4VAl2p9k": 0.0,
+    "95pM7BAV": 0.0014158230789916401,
+    "Bkpj1zRO": 0.0,
+    "QgbGldAY": 0.2880954688274905,
+    "Rjz2dbXW": 0.5956096169678905,
+    "nDby4YpR": 0.7062626351097676,
+    "rqAkmpKG": 0.35812752796125613,
+    "wkAWLzlm": 1.220443152104756
+  },
+  "factor_spread": 1.2945247316133124,
+  "best_lag_hours": 1,
+  "best_lag_r": 0.3593506207432638
+}

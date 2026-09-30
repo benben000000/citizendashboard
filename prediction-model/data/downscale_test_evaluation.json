@@ -1,0 +1,265 @@
+{
+  "protocol": "fit=TRAIN, select lambda/mode=VAL, report=TEST (single pass)",
+  "results": {
+    "1": {
+      "temperature": {
+        "persistence": 0.5936059964804224,
+        "raw_nwp": 1.26236778266608,
+        "cal_nwp": 1.0632750510658981,
+        "cal_nwp_downscale": 1.0601718956692125,
+        "gain_vs_cal_pct": 0.29184879242438605,
+        "skill_vs_pers_pct": -78.59858255393782,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.5
+        }
+      },
+      "humidity": {
+        "persistence": 1.6765010250769907,
+        "raw_nwp": 5.675985794104707,
+        "cal_nwp": 4.282016118747976,
+        "cal_nwp_downscale": 3.9843969282554372,
+        "gain_vs_cal_pct": 6.9504453565569575,
+        "skill_vs_pers_pct": -137.66146686802415,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.8
+        }
+      },
+      "pressure": {
+        "persistence": 0.39427325120985574,
+        "raw_nwp": 2.2194303123625154,
+        "cal_nwp": 0.8585135193663093,
+        "cal_nwp_downscale": 0.8600003375751346,
+        "gain_vs_cal_pct": -0.17318518291043397,
+        "skill_vs_pers_pct": -118.12292234793051,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 1.0
+        }
+      },
+      "wind_speed": {
+        "persistence": 0.8798099863616367,
+        "raw_nwp": 1.9223744704502128,
+        "cal_nwp": 1.564834269890857,
+        "cal_nwp_downscale": 1.392132745283916,
+        "gain_vs_cal_pct": 11.036409920840144,
+        "skill_vs_pers_pct": -58.2310688516889,
+        "calibration": {
+          "mode": "pooled",
+          "lambda": 1.0
+        }
+      },
+      "_best_epoch": 0,
+      "_params": 64196
+    },
+    "3": {
+      "temperature": {
+        "persistence": 1.136706825679893,
+        "raw_nwp": 1.2668109897458761,
+        "cal_nwp": 1.0654084078223867,
+        "cal_nwp_downscale": 1.0191666391880687,
+        "gain_vs_cal_pct": 4.340285687141572,
+        "skill_vs_pers_pct": 10.340413538162792,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.5
+        }
+      },
+      "humidity": {
+        "persistence": 3.253201395452519,
+        "raw_nwp": 5.699449843958983,
+        "cal_nwp": 4.29613172904581,
+        "cal_nwp_downscale": 4.04579248777484,
+        "gain_vs_cal_pct": 5.827084853531065,
+        "skill_vs_pers_pct": -24.363419167047038,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.8
+        }
+      },
+      "pressure": {
+        "persistence": 0.9312076683013853,
+        "raw_nwp": 2.2172502897904582,
+        "cal_nwp": 0.8547880414871686,
+        "cal_nwp_downscale": 0.8644105356595828,
+        "gain_vs_cal_pct": -1.125716985426343,
+        "skill_vs_pers_pct": 7.173172528062091,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 1.0
+        }
+      },
+      "wind_speed": {
+        "persistence": 1.101244873383861,
+        "raw_nwp": 1.9275346104919007,
+        "cal_nwp": 1.5703986126979748,
+        "cal_nwp_downscale": 1.4125317851128416,
+        "gain_vs_cal_pct": 10.052659643777636,
+        "skill_vs_pers_pct": -28.26682050945407,
+        "calibration": {
+          "mode": "pooled",
+          "lambda": 1.0
+        }
+      },
+      "_best_epoch": 0,
+      "_params": 64196
+    },
+    "6": {
+      "temperature": {
+        "persistence": 1.6987241291496136,
+        "raw_nwp": 1.2739814961346068,
+        "cal_nwp": 1.0670107960621298,
+        "cal_nwp_downscale": 1.0081006555959047,
+        "gain_vs_cal_pct": 5.521044462121346,
+        "skill_vs_pers_pct": 40.6554226023408,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.5
+        }
+      },
+      "humidity": {
+        "persistence": 4.884314906775807,
+        "raw_nwp": 5.704616539336062,
+        "cal_nwp": 4.290572008143444,
+        "cal_nwp_downscale": 4.010635135315649,
+        "gain_vs_cal_pct": 6.524465089887291,
+        "skill_vs_pers_pct": 17.8874578755792,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.8
+        }
+      },
+      "pressure": {
+        "persistence": 1.3152551159618038,
+        "raw_nwp": 2.2191272851296033,
+        "cal_nwp": 0.8517229012675309,
+        "cal_nwp_downscale": 0.8585510644439295,
+        "gain_vs_cal_pct": -0.8016883385707855,
+        "skill_vs_pers_pct": 34.72360958534659,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 1.0
+        }
+      },
+      "wind_speed": {
+        "persistence": 1.319189271941792,
+        "raw_nwp": 1.934022656460007,
+        "cal_nwp": 1.578152813929268,
+        "cal_nwp_downscale": 1.428776550501806,
+        "gain_vs_cal_pct": 9.465259771361849,
+        "skill_vs_pers_pct": -8.307168720278185,
+        "calibration": {
+          "mode": "pooled",
+          "lambda": 1.0
+        }
+      },
+      "_best_epoch": 0,
+      "_params": 64196
+    },
+    "12": {
+      "temperature": {
+        "persistence": 2.1619493066037734,
+        "raw_nwp": 1.288023358490566,
+        "cal_nwp": 1.0713335432669895,
+        "cal_nwp_downscale": 1.0745709493272215,
+        "gain_vs_cal_pct": -0.30218470060777686,
+        "skill_vs_pers_pct": 50.296200468489474,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.5
+        }
+      },
+      "humidity": {
+        "persistence": 6.362202731132075,
+        "raw_nwp": 5.721680698113208,
+        "cal_nwp": 4.276324781003511,
+        "cal_nwp_downscale": 3.9893200454802407,
+        "gain_vs_cal_pct": 6.711481241981819,
+        "skill_vs_pers_pct": 37.29655884809582,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.8
+        }
+      },
+      "pressure": {
+        "persistence": 0.7965641981132084,
+        "raw_nwp": 2.2204825943396216,
+        "cal_nwp": 0.8532859116014972,
+        "cal_nwp_downscale": 0.858887381759972,
+        "gain_vs_cal_pct": -0.6564587651472666,
+        "skill_vs_pers_pct": -7.824000098722259,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 1.0
+        }
+      },
+      "wind_speed": {
+        "persistence": 1.5114054103773584,
+        "raw_nwp": 1.9186207928197063,
+        "cal_nwp": 1.5762009420328738,
+        "cal_nwp_downscale": 1.4350965582910231,
+        "gain_vs_cal_pct": 8.952182426681212,
+        "skill_vs_pers_pct": 5.04886720415292,
+        "calibration": {
+          "mode": "pooled",
+          "lambda": 1.0
+        }
+      },
+      "_best_epoch": 0,
+      "_params": 64196
+    },
+    "24": {
+      "temperature": {
+        "persistence": 1.4058612298387099,
+        "raw_nwp": 1.3326853528225806,
+        "cal_nwp": 1.1135332340516815,
+        "cal_nwp_downscale": 1.094365563004743,
+        "gain_vs_cal_pct": 1.7213380311241595,
+        "skill_vs_pers_pct": 22.156928452298505,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.5
+        }
+      },
+      "humidity": {
+        "persistence": 4.413264203629033,
+        "raw_nwp": 5.9471708870967745,
+        "cal_nwp": 4.327814516665833,
+        "cal_nwp_downscale": 4.148067898942467,
+        "gain_vs_cal_pct": 4.153288386810142,
+        "skill_vs_pers_pct": 6.009073838554556,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 0.9
+        }
+      },
+      "pressure": {
+        "persistence": 1.0745959677419366,
+        "raw_nwp": 2.1984838709677406,
+        "cal_nwp": 0.84595263142882,
+        "cal_nwp_downscale": 0.8402567059750448,
+        "gain_vs_cal_pct": 0.6733149401231635,
+        "skill_vs_pers_pct": 21.807197197967543,
+        "calibration": {
+          "mode": "per_station",
+          "lambda": 1.0
+        }
+      },
+      "wind_speed": {
+        "persistence": 1.1783701159274194,
+        "raw_nwp": 1.923259190188172,
+        "cal_nwp": 1.5966706315563173,
+        "cal_nwp_downscale": 1.4615790441648715,
+        "gain_vs_cal_pct": 8.460829974668503,
+        "skill_vs_pers_pct": -24.03395371364765,
+        "calibration": {
+          "mode": "pooled",
+          "lambda": 1.0
+        }
+      },
+      "_best_epoch": 1,
+      "_params": 64196
+    }
+  }
+}

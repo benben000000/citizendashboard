@@ -204,13 +204,14 @@ export default function PredictionWeatherForecast({
     targetData.condition === "rain" ||
     targetData.condition === "storm";
 
-  // Dynamic Daytime UV Index Calculation
-  const now = new Date();
-  const phHour = (now.getUTCHours() + 8) % 24 + now.getUTCMinutes() / 60;
-  const isDaytime = phHour >= 6 && phHour <= 18;
-  const uvValue = isDaytime
-    ? Math.max(0, Math.min(11, Math.round(9.2 * Math.sin((Math.PI * (phHour - 6)) / 12) * 10) / 10))
-    : 0.0;
+  // UV index is governed by the forecasting engine, which quarantines it
+  // (BLOCKED_BY_SENSOR_CALIBRATION: raw sensors report up to 11.0 at midnight)
+  // and raises on any UV request. The previous implementation computed a
+  // clear-sky solar-zenith proxy in the browser and rendered it as a reading,
+  // which put an unvalidated number in front of users under a label the model
+  // explicitly withholds. The status is rendered instead.
+  const uvBlocked = weather.uvIndex?.status === "BLOCKED_BY_SENSOR_CALIBRATION";
+  const uvReason = weather.uvIndex?.reason ?? "";
 
   // The weather dashboard should only describe risks measured or forecast for
   // the selected station. Flood-stage risk belongs to a water-level station.
@@ -525,30 +526,44 @@ export default function PredictionWeatherForecast({
                   </div>
                 </div>
 
-                {/* 4. UV Index Card */}
-                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
+                {/* 4. UV Index Card — blocked by the engine, never synthesised */}
+                <div
+                  className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5"
+                  data-testid="uv-index-card"
+                  data-uv-status={weather.uvIndex?.status ?? "BLOCKED_BY_SENSOR_CALIBRATION"}
+                >
                   <div className="flex items-center gap-2">
-                    <Sun className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
+                    <Sun className="h-4 w-4 md:h-4.5 md:w-4.5 text-light/50 shrink-0" />
                     <span className="text-xs md:text-sm text-light font-medium leading-tight">
                       {t("cards.uvIndex")}
                     </span>
                   </div>
 
-                  <div className="my-auto flex items-baseline gap-1 text-light">
-                    <span className="text-2xl md:text-3xl font-bold leading-none">
-                      {uvValue.toFixed(1)}
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] font-semibold text-light/85 truncate">
-                    {uvValue >= 8
-                      ? t("cards.uvVeryHigh")
-                      : uvValue >= 6
-                        ? t("cards.uvHigh")
-                        : uvValue >= 3
-                          ? t("cards.uvModerate")
-                          : t("cards.uvLow")}
-                  </div>
+                  {uvBlocked ? (
+                    <>
+                      <div className="my-auto flex items-baseline gap-1 text-light/60">
+                        <span className="text-lg md:text-xl font-bold leading-none">—</span>
+                        <span className="text-[11px] font-medium leading-tight">
+                          {t("cards.uvWithheld")}
+                        </span>
+                      </div>
+                      <div
+                        className="text-[10px] font-semibold leading-tight text-amber-300/90 line-clamp-2"
+                        title={uvReason}
+                      >
+                        {t("cards.uvBlockedReason")}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="my-auto flex items-baseline gap-1 text-light">
+                        <span className="text-2xl md:text-3xl font-bold leading-none">—</span>
+                      </div>
+                      <div className="text-[11px] font-semibold text-light/85 truncate">
+                        {t("cards.uvWithheld")}
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}

@@ -1,0 +1,21 @@
+{
+  "predictions_seen": 81,
+  "observations_seen": 237,
+  "scored": 0,
+  "pending": 81,
+  "unmatched": 0,
+  "already_verified": 0,
+  "tolerance_minutes": 30.0,
+  "mae_by_variable": {},
+  "n_by_variable_and_producer": {},
+  "mae_by_variable_and_producer": {},
+  "writer": {
+    "path": "prediction-model/data/prediction_verification.jsonl",
+    "exists": false,
+    "bytes": null,
+    "written": 0,
+    "errors": 0,
+    "max_bytes": 33554432,
+    "keep": 5
+  }
+}

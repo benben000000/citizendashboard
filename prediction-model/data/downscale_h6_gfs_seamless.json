@@ -1,0 +1,36 @@
+{
+  "horizon_h": 6,
+  "nwp_model": "gfs_seamless",
+  "parameters": 68677,
+  "best_epoch": 0,
+  "validation": {
+    "temperature": {
+      "persistence": 1.3714624432677762,
+      "nwp": 1.4164526274641138,
+      "nwp_downscale": 1.3787176926616715,
+      "gain_vs_nwp_pct": 2.6640449578606398,
+      "gain_vs_persistence_pct": -0.5290155358981818
+    },
+    "humidity": {
+      "persistence": 2.864534655824508,
+      "nwp": 5.7076945221188655,
+      "nwp_downscale": 5.021212852725217,
+      "gain_vs_nwp_pct": 12.02730220990885,
+      "gain_vs_persistence_pct": -75.28895461311657
+    },
+    "pressure": {
+      "persistence": 1.4300810892586988,
+      "nwp": 3.0284236236834454,
+      "nwp_downscale": 3.0739441228990394,
+      "gain_vs_nwp_pct": -1.5031087084252694,
+      "gain_vs_persistence_pct": -114.94893862923945
+    },
+    "wind_speed": {
+      "persistence": 1.4197237885779121,
+      "nwp": 1.636997245914477,
+      "nwp_downscale": 1.5762520098202448,
+      "gain_vs_nwp_pct": 3.710772039833094,
+      "gain_vs_persistence_pct": -11.025258751149162
+    }
+  }
+}

@@ -63,35 +63,39 @@ export default function CustomFooter() {
 
                   <div className="p-3 rounded-lg border border-border bg-card/40 space-y-1">
                     <p className="font-semibold text-foreground">
-                      Satellite Infrared Convective Indices
+                      External Data Sources — Not Currently In Use
                     </p>
                     <p className="text-muted-foreground leading-relaxed">
-                      Meteorological cloud brightness indices are derived from Himawari-9 open public datasets provided by the <strong>Japan Meteorological Agency (JMA)</strong> and <strong>NOAA Open Data Dissemination (NODD)</strong> under international open meteorological data policies.
+                      No third-party satellite or radar feed contributes to any value on this site. Adapters exist
+                      for Himawari-9 satellite imagery, Doppler radar (RainViewer), and PAGASA numerical weather
+                      prediction, but all are recorded as <strong>UNKNOWN_BLOCKED</strong> in the project&apos;s
+                      external source registry (<code>prediction-model/data/external_source_registry.json</code>)
+                      pending a commercial licence review. They currently return no data. Public API access does
+                      not by itself constitute commercial or model-training rights.
                     </p>
                   </div>
 
                   <div className="p-3 rounded-lg border border-border bg-card/40 space-y-1">
                     <p className="font-semibold text-foreground">
-                      Doppler Radar & Reflectivity Calibration
-                    </p>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Radar reflectivity validation references Doppler weather radar data provided by <strong>RainViewer</strong> (https://www.rainviewer.com) under statutory non-consumptive model training and validation fair use.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-lg border border-border bg-card/40 space-y-1">
-                    <p className="font-semibold text-foreground">
-                      Physical Ground Telemetry & IoT Hardware
+                      Physical Ground Telemetry &amp; IoT Hardware
                     </p>
                     <p className="text-muted-foreground leading-relaxed">
                       Sub-second telemetry streams are produced by 23 physical Automated Weather Stations (AWS) and Water Level Monitoring Stations (WLMS) owned and operated by <strong>Kloudtech Inc.</strong> across Central Luzon and Bataan.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-muted/40 text-[11px] text-muted-foreground border border-border/50 space-y-1">
-                    <p className="font-semibold text-foreground">Commercial Freedom-to-Operate & Fair Use Declaration</p>
+                  <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/5 text-[11px] text-foreground/90 space-y-1">
+                    <p className="font-semibold text-foreground">Model Status &amp; Limitations</p>
                     <p className="leading-relaxed">
-                      All forecasts and intelligence delivered by this application constitute original, autonomous derivative works computed by KloudTrack&apos;s continuous-time neural ODE physics engine. Zero third-party raw copyrighted data is republished. Cleared for 100% royalty-free commercial deployment.
+                      The forecasting engine is a <strong>research prototype</strong> and is marked{" "}
+                      <code>not_for_life_safety</code>. It is provided for monitoring, planning and research
+                      only. Do not use it for evacuation, life-safety decisions, or emergency action.
+                      River-stage output is a beta capability and is not approved for flood-warning use.
+                      Weather prediction intervals are unavailable — probabilities are calibrated point
+                      estimates without uncertainty bands, and most variables fall back to the last valid
+                      observation. Where no measurement exists for a station, the interface shows an explicit
+                      unavailable state rather than an estimate. Always follow PAGASA and your local government
+                      unit for official warnings.
                     </p>
                   </div>
                 </div>

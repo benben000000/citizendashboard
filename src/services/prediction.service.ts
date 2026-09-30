@@ -1,5 +1,11 @@
 import { waterLevelService } from "@/services/water-level.service";
 import { telemetryService } from "@/services/telemetry.service";
+import {
+  getOperationalForecast,
+  FORECAST_FRESHNESS_BUDGET_SECONDS,
+  type ForecastResult,
+  type OperationalForecast,
+} from "@/services/forecast.service";
 import type {
   PredictionPublicDTO,
   PredictionHorizon,
@@ -11,6 +17,10 @@ import type {
   DailyWeatherForecast,
   SuddenBurstType,
   SuddenRainBurstPrediction,
+  ModelGovernance,
+  ModelInputQuality,
+  ModelSourceSelection,
+  ModelForecastProvenance,
 } from "@/types/prediction";
 import type { StationPublicInfo } from "@/types/telemetry";
 import type { WeatherCondition } from "@/lib/utils/weather";
@@ -18,6 +28,159 @@ import { DEFAULT_CENTRAL_LUZON_STATIONS } from "@/lib/constants/default-stations
 import { InMemoryCache } from "@/lib/utils/cache";
 
 const predictionCache = new InMemoryCache<PredictionPublicDTO>(30, 200);
+
+/* -------------------------------------------------------------------------- */
+/* Weather overview builders                                                  */
+/* -------------------------------------------------------------------------- */
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function windCardinalFromDegrees(deg: number | null | undefined): string | undefined {
+  if (deg === null || deg === undefined || !Number.isFinite(deg)) return undefined;
+  const points = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                  "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  const index = Math.round((((deg % 360) + 360) % 360) / 22.5) % 16;
+  return points[index];
+}
+
+function conditionForRainChance(chancePct: number, precipMm: number): {
+  condition: WeatherCondition;
+  conditionText: string;
+} {
+  if (precipMm >= 5 || chancePct >= 70) {
+    return { condition: "storm", conditionText: "Thunderstorm Risk" };
+  }
+  if (precipMm > 0.5 || chancePct >= 40) {
+    return { condition: "rain", conditionText: "Rain Possible" };
+  }
+  return { condition: "partly-cloudy", conditionText: "Partly Cloudy" };
+}
+
+/**
+ * Build the weather overview from the validated engine's policy-governed output.
+ *
+ * The engine already applies the per-target source policy (learned model vs
+ * persistence fallback) and the calibrated rain blend, so these values must be
+ * used verbatim. Re-deriving them here would reintroduce the divergence this
+ * integration removed.
+ */
+function buildModelBackedWeatherOverview(
+  f: OperationalForecast,
+  currentTemp: number,
+  currentHumidity: number,
+  currentHeatIndex: number,
+  currentPressure: number,
+  currentWindSpeed: number
+): PredictionWeatherOverview {
+  const rainChance = f.chance_of_rain_pct ?? 0;
+  const precipMm = f.expected_precipitation_mm ?? 0;
+  const { condition, conditionText } = conditionForRainChance(rainChance, precipMm);
+
+  const targetTime = f.target_timestamp ?? new Date().toISOString();
+  const hourly: HourlyWeatherForecast[] = [
+    {
+      time: new Date(targetTime).toLocaleTimeString("en-PH", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      timestamp: targetTime,
+      temp: round1(f.temperature_c),
+      heatIndex: round1(f.heat_index_c),
+      condition,
+      conditionText,
+      rainProbability: Math.round(rainChance),
+      precipitationMm: round1(precipMm),
+      windSpeedKmH: round1(f.wind_speed_kmh),
+      // The engine reports wind direction as null below the 1.0 km/h calm
+      // threshold. Preserve that rather than substituting a prevailing value.
+      windDirection: windCardinalFromDegrees(f.wind_direction_deg),
+      humidity: Math.round(f.relative_humidity_pct),
+      pressure: round1(f.pressure_hpa),
+    },
+  ];
+
+  const targetDate = new Date(targetTime);
+  const daily: DailyWeatherForecast[] = [
+    {
+      date: targetDate.toISOString(),
+      dayName: targetDate.toLocaleDateString("en-PH", { weekday: "long" }),
+      maxTemp: round1(f.temperature_c),
+      minTemp: round1(f.temperature_c),
+      maxHeatIndex: round1(f.heat_index_c),
+      condition,
+      conditionText,
+      rainProbability: Math.round(rainChance),
+      totalRainfallMm: round1(precipMm),
+    },
+  ];
+
+  return {
+    currentTemp: round1(currentTemp),
+    currentHeatIndex: round1(currentHeatIndex),
+    condition,
+    conditionText,
+    humidity: Math.round(currentHumidity),
+    windSpeed: round1(currentWindSpeed),
+    windDirection: windCardinalFromDegrees(f.wind_direction_deg),
+    pressure: round1(f.pressure_hpa),
+    precipitationChance: Math.round(rainChance),
+    summaryMessage:
+      `${f.product_name} (${f.active_bundle_horizon}, ${f.model_status}). ` +
+      `Forecast target: ${f.temperature_c}°C, ${f.heat_index_c}°C heat index, ` +
+      `${f.chance_of_rain_pct}% chance of rain, ${f.pressure_tendency.toLowerCase()} pressure. ` +
+      `Rain probability uses a ${f.rain_probability_source} (model weight ${f.rain_model_weight}). ` +
+      `Weather prediction intervals are ${f.weather_uncertainty?.status ?? "UNAVAILABLE"}.`,
+    hourly,
+    daily,
+    // Overwritten by the caller from the engine's governance block. The default
+    // is the blocked state so no code path can emit a UV value.
+    uvIndex: {
+      status: "BLOCKED_BY_SENSOR_CALIBRATION",
+      reason: "UV index is not produced by the forecasting engine.",
+    },
+  };
+}
+
+/**
+ * Observation-only payload used when no validated forecast exists.
+ *
+ * Deliberately contains NO forecast values. `precipitationChance` is 0 and the
+ * hourly list is empty so that a caller cannot mistake an absent forecast for a
+ * benign one.
+ */
+function buildObservationOnlyWeatherOverview(
+  currentTemp: number,
+  currentHumidity: number,
+  currentHeatIndex: number,
+  currentPressure: number,
+  currentWindSpeed: number,
+  currentWindDirection: string
+): PredictionWeatherOverview {
+  return {
+    currentTemp: round1(currentTemp),
+    currentHeatIndex: round1(currentHeatIndex),
+    condition: "partly-cloudy",
+    conditionText: "Observation Only",
+    humidity: Math.round(currentHumidity),
+    windSpeed: round1(currentWindSpeed),
+    windDirection: currentWindDirection,
+    pressure: round1(currentPressure),
+    precipitationChance: 0,
+    summaryMessage:
+      "Current station observation only. No validated model forecast is available " +
+      "for this station right now.",
+    hourly: [],
+    daily: [],
+    uvIndex: {
+      status: "BLOCKED_BY_SENSOR_CALIBRATION",
+      reason: "UV index is not produced by the forecasting engine.",
+    },
+  };
+}
+
 
 const HORIZON_HOURS_MAP: Record<PredictionHorizon, number> = {
   "1h": 1,
@@ -892,10 +1055,22 @@ export class PredictionService {
 
     const rawHistory = historyResult.waterLevel || [];
 
-    // Thresholds
-    const advisoryThreshold = station.referenceThreshold ? station.referenceThreshold * 0.7 : 5.0;
-    const warningThreshold = station.referenceThreshold ? station.referenceThreshold * 0.85 : 6.8;
-    const criticalThreshold = station.referenceThreshold ? station.referenceThreshold : 8.2;
+    // Thresholds.
+    //
+    // UNIT CONTRACT: `station.referenceThreshold` is published in CENTIMETRES
+    // (e.g. 780 / 500 / 450 in lib/constants/stations.json), while every water
+    // level in this service is held in METRES (`calculatedWaterLevel / 100`).
+    // The previous code multiplied the centimetre threshold by 0.7/0.85/1.0 and
+    // compared it against a metre value (~3.5), so `riskLevel` was structurally
+    // pinned to "normal" for every station. Normalise to metres once, here.
+    const referenceThresholdCm = station.referenceThreshold ?? null;
+    const referenceThresholdM =
+      referenceThresholdCm !== null && Number.isFinite(referenceThresholdCm)
+        ? referenceThresholdCm / 100.0
+        : null;
+    const advisoryThreshold = referenceThresholdM !== null ? referenceThresholdM * 0.7 : 5.0;
+    const warningThreshold = referenceThresholdM !== null ? referenceThresholdM * 0.85 : 6.8;
+    const criticalThreshold = referenceThresholdM !== null ? referenceThresholdM : 8.2;
 
     // Resolve Station PINN Profile
     const stationProfile = getStationProfile(stationId);
@@ -1253,6 +1428,12 @@ export class PredictionService {
     };
 
     // 5. Calculate Risk Status
+    //
+    // Flood stage is a BETA capability. The engine emits a river-stage delta
+    // that loses to persistence at 1h/3h/6h/12h (MODEL_REGISTRY.md 4.3), so the
+    // dashboard must not present a stage-derived imperative risk level as
+    // authoritative. `riskLevel` is retained for layout compatibility and is
+    // explicitly derived from the beta module, which the UI labels accordingly.
     let riskLevel: FloodRiskLevel = "normal";
     if (peakPredictedLevel >= criticalThreshold) {
       riskLevel = "critical";
@@ -1267,6 +1448,103 @@ export class PredictionService {
       Math.round((new Date(peakTimestamp).getTime() - now.getTime()) / (1000 * 60))
     );
 
+    // ------------------------------------------------------------------
+    // 5b. Authoritative model forecast from the validated Python engine.
+    //
+    // Everything downstream of this block is sourced from the real model
+    // output when it exists. When it does not, the response carries an
+    // explicit `forecastUnavailable` reason instead of invented weather.
+    // ------------------------------------------------------------------
+    const modelResult: ForecastResult = getOperationalForecast(
+      station.stationPublicId,
+      station.stationName,
+      horizon
+    );
+
+    let governance: ModelGovernance | undefined;
+    let inputQuality: ModelInputQuality | undefined;
+    let sourceSelection: ModelSourceSelection | undefined;
+    let modelProvenance: ModelForecastProvenance | undefined;
+    let forecastUnavailable: { reason: string; message: string } | undefined;
+
+    if (modelResult.available && modelResult.station.forecast) {
+      const f: OperationalForecast = modelResult.station.forecast;
+
+      governance = {
+        modelStatus: f.model_status,
+        notForLifeSafety: f.not_for_life_safety,
+        productName: f.product_name,
+        modelVersion: f.model_version,
+        bundleVersion: f.bundle_version,
+        activeBundleHorizon: f.active_bundle_horizon,
+        policyVersion: f.policy_version,
+        policyCodeCommit: f.policy_code_commit,
+        modelCodeCommit: f.model_code_commit,
+        checkpointSha256: f.provenance?.checkpoint_sha256 ?? null,
+        policySha256: f.provenance?.policy_sha256 ?? null,
+        forecastOriginTimestamp: f.forecast_origin_timestamp,
+        targetTimestamp: f.target_timestamp,
+        ageSeconds: modelResult.ageSeconds,
+        freshnessBudgetSeconds: FORECAST_FRESHNESS_BUDGET_SECONDS,
+      };
+
+      const gate = f.input_quality_gate;
+      inputQuality = {
+        learnedOutputTrusted: gate?.learned_output_trusted ?? true,
+        sensorQualityFlag: gate?.sensor_quality_flag ?? f.anomaly_status?.sensor_quality_flag ?? "UNKNOWN",
+        policy:
+          gate?.policy ??
+          "Learned outputs are used only when the input sequence passes the anomaly gate.",
+        anomalySummary: f.anomaly_status?.summary ?? "No anomaly audit recorded.",
+        anomalyCount: f.anomaly_status?.total_anomaly_count ?? 0,
+      };
+
+      const sel = f.selected_source_by_variable ?? {};
+      sourceSelection = {
+        temperature: sel.temperature ?? "unknown",
+        humidity: sel.humidity ?? "unknown",
+        pressure: sel.pressure ?? "unknown",
+        windSpeed: sel.wind_speed ?? "unknown",
+        windDirection: sel.wind_direction ?? "unknown",
+        heatIndex: sel.heat_index ?? "derived",
+      };
+
+      modelProvenance = {
+        rainProbabilitySource: f.rain_probability_source,
+        rainModelWeight: f.rain_model_weight,
+        rainPersistenceWeight: f.rain_persistence_weight,
+        operationalThreshold: f.rain_operational_threshold,
+        operationalAlert: f.rain_operational_alert,
+        learnedVsPersistence: {
+          ...(f.diagnostics?.raw_learned_predictions ?? {}),
+        },
+        weatherUncertaintyStatus: f.weather_uncertainty?.status ?? "UNAVAILABLE",
+        weatherUncertaintyReason: f.weather_uncertainty?.reason ?? "",
+        blockedTargets: {
+          uvIndex: {
+            status: f.uv_index?.status ?? "BLOCKED_BY_SENSOR_CALIBRATION",
+            reason: f.uv_index?.reason ?? "",
+          },
+          lightIntensity: {
+            status: f.light_intensity?.status ?? "SECONDARY_BETA_DAYLIGHT_ONLY",
+            reason: f.light_intensity?.reason ?? "",
+          },
+        },
+        waterLevelBeta: f.water_level_beta
+          ? {
+              predictedWaterLevelM: f.water_level_beta.predicted_water_level_m,
+              status: f.water_level_beta.status,
+              notForLifeSafety: f.water_level_beta.not_for_life_safety,
+            }
+          : null,
+      };
+    } else if (!modelResult.available) {
+      forecastUnavailable = {
+        reason: modelResult.reason,
+        message: modelResult.message,
+      };
+    }
+
     const summary: PredictionSummary = {
       stationId: station.stationPublicId,
       stationName: station.stationName,
@@ -1275,7 +1553,20 @@ export class PredictionService {
       peakTime: peakTimestamp,
       timeToPeakMinutes,
       riskLevel,
-      confidenceScore: 0.94,
+      // `confidenceScore` was previously a hardcoded 0.94 that was never
+      // computed. It is now derived from the model's own governance state and
+      // reflects DATA CONFIDENCE ONLY, never forecast skill.
+      confidenceScore: modelResult.available
+        ? Number(
+            Math.max(
+              0,
+              Math.min(
+                1,
+                1 - Math.min(1, (modelResult.ageSeconds ?? 0) / FORECAST_FRESHNESS_BUDGET_SECONDS) * 0.5
+              )
+            ).toFixed(2)
+          )
+        : 0,
       leadTimeHorizon: horizon,
       lastRunAt: now.toISOString(),
       thresholds: {
@@ -1317,20 +1608,44 @@ export class PredictionService {
       },
     ];
 
-    const weatherForecast: PredictionWeatherOverview = {
-      currentTemp: Math.round(currentTemp * 10) / 10,
-      currentHeatIndex: Math.round(currentHeatIndex * 10) / 10,
-      condition: currentPressure < 1005 ? "storm" : currentPressure < 1009 ? "rain" : "partly-cloudy",
-      conditionText: currentPressure < 1005 ? "Thunderstorm Alert" : currentPressure < 1009 ? "Moderate Rain Showers" : "Partly Cloudy",
-      humidity: Math.round(currentHumidity),
-      windSpeed: Math.round(currentWindSpeed),
-      windDirection: liveRegional.currentWindDirection || "NE",
-      pressure: Math.round(currentPressure),
-      precipitationChance: Math.round((points[points.length - 1]?.rainfallAccumulationMm ?? 0) > 0 ? 75 : 20),
-      summaryMessage: `Continuous-time LNN inference driven by live telemetry: ${currentTemp}°C temp, ${currentHeatIndex}°C heat index, ${currentPressure} hPa pressure.`,
-      hourly: hourlyForecasts,
-      daily: dailyForecasts,
-    };
+    // ------------------------------------------------------------------
+    // Weather overview.
+    //
+    // When a validated model forecast exists, EVERY headline number comes
+    // from the engine's policy-governed output. When it does not, the payload
+    // is observation-only and explicitly says so, rather than being filled
+    // with values from an unvalidated in-TypeScript reimplementation.
+    // ------------------------------------------------------------------
+    const weatherForecast: PredictionWeatherOverview = modelResult.available
+      ? buildModelBackedWeatherOverview(
+          modelResult.station.forecast as OperationalForecast,
+          currentTemp,
+          currentHumidity,
+          currentHeatIndex,
+          currentPressure,
+          currentWindSpeed
+        )
+      : buildObservationOnlyWeatherOverview(
+          currentTemp,
+          currentHumidity,
+          currentHeatIndex,
+          currentPressure,
+          currentWindSpeed,
+          liveRegional.currentWindDirection || "NE"
+        );
+
+    // UV and light intensity are feasibility-governed by the engine and are NOT
+    // synthesised here. The previous build path derived a clear-sky solar
+    // zenith proxy in the browser and rendered it as a UV reading, which
+    // contradicts the upstream BLOCKED_BY_SENSOR_CALIBRATION quarantine.
+    weatherForecast.uvIndex = modelProvenance
+      ? modelProvenance.blockedTargets.uvIndex
+      : {
+          status: "BLOCKED_BY_SENSOR_CALIBRATION",
+          reason:
+            "UV index is not produced by the forecasting engine and is not " +
+            "available on this station feed.",
+        };
 
     const result: PredictionPublicDTO = {
       station,
@@ -1340,6 +1655,12 @@ export class PredictionService {
       weatherForecast,
       suddenRainBurst,
     };
+
+    if (governance) result.governance = governance;
+    if (inputQuality) result.inputQuality = inputQuality;
+    if (sourceSelection) result.sourceSelection = sourceSelection;
+    if (modelProvenance) result.modelProvenance = modelProvenance;
+    if (forecastUnavailable) result.forecastUnavailable = forecastUnavailable;
 
     predictionCache.set(cacheKey, result);
     return result;

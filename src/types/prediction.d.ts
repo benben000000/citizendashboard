@@ -73,6 +73,11 @@ export interface DailyWeatherForecast {
   totalRainfallMm: number;
 }
 
+export interface BlockedTargetNotice {
+  status: string;
+  reason: string;
+}
+
 export interface PredictionWeatherOverview {
   currentTemp: number;
   currentHeatIndex: number;
@@ -86,6 +91,15 @@ export interface PredictionWeatherOverview {
   summaryMessage: string;
   hourly: HourlyWeatherForecast[];
   daily: DailyWeatherForecast[];
+  /**
+   * UV index availability, taken from the engine's governance metadata.
+   *
+   * UV is `BLOCKED_BY_SENSOR_CALIBRATION` upstream: the raw sensors report up to
+   * 11.0 at midnight, and `inference.py` raises on any UV request. The UI must
+   * therefore NOT synthesise a clear-sky proxy value and present it as a reading.
+   * When blocked, render the status instead of a number.
+   */
+  uvIndex: BlockedTargetNotice;
 }
 
 export interface PredictionSummary {
@@ -107,6 +121,76 @@ export interface PredictionSummary {
   suddenRainBurst?: SuddenRainBurstPrediction;
 }
 
+/**
+ * Model governance metadata.
+ *
+ * These fields come straight from the validated Python engine
+ * (`prediction-model/src/inference.py`). They were previously discarded at the
+ * service boundary, which allowed the UI to present imperative flood warnings
+ * for a model explicitly flagged `not_for_life_safety: true`.
+ *
+ * Every forecast surface MUST render this block.
+ */
+export interface ModelGovernance {
+  /** e.g. "RESEARCH_PROTOTYPE" | "CANDIDATE_RESEARCH". */
+  modelStatus: string;
+  /** Always true for the current engine. Drives the mandatory UI disclaimer. */
+  notForLifeSafety: boolean;
+  productName: string;
+  modelVersion: string;
+  bundleVersion: string;
+  activeBundleHorizon: string;
+  policyVersion: string;
+  policyCodeCommit: string;
+  modelCodeCommit: string;
+  checkpointSha256: string | null;
+  policySha256: string | null;
+  forecastOriginTimestamp: string;
+  targetTimestamp: string | null;
+  /** Age of the underlying model output, seconds. */
+  ageSeconds: number | null;
+  freshnessBudgetSeconds: number;
+}
+
+export interface ModelInputQuality {
+  /** False when the anomaly gate quarantined the input sequence. */
+  learnedOutputTrusted: boolean;
+  sensorQualityFlag: string;
+  policy: string;
+  anomalySummary: string;
+  anomalyCount: number;
+}
+
+export interface ModelSourceSelection {
+  temperature: string;
+  humidity: string;
+  pressure: string;
+  windSpeed: string;
+  windDirection: string;
+  heatIndex: string;
+}
+
+export interface ModelForecastProvenance {
+  rainProbabilitySource: string;
+  rainModelWeight: number;
+  rainPersistenceWeight: number;
+  operationalThreshold: number;
+  operationalAlert: boolean;
+  /** Raw learned output vs the persistence fallback, for auditability. */
+  learnedVsPersistence: Record<string, number | null>;
+  weatherUncertaintyStatus: string;
+  weatherUncertaintyReason: string;
+  blockedTargets: {
+    uvIndex: { status: string; reason: string };
+    lightIntensity: { status: string; reason: string };
+  };
+  waterLevelBeta: {
+    predictedWaterLevelM: number;
+    status: string;
+    notForLifeSafety: boolean;
+  } | null;
+}
+
 export interface PredictionPublicDTO {
   station: StationPublicInfo;
   summary: PredictionSummary;
@@ -114,4 +198,15 @@ export interface PredictionPublicDTO {
   history: WaterLevelHistoryMetricDataPoint[];
   weatherForecast: PredictionWeatherOverview;
   suddenRainBurst?: SuddenRainBurstPrediction;
+  /** Present when a validated model forecast backs this response. */
+  governance?: ModelGovernance;
+  inputQuality?: ModelInputQuality;
+  sourceSelection?: ModelSourceSelection;
+  modelProvenance?: ModelForecastProvenance;
+  /** Explains why no model forecast is attached, when one is not. */
+  forecastUnavailable?: {
+    reason: string;
+    message: string;
+  };
 }
+

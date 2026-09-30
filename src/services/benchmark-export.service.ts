@@ -9,6 +9,23 @@ import { computeLnnMultiHorizonForecast } from "@/services/prediction.service";
 export type BenchmarkIntervalType = "5m" | "15m" | "1h";
 export type BenchmarkFormatType = "csv" | "xlsx" | "json";
 
+/**
+ * Provenance label stamped on every exported row.
+ *
+ * The `pred_*` columns are produced by the legacy in-TypeScript forecaster, not
+ * by the validated engine. The engine emits one 1h forecast per station from the
+ * live MQTT window and cannot be replayed retroactively, so historical backfill
+ * has no validated alternative. Consumers must be told which is which.
+ */
+export const BENCHMARK_FORECAST_PROVENANCE =
+  "UNVALIDATED_TYPESCRIPT_REIMPLEMENTATION_NOT_ENGINE_OUTPUT";
+
+/** Quarantined upstream: raw sensors report non-zero UV at night. */
+export const UV_INDEX_STATUS = "BLOCKED_BY_SENSOR_CALIBRATION";
+
+/** Secondary, uncalibrated daylight proxy only. */
+export const LIGHT_INTENSITY_STATUS = "SECONDARY_BETA_DAYLIGHT_ONLY";
+
 export interface BenchmarkExportParams {
   startDate?: string;
   endDate?: string;
@@ -57,6 +74,20 @@ export interface BenchmarkRecord {
   processed_flood_stage: string | null;
 
   // 3. Multi-Horizon Predictions (Shown on Prediction Page: 1h, 3h, 6h, 12h, 24h, 48h, 72h)
+  //
+  // PROVENANCE — READ THIS BEFORE USING ANY pred_* COLUMN
+  // -----------------------------------------------------
+  // These columns are NOT produced by the validated forecasting engine. The live
+  // engine only emits a single 1h forecast per station, from the most recent
+  // 24-sample MQTT window; it cannot be run retroactively over historical rows.
+  // For historical backfill this service calls the legacy in-TypeScript
+  // reimplementation (`computeLnnMultiHorizonForecast`), which uses a different
+  // input dimensionality (4 vs 8), a different hidden size (8 vs 32) and
+  // hardcoded normalisation. No audited scorecard applies to it.
+  //
+  // `forecast_provenance` and `forecast_not_for_life_safety` on every row state
+  // this explicitly. The `pred_*_uv_index` and `pred_*_light_intensity_lux`
+  // columns are additionally withheld as null: the engine quarantines both.
   pred_1h_temperature_c: number | null;
   pred_1h_hourly_precip_mm: number | null;
   pred_1h_daily_precip_mm: number | null;
@@ -154,6 +185,17 @@ export interface BenchmarkRecord {
   pred_72h_is_raining: boolean | null;
   pred_72h_rain_intensity: string | null;
   pred_72h_flood_stage: string | null;
+
+  /**
+   * Provenance of every `pred_*` column on this row. Present on all rows,
+   * including no-data rows, so a consumer cannot read a prediction value
+   * without the accompanying qualification.
+   */
+  forecast_provenance: string;
+  forecast_not_for_life_safety: boolean;
+  /** Status of the two targets the engine quarantines. */
+  uv_index_status: string;
+  light_intensity_status: string;
 
   // Baseline Comparison Deltas & Ground-Truth Verification
   delta_processed_temperature_c: number | null;
@@ -540,6 +582,12 @@ export class BenchmarkExportService {
             station_id: sid,
             station_name: sName,
 
+            // Provenance of every pred_* column on this row (no-data row).
+            forecast_provenance: BENCHMARK_FORECAST_PROVENANCE,
+            forecast_not_for_life_safety: true,
+            uv_index_status: UV_INDEX_STATUS,
+            light_intensity_status: LIGHT_INTENSITY_STATUS,
+
             // 1. Raw Telemetry - Blank (null)
             raw_temperature_c: null,
             raw_hourly_precip_mm: null,
@@ -799,6 +847,12 @@ export class BenchmarkExportService {
           timestamp: dt.toISOString(),
           station_id: sid,
           station_name: sName,
+
+          // Provenance of every pred_* column on this row.
+          forecast_provenance: BENCHMARK_FORECAST_PROVENANCE,
+          forecast_not_for_life_safety: true,
+          uv_index_status: UV_INDEX_STATUS,
+          light_intensity_status: LIGHT_INTENSITY_STATUS,
 
           // 1. Raw Telemetry
           raw_temperature_c: rawT,

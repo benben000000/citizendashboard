@@ -24,11 +24,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // createSessionToken returns null when the portal secrets are not configured,
+    // in which case authentication must not be reported as successful.
     const token = createSessionToken(username);
+    if (!token) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Portal authentication is not configured on this deployment. Set PORTAL_ADMIN_USER, PORTAL_ADMIN_PASSWORD and PORTAL_SECRET_SALT.",
+        },
+        { status: 503 }
+      );
+    }
+
     const response = NextResponse.json({
       success: true,
       message: "Authentication successful",
-      user: { username: "admin", role: "Administrator" },
+      user: { username, role: "Administrator" },
     });
 
     response.cookies.set({

@@ -1,0 +1,38 @@
+{
+  "horizon_h": 12,
+  "n_observations": 2435,
+  "variables": {
+    "temperature": {
+      "persistence": 2.1968418726899386,
+      "own_tendency": 2.864885030800821,
+      "neighbour1": 2.505761655245124,
+      "neighbour1_tendency": 3.1329661939905113,
+      "best_gain_pct": -14.061994465579195,
+      "best_source": "neighbour1"
+    },
+    "humidity": {
+      "persistence": 6.218527404517454,
+      "own_tendency": 8.249617831622176,
+      "neighbour1": 7.315809978914075,
+      "neighbour1_tendency": 9.273828850817079,
+      "best_gain_pct": -17.645376517911604,
+      "best_source": "neighbour1"
+    },
+    "pressure": {
+      "persistence": 0.8137754414784402,
+      "own_tendency": 1.2394929774127328,
+      "neighbour1": 1.7695525039536113,
+      "neighbour1_tendency": 1.9877205587770197,
+      "best_gain_pct": -52.313883441955824,
+      "best_source": "own tendency"
+    },
+    "precipitation": {
+      "persistence": 1.8595892402464063,
+      "own_tendency": 3.252317864476385,
+      "neighbour1": 1.8898512915129146,
+      "neighbour1_tendency": 3.2705822878228776,
+      "best_gain_pct": -1.6273513855403081,
+      "best_source": "neighbour1"
+    }
+  }
+}

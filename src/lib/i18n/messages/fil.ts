@@ -148,6 +148,11 @@ export const fil = {
       uvHigh: "Mataas / Mag-ingat sa Araw",
       uvModerate: "Katamtamang Sikat",
       uvLow: "Mababa / Ligtas",
+      // Pinigilan ng engine ang UV index (may kasalan sa kalibrasyon ng sensor),
+      // kaya walang numerong ipinapakita. Iniwan ang mga label sa itaas para sa
+      // pagkakaroon ng calibrated na UV feed sa hinaharap.
+      uvWithheld: "Hindi available",
+      uvBlockedReason: "Pinigilan — may kasalan sa kalibrasyon ng sensor",
     },
     heatIndexCategories: {
       extremeDanger: "Matinding Panganib",
@@ -178,43 +183,74 @@ export const fil = {
       rainNormal: "Mahinang ambon. Magdala ng payong kung lalabas ng bahay.",
       advisory: "May kalat-kalat na pag-ulan. Bantayan ang mga mabababang lugar at daluyan ng tubig.",
       warning: "Malakas na buhos ng ulan. Ihanda ang mga gamit at maging alerto sa posibleng pagbaha.",
-      critical: "Nasa kritikal na antas ang ulan at baha. Sundin ang agarang abiso sa kaligtasan mula sa lokal na awtoridad.",
+      critical: "Nasa kritikal na antas ang ulan at baho. Ito ay pagtataya ng pananaliksik, hindi opisyal na babala — sundin ang PAGASA at lokal na awtoridad.",
+    },
+    governance: {
+      researchPrototypeBadge: "Prototype ng Pananaliksik — Hindi Opisyal na Babala",
+      notForLifeSafetyNotice:
+        "Ang mga pagtataya sa pahinang ito ay galing sa modelo sa yugtong pananaliksik at " +
+        "ibinigay lamang para sa pagmamasid at pananaliksik. Huwag gamitin para sa paglikas, " +
+        "desisyong pambuhay, o emergency. Sundin ang PAGASA at ang inyong lokal na pamahalaan.",
+      modelStatus: "Katayuan ng modelo: {status}",
+      modelVersion: "Bersyon ng modelo: {version} · patakarang {policyVersion}",
+      horizon: "Horizon ng pagtataya: {horizon}",
+      freshness: "Edad ng output ng modelo: {age}s (badyet {budget}s)",
+      provenance: "Commit ng modelo {commit} · checkpoint {checkpoint}",
+      uncertaintyUnavailable:
+        "Walang available na prediction interval para sa modelong ito. Ang mga " +
+        "probabilidad ay calibrated na point estimate lamang walang uncertainty band.",
+      sourceLearned: "modelo",
+      sourcePersistence: "huling obserbasyon (persistence)",
+      sourceQuarantined: "pigilan — nabigo sa data quality gate",
+      inputQuarantinedNotice:
+        "Nabigo ang incoming telemetry sa data quality check, kaya pigilan ang pagtataya ng " +
+        "modelo. Ang ipinapakita ay huling valid na obserbasyon.",
+      inputWarningNotice:
+        "May data quality warning ang incoming telemetry. Suriin ang mga halaga bago umasa dito.",
+      noForecastTitle: "Walang available na validated na pagtataya",
+      confidenceNote: "Freshness ng datos lamang — hindi ito sukat ng katumpakan ng pagtataya.",
+      uvBlocked: "Pinigilan ang UV index: {reason}",
+      lightBeta: "Intensity ng daylight (sekundaryo, hindi calibrated): {reason}",
+      waterBeta: "Ang datos ng antas ng ilog ay beta na pananaliksik at hindi aprubado para sa pagbabala ng baha.",
     },
     peakSection: {
-      crestTitle: "Ligtas ba ang Daan o May Baha?",
-      crestSubtitle: "Mababa ba ang tubig o baha sa dadaanan sa inyong lugar?",
+      crestTitle: "Kalagayan ng Daan at Baha (Pagtataya ng Pananaliksik)",
+      crestSubtitle: "Trend ng antas ng ilog mula sa beta na kakayahang — pang-impormasyon lamang",
       umbrellaTitle: "Bubuhos ba ang Ulan? (Payong & Kapote)",
       umbrellaSubtitle: "Kailangan mo bang magbaon ng payong o kapote ngayong araw?",
-      mountainTitle: "Baha Mula sa Bundok",
-      mountainSubtitle: "Panganib sa rumaragasang tubig mula sa kabundukan at watershed",
-      
-      passableSafe: "LIGTAS DUMAAN / WALANG BAHA",
-      passableCaution: "MAG-INGAT: MAY BANAYAD NA TUBIG",
-      passableDanger: "MATAAS ANG BAHA: HUWAG DUMAAN!",
-      
-      passableSafeDesc: "Tuyo ang mga kalsada at mababa ang ilog. Ligtas dumaan ang lahat ng sasakyan at motor.",
-      passableCautionDesc: "Hanggang bukong-bukong o gutter sa mabababang lugar. Mag-ingat ang mga de-motor at maliliit na kotse.",
-      passableDangerDesc: "Hanggang tuhod o bewang ang baha! Delikado sa motor at kotse. Maghanap ng alternatibong ruta o lumipat sa ligtas na lugar.",
+      mountainTitle: "Bantayan ang Daloy sa Itaas",
+      mountainSubtitle: "Ang ulan sa mga katinaugang-bundok ay maaaring manaunaw sa pagtaas ng ilog sa ibaba",
+
+      // Mga OBSERVASYON ng modelo, hindi utos. Ang engine ay nakasulat na
+      // `not_for_life_safety: true` at ang output ng antas ng ilog ay natalo sa
+      // persistence baseline sa 1h/3h/6h/12h (MODEL_REGISTRY.md 4.3).
+      passableSafe: "Walang nakikitang mataas na antas ng ilog",
+      passableCaution: "May nakikitang mataas na antas ng ilog — mag-ingat",
+      passableDanger: "May nakikitang mataas na antas ng ilog — iwasan ang mabababang daan kung kaya",
+
+      passableSafeDesc: "Malapit sa baseline ang tinatayang antas ng ilog. Tandaan: ito ay pagtataya ng pananaliksik, hindi sukat ng kalagayan ng kalsada.",
+      passableCautionDesc: "Mataas ang tinatayang antas ng ilog. Posible ang tubig sa mga mabababang kalsada. Mag-ingat sa pagmamaneho.",
+      passableDangerDesc: "Malaki ang pagkakaiba sa baseline ng tinatayang antas ng ilog. Posible ang malalim na tubig sa mababang kalsada. Isipin ang alternatibong ruta at sundin ang opisyal na abiso.",
 
       umbrellaNoRain: "WALANG ULAN / LIGTAS LUMABAS",
       umbrellaLight: "MAGDALA NG PAYONG (MAY PAG-AMBON)",
-      umbrellaHeavy: "BUBUHOS ANG MALAKAS NA ULAN! MAGBAON NG KAPOTE",
-      
+      umbrellaHeavy: "MALAKAS NA ULAN — MAGBAON NG KAPOTE",
+
       umbrellaNoRainDesc: "Maliwanag ang panahon. Hindi kailangang magbaon ng payong o kapote.",
       umbrellaLightDesc: "May inaasahang mahinang ambon bandang {time} na tatagal nang ~{duration}. Magdala ng payong.",
-      umbrellaHeavyDesc: "Magkakaroon ng biglaang malakas na buhos bandang {time}. Magdala ng kapote o payong at magpatila muna kung babiyahe.",
+      umbrellaHeavyDesc: "May malakas na ulan bandang {time}. Magdala ng kapote o payong at magpatila muna kung babiyahe.",
 
-      mountainSafe: "LIGTAS ANG KABUNDUKAN (WALANG RUMARAGASANG TUBIG)",
-      mountainCaution: "MAY ULAN SA BUNDOK (BANTAYAN ANG ILOG)",
-      mountainDanger: "BABALA: MAY RUMARAGASANG BAHA MULA SA BUNDOK!",
-      
-      mountainSafeDesc: "Walang malakas na ulan sa kabundukan. Ligtas ang mga nakatira malapit sa paanan ng bundok at tabi ng ilog.",
-      mountainCautionDesc: "May pag-ulan sa kabundukan. Bantayan ang ilog dahil maaaring tumaas ang tubig kahit hindi umuulan sa inyong kalsada.",
-      mountainDangerDesc: "Malakas na buhos sa kabundukan! Mag-ingat sa biglaang pagragasa ng baha (flash flood) mula sa bundok!",
+      mountainSafe: "WALANG MALAKAS NA ULAN SA KABUNDUKAN",
+      mountainCaution: "MAY ULAN SA KABUNDUKAN (BANTAYAN)",
+      mountainDanger: "MAY MALAKAS NA ULAN SA KABUNDUKAN",
 
-      expectedAt: "Inaasahang pinakamataas bandang {time}",
-      clearanceNormal: "Ligtas pa ng {clearance}m bago umabot sa Kritikal na Lebel ({critical}m)",
-      clearanceExceeded: "Lumampas ng {clearance}m sa Kritikal na Lebel ng Baha",
+      mountainSafeDesc: "Walang malakas na ulan sa kabundukan. Tandaan: ito ay pagtataya ng pananaliksik mula sa limitadong network ng istasyon.",
+      mountainCautionDesc: "May pag-ulan sa kabundukan. Maaaring may pagkaantay bago tumayo ang tubig sa ilog. Bantayan ang lokal na kalagayan.",
+      mountainDangerDesc: "May malakas na ulan sa kabundukan. Posible ang mabilis na pagtaas sa ibaba kahit walang ulan sa inyong lugar. Sundin ang opisyal na abiso.",
+
+      expectedAt: "Tinatayang pinakamataas bandang {time}",
+      clearanceNormal: "{clearance}m sa ibaba ng tinatayang kritikal na antas ({critical}m)",
+      clearanceExceeded: "{clearance}m sa itaas ng tinatayang kritikal na antas",
       watershedTitle: "Daloy sa Watershed at Kabundukan",
       watershedSubtitle: "Pag-ulan sa kabundukan at papasok na tubig sa ilog",
       inflowStatus: "Kasalukuyang Daloy ng Tubig",
@@ -223,9 +259,10 @@ export const fil = {
       inflowCritical: "Malakas na Bugso",
       mountainRain: "Ulan sa Itaas ng Bundok",
       runoffDescriptionNormal: "Walang namumuong malakas na pagbuhos ng ulan sa kabundukan na magdudulot ng biglaang pagtaas ng tubig.",
-      runoffDescriptionElevated: "May pag-ulan sa kabundukan. Bantayan ang ilog sa inaasahang pagbaba ng tubig mula sa itaas.",
+      runoffDescriptionElevated: "May pag-ulan sa kabundukan. Maaaring may pagkaantay bago tumayo ang tubig sa ilog.",
+      runoffDescriptionCritical: "May malakas na ulan sa itaas. Posible ang biglaang pagtaas sa ibaba — sundin ang opisyal na abiso.",
       thresholdLabels: {
-        normal: "Ligtas (<{val}m)",
+        normal: "Baseline (<{val}m)",
         advisory: "Gutter / Bukong-bukong",
         warning: "Hanggang Tuhod",
         critical: "Hanggang Bewang / Kritikal ({val}m)",

@@ -119,29 +119,6 @@
       "reviewed_at_utc": "",
       "review_due_utc": "",
       "blocked_reason": "PAGASA product-specific usage rights and issue-time replay capability have not been confirmed."
-    },
-    "noaa_gfs_v1": {
-      "source_id": "noaa_gfs_v1",
-      "provider": "NOAA / NCEP",
-      "product": "GFS (Global Forecast System) 0.25 degree forecast fields",
-      "source_url": "https://registry.opendata.aws/noaa-gfs-bdp-pds/",
-      "license_url": "https://www.noaa.gov/information-technology/copyright-information",
-      "terms_version_or_date": "accessed 2026-09-29; NOAA Information Technology copyright notice",
-      "commercial_use_allowed": true,
-      "training_use_allowed": true,
-      "commercial_inference_allowed": true,
-      "derived_features_allowed": true,
-      "raw_caching_allowed": true,
-      "redistribution_allowed": true,
-      "attribution_required": false,
-      "rate_limits": "no published rate limit on the AWS Open Data mirror; polite use applies",
-      "permission_reference": "US Government work produced by NOAA/NCEP; not subject to copyright protection per the NOAA copyright notice. The AWS Open Data registry lists the GFS bucket as a public dataset.",
-      "decision": "APPROVED_FREE_COMMERCIAL",
-      "reviewed_at_utc": "2026-09-29T16:23:12.536123Z",
-      "review_due_utc": "2027-09-29T16:23:12.536123Z",
-      "public_domain_basis": "NOAA/NCEP output is a work of the United States Government and is not eligible for copyright protection in the United States. Served from the AWS Open Data Registry mirror (noaa-gfs-bdp-pds), which redistributes the feed without additional restriction.",
-      "notes": "Registered as the licence-clean replacement for the ECMWF/Open-Meteo path. The benchmarked coefficients are keyed to an nwp_source id, so a refit against this source does not disturb the ECMWF artifact.",
-      "blocked_reason": ""
     }
   }
 }

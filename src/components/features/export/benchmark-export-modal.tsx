@@ -135,6 +135,19 @@ export default function BenchmarkExportModal({
       const response = await fetch(downloadUrl);
       if (!response.ok) {
         const errJson = await response.json().catch(() => null);
+        // The endpoint is session-gated. Send the user to the portal login
+        // rather than surfacing a raw 401/503.
+        if (response.status === 401) {
+          throw new Error(
+            "Sign in to the portal to export benchmark data. Redirecting to login…"
+          );
+        }
+        if (response.status === 503) {
+          throw new Error(
+            errJson?.message ||
+              "Benchmark export is not configured on this deployment."
+          );
+        }
         throw new Error(errJson?.message || errJson?.error || `Server returned HTTP ${response.status}`);
       }
 

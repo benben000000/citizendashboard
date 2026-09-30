@@ -10,6 +10,8 @@ import { findNearestStation } from "@/lib/utils/location";
 import PredictionHorizonSelector from "./prediction-horizon-selector";
 import PredictionWeatherForecast from "./prediction-weather-forecast";
 import PredictionPeakSummary from "./prediction-peak-summary";
+// ModelGovernanceBanner is intentionally not mounted — see the note in the
+// render body. Kept importable for a one-line restore.
 import ScrollIndicator from "@/components/shared/scroll-indicator";
 
 interface PredictionDashboardProps {
@@ -148,6 +150,28 @@ export default function PredictionDashboard({
 
         {/* Center Hero Forecast */}
         <main className="my-auto flex w-full flex-1 flex-col items-center justify-center -mt-5 md:-mt-6 py-1 gap-2.5 md:gap-3.5">
+          {/*
+            The model-governance banner was removed from this surface at product
+            request (it dominated the viewport above the forecast). The governance
+            payload is STILL built by prediction.service.ts and attached to every
+            response as `governance` / `inputQuality` / `sourceSelection` /
+            `modelProvenance`; a one-line notice now lives in the footer.
+            To restore the full banner, re-add:
+              <ModelGovernanceBanner data={data} />
+            above the hero. The component is unchanged at
+            ./model-governance-banner.tsx.
+          */}
+          {hasError ? (
+            <div
+              role="alert"
+              data-testid="prediction-load-error"
+              className="w-full max-w-3xl rounded-lg border border-amber-400/50 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100"
+            >
+              Some station data could not be loaded; the view below may be incomplete
+              or substituted. Treat it as advisory only.
+            </div>
+          ) : null}
+
           {data.weatherForecast && (
             <PredictionWeatherForecast
               station={data.station}

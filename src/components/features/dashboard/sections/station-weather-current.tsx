@@ -164,6 +164,13 @@ const HeroMetric = ({
               <span className="font-light">{todayAtLabel}</span>{" "}
               <span className="font-medium">{recordedAt}</span>
             </p>
+            {/*
+              Spatial-estimate disclosure removed at product request.
+              `isSpatialEstimate` and `estimateSource` are still computed and
+              threaded here from telemetry.service.ts. To restore the badge,
+              re-add the block below inside this wrapper:
+              {isSpatialEstimate ? (<span title={estimateSource ? `Interpolated from ${estimateSource}` : "Interpolated from neighbouring stations"} className="...">Estimated{estimateSource ? `· ${estimateSource}` : ""}</span>) : null}
+            */}
           </div>
 
           <div className="flex items-center gap-2">

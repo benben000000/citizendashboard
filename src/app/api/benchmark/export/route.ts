@@ -4,11 +4,46 @@ import {
   BenchmarkIntervalType,
   BenchmarkFormatType,
 } from "@/services/benchmark-export.service";
+import { isPortalAuthenticated, isPortalConfigured } from "@/lib/auth/portal-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/**
+ * Benchmark export.
+ *
+ * AUTHENTICATION
+ * --------------
+ * This endpoint previously had no session check while running 7-horizon
+ * inference across up to 23 stations with a 60s budget, and it is reachable
+ * from a floating button mounted in the root layout. That is an unauthenticated
+ * compute-amplification surface over historical telemetry, so it now requires a
+ * valid portal session.
+ */
+function requireAuth(): NextResponse | null {
+  if (!isPortalConfigured()) {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Benchmark export is unavailable: portal credentials are not configured on this deployment.",
+      },
+      { status: 503 }
+    );
+  }
+  if (!isPortalAuthenticated()) {
+    return NextResponse.json(
+      { success: false, message: "Authentication required for benchmark export." },
+      { status: 401 }
+    );
+  }
+  return null;
+}
+
 export async function GET(request: Request) {
+  const denied = requireAuth();
+  if (denied) return denied;
+
   try {
     const { searchParams } = new URL(request.url);
     const stationId = searchParams.get("stationId") || "all";
@@ -94,6 +129,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = requireAuth();
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     const stationId = body.stationId || "all";

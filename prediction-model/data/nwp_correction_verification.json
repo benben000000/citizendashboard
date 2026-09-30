@@ -1,0 +1,131 @@
+{
+  "source": "gfs_seamless",
+  "cells": {
+    "1h.temperature": {
+      "lnn": 0.5936618521777387,
+      "routed": 0.5936618521777387,
+      "persistence": 0.5936059964804224,
+      "change_pct": 0.0
+    },
+    "1h.humidity": {
+      "lnn": 1.6773735019797626,
+      "routed": 1.6773735019797626,
+      "persistence": 1.6765010250769907,
+      "change_pct": 0.0
+    },
+    "1h.pressure": {
+      "lnn": 0.3942008358996919,
+      "routed": 0.3942008358996919,
+      "persistence": 0.39427325120985574,
+      "change_pct": 0.0
+    },
+    "1h.wind_speed": {
+      "lnn": 0.8799506088869337,
+      "routed": 0.8799506088869337,
+      "persistence": 0.8798099863616367,
+      "change_pct": 0.0
+    },
+    "3h.temperature": {
+      "lnn": 1.136779852875613,
+      "routed": 1.0288497426038958,
+      "persistence": 1.136706825679893,
+      "change_pct": 9.494372195170047
+    },
+    "3h.humidity": {
+      "lnn": 3.253294418189924,
+      "routed": 3.253294418189924,
+      "persistence": 3.253201395452519,
+      "change_pct": 0.0
+    },
+    "3h.pressure": {
+      "lnn": 0.9311144003566661,
+      "routed": 0.9311144003566661,
+      "persistence": 0.9312076683013853,
+      "change_pct": 0.0
+    },
+    "3h.wind_speed": {
+      "lnn": 1.1013491850200625,
+      "routed": 1.1013491850200625,
+      "persistence": 1.101244873383861,
+      "change_pct": 0.0
+    },
+    "6h.temperature": {
+      "lnn": 1.4771981127785359,
+      "routed": 1.3198095947411523,
+      "persistence": 1.6987241291496136,
+      "change_pct": 10.65453013213939
+    },
+    "6h.humidity": {
+      "lnn": 4.8844105457025915,
+      "routed": 4.8844105457025915,
+      "persistence": 4.884314906775807,
+      "change_pct": 0.0
+    },
+    "6h.pressure": {
+      "lnn": 1.315276716689406,
+      "routed": 0.9687159503716184,
+      "persistence": 1.3152551159618038,
+      "change_pct": 26.348886277717455
+    },
+    "6h.wind_speed": {
+      "lnn": 1.2187601673487949,
+      "routed": 1.2187601673487949,
+      "persistence": 1.319189271941792,
+      "change_pct": 0.0
+    },
+    "12h.temperature": {
+      "lnn": 1.6473721320754717,
+      "routed": 1.462119862719312,
+      "persistence": 2.1619493066037734,
+      "change_pct": 11.245320091870582
+    },
+    "12h.humidity": {
+      "lnn": 6.361866122641509,
+      "routed": 6.361866122641509,
+      "persistence": 6.362202731132075,
+      "change_pct": 0.0
+    },
+    "12h.pressure": {
+      "lnn": 0.7966708962264145,
+      "routed": 0.7966708962264145,
+      "persistence": 0.7965641981132084,
+      "change_pct": 0.0
+    },
+    "12h.wind_speed": {
+      "lnn": 1.2449172193396227,
+      "routed": 1.2449172193396227,
+      "persistence": 1.5114054103773584,
+      "change_pct": 0.0
+    },
+    "24h.temperature": {
+      "lnn": 1.4059376612903227,
+      "routed": 1.3162892743909922,
+      "persistence": 1.4058612298387099,
+      "change_pct": 6.376412650974456
+    },
+    "24h.humidity": {
+      "lnn": 4.4134322681451605,
+      "routed": 4.4134322681451605,
+      "persistence": 4.413264203629033,
+      "change_pct": 0.0
+    },
+    "24h.pressure": {
+      "lnn": 1.0745668346774206,
+      "routed": 1.0745668346774206,
+      "persistence": 1.0745959677419366,
+      "change_pct": 0.0
+    },
+    "24h.wind_speed": {
+      "lnn": 1.180426747983871,
+      "routed": 1.180426747983871,
+      "persistence": 1.1783701159274194,
+      "change_pct": 0.0
+    }
+  },
+  "mean_change_pct": 3.205976067393597,
+  "producers_used": {
+    "lln": 33592,
+    "blend": 7774,
+    "nwp": 1910
+  }
+}

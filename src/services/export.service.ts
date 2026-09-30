@@ -47,6 +47,19 @@ export interface ProcessedTelemetryRecord {
   pinnConfidencePct: number;
 }
 
+/**
+ * Per-row prediction record shipped in portal exports.
+ *
+ * The previous schema carried `microburstProbabilityPct`, `dopplerRadarDBZ`,
+ * `convectiveBuoyancyJkg`, and `inferenceLatencyUs`. None of those were model
+ * outputs: the radar and Doppler fields were derived from a rain-probability
+ * threshold, the buoyancy figure was the literal 1200.0, and the latency figure
+ * was the literal 52.4. The system has no radar feed and no licence for one
+ * (`prediction-model/data/external_source_registry.json` records
+ * `radar_qpe_v1` and `rainviewer_v1` as `UNKNOWN_BLOCKED`). Emitting invented
+ * telemetry into a downloadable spreadsheet is not defensible, so the fields
+ * are removed rather than faked.
+ */
 export interface PredictionTelemetryRecord {
   timestamp: string;
   stationId: string;
@@ -54,12 +67,16 @@ export interface PredictionTelemetryRecord {
   leadHorizon: string;
   forecastWaterLevelM: number;
   floodStageRisk: string;
-  microburstProbabilityPct: number;
   expectedRainfallMM: number;
-  dopplerRadarDBZ: number;
-  convectiveBuoyancyJkg: number;
-  inferenceLatencyUs: number;
+  /** Provenance/governance columns added alongside the removal above. */
+  modelStatus: string;
+  notForLifeSafety: boolean;
+  rainProbabilityPct: number;
+  rainProbabilitySource: string;
+  inputQualityFlag: string;
+  learnedOutputTrusted: boolean;
 }
+
 
 export class ExportService {
   private static instance: ExportService;
@@ -240,11 +257,13 @@ export class ExportService {
                 leadHorizon: horizon,
                 forecastWaterLevelM: isWaterStation ? (f.pWater ?? 0) : 0,
                 floodStageRisk: risk,
-                microburstProbabilityPct: f.pRain > 5.0 ? 45.0 : f.pRain > 0 ? 25.0 : 10.0,
                 expectedRainfallMM: f.pRain,
-                dopplerRadarDBZ: f.pRain > 0 ? 35.0 : 8.0,
-                convectiveBuoyancyJkg: 1200.0,
-                inferenceLatencyUs: 52.4,
+                modelStatus: "UNVALIDATED_TYPESCRIPT_REIMPLEMENTATION",
+                notForLifeSafety: true,
+                rainProbabilityPct: Math.round(f.pRain * 100) / 100,
+                rainProbabilitySource: "typescript_heuristic",
+                inputQualityFlag: "NOT_AUDITED",
+                learnedOutputTrusted: false,
               } as PredictionTelemetryRecord as unknown as Record<string, unknown>);
             }
           }

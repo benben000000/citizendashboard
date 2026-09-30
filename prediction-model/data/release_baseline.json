@@ -1,0 +1,26 @@
+{
+  "baseline_name": "weather_model_release_baseline",
+  "version": "1.0.0",
+  "recorded_at_utc": "2026-09-28T01:22:00Z",
+  "repository_head": "9b58618900940d43ef65b093ca9527e2e6ff4d43",
+  "parent_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+  "artifact_status": "HISTORICAL_CANDIDATE_ARTIFACTS_NON_PROMOTABLE",
+  "raw_telemetry_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
+  },
+  "candidate_artifacts_summary": {
+    "scorecard_code_commit": "9311d3f6f3f0a79ff4388e6cfd336a0691c95e0b",
+    "scorecard_artifact_commit": "9b58618900940d43ef65b093ca9527e2e6ff4d43",
+    "prediction_log_mode": "SMOKE_SAMPLE_500_ROWS_HISTORICAL",
+    "anomaly_report_mode": "UNREVIEWED_DEFAULTS_HISTORICAL"
+  },
+  "known_failing_or_gated_items": [
+    "evaluation_artifacts_reference_parent_commit_9311d3f",
+    "candidate_prediction_logs_truncated_to_500_rows",
+    "anomaly_metrics_unverified_against_reviewed_events",
+    "offline_versus_live_aws_dependencies_unseparated"
+  ],
+  "operational_designation": "CANDIDATE_RESEARCH_CONDITIONAL_GO",
+  "persistence_fallback_mandatory": true
+}

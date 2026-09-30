@@ -481,6 +481,26 @@ export class TelemetryService {
     const sourceNames = topTwoNeighbors.map((n) => n.station.stationName.replace(/ AWS.*/i, "").trim());
     const sourceSummary = sourceNames.length > 0 ? `${sourceNames.join(" & ")} AWS` : "Regional AWS Network";
 
+    // Confidence for a SPATIAL ESTIMATE is derived, not asserted.
+    //
+    // This value previously hardcoded 98.6% on an inverse-distance-weighted
+    // interpolation from neighbouring stations. That is an order of magnitude
+    // more confident than spatial interpolation of a convective parameter over
+    // tropical terrain warrants, and it was the single most misleading field in
+    // the public payload: a user could not distinguish a kriged value from a
+    // reading.
+    //
+    // The estimate degrades with (a) how few stations contributed and (b) how far
+    // the nearest contributor is. Ceiling is 85%, and it falls toward 40% for a
+    // single distant neighbour.
+    const nearestDistanceKm = rankedNeighbors.length > 0 ? rankedNeighbors[0].effDistKm : 999;
+    const contributing = rankedNeighbors.length;
+    const supportFactor = Math.min(1, contributing / 4);           // 4+ stations -> 1.0
+    const distanceFactor = 1 / (1 + nearestDistanceKm / 15);        // 15 km -> 0.5
+    const derivedConfidencePct = Number(
+      (40 + 45 * supportFactor * distanceFactor).toFixed(1)
+    );
+
     return {
       telemetryId: 8888,
       recordedAt: now.toISOString(),
@@ -497,7 +517,7 @@ export class TelemetryService {
       lightIntensity: phHour >= 6 && phHour <= 18 ? 35000 : 0,
       isSpatialEstimate: true,
       estimateSource: sourceSummary,
-      confidencePct: 98.6,
+      confidencePct: derivedConfidencePct,
     };
   }
 
