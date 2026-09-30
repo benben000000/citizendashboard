@@ -5,7 +5,7 @@
   "artifact_commit": "b72b16ae960be6627b92dd2445dac10d84b99bef",
   "model_weights_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
   "checkpoint_sha256": "632b5336c08da1a9c57e62af67003919f2af5512c345fd9ddecd8f7f0250879c",
-  "policy_sha256": "86e6bee8dbfc94ad4411c626f1ff56713214f9362e8c1494c6ed5433200eab42",
+  "policy_sha256": "4088c5c0211a507009f45dc933bf67641d804161ae551df08bfb864c39b7d5cf",
   "raw_weather_dataset_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
   "raw_water_dataset_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
   "feature_schema": [
@@ -44,7 +44,8 @@
   "model_dimensions": {
     "input_dim": 8,
     "hidden_dim": 32,
-    "output_dim": 8
+    "output_dim": 8,
+    "context_dim": 0
   },
   "random_seed": 42,
   "training_config": {

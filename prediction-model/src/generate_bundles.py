@@ -119,11 +119,13 @@ def generate_bundles(
             # The pair that is truthful is: these weights, and a policy refitted
             # against them, both attributable to the training commit.
             model_commit = _man.get("code_commit") or head_commit
+            _trained_at = model_commit
         else:
             ckpt_src = os.path.join(data_dir, f"lnn_weather_water_h{h}.pt")
             model_family = "GarciaWeatherLNN"
             model_dims = {"input_dim": 8, "hidden_dim": 32, "context_dim": 0}
             model_commit = None
+            _trained_at = "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf"
         if candidate_dir:
             # Keep the manifest's model_weights_commit and the policy's
             # policy_code_commit on the SAME commit, or inference.py fails closed.
@@ -147,13 +149,32 @@ def generate_bundles(
             # against this candidate, THEN package. Packaging stamps the commit at
             # which that pairing was made.
             "policy_code_commit": (model_commit if candidate_dir else head_commit),
+            # Carried through from the source policy. inference.py compares THIS to
+            # the bundle's checkpoint commit and fails closed on a mismatch, which
+            # is the failure worth catching: a policy fitted for model A must not be
+            # served with model B. Dropping it during packaging silently disabled
+            # that check, because a missing field skips the comparison entirely.
+            "fitted_model_commit": base_policy.get("fitted_model_commit"),
+            # When the WEIGHTS were trained, which is NOT when this policy was
+            # fitted. Stamping HEAD here made the policy disagree with its own
+            # bundle manifest and verify_provenance.py correctly failed the
+            # release with "model_weights_commit mismatch between policy and
+            # manifest". policy_code_commit records the fitting; this records the
+            # weights. They are legitimately different commits.
+            "model_weights_commit": (model_commit if candidate_dir
+                                     else "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf"),
             "model_family": model_family,
             "model_status": "ACTIVE_PRODUCTION",
             "bundle_version": "1.0.0",
             "horizon_hours": h,
             "implementation_commit": implementation_commit,
             "artifact_commit": artifact_commit,
-            "model_weights_commit": model_weights_commit,
+            # NOTE: a duplicate "model_weights_commit" key used to follow this line
+            # and silently win, because in a Python dict literal the LAST
+            # assignment survives. It carried head_commit, so the shipped policy
+            # claimed the weights were trained at HEAD while the bundle manifest
+            # correctly recorded the real training commit. Two keys, one value kept,
+            # and a release gate failure that looked like a hash problem.
             "checkpoint_sha256": ckpt_sha256,
             "feature_schema": list(EXPECTED_FEATURES),
             # Never silently inherit a missing timestamp. If the base policy lacks one

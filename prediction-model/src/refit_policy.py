@@ -147,7 +147,10 @@ def main():
         return h.hexdigest()
 
     corpus_sha256 = _sha256_file(weather_csv)
+    _water = os.path.join(DATA_DIR, "water_level_telemetry.csv")
+    water_sha256 = _sha256_file(_water) if os.path.exists(_water) else None
     print(f"corpus sha256  : {corpus_sha256[:16]}...")
+    print(f"water  sha256  : {str(water_sha256)[:16]}...")
 
     pipe = TelemetryDataPipeline(weather_csv=weather_csv)
     print(f"corpus        : {os.path.basename(weather_csv)}")
@@ -155,6 +158,25 @@ def main():
     print(f"policy written: {os.path.basename(out_path)}")
     with open(POLICY_PATH, "r", encoding="utf-8") as f:
         base_policy = json.load(f)
+
+    # Which weights is this policy fitted against? Taken from the bundle
+    # checkpoint, per horizon, and asserted consistent across horizons.
+    fitted_model_commit = None
+    for _h in HORIZONS:
+        _ck = os.path.join(bundle_root, f"h{_h}", "checkpoint.pt")
+        if not os.path.exists(_ck):
+            continue
+        import torch as _torch
+        _c = _torch.load(_ck, map_location="cpu", weights_only=False)
+        _cm = ((_c.get("manifest") or {}).get("code_commit")) or "unknown"
+        if fitted_model_commit is None:
+            fitted_model_commit = _cm
+        elif fitted_model_commit != _cm:
+            raise SystemExit(
+                f"bundles span more than one weights commit "
+                f"({fitted_model_commit[:12]} vs {_cm[:12]} at h{_h}); a single "
+                f"policy cannot be fitted against both")
+    print(f"fitted against  : {str(fitted_model_commit)[:16]}...")
 
     horizons_out = {}
     report = {}
@@ -248,10 +270,23 @@ def main():
         # gate correctly refuses with POLICY_CORPUS_DIVERGED. A policy that
         # misstates its own training data is worse than no policy: it makes the
         # provenance record a lie while appearing to satisfy it.
+        # The weights this policy was fitted AGAINST. inference.py compares this
+        # to the bundle's checkpoint commit and fails closed on a mismatch, which is
+        # the failure worth catching: a policy fitted for model A must not be
+        # served with model B. It is deliberately NOT policy_code_commit, which
+        # records when the policy was fitted and legitimately differs.
+        "fitted_model_commit": fitted_model_commit,
         "dataset_hashes": {
             "weather_telemetry_sha256": corpus_sha256,
-            "water_telemetry_sha256": base_policy.get("dataset_hashes", {}).get(
-                "water_telemetry_sha256"),
+            # Computed from the file, not inherited. Inheriting it let a `null`
+            # propagate: a policy with water_telemetry_sha256 = null fails the
+            # provenance gate on a water hash it could never have checked.
+            # Key name matters: verify_provenance.py reads
+            # `water_level_telemetry_sha256`. Writing `water_telemetry_sha256`
+            # instead put a correct hash under a key the gate never looks at, so
+            # it compared None against the real hash and reported a mismatch on a
+            # value that was right.
+            "water_level_telemetry_sha256": water_sha256,
             "weather_csv_path": os.path.basename(weather_csv),
         },
         "horizons": horizons_out,

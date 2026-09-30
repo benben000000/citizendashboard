@@ -1,13 +1,14 @@
 {
   "policy_version": "2.0.0",
-  "policy_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+  "policy_code_commit": "c0d03be6e278cb74b490851a224b5fac1c676cc9",
+  "fitted_model_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+  "model_weights_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
   "model_family": "GarciaWeatherLNN",
   "model_status": "ACTIVE_PRODUCTION",
   "bundle_version": "1.0.0",
   "horizon_hours": 12,
   "implementation_commit": "b72b16ae960be6627b92dd2445dac10d84b99bef",
   "artifact_commit": "b72b16ae960be6627b92dd2445dac10d84b99bef",
-  "model_weights_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
   "checkpoint_sha256": "73697f9d10427e7b64a567a6ffb243dcf969e03a5f9eb5538eb5ee01d80fb4e2",
   "feature_schema": [
     "temperature",
@@ -19,9 +20,10 @@
     "wind_cos",
     "precipitation"
   ],
-  "generated_at": "",
+  "generated_at": "2026-09-30T14:58:46.116882+00:00",
   "dataset_hashes": {
     "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "weather_csv_path": "weather_telemetry.csv",
     "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872"
   },
   "horizons": {
@@ -75,8 +77,8 @@
           "selected_on": "validation"
         },
         "wind_speed": {
-          "a": 0.686043,
-          "b": 0.553712,
+          "a": 0.685525,
+          "b": 0.558021,
           "lambda": 0.75,
           "fitted_on": "train",
           "selected_on": "validation"
@@ -105,8 +107,8 @@
           "selected_on": "validation"
         },
         "wind_speed": {
-          "a": 0.761377,
-          "b": 0.400885,
+          "a": 0.761467,
+          "b": 0.403127,
           "lambda": 0.5,
           "fitted_on": "train",
           "selected_on": "validation"
@@ -128,8 +130,8 @@
       "calibration_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
       "calibration": {
         "wind_speed": {
-          "a": 0.674093,
-          "b": 0.498611,
+          "a": 0.673906,
+          "b": 0.499739,
           "lambda": 0.75,
           "fitted_on": "train",
           "selected_on": "validation"

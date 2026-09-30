@@ -101,6 +101,19 @@ class TestInferencePolicyContract(unittest.TestCase):
             with open(pol_file, "w", encoding="utf-8") as f:
                 json.dump({
                     "policy_version": "1.0.0",
+                    # The field the fail-closed check actually reads.
+                    #
+                    # It used to be policy_code_commit, which compared the policy's
+                    # OWN commit against the weights' commit. That is unsound: a
+                    # policy refitted after training always differs from the weights
+                    # it is fitted against, which is the normal case. It blocked every
+                    # legitimate refit and was blind to the failure it was written
+                    # for -- a policy fitted for model A served with model B, both
+                    # committed the same day.
+                    #
+                    # fitted_model_commit is "the weights this policy was fitted
+                    # against", which is what must match the bundle's checkpoint.
+                    "fitted_model_commit": "0000000000000000000000000000000000000000",
                     "policy_code_commit": "0000000000000000000000000000000000000000",
                     "horizons": {"1": {}}
                 }, f)
@@ -111,6 +124,8 @@ class TestInferencePolicyContract(unittest.TestCase):
             if model_commit and model_commit != "unknown":
                 with self.assertRaises(ValueError):
                     LNNServerlessPredictor(model_weights_path=self.ckpt_path, policy_path=pol_file)
+            else:
+                self.skipTest("checkpoint carries no code_commit to mismatch against")
 
     def test_unsupported_horizon_fails_closed(self):
         """Verify that asking for an unconfigured horizon (e.g. 2h, 48h) raises ValueError."""

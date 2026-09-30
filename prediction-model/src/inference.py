@@ -364,13 +364,28 @@ class LNNServerlessPredictor:
         if not isinstance(self.policy, dict) or "horizons" not in self.policy:
             raise ValueError(f"Invalid operational inference policy at '{policy_path}': missing 'horizons' table.")
 
-        policy_commit = self.policy.get("policy_code_commit")
+        # WHICH MODEL WAS THE POLICY FITTED FOR?
+        #
+        # This used to compare the policy's own commit against the weights' commit,
+        # and fail closed on any difference. That is unsound: a policy refitted
+        # AFTER training always has a different commit from the weights it is fitted
+        # against, which is the normal case rather than a mismatch. The check
+        # therefore blocked every legitimate refit while still being blind to the
+        # failure it was written for -- a policy fitted for model A served with
+        # model B, where both were committed on the same day.
+        #
+        # The policy now records `fitted_model_commit`: the weights it was fitted
+        # against. That is what is compared. policy_code_commit stays as the record
+        # of WHEN the policy was fitted, which is genuinely different information.
         model_commit = self.manifest.get("code_commit")
-        if policy_commit and model_commit and policy_commit != "unknown" and model_commit != "unknown":
-            if policy_commit != model_commit:
+        fitted_for = self.policy.get("fitted_model_commit")
+        if fitted_for and model_commit and fitted_for != "unknown" and model_commit != "unknown":
+            if fitted_for != model_commit:
                 raise ValueError(
-                    f"Operational policy commit mismatch (fail-closed): "
-                    f"policy commit '{policy_commit}' does not match model commit '{model_commit}'."
+                    f"Operational policy/model mismatch (fail-closed): this policy "
+                    f"was fitted for weights at commit '{fitted_for}' but the bundle "
+                    f"carries weights at '{model_commit}'. Refusing to serve a policy "
+                    f"that was not fitted for this model."
                 )
 
     def rollback_to_baseline(self) -> bool:

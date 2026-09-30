@@ -82,6 +82,14 @@ ORIGIN_COLS = ["origin_temperature", "origin_humidity", "origin_pressure",
 MIN_PAIRS = 30
 
 
+def _rel(path):
+    """Repo-relative path, or the bare name when it is not under the repo."""
+    try:
+        return os.path.relpath(os.path.abspath(path), ROOT).replace("\\", "/")
+    except ValueError:
+        return os.path.basename(str(path))
+
+
 def sha256_file(path):
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -167,6 +175,10 @@ def main() -> int:
                     help="Directory holding the served bundles (h<N>/checkpoint.pt)")
     ap.add_argument("--weather-csv", default=os.path.join(DATA, "weather_telemetry_current.csv"))
     ap.add_argument("--out", default=os.path.join(DATA, "promotion_evidence.json"))
+    ap.add_argument("--relative-paths", action="store_true", default=True,
+                    help="Record repo-relative paths (default). Absolute machine "
+                         "paths fail the provenance path-hygiene gate and make the "
+                         "artifact non-portable.")
     ap.add_argument("--horizons", default=None)
     ap.add_argument("--channels", default=",".join(MAE_CHANNELS) + "," + RAIN_CHANNEL)
     args = ap.parse_args()
@@ -203,8 +215,8 @@ def main() -> int:
 
     pipe = TelemetryDataPipeline(weather_csv=args.weather_csv)
     bundle = {"corpus_sha256": corpus_sha,
-              "baseline_path": os.path.join(DATA, "release_baseline.md"),
-              "policy_path": os.path.join(DATA, "inference_policy.json"),
+              "baseline_path": _rel(os.path.join(DATA, "release_baseline.md")),
+              "policy_path": _rel(os.path.join(DATA, "inference_policy.json")),
               "channels": channels, "horizons": horizons,
               "challenger": {}, "incumbent": {},
               "_generated_utc": datetime.now(timezone.utc).isoformat(),
@@ -320,7 +332,7 @@ def main() -> int:
             node = {
                 "validation": {"value": float(np.mean(c_err)), "n_rows": n,
                                "split": "validation",
-                               "source": f"candidate_artifacts:{args.candidate_dir}"},
+                               "source": f"candidate_artifacts:{_rel(args.candidate_dir)}"},
                 "test": None,
                 "paired": paired,
             }
@@ -328,7 +340,7 @@ def main() -> int:
             bundle["incumbent"][key] = {
                 "validation": {"value": float(np.mean(i_err)), "n_rows": n,
                                "split": "validation",
-                               "source": f"served_bundle:{args.incumbent_dir}/h{h}"},
+                               "source": f"served_bundle:{_rel(args.incumbent_dir)}/h{h}"},
                 "test": None,
                 "paired": paired,
             }
