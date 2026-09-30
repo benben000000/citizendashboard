@@ -64,3 +64,47 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ---------------------------------------------------------------------------
+# Prediction-model runtime and regenerable artifacts
+#
+# Everything below is either written by a running process or reproducible from
+# a documented command. Committing these bloats the repo, embeds one machine's
+# state, and -- for the audit trails -- publishes live operational data.
+#
+# The audit JSONL files are the worst case: mqtt_live_ingestor.py appends to them
+# continuously, so `git add -A` would sweep megabytes of live prediction history
+# into a commit. They were 13 MB and 2.7 MB and still growing.
+# ---------------------------------------------------------------------------
+prediction-model/data/prediction_audit.jsonl
+prediction-model/data/observation_audit.jsonl
+prediction-model/data/prediction_audit.jsonl.*
+prediction-model/data/observation_audit.jsonl.*
+
+# HTTP fetch caches: regenerate with fetch_current_telemetry.py / fetch_nwp_benchmark.py
+prediction-model/data/kloudtrack_history_cache/
+prediction-model/data/nwp_fetch_cache/
+prediction-model/data/gfs_cache/
+prediction-model/data/nwp_benchmark_cache.json
+
+# Refetched telemetry: regenerate with
+#   python prediction-model/src/fetch_current_telemetry.py \
+#     --start 2026-06-20 --end <today>
+# The committed corpus (weather_telemetry.csv) is the release input.
+prediction-model/data/weather_telemetry_current.csv
+
+# Experiment outputs. Candidate artifacts that are candidates for release live in
+# prediction-model/data/candidate_artifacts/ and ARE tracked; these are the
+# scratch arms and ablation runs kept for reproducibility of the analysis.
+prediction-model/data/candidate_artifacts_windfix/
+prediction-model/data/candidate_artifacts_leaky_olddata/
+prediction-model/data/seed_sweep/
+prediction-model/data/seed_sweep_analysis.json
+prediction-model/data/nwp_benchmark_candidate_*.json
+prediction-model/data/nwp_bm_ctrl_*.json
+
+# Stray temp dirs from interrupted jobs
+prediction-model/data/tmp*/
+
+# analysis scratch
+scratch/
