@@ -26,16 +26,45 @@
  *     explicitly marked as not for life safety.
  *  3. NO INVENTED FIELDS. No radar, no Doppler, no convective buoyancy, no
  *     fabricated confidence percentages.
+ *  4. SAY WHERE EACH NUMBER CAME FROM. The served policy routes most
+ *     (horizon, variable) cells to `persistence_fallback` — the last
+ *     observation, carried forward. Every result therefore carries a typed
+ *     `provenance` block (`@/types/forecast-provenance`) so a consumer can
+ *     distinguish a modelled value from a carried-forward one, and a
+ *     `verifiedAccuracy` block that reports live-measured error or states
+ *     plainly that none exists. Neither block is ever a placeholder number.
  */
 
 import fs from "fs";
 import path from "path";
 
 import { resolveDeviceId } from "@/lib/constants/mqtt-station-map";
+import {
+  applyChannelQuarantine,
+  buildSourceProvenance,
+  buildUnavailableProvenance,
+  summarizeVerification,
+  verifiedAccuracyUnavailable,
+  type ForecastSourceProvenance,
+  type VerifiedAccuracy,
+} from "@/types/forecast-provenance";
 
 /** Default staleness ceiling. The ingestor runs on a short cadence. */
 const DEFAULT_MAX_AGE_SECONDS = Number(
   process.env.FORECAST_MAX_AGE_SECONDS ?? process.env.MQTT_STATUS_MAX_AGE_SECONDS ?? 600
+);
+
+/**
+ * Freshness ceiling for the verification summary, in seconds.
+ *
+ * Deliberately far more generous than the forecast budget. The verification
+ * pass is scheduled separately and legitimately produces nothing at all until
+ * predictions have matured; a tight ceiling would simply hide real evidence.
+ * Its job here is to stop a summary from months ago being presented as current,
+ * not to enforce a SLA.
+ */
+const DEFAULT_VERIFICATION_MAX_AGE_SECONDS = Number(
+  process.env.VERIFICATION_MAX_AGE_SECONDS ?? 24 * 60 * 60
 );
 
 const CACHE_FILE = path.join(
@@ -43,6 +72,14 @@ const CACHE_FILE = path.join(
   "prediction-model",
   "data",
   "mqtt_live_predictions.json"
+);
+
+/** Written by `prediction-model/src/verify_predictions.py`. */
+const VERIFICATION_SUMMARY_FILE = path.join(
+  process.cwd(),
+  "prediction-model",
+  "data",
+  "prediction_verification_summary.json"
 );
 
 /* -------------------------------------------------------------------------- */
@@ -64,6 +101,25 @@ export interface InputQualityGate {
   learned_output_trusted: boolean;
   sensor_quality_flag: string;
   policy: string;
+}
+
+/**
+ * `selected_source_by_variable` as the engine emits it.
+ *
+ * The six keys are fixed by `inference.py`; the token set is fixed by
+ * `refit_policy.py` plus the runtime quarantine rewrite. Values stay `string`
+ * because this mirrors the wire contract — an unrecognised token must survive
+ * the service boundary and be classified as `unknown` by
+ * `forecastSourceIdFromToken`, not be silently coerced or dropped here.
+ */
+export interface OperationalSelectedSources {
+  temperature?: string;
+  humidity?: string;
+  pressure?: string;
+  wind_speed?: string;
+  wind_direction?: string;
+  heat_index?: string;
+  [key: string]: string | undefined;
 }
 
 export interface OperationalForecast {
@@ -104,12 +160,22 @@ export interface OperationalForecast {
   } | null;
   input_quality_gate?: InputQualityGate;
 
-  selected_source_by_variable: Record<string, string>;
+  selected_source_by_variable: OperationalSelectedSources;
   rain_probability_source: string;
   rain_model_weight: number;
   rain_persistence_weight: number;
   rain_operational_threshold: number;
   rain_operational_alert: boolean;
+
+  /**
+   * `inference.py` emits this when the live anemometer health check quarantines
+   * the wind channel. Note that branch replaces the served value with the last
+   * observation WITHOUT rewriting `selected_source_by_variable.wind_speed`, so a
+   * quarantined wind reading can still be labelled `learned_model`. The UI reads
+   * this field so the label and the number cannot disagree.
+   */
+  wind_speed_status?: string;
+  wind_sensor_health?: { verdict?: string; reason?: string; n?: number } | null;
 
   policy_version: string;
   policy_code_commit: string;
@@ -204,6 +270,20 @@ export interface ForecastAvailable {
   station: OperationalForecastStation;
   ageSeconds: number;
   lastUpdated: string;
+  /**
+   * Which source produced each of the six served values, at THIS horizon.
+   *
+   * As shipped, most of these are `persistence_fallback` — the last
+   * observation carried forward — not network output. A consumer that renders
+   * the numbers without rendering this is telling the reader that a carried
+   * forward humidity reading is a forecast. See `@/types/forecast-provenance`.
+   */
+  provenance: ForecastSourceProvenance;
+  /**
+   * Live-verified accuracy for the served channels, or an explicit reason why
+   * it is not being shown. Never a stale or placeholder number.
+   */
+  verifiedAccuracy: VerifiedAccuracy;
 }
 
 export interface ForecastUnavailable {
@@ -212,6 +292,14 @@ export interface ForecastUnavailable {
   message: string;
   ageSeconds: number | null;
   lastUpdated: string | null;
+  /**
+   * Present so a consumer does not have to synthesise an empty block. All six
+   * variables are `unknown`, which reads as "no model output at all" rather
+   * than "no information about the source".
+   */
+  provenance: ForecastSourceProvenance;
+  /** Always `unavailable` on this path. */
+  verifiedAccuracy: VerifiedAccuracy;
 }
 
 export type ForecastResult = ForecastAvailable | ForecastUnavailable;
@@ -252,6 +340,94 @@ function computeAgeSeconds(isoTimestamp: string | undefined | null): number | nu
   return Math.max(0, Math.floor((Date.now() - ms) / 1000));
 }
 
+/* -------------------------------------------------------------------------- */
+/* Verified accuracy                                                          */
+/* -------------------------------------------------------------------------- */
+
+let cachedVerification: { mtimeMs: number; result: VerifiedAccuracy } | null = null;
+
+/**
+ * Read the live verification pass and normalise it for display.
+ *
+ * The audit trail is append-only and scoring is a separate, scheduled job
+ * (`prediction-model/src/verify_predictions.py`), so this file is updated on its
+ * own cadence and may legitimately be empty. FAIL CLOSED: a missing, unreadable
+ * or out-of-budget artifact yields an explicit status. It never reports a
+ * remembered number, and it never renders `null` MAE as zero.
+ *
+ * The summary carries no `generated_at`, so its file mtime is the only honest
+ * statement of when the numbers were computed. That is surfaced as `observedAt`
+ * rather than being hidden.
+ */
+export function getVerifiedAccuracy(): VerifiedAccuracy {
+  let mtimeMs: number;
+  try {
+    mtimeMs = fs.statSync(VERIFICATION_SUMMARY_FILE).mtimeMs;
+  } catch {
+    return verifiedAccuracyUnavailable(
+      "No verification summary on disk. prediction-model/src/verify_predictions.py has " +
+        "not produced one, so this dashboard has no measured accuracy to show."
+    );
+  }
+
+  if (cachedVerification && cachedVerification.mtimeMs === mtimeMs) {
+    return cachedVerification.result;
+  }
+
+  let raw: unknown = null;
+  let observedAt: string | null = null;
+  try {
+    observedAt = new Date(mtimeMs).toISOString();
+    raw = JSON.parse(fs.readFileSync(VERIFICATION_SUMMARY_FILE, "utf-8"));
+  } catch {
+    cachedVerification = {
+      mtimeMs,
+      result: verifiedAccuracyUnavailable(
+        "The verification summary exists but could not be parsed."
+      ),
+    };
+    return cachedVerification.result;
+  }
+
+  const result = summarizeVerification(raw, {
+    observedAt,
+    now: Date.now(),
+    maxAgeSeconds: DEFAULT_VERIFICATION_MAX_AGE_SECONDS,
+  });
+  cachedVerification = { mtimeMs, result };
+  return result;
+}
+
+/** Freshness budget enforced on the verification summary, in seconds. */
+export const VERIFICATION_FRESHNESS_BUDGET_SECONDS = DEFAULT_VERIFICATION_MAX_AGE_SECONDS;
+
+/**
+ * Build the per-variable provenance block for a served forecast.
+ *
+ * Exported separately from `getOperationalForecast` so the classification can
+ * be exercised directly, and so any consumer that already holds an
+ * `OperationalForecast` (e.g. one read straight from a cache) can derive the
+ * same block without re-running the resolution.
+ */
+export function getSourceProvenance(forecast: OperationalForecast): ForecastSourceProvenance {
+  const selected = forecast.selected_source_by_variable ?? {};
+  // A quarantined wind channel is served as the last observation, so it must
+  // never read as `learned_model` even when the policy token still says so.
+  const windSensorQuarantined = (forecast.wind_speed_status ?? "").startsWith("QUARANTINED_SENSOR");
+
+  const provenance = buildSourceProvenance({
+    horizon: forecast.forecast_horizon,
+    policyVersion: forecast.policy_version ?? null,
+    selectedSourceByVariable: selected,
+    learnedOutputTrusted: forecast.input_quality_gate?.learned_output_trusted ?? null,
+    rainProbabilitySource: forecast.rain_probability_source ?? null,
+    rainModelWeight: forecast.rain_model_weight ?? null,
+    rainPersistenceWeight: forecast.rain_persistence_weight ?? null,
+  });
+
+  return applyChannelQuarantine(provenance, "windSpeed", windSensorQuarantined);
+}
+
 /**
  * Fetch the validated operational forecast for a station.
  *
@@ -278,6 +454,8 @@ export function getOperationalForecast(
         : "The live model cache is not present. The forecast ingestor is not running.",
       ageSeconds: null,
       lastUpdated: null,
+      provenance: buildUnavailableProvenance("CACHE_UNAVAILABLE"),
+      verifiedAccuracy: getVerifiedAccuracy(),
     };
   }
 
@@ -294,6 +472,8 @@ export function getOperationalForecast(
         "forecast exists for it. Showing current observations only.",
       ageSeconds: computeAgeSeconds(lastUpdated),
       lastUpdated,
+      provenance: buildUnavailableProvenance("STATION_NOT_RESOLVED"),
+      verifiedAccuracy: getVerifiedAccuracy(),
     };
   }
 
@@ -307,6 +487,8 @@ export function getOperationalForecast(
         "forecast. Showing current observations only.",
       ageSeconds: computeAgeSeconds(lastUpdated),
       lastUpdated,
+      provenance: buildUnavailableProvenance("NO_FORECAST_FOR_STATION"),
+      verifiedAccuracy: getVerifiedAccuracy(),
     };
   }
 
@@ -340,6 +522,10 @@ export function getOperationalForecast(
         `observations only.`,
       ageSeconds,
       lastUpdated: forecastTs,
+      // A stale entry is not served, so nothing about it may be described as
+      // current. Every value reads as `unknown` rather than as a source.
+      provenance: buildUnavailableProvenance("STALE"),
+      verifiedAccuracy: getVerifiedAccuracy(),
     };
   }
 
@@ -363,6 +549,8 @@ export function getOperationalForecast(
             `available. Choose one of the published horizons.`,
         ageSeconds,
         lastUpdated: forecastTs,
+        provenance: buildUnavailableProvenance("HORIZON_MISMATCH"),
+        verifiedAccuracy: getVerifiedAccuracy(),
       };
     }
     // Report the ingestor's actual reason rather than a generic message.
@@ -384,6 +572,8 @@ export function getOperationalForecast(
       message: `${detail} Showing current observations only.`,
       ageSeconds,
       lastUpdated,
+      provenance: buildUnavailableProvenance("NO_FORECAST_FOR_STATION"),
+      verifiedAccuracy: getVerifiedAccuracy(),
     };
   }
 
@@ -399,6 +589,8 @@ export function getOperationalForecast(
         `Refusing to serve one horizon's numbers under another's label.`,
       ageSeconds,
       lastUpdated,
+      provenance: buildUnavailableProvenance("HORIZON_MISMATCH"),
+      verifiedAccuracy: getVerifiedAccuracy(),
     };
   }
 
@@ -407,6 +599,8 @@ export function getOperationalForecast(
     station: { ...entry, forecast },
     ageSeconds,
     lastUpdated: forecastTs,
+    provenance: getSourceProvenance(forecast),
+    verifiedAccuracy: getVerifiedAccuracy(),
   };
 }
 
@@ -417,5 +611,6 @@ export const FORECAST_FRESHNESS_BUDGET_SECONDS = DEFAULT_MAX_AGE_SECONDS;
 export function __resetForecastCache(): void {
   cachedCache = null;
   cachedCacheMtimeMs = 0;
+  cachedVerification = null;
   readCache = null;
 }

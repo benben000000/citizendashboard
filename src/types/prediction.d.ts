@@ -1,6 +1,9 @@
 import type { StationPublicInfo } from "./telemetry";
 import type { WaterLevelHistoryMetricDataPoint } from "./water-level";
 import type { WeatherCondition } from "@/lib/utils/weather";
+import type { VerifiedAccuracy } from "./forecast-provenance";
+
+export type { VerifiedAccuracy };
 
 export type PredictionHorizon = "1h" | "3h" | "6h" | "12h" | "24h" | "48h" | "72h";
 
@@ -161,6 +164,21 @@ export interface ModelInputQuality {
   anomalyCount: number;
 }
 
+/**
+ * Raw per-variable source selection, exactly as the engine emitted it.
+ *
+ * The tokens are `"learned_model"`, `"persistence_fallback"`,
+ * `"persistence_fallback_input_quarantined"` and
+ * `"derived_from_selected_temp_and_humidity"`. They are kept as `string` here
+ * because this block is a verbatim pass-through of the wire contract; use
+ * `forecastSourceIdFromToken` in `@/types/forecast-provenance` to turn them
+ * into a closed union rather than string-matching at the point of use.
+ *
+ * KEY FACT, and the reason this block exists: as shipped, most (horizon,
+ * variable) cells are `persistence_fallback`. A rendered number with no source
+ * label reads as a forecast; at 1h and 3h that is false for all five policy
+ * variables.
+ */
 export interface ModelSourceSelection {
   temperature: string;
   humidity: string;
@@ -203,6 +221,16 @@ export interface PredictionPublicDTO {
   inputQuality?: ModelInputQuality;
   sourceSelection?: ModelSourceSelection;
   modelProvenance?: ModelForecastProvenance;
+  /**
+   * Live-verified accuracy, from `prediction-model/src/verify_predictions.py`.
+   *
+   * Populated from `getVerifiedAccuracy()` in `src/services/forecast.service.ts`
+   * when the response is assembled. Optional because an absent field must be
+   * read as "not reported" and rendered as such — never as zero, and never as
+   * a remembered number. See `VerifiedAccuracy` in
+   * `@/types/forecast-provenance` for the full honesty contract.
+   */
+  verifiedAccuracy?: VerifiedAccuracy;
   /** Explains why no model forecast is attached, when one is not. */
   forecastUnavailable?: {
     reason: string;

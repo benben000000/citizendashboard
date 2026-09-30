@@ -160,6 +160,14 @@ export default function PredictionDashboard({
               <ModelGovernanceBanner data={data} />
             above the hero. The component is unchanged at
             ./model-governance-banner.tsx.
+
+            What replaced it is NOT a banner: `PredictionSourceProvenance` is one
+            muted line of six per-variable source chips, mounted inside
+            `PredictionWeatherForecast` under the numbers. It answers the narrower
+            question an operator actually has — is this value model output or the
+            last observation carried forward — which the removed banner never
+            answered, because it described the model's status rather than any
+            individual value's source.
           */}
           {hasError ? (
             <div
@@ -184,6 +192,8 @@ export default function PredictionDashboard({
               nearestStationId={nearestStationId}
               onDetectNearest={handleDetectNearest}
               isLocating={isLocating}
+              sourceSelection={data.sourceSelection}
+              verifiedAccuracy={data.verifiedAccuracy}
             />
           )}
 

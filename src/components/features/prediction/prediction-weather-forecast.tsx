@@ -10,7 +10,10 @@ import type {
   PredictionDataPoint,
   PredictionHorizon,
   FloodRiskLevel,
+  ModelSourceSelection,
 } from "@/types/prediction";
+import type { VerifiedAccuracy } from "@/types/forecast-provenance";
+import PredictionSourceProvenance from "./prediction-source-provenance";
 import {
   TriangleAlert,
   Flame,
@@ -36,6 +39,15 @@ interface PredictionWeatherForecastProps {
   nearestStationId?: string | null;
   onDetectNearest?: () => void;
   isLocating?: boolean;
+  /**
+   * Per-variable source selection for this horizon, verbatim from the engine.
+   *
+   * Most cells are `persistence_fallback`. Without this the six numbers on
+   * screen are indistinguishable from six forecasts.
+   */
+  sourceSelection?: ModelSourceSelection;
+  /** Live-measured accuracy, when the service attached it. */
+  verifiedAccuracy?: VerifiedAccuracy;
 }
 
 const TAGALOG_DAYS = ["Linggo", "Lunes", "Martes", "Miyerkules", "Huwebes", "Biyernes", "Sabado"];
@@ -52,6 +64,8 @@ export default function PredictionWeatherForecast({
   nearestStationId,
   onDetectNearest,
   isLocating,
+  sourceSelection,
+  verifiedAccuracy,
 }: PredictionWeatherForecastProps) {
   const locale = useLocale();
   const t = useTranslations("prediction");
@@ -351,6 +365,22 @@ export default function PredictionWeatherForecast({
           <p className="mt-5 md:mt-6 w-full max-w-lg text-sm md:text-base font-normal text-light/95 leading-relaxed">
             {riskDetails.advice}
           </p>
+
+          {/*
+            Per-variable source strip. Kept as one muted line directly under the
+            numbers, and kept as a strip rather than a banner: a governance
+            banner was removed from this surface at product request, and this
+            must not grow back into one. Its job is narrower — say which of
+            these six values are model output and which are the last observation
+            carried forward, because that changes how far ahead they can be
+            trusted at this horizon.
+          */}
+          <PredictionSourceProvenance
+            sourceSelection={sourceSelection}
+            horizon={horizon}
+            verifiedAccuracy={verifiedAccuracy}
+            className="mt-4 w-full max-w-lg"
+          />
         </div>
 
         {/* ── RIGHT COLUMN: DYNAMIC 4 GLASS CARDS (2x2 Grid) ── */}
