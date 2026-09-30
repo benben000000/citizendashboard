@@ -131,6 +131,8 @@ def verify(
     writer = PredictionAudit(path=verification_path or VERIFICATION_PATH,
                               data_dir=DATA_DIR)
     scored, pending, unmatched, skipped = 0, 0, 0, 0
+    duplicate = 0
+    seen_identities: set = set()
     per_var_abs: Dict[str, List[float]] = {}
     # Counts per producer, NOT a pooled mean. A mean absolute error across degC,
     # %RH, hPa and m/s is not a quantity -- the units do not share a scale, and
@@ -144,6 +146,24 @@ def verify(
         if rid and rid in already:
             skipped += 1
             continue
+        # DE-DUPLICATE BY FORECAST IDENTITY, not by record id.
+        #
+        # `already` deduplicates on record_id, which does nothing about republished
+        # forecasts: each republish is written as a new audit record with a new
+        # record_id, so an identical forecast sent every 60 seconds during a
+        # reconnect storm is scored 35 times and dominates the mean. One
+        # (station, origin timestamp, horizon) IS one forecast no matter how many
+        # times it was transmitted, and it must contribute once.
+        #
+        # Measured effect: 18.9% of the audit trail was redundant, inflating the
+        # trail x1.23 and weighting some predictions 35x. That is not a fabricated
+        # number, but it is not a representative one either.
+        identity = (p.get("station_id"), p.get("origin_timestamp_utc"),
+                    _num(p.get("horizon_hours")))
+        if identity in seen_identities:
+            duplicate += 1
+            continue
+        seen_identities.add(identity)
         if limit is not None and scored >= limit:
             break
         origin = _parse(p.get("origin_timestamp_utc"))
@@ -219,6 +239,7 @@ def verify(
         "pending": pending,
         "unmatched": unmatched,
         "already_verified": skipped,
+        "duplicate_publishes": duplicate,
         "tolerance_minutes": tolerance_minutes,
         "mae_by_variable": {k: mean(v) for k, v in sorted(per_var_abs.items())},
         "n_by_variable_and_producer": {
@@ -244,6 +265,7 @@ def main() -> int:
     print(f"  pending (unmatured): {summary['pending']}")
     print(f"  unmatched          : {summary['unmatched']}")
     print(f"  already verified   : {summary['already_verified']}")
+    print(f"  duplicate publishes: {summary['duplicate_publishes']}")
     if summary["mae_by_variable"]:
         print("\n  mean absolute error by variable:")
         for k, v in summary["mae_by_variable"].items():
