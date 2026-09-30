@@ -1,0 +1,1246 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at_utc": "2026-09-30T13:52:14Z",
+  "gate": "prediction-model/src/release_gate.py",
+  "recommendation": "SPLIT",
+  "promotion_decision_computed": true,
+  "exit_code": 0,
+  "exit_code_meaning": "gate ran; decision complete; act on the listed promotions",
+  "decision_inputs_used": {
+    "corpus_sha256": "938912148be8af9902a2a1871c70de79538fd52f23695a79473fff09d6c4816b",
+    "channels": [
+      "temperature",
+      "humidity",
+      "pressure",
+      "wind_speed",
+      "rain_occurrence"
+    ],
+    "horizons": [
+      1,
+      3,
+      6,
+      12,
+      24
+    ],
+    "split_used_for_decision": "validation",
+    "split_used_for_reporting": "test",
+    "incumbent": "LNN incumbent (served bundles)",
+    "challenger": "LNN candidate (fresh corpus)"
+  },
+  "rule": {
+    "statement": "A challenger replaces the incumbent for a (channel, horizon) cell only if it beats it by more than a paired 2-sigma standard error on the validation period AND is ahead in both chronological halves of that period. Every channel is decided independently.",
+    "difference": "mean_difference = mean(incumbent_row_error - candidate_row_error); positive means the challenger is better",
+    "row_error": "absolute |y - yhat| for MAE channels; Brier term (p - y)^2 for rain_occurrence",
+    "sigma_multiplier": 2.0,
+    "significance_comparison": "strictly greater than; a cell sitting exactly at the multiple does NOT promote",
+    "half_split_requirement": "mean_difference > 0 in the 'early' and 'late' halves independently; the magnitude of each half is not itself tested at 2 sigma",
+    "min_paired_rows": 30,
+    "min_paired_rows_per_half": 10,
+    "decision_split": "validation",
+    "test_split": "reporting only; a decision input labelled 'test' is rejected",
+    "missing_evidence": "INSUFFICIENT_EVIDENCE; there is no default that turns absence into a promotion",
+    "rejected_cells": "recorded explicitly with a reason; never omitted"
+  },
+  "integrity": {
+    "corpus": {
+      "candidate": "938912148be8af9902a2a1871c70de79538fd52f23695a79473fff09d6c4816b",
+      "baseline": "938912148be8af9902a2a1871c70de79538fd52f23695a79473fff09d6c4816b",
+      "policy": "938912148be8af9902a2a1871c70de79538fd52f23695a79473fff09d6c4816b",
+      "status": "PASS"
+    },
+    "policy_corpus": {
+      "status": "PASS"
+    },
+    "policy": {
+      "policy_version": "2.0.0",
+      "weather_telemetry_sha256": "938912148be8af9902a2a1871c70de79538fd52f23695a79473fff09d6c4816b",
+      "cells_resolved": 25,
+      "read_error": null,
+      "undecidable_channels": [
+        "heat_index",
+        "wind_direction"
+      ],
+      "status": "PASS"
+    },
+    "baseline_document": {
+      "status": "PASS"
+    },
+    "baseline_drift": {
+      "status": "PASS",
+      "tolerance_rel": 0.02,
+      "cells_checked": 25,
+      "cells_total": 25,
+      "drifted": [],
+      "not_rechecked": [],
+      "newly_covered": [],
+      "justification": null,
+      "excluded_fields": [
+        "captured",
+        "captured_at",
+        "captured_at_utc",
+        "recorded_at_utc",
+        "generated_at",
+        "generated_at_utc",
+        "evaluated_at_utc",
+        "timestamp",
+        "timestamp_utc"
+      ],
+      "details": {
+        "humidity|h1": {
+          "status": "MATCH",
+          "recorded": 2.744,
+          "fresh": 2.7438147487928535,
+          "delta": -0.0001852512071467416,
+          "allowed": 0.054880000000000005
+        },
+        "humidity|h3": {
+          "status": "MATCH",
+          "recorded": 7.134,
+          "fresh": 7.1343403725329235,
+          "delta": 0.00034037253292318326,
+          "allowed": 0.14268
+        },
+        "humidity|h6": {
+          "status": "MATCH",
+          "recorded": 12.43,
+          "fresh": 12.4302104282764,
+          "delta": 0.00021042827640016526,
+          "allowed": 0.2486
+        },
+        "humidity|h12": {
+          "status": "MATCH",
+          "recorded": 16.906,
+          "fresh": 16.905626206643607,
+          "delta": -0.0003737933563918716,
+          "allowed": 0.33812
+        },
+        "humidity|h24": {
+          "status": "MATCH",
+          "recorded": 3.598,
+          "fresh": 3.598309343290637,
+          "delta": 0.0003093432906369209,
+          "allowed": 0.07196
+        },
+        "pressure|h1": {
+          "status": "MATCH",
+          "recorded": 0.483,
+          "fresh": 0.4831853505069092,
+          "delta": 0.00018535050690920984,
+          "allowed": 0.00966
+        },
+        "pressure|h3": {
+          "status": "MATCH",
+          "recorded": 1.288,
+          "fresh": 1.2877350683439959,
+          "delta": -0.0002649316560041637,
+          "allowed": 0.02576
+        },
+        "pressure|h6": {
+          "status": "MATCH",
+          "recorded": 1.872,
+          "fresh": 1.8720806555084026,
+          "delta": 8.065550840252733e-05,
+          "allowed": 0.03744
+        },
+        "pressure|h12": {
+          "status": "MATCH",
+          "recorded": 1.267,
+          "fresh": 1.2667001267338143,
+          "delta": -0.00029987326618563515,
+          "allowed": 0.025339999999999998
+        },
+        "pressure|h24": {
+          "status": "MATCH",
+          "recorded": 1.061,
+          "fresh": 1.0610209255979244,
+          "delta": 2.0925597924437156e-05,
+          "allowed": 0.02122
+        },
+        "rain_occurrence|h1": {
+          "status": "MATCH",
+          "recorded": 0.0793,
+          "fresh": 0.079267772335096,
+          "delta": -3.222766490398876e-05,
+          "allowed": 0.001586
+        },
+        "rain_occurrence|h3": {
+          "status": "MATCH",
+          "recorded": 0.1043,
+          "fresh": 0.10432331158605175,
+          "delta": 2.331158605174688e-05,
+          "allowed": 0.002086
+        },
+        "rain_occurrence|h6": {
+          "status": "MATCH",
+          "recorded": 0.1253,
+          "fresh": 0.12530313120365089,
+          "delta": 3.1312036508912566e-06,
+          "allowed": 0.002506
+        },
+        "rain_occurrence|h12": {
+          "status": "MATCH",
+          "recorded": 0.1408,
+          "fresh": 0.14083606830841397,
+          "delta": 3.606830841396125e-05,
+          "allowed": 0.0028160000000000004
+        },
+        "rain_occurrence|h24": {
+          "status": "MATCH",
+          "recorded": 0.1179,
+          "fresh": 0.11793263894899536,
+          "delta": 3.263894899535602e-05,
+          "allowed": 0.0023580000000000003
+        },
+        "temperature|h1": {
+          "status": "MATCH",
+          "recorded": 0.868,
+          "fresh": 0.8680706791996529,
+          "delta": 7.067919965286773e-05,
+          "allowed": 0.01736
+        },
+        "temperature|h3": {
+          "status": "MATCH",
+          "recorded": 2.282,
+          "fresh": 2.281514258651871,
+          "delta": -0.0004857413481289541,
+          "allowed": 0.04564
+        },
+        "temperature|h6": {
+          "status": "MATCH",
+          "recorded": 1.671,
+          "fresh": 1.671259423642505,
+          "delta": 0.0002594236425048635,
+          "allowed": 0.03342
+        },
+        "temperature|h12": {
+          "status": "MATCH",
+          "recorded": 1.724,
+          "fresh": 1.7237393028806602,
+          "delta": -0.0002606971193397367,
+          "allowed": 0.034480000000000004
+        },
+        "temperature|h24": {
+          "status": "MATCH",
+          "recorded": 1.118,
+          "fresh": 1.118169072381887,
+          "delta": 0.0001690723818867923,
+          "allowed": 0.02236
+        },
+        "wind_speed|h1": {
+          "status": "MATCH",
+          "recorded": 0.391,
+          "fresh": 0.3912286876938205,
+          "delta": 0.00022868769382050624,
+          "allowed": 0.00782
+        },
+        "wind_speed|h3": {
+          "status": "MATCH",
+          "recorded": 0.665,
+          "fresh": 0.6654353166162553,
+          "delta": 0.00043531661625528795,
+          "allowed": 0.013300000000000001
+        },
+        "wind_speed|h6": {
+          "status": "MATCH",
+          "recorded": 0.745,
+          "fresh": 0.7452463787625835,
+          "delta": 0.0002463787625834879,
+          "allowed": 0.0149
+        },
+        "wind_speed|h12": {
+          "status": "MATCH",
+          "recorded": 0.698,
+          "fresh": 0.6981421692419956,
+          "delta": 0.00014216924199561554,
+          "allowed": 0.01396
+        },
+        "wind_speed|h24": {
+          "status": "MATCH",
+          "recorded": 0.634,
+          "fresh": 0.634341237978314,
+          "delta": 0.0003412379783139796,
+          "allowed": 0.01268
+        }
+      }
+    }
+  },
+  "counts": {
+    "PROMOTE": 18,
+    "REJECT": 7,
+    "INSUFFICIENT_EVIDENCE": 0
+  },
+  "summary": {
+    "promoted": [
+      "temperature|h1",
+      "temperature|h3",
+      "temperature|h6",
+      "temperature|h12",
+      "temperature|h24",
+      "humidity|h1",
+      "humidity|h3",
+      "humidity|h6",
+      "humidity|h12",
+      "humidity|h24",
+      "pressure|h1",
+      "pressure|h3",
+      "pressure|h6",
+      "wind_speed|h1",
+      "wind_speed|h3",
+      "wind_speed|h6",
+      "wind_speed|h12",
+      "wind_speed|h24"
+    ],
+    "rejected": [
+      "pressure|h12",
+      "pressure|h24",
+      "rain_occurrence|h1",
+      "rain_occurrence|h3",
+      "rain_occurrence|h6",
+      "rain_occurrence|h12",
+      "rain_occurrence|h24"
+    ],
+    "insufficient_evidence": [],
+    "promotions_beating_persistence": [
+      "temperature|h1",
+      "humidity|h1",
+      "humidity|h3",
+      "pressure|h3",
+      "pressure|h6",
+      "wind_speed|h1",
+      "wind_speed|h3",
+      "wind_speed|h24"
+    ],
+    "promotions_beating_served_model": [
+      "temperature|h3",
+      "temperature|h6",
+      "temperature|h12",
+      "temperature|h24",
+      "humidity|h6",
+      "humidity|h12",
+      "humidity|h24",
+      "pressure|h1",
+      "wind_speed|h6",
+      "wind_speed|h12"
+    ]
+  },
+  "cells": {
+    "temperature|h1": {
+      "channel": "temperature",
+      "horizon": 1,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.045717372319970084 exceeds 2 sigma (0.011215358259272884) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "degC",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 0.4801157306349555,
+        "challenger": 0.43439835831498536,
+        "absolute_improvement": 0.04571737231997014,
+        "relative_improvement": 0.09522156722402884,
+        "n_pairs": 3396,
+        "mean_difference": 0.045717372319970084,
+        "stderr": 0.005607679129636442,
+        "required_difference": 0.011215358259272884,
+        "sigma": 8.152636993503236,
+        "halves": {
+          "early": {
+            "n_pairs": 1698,
+            "mean_difference": 0.04810004157142936,
+            "stderr": 0.007139008545613944,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1698,
+            "mean_difference": 0.04333470306851081,
+            "stderr": 0.008651542514389127,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:temperature+1h:early",
+          "full": "build_promotion_evidence.py:temperature+1h:full",
+          "late": "build_promotion_evidence.py:temperature+1h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "temperature|h3": {
+      "channel": "temperature",
+      "horizon": 3,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.23924691357822353 exceeds 2 sigma (0.02923405044551407) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "degC",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.003872863753081,
+        "challenger": 0.7646259501748576,
+        "absolute_improvement": 0.23924691357822336,
+        "relative_improvement": 0.23832391751658114,
+        "n_pairs": 3370,
+        "mean_difference": 0.23924691357822353,
+        "stderr": 0.014617025222757036,
+        "required_difference": 0.02923405044551407,
+        "sigma": 16.36768835876013,
+        "halves": {
+          "early": {
+            "n_pairs": 1685,
+            "mean_difference": 0.17066906208404548,
+            "stderr": 0.020085418796539353,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1685,
+            "mean_difference": 0.3078247650724016,
+            "stderr": 0.021115728484155848,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:temperature+3h:early",
+          "full": "build_promotion_evidence.py:temperature+3h:full",
+          "late": "build_promotion_evidence.py:temperature+3h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "temperature|h6": {
+      "channel": "temperature",
+      "horizon": 6,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.3542719565972572 exceeds 2 sigma (0.03627593219135462) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "degC",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.309977954140886,
+        "challenger": 0.9557059975436286,
+        "absolute_improvement": 0.3542719565972574,
+        "relative_improvement": 0.27044115931675905,
+        "n_pairs": 3331,
+        "mean_difference": 0.3542719565972572,
+        "stderr": 0.01813796609567731,
+        "required_difference": 0.03627593219135462,
+        "sigma": 19.53206631484928,
+        "halves": {
+          "early": {
+            "n_pairs": 1665,
+            "mean_difference": 0.39396665969912875,
+            "stderr": 0.025082199767307523,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1666,
+            "mean_difference": 0.3146010798477877,
+            "stderr": 0.026178155400033324,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:temperature+6h:early",
+          "full": "build_promotion_evidence.py:temperature+6h:full",
+          "late": "build_promotion_evidence.py:temperature+6h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "temperature|h12": {
+      "channel": "temperature",
+      "horizon": 12,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.31277106930846227 exceeds 2 sigma (0.04724171234917486) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "degC",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.4893402726379907,
+        "challenger": 1.1765692033295285,
+        "absolute_improvement": 0.3127710693084622,
+        "relative_improvement": 0.21000645390087191,
+        "n_pairs": 3282,
+        "mean_difference": 0.31277106930846227,
+        "stderr": 0.02362085617458743,
+        "required_difference": 0.04724171234917486,
+        "sigma": 13.241309586608379,
+        "halves": {
+          "early": {
+            "n_pairs": 1641,
+            "mean_difference": 0.40788459697181983,
+            "stderr": 0.033577894755825566,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1641,
+            "mean_difference": 0.2176575416451045,
+            "stderr": 0.0330749508166575,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:temperature+12h:early",
+          "full": "build_promotion_evidence.py:temperature+12h:full",
+          "late": "build_promotion_evidence.py:temperature+12h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "temperature|h24": {
+      "channel": "temperature",
+      "horizon": 24,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.09262020352755436 exceeds 2 sigma (0.01837819825764203) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "degC",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.218062838640823,
+        "challenger": 1.1254426351132687,
+        "absolute_improvement": 0.09262020352755429,
+        "relative_improvement": 0.07603893706412114,
+        "n_pairs": 3195,
+        "mean_difference": 0.09262020352755436,
+        "stderr": 0.009189099128821016,
+        "required_difference": 0.01837819825764203,
+        "sigma": 10.079356227321249,
+        "halves": {
+          "early": {
+            "n_pairs": 1597,
+            "mean_difference": 0.12604030286712398,
+            "stderr": 0.015224271992051541,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1598,
+            "mean_difference": 0.05922101789220224,
+            "stderr": 0.01023555953018876,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:temperature+24h:early",
+          "full": "build_promotion_evidence.py:temperature+24h:full",
+          "late": "build_promotion_evidence.py:temperature+24h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "humidity|h1": {
+      "channel": "humidity",
+      "horizon": 1,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.09794252265983773 exceeds 2 sigma (0.027898635054609728) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "%",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.2766947073539736,
+        "challenger": 1.1787521846941358,
+        "absolute_improvement": 0.09794252265983783,
+        "relative_improvement": 0.0767156956911254,
+        "n_pairs": 3396,
+        "mean_difference": 0.09794252265983773,
+        "stderr": 0.013949317527304864,
+        "required_difference": 0.027898635054609728,
+        "sigma": 7.021312868398166,
+        "halves": {
+          "early": {
+            "n_pairs": 1698,
+            "mean_difference": 0.11243672429285553,
+            "stderr": 0.017550582057927852,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1698,
+            "mean_difference": 0.08344832102681994,
+            "stderr": 0.021686231615189466,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:humidity+1h:early",
+          "full": "build_promotion_evidence.py:humidity+1h:full",
+          "late": "build_promotion_evidence.py:humidity+1h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "humidity|h3": {
+      "channel": "humidity",
+      "horizon": 3,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.36220949414944603 exceeds 2 sigma (0.08096190653072627) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "%",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 2.6334617639909865,
+        "challenger": 2.2712522698415403,
+        "absolute_improvement": 0.36220949414944625,
+        "relative_improvement": 0.13754120113007495,
+        "n_pairs": 3370,
+        "mean_difference": 0.36220949414944603,
+        "stderr": 0.040480953265363134,
+        "required_difference": 0.08096190653072627,
+        "sigma": 8.947652289091835,
+        "halves": {
+          "early": {
+            "n_pairs": 1685,
+            "mean_difference": 0.37397441668847464,
+            "stderr": 0.05174326076527295,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1685,
+            "mean_difference": 0.3504445716104174,
+            "stderr": 0.06228360214797712,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:humidity+3h:early",
+          "full": "build_promotion_evidence.py:humidity+3h:full",
+          "late": "build_promotion_evidence.py:humidity+3h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "humidity|h6": {
+      "channel": "humidity",
+      "horizon": 6,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 1.1026818176075974 exceeds 2 sigma (0.12189225912132776) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "%",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 3.9067611528009216,
+        "challenger": 2.8040793351933244,
+        "absolute_improvement": 1.1026818176075972,
+        "relative_improvement": 0.2822496115015985,
+        "n_pairs": 3331,
+        "mean_difference": 1.1026818176075974,
+        "stderr": 0.06094612956066388,
+        "required_difference": 0.12189225912132776,
+        "sigma": 18.09272919472306,
+        "halves": {
+          "early": {
+            "n_pairs": 1665,
+            "mean_difference": 0.9865339615620003,
+            "stderr": 0.09015809873301013,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1666,
+            "mean_difference": 1.218759957052927,
+            "stderr": 0.08196553569466648,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:humidity+6h:early",
+          "full": "build_promotion_evidence.py:humidity+6h:full",
+          "late": "build_promotion_evidence.py:humidity+6h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "humidity|h12": {
+      "channel": "humidity",
+      "horizon": 12,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 1.6358484057839775 exceeds 2 sigma (0.15480454346064174) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "%",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 4.866518867571506,
+        "challenger": 3.230670461787529,
+        "absolute_improvement": 1.6358484057839773,
+        "relative_improvement": 0.3361434426330087,
+        "n_pairs": 3282,
+        "mean_difference": 1.6358484057839775,
+        "stderr": 0.07740227173032087,
+        "required_difference": 0.15480454346064174,
+        "sigma": 21.13437201796191,
+        "halves": {
+          "early": {
+            "n_pairs": 1641,
+            "mean_difference": 1.3626308789400357,
+            "stderr": 0.11637440018173298,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1641,
+            "mean_difference": 1.9090659326279196,
+            "stderr": 0.10167456893934874,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:humidity+12h:early",
+          "full": "build_promotion_evidence.py:humidity+12h:full",
+          "late": "build_promotion_evidence.py:humidity+12h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "humidity|h24": {
+      "channel": "humidity",
+      "horizon": 24,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.11034644184226507 exceeds 2 sigma (0.04027192063816094) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "%",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 3.290806200554778,
+        "challenger": 3.180459758712513,
+        "absolute_improvement": 0.11034644184226483,
+        "relative_improvement": 0.0335317351181793,
+        "n_pairs": 3195,
+        "mean_difference": 0.11034644184226507,
+        "stderr": 0.02013596031908047,
+        "required_difference": 0.04027192063816094,
+        "sigma": 5.4800684990277215,
+        "halves": {
+          "early": {
+            "n_pairs": 1597,
+            "mean_difference": 0.07019002601582235,
+            "stderr": 0.030371878328969957,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1598,
+            "mean_difference": 0.15047772849735205,
+            "stderr": 0.026419804818668256,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:humidity+24h:early",
+          "full": "build_promotion_evidence.py:humidity+24h:full",
+          "late": "build_promotion_evidence.py:humidity+24h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "pressure|h1": {
+      "channel": "pressure",
+      "horizon": 1,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.0414026610506836 exceeds 2 sigma (0.0052046672413656354) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "hPa",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 0.4206651255275049,
+        "challenger": 0.3792624644768213,
+        "absolute_improvement": 0.041402661050683576,
+        "relative_improvement": 0.09842190031504404,
+        "n_pairs": 3396,
+        "mean_difference": 0.0414026610506836,
+        "stderr": 0.0026023336206828177,
+        "required_difference": 0.0052046672413656354,
+        "sigma": 15.909820601641417,
+        "halves": {
+          "early": {
+            "n_pairs": 1698,
+            "mean_difference": 0.03396118866789855,
+            "stderr": 0.003565830721811851,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1698,
+            "mean_difference": 0.048844133433468634,
+            "stderr": 0.0037836663218731694,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:pressure+1h:early",
+          "full": "build_promotion_evidence.py:pressure+1h:full",
+          "late": "build_promotion_evidence.py:pressure+1h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "pressure|h3": {
+      "channel": "pressure",
+      "horizon": 3,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.23925707799290782 exceeds 2 sigma (0.018580230961833272) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "hPa",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.0008534345946236,
+        "challenger": 0.7615963566017158,
+        "absolute_improvement": 0.23925707799290785,
+        "relative_improvement": 0.2390530618399829,
+        "n_pairs": 3370,
+        "mean_difference": 0.23925707799290782,
+        "stderr": 0.009290115480916636,
+        "required_difference": 0.018580230961833272,
+        "sigma": 25.753940140397567,
+        "halves": {
+          "early": {
+            "n_pairs": 1685,
+            "mean_difference": 0.21041764112149938,
+            "stderr": 0.012588395982759121,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1685,
+            "mean_difference": 0.26809651486431624,
+            "stderr": 0.01363348773623172,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:pressure+3h:early",
+          "full": "build_promotion_evidence.py:pressure+3h:full",
+          "late": "build_promotion_evidence.py:pressure+3h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "pressure|h6": {
+      "channel": "pressure",
+      "horizon": 6,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.34303046170090606 exceeds 2 sigma (0.024815700948182473) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "hPa",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.3904861692261052,
+        "challenger": 1.0474557075251993,
+        "absolute_improvement": 0.3430304617009059,
+        "relative_improvement": 0.24669821915008644,
+        "n_pairs": 3331,
+        "mean_difference": 0.34303046170090606,
+        "stderr": 0.012407850474091237,
+        "required_difference": 0.024815700948182473,
+        "sigma": 27.646243998280447,
+        "halves": {
+          "early": {
+            "n_pairs": 1665,
+            "mean_difference": 0.31559724937284644,
+            "stderr": 0.01694416647320707,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1666,
+            "mean_difference": 0.37044720751496324,
+            "stderr": 0.01810996666039387,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:pressure+6h:early",
+          "full": "build_promotion_evidence.py:pressure+6h:full",
+          "late": "build_promotion_evidence.py:pressure+6h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "pressure|h12": {
+      "channel": "pressure",
+      "horizon": 12,
+      "verdict": "REJECT",
+      "reason": "HALF_REGRESSION",
+      "detail": "the challenger is not ahead in the early half of the validation period; a win concentrated in one half is not a win",
+      "evidence": {
+        "metric": "mae",
+        "early_mean_difference": -0.030457580925208488,
+        "failing_half": "early"
+      }
+    },
+    "pressure|h24": {
+      "channel": "pressure",
+      "horizon": 24,
+      "verdict": "REJECT",
+      "reason": "WORSE_THAN_INCUMBENT",
+      "detail": "the challenger is worse over the whole validation period: mean paired difference -0.026108342079326937 (challenger better is positive)",
+      "evidence": {
+        "metric": "mae",
+        "n_pairs": 3195,
+        "mean_difference": -0.026108342079326937,
+        "stderr": 0.0024257063971118557
+      }
+    },
+    "wind_speed|h1": {
+      "channel": "wind_speed",
+      "horizon": 1,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.8076649838247788 exceeds 2 sigma (0.05488147908475341) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "m/s",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.4307161821260288,
+        "challenger": 0.62305119830125,
+        "absolute_improvement": 0.8076649838247788,
+        "relative_improvement": 0.5645179623428858,
+        "n_pairs": 3396,
+        "mean_difference": 0.8076649838247788,
+        "stderr": 0.027440739542376705,
+        "required_difference": 0.05488147908475341,
+        "sigma": 29.433061837765074,
+        "halves": {
+          "early": {
+            "n_pairs": 1698,
+            "mean_difference": 0.7122842106639109,
+            "stderr": 0.03585780512789365,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1698,
+            "mean_difference": 0.9030457569856468,
+            "stderr": 0.04142897714133428,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:wind_speed+1h:early",
+          "full": "build_promotion_evidence.py:wind_speed+1h:full",
+          "late": "build_promotion_evidence.py:wind_speed+1h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "wind_speed|h3": {
+      "channel": "wind_speed",
+      "horizon": 3,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.6146560584067833 exceeds 2 sigma (0.048418076040973555) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "m/s",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.470290543193333,
+        "challenger": 0.8556344847865498,
+        "absolute_improvement": 0.6146560584067833,
+        "relative_improvement": 0.4180507459918827,
+        "n_pairs": 3370,
+        "mean_difference": 0.6146560584067833,
+        "stderr": 0.024209038020486778,
+        "required_difference": 0.048418076040973555,
+        "sigma": 25.389528402022155,
+        "halves": {
+          "early": {
+            "n_pairs": 1685,
+            "mean_difference": 0.5447507902777795,
+            "stderr": 0.03237136555268291,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1685,
+            "mean_difference": 0.684561326535787,
+            "stderr": 0.035934622537014585,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:wind_speed+3h:early",
+          "full": "build_promotion_evidence.py:wind_speed+3h:full",
+          "late": "build_promotion_evidence.py:wind_speed+3h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "wind_speed|h6": {
+      "channel": "wind_speed",
+      "horizon": 6,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.6243967411230495 exceeds 2 sigma (0.05711831812155965) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "m/s",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.672830760745933,
+        "challenger": 1.0484340196228836,
+        "absolute_improvement": 0.6243967411230493,
+        "relative_improvement": 0.3732575678155417,
+        "n_pairs": 3331,
+        "mean_difference": 0.6243967411230495,
+        "stderr": 0.028559159060779826,
+        "required_difference": 0.05711831812155965,
+        "sigma": 21.863274748188612,
+        "halves": {
+          "early": {
+            "n_pairs": 1665,
+            "mean_difference": 0.5358504787847046,
+            "stderr": 0.038435326157655506,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1666,
+            "mean_difference": 0.7128898544443847,
+            "stderr": 0.04214988488237153,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:wind_speed+6h:early",
+          "full": "build_promotion_evidence.py:wind_speed+6h:full",
+          "late": "build_promotion_evidence.py:wind_speed+6h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "wind_speed|h12": {
+      "channel": "wind_speed",
+      "horizon": 12,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.6776176848206072 exceeds 2 sigma (0.05362054837469034) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "m/s",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.6949295569009626,
+        "challenger": 1.0173118720803556,
+        "absolute_improvement": 0.677617684820607,
+        "relative_improvement": 0.39979106037868295,
+        "n_pairs": 3282,
+        "mean_difference": 0.6776176848206072,
+        "stderr": 0.02681027418734517,
+        "required_difference": 0.05362054837469034,
+        "sigma": 25.274552587024733,
+        "halves": {
+          "early": {
+            "n_pairs": 1641,
+            "mean_difference": 0.6189740768294972,
+            "stderr": 0.03736273084414849,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1641,
+            "mean_difference": 0.7362612928117174,
+            "stderr": 0.03841708129010387,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:wind_speed+12h:early",
+          "full": "build_promotion_evidence.py:wind_speed+12h:full",
+          "late": "build_promotion_evidence.py:wind_speed+12h:late"
+        },
+        "incumbent_source": "learned_model",
+        "incumbent_source_detail": "learned_model",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    },
+    "wind_speed|h24": {
+      "channel": "wind_speed",
+      "horizon": 24,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.45964353309047795 exceeds 2 sigma (0.060710903474009266) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "mae",
+        "unit": "m/s",
+        "better": "lower_is_better",
+        "row_error": "absolute",
+        "decision_split": "validation",
+        "incumbent": 1.5878480793741414,
+        "challenger": 1.1282045462836636,
+        "absolute_improvement": 0.4596435330904778,
+        "relative_improvement": 0.2894757622351684,
+        "n_pairs": 3195,
+        "mean_difference": 0.45964353309047795,
+        "stderr": 0.030355451737004633,
+        "required_difference": 0.060710903474009266,
+        "sigma": 15.142042262219153,
+        "halves": {
+          "early": {
+            "n_pairs": 1597,
+            "mean_difference": 0.514948828339002,
+            "stderr": 0.03826637699706745,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1598,
+            "mean_difference": 0.404372846912823,
+            "stderr": 0.04709937034773216,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:wind_speed+24h:early",
+          "full": "build_promotion_evidence.py:wind_speed+24h:full",
+          "late": "build_promotion_evidence.py:wind_speed+24h:late"
+        },
+        "incumbent_source": "persistence_fallback",
+        "incumbent_source_detail": "persistence_fallback",
+        "promotion_class": "BEATS_PERSISTENCE"
+      }
+    },
+    "rain_occurrence|h1": {
+      "channel": "rain_occurrence",
+      "horizon": 1,
+      "verdict": "REJECT",
+      "reason": "WORSE_THAN_INCUMBENT",
+      "detail": "the challenger is worse over the whole validation period: mean paired difference -0.08715644306943456 (challenger better is positive)",
+      "evidence": {
+        "metric": "brier_score",
+        "n_pairs": 3396,
+        "mean_difference": -0.08715644306943456,
+        "stderr": 0.005454864717169821
+      }
+    },
+    "rain_occurrence|h3": {
+      "channel": "rain_occurrence",
+      "horizon": 3,
+      "verdict": "REJECT",
+      "reason": "WORSE_THAN_INCUMBENT",
+      "detail": "the challenger is worse over the whole validation period: mean paired difference -0.13813253125002245 (challenger better is positive)",
+      "evidence": {
+        "metric": "brier_score",
+        "n_pairs": 3370,
+        "mean_difference": -0.13813253125002245,
+        "stderr": 0.004506528179278508
+      }
+    },
+    "rain_occurrence|h6": {
+      "channel": "rain_occurrence",
+      "horizon": 6,
+      "verdict": "REJECT",
+      "reason": "WORSE_THAN_INCUMBENT",
+      "detail": "the challenger is worse over the whole validation period: mean paired difference -0.16079643387364043 (challenger better is positive)",
+      "evidence": {
+        "metric": "brier_score",
+        "n_pairs": 3331,
+        "mean_difference": -0.16079643387364043,
+        "stderr": 0.004392447792168432
+      }
+    },
+    "rain_occurrence|h12": {
+      "channel": "rain_occurrence",
+      "horizon": 12,
+      "verdict": "REJECT",
+      "reason": "WORSE_THAN_INCUMBENT",
+      "detail": "the challenger is worse over the whole validation period: mean paired difference -0.20451455221624815 (challenger better is positive)",
+      "evidence": {
+        "metric": "brier_score",
+        "n_pairs": 3282,
+        "mean_difference": -0.20451455221624815,
+        "stderr": 0.004344492232106277
+      }
+    },
+    "rain_occurrence|h24": {
+      "channel": "rain_occurrence",
+      "horizon": 24,
+      "verdict": "REJECT",
+      "reason": "WORSE_THAN_INCUMBENT",
+      "detail": "the challenger is worse over the whole validation period: mean paired difference -0.2365733412197207 (challenger better is positive)",
+      "evidence": {
+        "metric": "brier_score",
+        "n_pairs": 3195,
+        "mean_difference": -0.2365733412197207,
+        "stderr": 0.004478723455757588
+      }
+    }
+  }
+}

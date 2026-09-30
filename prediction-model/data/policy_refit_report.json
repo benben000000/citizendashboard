@@ -39,8 +39,8 @@
         "selected_on": "validation"
       },
       "wind_speed": {
-        "a": 0.686043,
-        "b": 0.553712,
+        "a": 0.685525,
+        "b": 0.558021,
         "lambda": 0.75,
         "fitted_on": "train",
         "selected_on": "validation"
@@ -65,8 +65,8 @@
         "selected_on": "validation"
       },
       "wind_speed": {
-        "a": 0.761377,
-        "b": 0.400885,
+        "a": 0.761467,
+        "b": 0.403127,
         "lambda": 0.5,
         "fitted_on": "train",
         "selected_on": "validation"
@@ -84,8 +84,8 @@
     },
     "calibration": {
       "wind_speed": {
-        "a": 0.674093,
-        "b": 0.498611,
+        "a": 0.673906,
+        "b": 0.499739,
         "lambda": 0.75,
         "fitted_on": "train",
         "selected_on": "validation"
