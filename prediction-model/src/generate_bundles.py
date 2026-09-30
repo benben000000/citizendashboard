@@ -19,6 +19,7 @@ import json
 import shutil
 import hashlib
 import argparse
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -104,7 +105,12 @@ def generate_bundles(
             "model_weights_commit": model_weights_commit,
             "checkpoint_sha256": ckpt_sha256,
             "feature_schema": list(EXPECTED_FEATURES),
-            "generated_at": base_policy.get("generated_at", "2026-09-23T06:49:26.290505+00:00"),
+            # Never silently inherit a missing timestamp. If the base policy lacks one
+        # the bundle is stamped now, which is honest: the bundle was generated now.
+        # The old fallback returned a hard-coded date, which made an unstamped
+        # policy look like it had been generated on 2026-09-23.
+        "generated_at": base_policy.get("generated_at")
+        or datetime.now(timezone.utc).isoformat(),
             "dataset_hashes": base_policy.get("dataset_hashes", {
                 "weather_telemetry_sha256": weather_hash,
                 "water_level_telemetry_sha256": water_hash,
