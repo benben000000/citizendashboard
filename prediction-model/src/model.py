@@ -190,6 +190,36 @@ class TwoStagePrecipitationHead(nn.Module):
         return rain_prob, expected_amount
 
 
+# Wind speed is physically non-negative, so the output needs a floor. It must NOT
+# be F.relu: relu has exactly zero gradient on its negative side, which turns the
+# floor into a one-way trap. The wind head starts zero-initialised (a persistence
+# prior) and learns a negative residual because wind decays; relu then clamps
+# those windows to a hard 0.0 and smooth_l1 contributes nothing for them. They can
+# never be pushed back up. Measured on the +6h candidate, d_ws averaged -5.75 m/s
+# and 70% of test windows sat on the dead side of the relu.
+#
+# A leaky floor keeps the constraint (output is still >= ~0 in practice) while
+# passing a small gradient, so a window that overshoots negative can recover.
+# softplus would also preserve gradient but cannot represent an exact 0, which
+# would silently shift the persistence prior off the calm-wind case.
+_WIND_FLOOR_SLOPE = 0.01
+
+
+def _nonnegative(x: torch.Tensor, max_value: float = None) -> torch.Tensor:
+    """Floor at zero while keeping the gradient alive on the negative side.
+
+    The lower bound is a leaky floor, NOT a clamp. `torch.clamp(x, min=0)` has
+    exactly zero gradient for x < 0, so clamping after a leaky floor still
+    collapses -- the leak is wasted work. The upper bound does use clamp: it is a
+    physical ceiling (250 km/h) that real readings never approach, so saturating
+    there costs nothing.
+    """
+    x = F.leaky_relu(x, negative_slope=_WIND_FLOOR_SLOPE)
+    if max_value is not None:
+        x = torch.clamp(x, max=max_value)
+    return x
+
+
 class GarciaWeatherLNN(WeatherWaterLNN):
     """
     Garcia Weather Telemetry Forecast Engine (Continuous-Time CfC/LNN).
@@ -309,12 +339,12 @@ class GarciaWeatherLNN(WeatherWaterLNN):
             pred_temp = origin_weather[:, 0:1] + d_temp
             pred_rh = torch.clamp(origin_weather[:, 1:2] + d_rh, 10.0, 100.0)
             pred_p = origin_weather[:, 2:3] + d_p
-            pred_ws = F.relu(origin_weather[:, 3:4] + d_ws)
+            pred_ws = _nonnegative(origin_weather[:, 3:4] + d_ws)
         else:
             pred_temp = d_temp
             pred_rh = d_rh
             pred_p = d_p
-            pred_ws = F.relu(d_ws)
+            pred_ws = _nonnegative(d_ws)
 
         return {
             "rain_prob": rain_prob_seq[:, -1, :],
@@ -550,7 +580,9 @@ class GarciaWeatherLNNFeatured(nn.Module):
             pred_temp = torch.clamp(t_orig + d_temp, min=-10.0, max=60.0)
             pred_rh = torch.clamp(rh_orig + d_rh, min=0.0, max=100.0)
             pred_p = torch.clamp(p_orig + d_p, min=850.0, max=1090.0)
-            pred_ws = torch.clamp(F.relu(ws_orig + d_ws), min=0.0, max=250.0)
+            # The floor must live INSIDE the bound. A surrounding clamp(min=0)
+            # would restore the dead gradient this fix exists to remove.
+            pred_ws = _nonnegative(ws_orig + d_ws, max_value=250.0)
             # Origin wind vector residual
             orig_uv = torch.cat([u_orig, v_orig], dim=-1)
             combined_uv = orig_uv + uv_raw
@@ -559,7 +591,7 @@ class GarciaWeatherLNNFeatured(nn.Module):
             pred_temp = d_temp
             pred_rh = d_rh
             pred_p = d_p
-            pred_ws = F.relu(d_ws)
+            pred_ws = _nonnegative(d_ws)
             uv_norm = F.normalize(uv_raw, p=2, dim=-1, eps=1e-6)
 
         return {
