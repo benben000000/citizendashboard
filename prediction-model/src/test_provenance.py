@@ -181,7 +181,13 @@ class TestProvenanceGate(unittest.TestCase):
         machine-specific paths (e.g. drive letters 'C:\\', '/home/', '/Users/').
         """
         import re
-        machine_path_regex = re.compile(r"([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
+        # A Windows drive letter must NOT be preceded by a character that would
+        # make it the tail of a URL scheme: without the lookbehind, "https://"
+        # matches "s:/" and every approved source fails. The external source
+        # registry REQUIRES source_url and license_url, so a registry passing
+        # this check could never contain an approved source at all.
+        machine_path_regex = re.compile(
+            r"(?<![A-Za-z0-9+.-])([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
         data_files = [f for f in os.listdir(DATA_DIR) if f.endswith(".json") or f.endswith(".csv")]
         self.assertGreater(len(data_files), 0, "No data files found in data directory")
 

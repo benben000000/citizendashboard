@@ -1,0 +1,275 @@
+"""
+Score matured predictions against what actually happened.
+
+WHY THIS IS A SEPARATE FILE
+---------------------------
+The prediction trail is append-only and must stay that way: a published number
+is a historical fact and rewriting it would destroy the evidence. So scoring
+does not update predictions, it appends *verification* records that name the
+`record_id` they scored. The pair -- what we said, and how wrong it turned out
+to be -- is then reconstructable forever, with the original untouched.
+
+MATCHING RULE
+-------------
+A forecast for origin O at horizon H is verified against the observation at
+O + H. That is the exact quantity the model was asked to predict. The nearest
+observation is used within a tolerance, because device timestamps are not
+exactly on the hour, but a forecast is never scored against something further
+away than the tolerance.
+
+WHAT IS REPORTED
+----------------
+  signed and absolute error per variable
+  the producer that produced the forecast, so the accuracy of `nwp` / `blend`
+    can be compared against `lln` on the same stations and days
+  a pending count for forecasts whose target time has not arrived yet
+
+Run it on a schedule; it is idempotent, because a verification record already
+present for a record_id is not rewritten.
+"""
+
+import json
+import os
+import sys
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.abspath(os.path.join(HERE, "..", "src"))
+if SRC not in sys.path:
+    sys.path.insert(0, SRC)
+
+from prediction_audit import (  # noqa: E402
+    PredictionAudit,
+    read_observations,
+    read_records,
+    variable_entry,
+)
+
+DATA_DIR = os.path.abspath(os.path.join(HERE, "..", "data"))
+VERIFICATION_PATH = os.path.join(DATA_DIR, "prediction_verification.jsonl")
+
+# How far from the target time an observation may be and still count.
+DEFAULT_TOLERANCE_MINUTES = 30.0
+
+# The audit key for each variable -> the observation telemetry key that carries
+# the matching truth. The units are identical (both degC, %RH, hPa, m/s), which
+# is the only reason a straight comparison is valid.
+VAR_TO_TELEMETRY = {
+    "temperature": "temperature_c",
+    "humidity": "humidity_pct",
+    "pressure": "pressure_hpa",
+    "wind_speed": "wind_speed_kmh",
+}
+
+
+def _parse(ts: Any) -> Optional[datetime]:
+    if not ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _nearest_observation(obs: List[Dict[str, Any]], target: datetime,
+                         tolerance_min: float) -> Optional[Dict[str, Any]]:
+    """Closest observation to the target time within tolerance."""
+    best, best_dt = None, None
+    tol = timedelta(minutes=tolerance_min)
+    for o in obs:
+        t = _parse(o.get("observed_at_utc"))
+        if t is None:
+            continue
+        delta = abs((t - target).total_seconds())
+        if delta > tol.total_seconds():
+            continue
+        if best_dt is None or delta < best_dt:
+            best, best_dt = o, delta
+    return best
+
+
+def _num(x: Any) -> Optional[float]:
+    if x is None or isinstance(x, bool):
+        return None
+    try:
+        f = float(x)
+    except (TypeError, ValueError):
+        return None
+    return f if f == f and abs(f) != float("inf") else None
+
+
+def verify(
+    prediction_path: Optional[str] = None,
+    observation_path: Optional[str] = None,
+    verification_path: Optional[str] = None,
+    tolerance_minutes: float = DEFAULT_TOLERANCE_MINUTES,
+    now: Optional[datetime] = None,
+    limit: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Score every matured, not-yet-verified prediction and append the results.
+
+    Returns a summary; never raises, because this is a reporting job and a
+    failure to score must not be mistaken for a failure to predict.
+    """
+    ref = now or datetime.now(timezone.utc)
+    predictions = read_records(prediction_path)
+    observations = read_observations(observation_path)
+    already = {r.get("prediction_record_id")
+               for r in read_records(verification_path)}
+
+    by_station: Dict[str, List[Dict[str, Any]]] = {}
+    for o in observations:
+        sid = o.get("station_id")
+        if sid is not None:
+            by_station.setdefault(sid, []).append(o)
+    for lst in by_station.values():
+        lst.sort(key=lambda r: str(r.get("observed_at_utc") or ""))
+
+    writer = PredictionAudit(path=verification_path or VERIFICATION_PATH,
+                              data_dir=DATA_DIR)
+    scored, pending, unmatched, skipped = 0, 0, 0, 0
+    per_var_abs: Dict[str, List[float]] = {}
+    # Counts per producer, NOT a pooled mean. A mean absolute error across degC,
+    # %RH, hPa and m/s is not a quantity -- the units do not share a scale, and
+    # an hPa error dominates a degC error numerically while meaning nothing more.
+    # The comparable number is mae_by_variable_and_producer.
+    producer_counts: Dict[str, int] = {}
+    per_var_producer: Dict[str, Dict[str, List[float]]] = {}
+
+    for p in predictions:
+        rid = p.get("record_id")
+        if rid and rid in already:
+            skipped += 1
+            continue
+        if limit is not None and scored >= limit:
+            break
+        origin = _parse(p.get("origin_timestamp_utc"))
+        horizon = _num(p.get("horizon_hours"))
+        if origin is None or horizon is None:
+            unmatched += 1
+            continue
+        target = origin + timedelta(hours=horizon)
+        if target > ref:
+            pending += 1
+            continue
+        obs = _nearest_observation(by_station.get(p.get("station_id"), []),
+                                   target, tolerance_minutes)
+        if obs is None:
+            unmatched += 1
+            continue
+
+        truth = obs.get("telemetry") or {}
+        variables: Dict[str, Any] = {}
+        for var, entry in (p.get("variables") or {}).items():
+            if var not in VAR_TO_TELEMETRY:
+                continue
+            predicted = _num((entry or {}).get("value"))
+            actual = _num(truth.get(VAR_TO_TELEMETRY[var]))
+            if predicted is None or actual is None:
+                continue
+            err = predicted - actual
+            producer = (entry or {}).get("producer") or "unknown"
+            variables[var] = {
+                "predicted": predicted,
+                "actual": actual,
+                "error": err,
+                "abs_error": abs(err),
+                "producer": producer,
+            }
+            per_var_abs.setdefault(var, []).append(abs(err))
+            producer_counts[producer] = producer_counts.get(producer, 0) + 1
+            per_var_producer.setdefault(var, {}).setdefault(producer, []).append(abs(err))
+
+        if not variables:
+            unmatched += 1
+            continue
+
+        writer.write({
+            "schema_version": 1,
+            "record_id": f"ver-{rid}",
+            "prediction_record_id": rid,
+            "verified_at_utc": ref.isoformat().replace("+00:00", "Z"),
+            "station_id": p.get("station_id"),
+            "device_id": p.get("device_id"),
+            "horizon_hours": horizon,
+            "origin_timestamp_utc": p.get("origin_timestamp_utc"),
+            "target_timestamp_utc": target.isoformat().replace("+00:00", "Z"),
+            "observation_record_id": obs.get("record_id"),
+            "observation_offset_minutes": round(
+                ((_parse(obs.get("observed_at_utc")) or target) - target)
+                .total_seconds() / 60.0, 2),
+            "policy_version": (p.get("provenance", {}).get("policy", {})
+                               .get("policy_version")),
+            "model_bundle": (p.get("provenance", {}).get("model", {})
+                             .get("bundle")),
+            "variables": variables,
+        })
+        scored += 1
+
+    def mean(xs: List[float]) -> Optional[float]:
+        return round(sum(xs) / len(xs), 4) if xs else None
+
+    return {
+        "predictions_seen": len(predictions),
+        "observations_seen": len(observations),
+        "scored": scored,
+        "pending": pending,
+        "unmatched": unmatched,
+        "already_verified": skipped,
+        "tolerance_minutes": tolerance_minutes,
+        "mae_by_variable": {k: mean(v) for k, v in sorted(per_var_abs.items())},
+        "n_by_variable_and_producer": {
+            v: {p: len(x) for p, x in sorted(d.items())}
+            for v, d in sorted(per_var_producer.items())
+        },
+        "mae_by_variable_and_producer": {
+            v: {p: mean(x) for p, x in sorted(d.items())}
+            for v, d in sorted(per_var_producer.items())
+        },
+        "writer": writer.status(),
+    }
+
+
+def main() -> int:
+    summary = verify()
+    print("=" * 92)
+    print("PREDICTION VERIFICATION")
+    print("=" * 92)
+    print(f"  predictions seen   : {summary['predictions_seen']}")
+    print(f"  observations seen  : {summary['observations_seen']}")
+    print(f"  scored now         : {summary['scored']}")
+    print(f"  pending (unmatured): {summary['pending']}")
+    print(f"  unmatched          : {summary['unmatched']}")
+    print(f"  already verified   : {summary['already_verified']}")
+    if summary["mae_by_variable"]:
+        print("\n  mean absolute error by variable:")
+        for k, v in summary["mae_by_variable"].items():
+            print(f"    {k:<12} {v}")
+    if summary["mae_by_variable_and_producer"]:
+        print("\n  mean absolute error by variable and producer:")
+        for var, per in summary["mae_by_variable_and_producer"].items():
+            n = summary["n_by_variable_and_producer"].get(var, {})
+            detail = "  ".join(f"{p}={m} (n={n.get(p, 0)})" for p, m in per.items())
+            print(f"    {var:<12} {detail}")
+    out = os.path.join(DATA_DIR, "prediction_verification_summary.json")
+    # A committed data artifact must not carry an absolute machine path. The
+    # provenance gate fails the build on anything matching a drive letter, and
+    # it is right to: a summary that names C:\... is meaningless on another
+    # machine and leaks the build layout.
+    serialisable = dict(summary)
+    w = dict(summary.get("writer") or {})
+    if w.get("path"):
+        w["path"] = os.path.relpath(w["path"], os.path.abspath(os.path.join(HERE, "..", "..")))
+        w["path"] = w["path"].replace("\\", "/")
+    serialisable["writer"] = w
+    with open(out, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(serialisable, f, indent=2)
+    print(f"\n  written: {out}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

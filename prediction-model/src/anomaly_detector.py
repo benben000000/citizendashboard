@@ -17,15 +17,27 @@ import math
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
 
-# Physical bounds for Philippine tropical surface meteorology
-PHYSICAL_BOUNDS = {
+# Physical bounds for Philippine tropical surface meteorology.
+#
+# SCOPE NOTE: these are bounds for HOURLY values, because audit_sequence() is
+# fed the canonical 8-feature hourly grid (precipitation = sum of the hour's
+# minute increments). They are intentionally NOT the same numbers as
+# dataset.PHYSICAL_BOUNDS, which bounds RAW PER-MINUTE tipping-bucket records.
+# Conflating the two previously produced a latent unit mismatch: a day of
+# 50 mm/h rainfall is legal hourly but was being checked against a per-minute
+# ceiling, and vice versa.
+HOURLY_PHYSICAL_BOUNDS = {
     "temperature": (10.0, 50.0),       # Celsius
     "humidity": (10.0, 100.0),         # Relative humidity %
     "pressure": (900.0, 1050.0),       # hPa
     "wind_speed": (0.0, 180.0),        # km/h
-    "precipitation": (0.0, 150.0),     # mm/h
+    "precipitation": (0.0, 150.0),     # mm accumulated per HOUR
     "heat_index": (10.0, 75.0),        # Celsius
+    "water_level": (0.0, 15.0),        # meters
 }
+
+# Backwards-compatible alias.
+PHYSICAL_BOUNDS = HOURLY_PHYSICAL_BOUNDS
 
 # Maximum physically plausible 1-hour rates of change
 MAX_1H_DELTA = {
@@ -145,7 +157,14 @@ class TelemetryAnomalyDetector:
                     continue
                 if val < low_b or val > high_b:
                     ts = timestamps[idx] if timestamps and idx < len(timestamps) else None
-                    sev = min(1.0, abs(val - (low_b if val < low_b else high_b)) / max(1.0, high_b - low_b) + 0.5)
+                    # A physical bound violation means the reading is IMPOSSIBLE,
+                    # not merely unusual, so it always clears the QUARANTINE
+                    # threshold (0.8) in audit_sequence(). The previous
+                    # `dist/range + 0.5` formula mapped every violation into
+                    # [0.5, 1.0], so a 60 degC reading against a 50 degC ceiling
+                    # scored 0.75 and was downgraded to a non-blocking WARNING.
+                    magnitude = abs(val - (low_b if val < low_b else high_b)) / max(1.0, high_b - low_b)
+                    sev = min(1.0, max(0.85, magnitude + 0.5))
                     anomalies.append(
                         AnomalyRecord(
                             anomaly_type="sensor",
@@ -157,12 +176,20 @@ class TelemetryAnomalyDetector:
                             station_id=station_id,
                             raw_value=val,
                             threshold_version=self.version,
-                            metadata={"check": "sensor_bounds", "bounds": [low_b, high_b]},
+                            metadata={
+                                "check": "sensor_bounds",
+                                "bounds": [low_b, high_b],
+                                "impossible_reading": True,
+                            },
                         )
                     )
 
         # 2. Stuck Sensor Detection (identical values or near-zero variance over consecutive steps)
-        # Note: precipitation naturally stays 0.0 for days, so stuck sensor check applies to continuous variables
+        # Note: precipitation naturally stays 0.0 for days, and a wind sensor can
+        # legitimately read exactly 0.0 through a long calm spell, so the check is
+        # limited to continuous variables where N identical hourly readings cannot
+        # be real weather. A stuck temperature/humidity/pressure sensor is a
+        # hardware fault, so it clears the QUARANTINE threshold.
         if variable_name in ("temperature", "humidity", "pressure") and n >= self.stuck_sensor_min_steps:
             consecutive_count = 1
             for idx in range(1, n):
@@ -179,7 +206,9 @@ class TelemetryAnomalyDetector:
                             anomaly_type="sensor",
                             affected_variable=variable_name,
                             timestamp=ts,
-                            severity_score=min(1.0, 0.5 + 0.08 * (consecutive_count - self.stuck_sensor_min_steps)),
+                            # Floor at the QUARANTINE threshold: N identical hourly
+                            # readings on a continuous variable is a failed sensor.
+                            severity_score=min(1.0, max(0.85, 0.5 + 0.08 * (consecutive_count - self.stuck_sensor_min_steps))),
                             explanation=f"Stuck {variable_name} sensor: {consecutive_count} consecutive identical readings ({val:.2f}) with zero variance",
                             is_actionable=True,
                             station_id=station_id,

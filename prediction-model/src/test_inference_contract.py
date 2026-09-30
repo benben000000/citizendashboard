@@ -16,6 +16,7 @@ Validates:
 import os
 import sys
 import json
+import math
 import tempfile
 import unittest
 import numpy as np
@@ -26,6 +27,40 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 DATA_DIR = os.path.join(os.path.dirname(SRC_DIR), "data")
+
+
+def _realistic_seq(last_row, n=24):
+    """
+    Build a 24-hour sequence whose FINAL row is exactly ``last_row``.
+
+    Tests control the forecast origin observation (the last row), which is what
+    the persistence fallback and rain-blend policy read. The preceding rows only
+    need to be a plausible window.
+
+    A literal ``[row] * 24`` fixture is not a usable input here: 24 consecutive
+    identical hourly readings is a stuck-sensor signature, so the anomaly gate
+    correctly quarantines it and suppresses the learned output, which makes the
+    test assert on quarantine behaviour instead of the policy it is written for.
+    This helper supplies a deterministic diurnal walk that keeps the origin row
+    intact and leaves the input quality gate CLEAN.
+    """
+    last = [float(v) for v in last_row]
+    rows = []
+    for k in range(n - 1):
+        phase = math.sin((2.0 * math.pi * k) / 24.0)
+        temp = last[0] + 3.0 * phase
+        rows.append([
+            temp,
+            last[1] + 3.0 * phase,
+            min(100.0, max(10.0, last[2] - 4.0 * phase)),
+            last[3] + 1.5 * phase,
+            abs(last[4] + 1.2 * phase),
+            last[5],
+            last[6],
+            last[7],
+        ])
+    rows.append(last)
+    return np.array(rows, dtype=np.float32)
 
 from inference import LNNServerlessPredictor
 
@@ -80,7 +115,7 @@ class TestInferencePolicyContract(unittest.TestCase):
     def test_unsupported_horizon_fails_closed(self):
         """Verify that asking for an unconfigured horizon (e.g. 2h, 48h) raises ValueError."""
         predictor = LNNServerlessPredictor(model_weights_path=self.ckpt_path)
-        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+        dummy_seq = _realistic_seq([28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0])
 
         with self.assertRaises(ValueError) as ctx:
             predictor.predict_from_observed_sequence(
@@ -134,7 +169,7 @@ class TestInferencePolicyContract(unittest.TestCase):
             # Origin observation has distinctive values:
             # temp=31.5, rh=65.0, pressure=1005.5, ws=8.0
             orig_row = [31.5, 36.0, 65.0, 1005.5, 8.0, 0.0, 1.0, 0.0]
-            dummy_seq = np.array([orig_row] * 24, dtype=np.float32)
+            dummy_seq = _realistic_seq(orig_row)
 
             res = predictor.predict_from_observed_sequence(
                 telemetry_sequence=dummy_seq,
@@ -198,7 +233,7 @@ class TestInferencePolicyContract(unittest.TestCase):
             # Test 1: Origin with dry conditions (last observed precip = 0.0) -> persist_prob = 0.0
             dry_row = [28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]
             res_dry = predictor.predict_from_observed_sequence(
-                telemetry_sequence=np.array([dry_row] * 24, dtype=np.float32),
+                telemetry_sequence=_realistic_seq(dry_row),
                 forecast_origin_timestamp="2026-08-01T12:00:00",
                 horizon_hours=1,
             )
@@ -213,7 +248,7 @@ class TestInferencePolicyContract(unittest.TestCase):
             # Test 2: Origin with rain (last observed precip = 2.5 mm) -> persist_prob = 1.0
             rain_row = [28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 2.5]
             res_rain = predictor.predict_from_observed_sequence(
-                telemetry_sequence=np.array([rain_row] * 24, dtype=np.float32),
+                telemetry_sequence=_realistic_seq(rain_row),
                 forecast_origin_timestamp="2026-08-01T12:00:00",
                 horizon_hours=1,
             )
@@ -225,7 +260,7 @@ class TestInferencePolicyContract(unittest.TestCase):
     def test_explicit_weather_uncertainty_unavailable(self):
         """Verify that weather_uncertainty is explicitly flagged as UNAVAILABLE."""
         predictor = LNNServerlessPredictor(model_weights_path=self.ckpt_path)
-        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+        dummy_seq = _realistic_seq([28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0])
 
         res = predictor.predict_from_observed_sequence(
             telemetry_sequence=dummy_seq,
@@ -283,7 +318,7 @@ class TestInferencePolicyContract(unittest.TestCase):
             # Sequence with distinct values:
             # temp=29.4, heat_idx=34.0, rh=72.0, press=1008.5, ws=9.5, wind_sin=0.6, wind_cos=0.8, precip=1.2
             obs_row = [29.4, 34.0, 72.0, 1008.5, 9.5, 0.6, 0.8, 1.2]
-            valid_seq = np.array([obs_row] * 24, dtype=np.float32)
+            valid_seq = _realistic_seq(obs_row)
 
             res = predictor.predict_from_observed_sequence(
                 telemetry_sequence=valid_seq,
@@ -388,7 +423,7 @@ class TestInferencePolicyContract(unittest.TestCase):
     def test_predict_horizon_mismatch_fails_closed(self):
         """Verify calling predict_from_observed_sequence with mismatched horizon raises ValueError."""
         predictor = LNNServerlessPredictor(horizon_hours=1)
-        dummy_seq = np.array([[28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0]] * 24, dtype=np.float32)
+        dummy_seq = _realistic_seq([28.0, 32.0, 75.0, 1010.0, 5.0, 0.0, 1.0, 0.0])
 
         with self.assertRaises(ValueError) as ctx:
             predictor.predict_from_observed_sequence(

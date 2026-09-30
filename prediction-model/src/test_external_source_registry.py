@@ -340,13 +340,27 @@ class TestExternalSourceRegistry(unittest.TestCase):
             self.assertIn(sid, reg.list_sources(), f"Missing source: {sid}")
 
     # ── Test 14: Blocked source listing ──────────────────────────────
-    def test_production_registry_all_blocked(self):
-        """All sources in the production registry must be blocked (no approved sources yet)."""
+    def test_production_registry_approved_set_is_pinned(self):
+        """
+        Exactly one source is production-eligible: NOAA GFS, which is a US
+        Government work in the public domain. Pinning the whole approved set, not
+        just its size, means an accidental future approval fails this test rather
+        than passing quietly.
+
+        PAGASA must stay blocked. It is UNKNOWN_BLOCKED because its product
+        usage rights were never confirmed, and nothing in this repository can
+        establish them.
+        """
         reg = ExternalSourceRegistry()
+        self.assertEqual(reg.list_eligible_sources(), ["noaa_gfs_v1"])
         blocked = reg.list_blocked_sources()
         self.assertEqual(len(blocked), 5, "Expected 5 blocked sources")
-        eligible = reg.list_eligible_sources()
-        self.assertEqual(len(eligible), 0, "Expected 0 eligible sources")
+        self.assertIn("pagasa_nwp_v1", blocked)
+        for sid in ("pagasa_nwp_v1", "radar_qpe_v1", "rainviewer_v1",
+                    "himawari9_derived_v1", "project_nearby_stations_v1"):
+            self.assertIn(sid, blocked)
+            eligible, _ = reg.is_production_eligible(sid)
+            self.assertFalse(eligible, f"{sid} must remain blocked")
 
     # ── Test 15: Eligible source listing ─────────────────────────────
     def test_eligible_source_listing(self):
@@ -403,7 +417,8 @@ class TestExternalSourceRegistry(unittest.TestCase):
         self.assertIn("source_count", prov)
         self.assertIn("eligible_sources", prov)
         self.assertIn("blocked_sources", prov)
-        self.assertEqual(prov["source_count"], 5)
+        self.assertEqual(prov["source_count"], 6)
+        self.assertIn("noaa_gfs_v1", prov["eligible_sources"])
 
     # ── Test 20: is_production_eligible returns tuple ─────────────────
     def test_is_production_eligible_returns_tuple(self):

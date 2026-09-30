@@ -462,7 +462,76 @@ class TelemetryDriftMonitor:
 
         rain_prevalence = rain_hits / max(1, len(numeric_values["precipitation"])) * 100.0
 
+        # ---- Baseline comparison ------------------------------------------------
+        # The training-fitted normalization is the reference distribution. Compare
+        # the live sample against it in units of the baseline standard deviation
+        # and emit a real status, so the caller's drift trigger can fire.
+        baseline_norm = (
+            self.baseline_manifest.get("train_fitted_normalization") or {}
+        )
+        # The manifest stores means/stds as parallel arrays indexed by
+        # feature_schema, not as per-feature mappings.
+        b_schema = baseline_norm.get("feature_schema") or []
+        b_means = baseline_norm.get("means") or []
+        b_stds = baseline_norm.get("stds") or []
+        baseline_means = {
+            name: b_means[i]
+            for i, name in enumerate(b_schema)
+            if i < len(b_means) and b_means[i] is not None
+        }
+        baseline_stds = {
+            name: b_stds[i]
+            for i, name in enumerate(b_schema)
+            if i < len(b_stds) and b_stds[i]
+        }
+        DRIFT_WARNING_SIGMA = 2.0
+        DRIFT_ALERT_SIGMA = 3.0
+
+        drift_status = "NORMAL"
+        drift_flags = []
+        zscores = {}
+        for col, dist in feature_distributions.items():
+            if dist.get("count", 0) < 30:
+                continue
+            b_mean = baseline_means.get(col)
+            b_std = baseline_stds.get(col)
+            if b_mean is None or b_std in (None, 0):
+                continue
+            z = (dist["mean"] - b_mean) / b_std
+            zscores[col] = round(float(z), 4)
+            if abs(z) >= DRIFT_ALERT_SIGMA:
+                drift_flags.append(
+                    {"feature": col, "z_vs_training_baseline": round(float(z), 4),
+                     "severity": "ALERT",
+                     "observed_mean": dist["mean"], "baseline_mean": b_mean}
+                )
+            elif abs(z) >= DRIFT_WARNING_SIGMA:
+                drift_flags.append(
+                    {"feature": col, "z_vs_training_baseline": round(float(z), 4),
+                     "severity": "WARNING",
+                     "observed_mean": dist["mean"], "baseline_mean": b_mean}
+                )
+
+        if any(f["severity"] == "ALERT" for f in drift_flags):
+            drift_status = "DRIFT_DETECTED"
+        elif drift_flags:
+            drift_status = "WARNING"
+
+        if not baseline_norm:
+            drift_status = "NO_BASELINE"
+            drift_flags = []
+
         return {
+            "status": drift_status,
+            "drift_status": drift_status,
+            "drift_flags": drift_flags,
+            "feature_mean_zscore_vs_training_baseline": zscores,
+            "baseline_source": os.path.basename(self.baseline_manifest_path)
+            if self.baseline_manifest else None,
+            "drift_thresholds_sigma": {
+                "warning": DRIFT_WARNING_SIGMA,
+                "alert": DRIFT_ALERT_SIGMA,
+            },
             "evaluation_timestamp": datetime.now(timezone.utc).isoformat(),
             "evaluated_rows": total_rows,
             "active_stations_count": len(station_counts),
@@ -859,7 +928,10 @@ def run_monitoring_evaluation(
                 trigger_reasons.append(f"{var} skill vs persistence severely degraded ({skill:.2f}) on {h_key}")
 
         rain_met = h_data.get("rain_occurrence", {})
-        rain_ece = rain_met.get("calibration_error_ece")
+        # compute_reliability_and_ece() emits "expected_calibration_error".
+        # The previous "calibration_error_ece" key does not exist anywhere in
+        # this module, so this trigger was permanently unreachable.
+        rain_ece = rain_met.get("expected_calibration_error")
         if rain_ece is not None and rain_ece > 0.25 and rain_met.get("sample_count", 0) >= MIN_RELIABLE_SAMPLES:
             target_fallbacks["rain_occurrence"] = "RECALIBRATION_RECOMMENDED"
             if trigger_level in ("NORMAL", "WARNING"):

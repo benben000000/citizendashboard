@@ -187,8 +187,12 @@ class NWPAdapter:
             features["nwp_wind_speed_ms"] = math.sqrt(
                 best_fc.wind_u_ms ** 2 + best_fc.wind_v_ms ** 2
             )
+            # Meteorological convention is the bearing of the vector FROM which
+            # the wind blows: atan2(v, u). Passing (u, v) transposes the angle
+            # and misreports every direction by a reflection about the 45 deg
+            # axis (e.g. a north wind 0 deg would report as 90 deg).
             features["nwp_wind_direction_deg"] = (
-                math.degrees(math.atan2(best_fc.wind_u_ms, best_fc.wind_v_ms)) + 360
+                math.degrees(math.atan2(best_fc.wind_v_ms, best_fc.wind_u_ms)) + 360
             ) % 360
         else:
             features["nwp_wind_speed_ms"] = None

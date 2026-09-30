@@ -537,7 +537,13 @@ def verify_provenance(expected_commit: str = None, data_dir: str = None) -> Dict
 
     # 8. Verify No Machine-Specific Paths in Committed Data Artifacts
     import re
-    machine_path_regex = re.compile(r"([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
+    # A Windows drive letter must NOT be preceded by a character that would make
+    # it the tail of a URL scheme: without the lookbehind, "https://" matches "s:/"
+    # and every approved source fails this check. The external source registry
+    # REQUIRES source_url and license_url, so a registry that passed this check
+    # could never contain an approved source at all.
+    machine_path_regex = re.compile(
+        r"(?<![A-Za-z0-9+.-])([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)")
     data_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.endswith(".json") or f.endswith(".csv")]
     if os.path.exists(cand_artifacts_dir):
         data_files.extend([os.path.join(cand_artifacts_dir, f) for f in os.listdir(cand_artifacts_dir) if f.endswith(".json") or f.endswith(".csv")])

@@ -19,7 +19,7 @@ import sys
 import json
 import os
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import numpy as np
 import torch
 
@@ -45,6 +45,31 @@ def compute_sha256(filepath: str) -> str:
         while chunk := f.read(65536):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _repo_relative_bundle_path(bundle_dir):
+    """
+    Return a repository-relative bundle path.
+
+    Writing an absolute local path into a committed prediction artifact embeds the
+    builder's machine layout (e.g. "C:\\Ben File\\...") in a file that is tracked
+    in git and read by other machines. The repository path-hygiene gate rejects
+    those strings, and a bundle that is valid only on the machine that built it is
+    not verifiable anywhere else. Falls back to a stable redacted marker.
+    """
+    if not bundle_dir:
+        return None
+    try:
+        rel = os.path.relpath(os.path.abspath(bundle_dir), os.getcwd())
+    except (ValueError, OSError):
+        return "prediction-model/data/bundles/<unresolved>"
+    rel = rel.replace(os.sep, "/")
+    if os.path.isabs(rel) or rel.startswith(".."):
+        return "prediction-model/data/bundles/<external>"
+    return rel
+
+
+from sensor_health import live_health  # noqa: E402
 
 
 class LNNServerlessPredictor:
@@ -396,6 +421,7 @@ class LNNServerlessPredictor:
         current_water_level: float = None,
         feature_names: list = None,
         request_uv: bool = False,
+        station_id: str = None,
     ) -> dict:
         """
         Operational forecast endpoint using actual observed historical telemetry sequence.
@@ -410,6 +436,8 @@ class LNNServerlessPredictor:
             current_water_level: Optional current river stage in meters.
             feature_names: Optional list of 8 feature names to verify schema and order.
             request_uv: If True, raises ValueError because UV index is quarantined.
+            station_id: Optional. Enables the per-station wind sensor health gate.
+                When omitted the gate is skipped and behaviour is unchanged.
 
         Returns:
             Dictionary containing prediction outcomes, forecast origin timestamp,
@@ -504,12 +532,39 @@ class LNNServerlessPredictor:
         is_featured = isinstance(self.model, GarciaWeatherLNNFeatured)
         is_garcia = isinstance(self.model, GarciaWeatherLNN) or is_featured
 
+        # Resolve the forecast origin once, before any branch consumes it.
+        # Fail closed on an unparseable (but supplied) origin rather than
+        # silently substituting "now" and mis-dating the diurnal features.
+        origin_dt = None
+        if forecast_origin_timestamp:
+            try:
+                origin_dt = datetime.fromisoformat(
+                    str(forecast_origin_timestamp).replace("Z", "+00:00")
+                )
+            except Exception as exc:
+                raise ValueError(
+                    f"forecast_origin_timestamp is not a parseable ISO-8601 instant: "
+                    f"{forecast_origin_timestamp!r} ({exc})"
+                ) from exc
+            if origin_dt.tzinfo is None:
+                origin_dt = origin_dt.replace(tzinfo=timezone.utc)
+
         with torch.no_grad():
             if is_featured:
                 from dataset import extract_zero_leakage_feature_vector
                 records = []
                 for row_idx in range(len(telemetry_arr)):
-                    rec_ts = (origin_dt - timedelta(hours=len(telemetry_arr) - 1 - row_idx)) if forecast_origin_timestamp else datetime.now(timezone.utc)
+                    if origin_dt is not None:
+                        rec_ts = origin_dt - timedelta(
+                            hours=len(telemetry_arr) - 1 - row_idx
+                        )
+                    else:
+                        # No origin supplied: synthesise a contiguous hourly grid
+                        # anchored at "now" so the diurnal/cyclic features are
+                        # internally consistent instead of aliasing to a single instant.
+                        rec_ts = datetime.now(timezone.utc).replace(
+                            minute=0, second=0, microsecond=0
+                        ) - timedelta(hours=len(telemetry_arr) - 1 - row_idx)
                     records.append({
                         "timestamp": rec_ts,
                         "temperature": float(telemetry_arr[row_idx, 0]),
@@ -603,10 +658,42 @@ class LNNServerlessPredictor:
         wd_src = selected_sources.get("wind_direction", "persistence_fallback")
 
         learned_sources = ("learned_model", "candidate", "candidate_lnn_featured")
-        op_temp = pred_temp if temp_src in learned_sources else orig_temp
-        op_rh = pred_rh if rh_src in learned_sources else orig_rh
-        op_p = pred_p if p_src in learned_sources else orig_p
-        op_ws = pred_ws if ws_src in learned_sources else orig_ws
+
+        # ------------------------------------------------------------------
+        # Post-hoc calibration of the learned heads.
+        #
+        # Each variable may carry an affine correction {a, b} fitted on the
+        # TRAIN split, so the served value is a*head + b. Coefficients are
+        # optional and absent by default; when present they were refitted and
+        # selected on the VALIDATION split only (see refit_policy.py). The
+        # refit applies shrinkage toward identity precisely because an
+        # unshrunk fit is unstable at long horizons (one pressure fit produced
+        # a=0.835, b=+165.6 and was worse than no correction at all).
+        # ------------------------------------------------------------------
+        calibration = h_policy.get("calibration", {}) or {}
+
+        def _calibrated(value, variable):
+            c = calibration.get(variable)
+            if not c:
+                return value
+            a = float(c.get("a", 1.0))
+            b = float(c.get("b", 0.0))
+            out = a * value + b
+            # Never emit a physically impossible calibrated value.
+            if variable == "temperature":
+                return min(60.0, max(-20.0, out))
+            if variable == "humidity":
+                return min(100.0, max(0.0, out))
+            if variable == "pressure":
+                return min(1100.0, max(850.0, out))
+            if variable == "wind_speed":
+                return max(0.0, out)
+            return out
+
+        op_temp = _calibrated(pred_temp, "temperature") if temp_src in learned_sources else orig_temp
+        op_rh = _calibrated(pred_rh, "humidity") if rh_src in learned_sources else orig_rh
+        op_p = _calibrated(pred_p, "pressure") if p_src in learned_sources else orig_p
+        op_ws = _calibrated(pred_ws, "wind_speed") if ws_src in learned_sources else orig_ws
         op_wind_dir = pred_wind_dir if wd_src in learned_sources else orig_wind_deg
         if op_ws < 1.0:
             op_wind_dir = None
@@ -638,13 +725,9 @@ class LNNServerlessPredictor:
             p_tendency = "STEADY"
 
         target_ts = None
-        if forecast_origin_timestamp:
-            try:
-                origin_dt = datetime.fromisoformat(forecast_origin_timestamp.replace("Z", "+00:00"))
-                target_dt = origin_dt + timedelta(hours=horizon_hours)
-                target_ts = target_dt.isoformat()
-            except Exception:
-                target_ts = None
+        if origin_dt is not None:
+            # origin_dt was already validated/parsed above; reuse it.
+            target_ts = (origin_dt + timedelta(hours=horizon_hours)).isoformat()
 
         # Sequence anomaly audit using TelemetryAnomalyDetector
         detector = TelemetryAnomalyDetector()
@@ -662,12 +745,62 @@ class LNNServerlessPredictor:
             "policy_sha256": self.bundle_manifest.get("policy_sha256", "legacy-unbundled"),
         }
 
+        # Anomaly status is a GATE, not advice. A quarantined input sequence must
+        # not yield a learned forecast presented as if the inputs were sound.
+        # Learned values are suppressed and the operational response falls back to
+        # the last valid observation for every target.
+        _audit_flag = str(seq_anomaly_audit.get("sensor_quality_flag", "")).upper()
+        _trust_learned = _audit_flag != "QUARANTINED"
+
+        if not _trust_learned:
+            op_temp = orig_temp
+            op_rh = orig_rh
+            op_p = orig_p
+            op_ws = orig_ws
+            op_wind_dir = orig_wind_deg
+            derived_hi = compute_noaa_heat_index(orig_temp, orig_rh)
+            # Rain probability collapses to the persistence term; the learned
+            # occurrence head is not trusted on a quarantined sequence.
+            blended_rain_prob = persistence_rain_prob
+            rain_operational_alert = bool(
+                blended_rain_prob >= operational_rain_threshold
+            )
+            temp_src = rh_src = p_src = ws_src = wd_src = (
+                "persistence_fallback_input_quarantined"
+            )
+
+        # Sensor health gate on the wind channel.
+        #
+        # A station whose anemometer is dead cannot have its wind forecast
+        # trusted, whatever the model says -- the model was itself trained on
+        # that dead channel for part of the fleet. The published value falls back
+        # to the last observation and the record is flagged, so the number is
+        # never read as a real forecast. An "unknown" verdict means the check
+        # was inconclusive and must carry on unchanged: a health check that
+        # cannot decide must not suppress a forecast.
+        _wind_status = "OK"
+        _wind_health_summary = None
+        if station_id:
+            try:
+                _h = live_health(station_id)
+                _verdict = _h.get("verdict")
+                _wind_health_summary = {
+                    "verdict": _verdict,
+                    "reason": _h.get("reason"),
+                    "n": _h.get("n"),
+                }
+                if _verdict in ("dead", "absent"):
+                    _wind_status = f"QUARANTINED_SENSOR_{str(_verdict).upper()}"
+                    op_ws = orig_ws
+            except Exception:  # noqa: BLE001 - never fail a forecast here
+                _wind_status = "OK"
+
         return {
             "api_mode": "observed_sequence_forecast",
             "product_name": "Garcia Weather Telemetry Forecast Engine",
             "bundle_version": self.bundle_version,
             "active_bundle_horizon": f"{self.horizon_hours}h",
-            "active_bundle_path": self.bundle_dir if self.bundle_dir else None,
+            "active_bundle_path": _repo_relative_bundle_path(self.bundle_dir),
             "model_version": self.manifest.get("training_date", "unknown"),
             "model_seed": self.manifest.get("seed", "unknown"),
             "model_status": self.manifest.get("model_status", "RESEARCH_PROTOTYPE"),
@@ -675,12 +808,22 @@ class LNNServerlessPredictor:
             "forecast_origin_timestamp": forecast_origin_timestamp,
             "target_timestamp": target_ts,
             "forecast_horizon": f"{horizon_hours}h",
+            "input_quality_gate": {
+                "learned_output_trusted": _trust_learned,
+                "sensor_quality_flag": _audit_flag or "UNKNOWN",
+                "policy": (
+                    "QUARANTINED input sequences suppress learned outputs and fall "
+                    "back to the last valid observation for all targets."
+                ),
+            },
             # Core Operational Weather Forecast (Policy-Governed)
             "temperature_c": round(op_temp, 2),
             "relative_humidity_pct": round(op_rh, 1),
             "pressure_hpa": round(op_p, 2),
             "pressure_tendency": p_tendency,
             "wind_speed_kmh": round(op_ws, 2),
+            "wind_speed_status": _wind_status,
+            "wind_sensor_health": _wind_health_summary,
             "wind_direction_deg": round(op_wind_dir, 1) if op_wind_dir is not None else None,
             "wind_calm": bool(op_ws < 1.0),
             "heat_index_c": round(derived_hi, 2),

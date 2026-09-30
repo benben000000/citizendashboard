@@ -288,43 +288,86 @@ class TelemetryDataPipeline:
                     self.quarantine_counts["weather_missing_station_id"] += 1
                     continue
 
-                try:
-                    t = float(row.get("temperature") or 28.5)
-                    hi = float(row.get("heat_index") or 33.0)
-                    hum = float(row.get("humidity") or 75.0)
-                    ws = float(row.get("wind_speed") or 10.0)
-                    wd = float(row.get("wind_direction") or 0.0)
-                    p = float(row.get("pressure") or 1008.0)
-                    precip = float(row.get("precipitation") or 0.0)
+                # Strict field parsing.
+                #
+                # Previous behaviour used `float(row.get(x) or <default>)`, which
+                # conflated a LEGITIMATE ZERO with a missing value: a calm
+                # `wind_speed = 0.0` was silently rewritten to 10.0 km/h, and a
+                # true `precipitation = 0.0` was indistinguishable from an absent
+                # reading. Missing fields are now QUARANTINED and counted rather
+                # than imputed with climatological constants, so that fabricated
+                # observations can never pass the physical-bounds checks below.
+                parsed = {}
+                missing_fields = []
+                for _field in ("temperature", "heat_index", "humidity", "wind_speed",
+                               "wind_direction", "pressure", "precipitation"):
+                    _raw = row.get(_field)
+                    if _raw is None:
+                        missing_fields.append(_field)
+                        continue
+                    if isinstance(_raw, str):
+                        _raw = _raw.strip()
+                        if _raw == "" or _raw.lower() in ("nan", "na", "n/a", "null", "none", "-"):
+                            missing_fields.append(_field)
+                            continue
+                    try:
+                        _val = float(_raw)
+                    except (TypeError, ValueError):
+                        missing_fields.append(_field)
+                        continue
+                    if _val != _val or _val in (float("inf"), float("-inf")):  # NaN / inf
+                        missing_fields.append(_field)
+                        continue
+                    parsed[_field] = _val
 
-                    # Check individual physical sensor bounds
-                    if not (PHYSICAL_BOUNDS["temperature"][0] <= t <= PHYSICAL_BOUNDS["temperature"][1]):
-                        self.quarantine_counts["weather_bounds_temperature"] += 1
-                        continue
-                    if not (PHYSICAL_BOUNDS["heat_index"][0] <= hi <= PHYSICAL_BOUNDS["heat_index"][1]):
-                        self.quarantine_counts["weather_bounds_heat_index"] += 1
-                        continue
-                    if not (PHYSICAL_BOUNDS["humidity"][0] <= hum <= PHYSICAL_BOUNDS["humidity"][1]):
-                        self.quarantine_counts["weather_bounds_humidity"] += 1
-                        continue
-                    if not (PHYSICAL_BOUNDS["wind_speed"][0] <= ws <= PHYSICAL_BOUNDS["wind_speed"][1]):
-                        self.quarantine_counts["weather_bounds_wind_speed"] += 1
-                        continue
-                    if not (PHYSICAL_BOUNDS["wind_direction"][0] <= wd <= PHYSICAL_BOUNDS["wind_direction"][1]):
-                        self.quarantine_counts["weather_bounds_wind_direction"] += 1
-                        continue
-                    if not (PHYSICAL_BOUNDS["pressure"][0] <= p <= PHYSICAL_BOUNDS["pressure"][1]):
-                        self.quarantine_counts["weather_bounds_pressure"] += 1
-                        continue
-                    if not (PHYSICAL_BOUNDS["precipitation"][0] <= precip <= PHYSICAL_BOUNDS["precipitation"][1]):
-                        self.quarantine_counts["weather_bounds_precipitation"] += 1
-                        continue
+                if missing_fields:
+                    self.quarantine_counts["weather_missing_field"] += 1
+                    for _mf in missing_fields:
+                        self.quarantine_counts.setdefault(
+                            f"weather_missing_{_mf}", 0
+                        )
+                        self.quarantine_counts[f"weather_missing_{_mf}"] += 1
+                    continue
 
-                    h_bin = dt.replace(minute=0, second=0, microsecond=0)
-                    station_hour_obs[st_id][h_bin].append((dt, t, hi, hum, ws, wd, p, precip))
+                t = parsed["temperature"]
+                hi = parsed["heat_index"]
+                hum = parsed["humidity"]
+                ws = parsed["wind_speed"]
+                wd = parsed["wind_direction"]
+                p = parsed["pressure"]
+                precip = parsed["precipitation"]
 
-                except (ValueError, TypeError):
-                    self.quarantine_counts["weather_parse_error"] += 1
+                # Check individual physical sensor bounds
+                if not (PHYSICAL_BOUNDS["temperature"][0] <= t <= PHYSICAL_BOUNDS["temperature"][1]):
+                    self.quarantine_counts["weather_bounds_temperature"] += 1
+                    continue
+                if not (PHYSICAL_BOUNDS["heat_index"][0] <= hi <= PHYSICAL_BOUNDS["heat_index"][1]):
+                    self.quarantine_counts["weather_bounds_heat_index"] += 1
+                    continue
+                if not (PHYSICAL_BOUNDS["humidity"][0] <= hum <= PHYSICAL_BOUNDS["humidity"][1]):
+                    self.quarantine_counts["weather_bounds_humidity"] += 1
+                    continue
+                if not (PHYSICAL_BOUNDS["wind_speed"][0] <= ws <= PHYSICAL_BOUNDS["wind_speed"][1]):
+                    self.quarantine_counts["weather_bounds_wind_speed"] += 1
+                    continue
+                if not (PHYSICAL_BOUNDS["wind_direction"][0] <= wd <= PHYSICAL_BOUNDS["wind_direction"][1]):
+                    self.quarantine_counts["weather_bounds_wind_direction"] += 1
+                    continue
+                if not (PHYSICAL_BOUNDS["pressure"][0] <= p <= PHYSICAL_BOUNDS["pressure"][1]):
+                    self.quarantine_counts["weather_bounds_pressure"] += 1
+                    continue
+                if not (PHYSICAL_BOUNDS["precipitation"][0] <= precip <= PHYSICAL_BOUNDS["precipitation"][1]):
+                    self.quarantine_counts["weather_bounds_precipitation"] += 1
+                    continue
+
+                h_bin = dt.replace(minute=0, second=0, microsecond=0)
+                station_hour_obs[st_id][h_bin].append((dt, t, hi, hum, ws, wd, p, precip))
+
+        # ------------------------------------------------------------------
+        # Hourly aggregation. Precipitation is SUMMED across the valid minute
+        # increments in the hour; every other field takes the LAST valid
+        # observation in the hour; wind direction is stored as a circular pair.
+        # ------------------------------------------------------------------
 
         # Resample each station to the hourly grid:
         # - Temperature, heat_index, humidity, wind_speed, wind_direction, pressure: last valid observation
@@ -401,19 +444,27 @@ class TelemetryDataPipeline:
     def get_feature_augmented_norm_stats(self, schema=None):
         """Fit normalization means and stds strictly on the training partition for all 75 engineered features."""
         target_schema = schema if schema is not None else FEATURE_AUGMENTED_SCHEMA
-        if hasattr(self, "_feat_aug_means") and self._feat_aug_means is not None:
+        cache_key = tuple(target_schema)
+        if getattr(self, "_feat_aug_cache_key", None) == cache_key:
             return self._feat_aug_means, self._feat_aug_stds
 
+        # Only origins with a COMPLETE seq_len window contribute. Previously a
+        # >=3 record threshold admitted short windows, so the fitted statistics
+        # described a distribution the model never sees at train or inference time
+        # (e.g. 24h lags/rolling means were effectively zero for those rows).
         feature_vectors = []
+        skipped_incomplete = 0
         for st_id, st_dict in self.station_hourly.items():
             split_hours = sorted([h for h in st_dict if h <= self.train_end])
             for k in range(len(split_hours)):
                 t0 = split_hours[k]
                 win_start = t0 - timedelta(hours=DEFAULT_SEQ_LEN - 1)
                 win_records = [st_dict[h] for h in split_hours if win_start <= h <= t0]
-                if len(win_records) >= 3:
-                    vec = extract_zero_leakage_feature_vector(win_records, t0_timestamp=t0, station_id=st_id, schema=target_schema)
-                    feature_vectors.append(vec)
+                if len(win_records) < DEFAULT_SEQ_LEN:
+                    skipped_incomplete += 1
+                    continue
+                vec = extract_zero_leakage_feature_vector(win_records, t0_timestamp=t0, station_id=st_id, schema=target_schema)
+                feature_vectors.append(vec)
 
         if len(feature_vectors) < 10:
             self._feat_aug_means = np.zeros(len(target_schema), dtype=np.float32)
@@ -424,6 +475,9 @@ class TelemetryDataPipeline:
             stds = arr.std(axis=0).astype(np.float32)
             self._feat_aug_stds = np.where(stds < 1e-4, 1.0, stds).astype(np.float32)
 
+        self._feat_aug_cache_key = cache_key
+        self._feat_aug_rows_used = len(feature_vectors)
+        self._feat_aug_rows_skipped_incomplete = skipped_incomplete
         return self._feat_aug_means, self._feat_aug_stds
 
     def generate_data_quality_report(
@@ -853,6 +907,8 @@ def build_forecast_windows(
     holdout_stations: list = None,
     return_metadata: bool = False,
     custom_bounds: Tuple[datetime, datetime] = None,
+    exclude_stations: list = None,
+    wind_excluded_stations: list = None,
 ):
     """
     Build canonical future-forecast sequence windows adhering strictly to the contract:
@@ -861,6 +917,13 @@ def build_forecast_windows(
       - dt: continuous elapsed hours between consecutive observations (default 1.0h).
       - Water level: collocated gauge observation at t0 + h, masked when absent.
       - Station boundaries: windows NEVER span across multiple stations.
+      - Excluded stations: `exclude_stations` drops a station's windows entirely.
+      - Per-channel exclusion: `wind_excluded_stations` keeps the station's
+        windows -- its temperature, humidity and pressure history is still real
+        and still useful -- but blanks the three wind feature columns and flags
+        the window as `wind_channel_excluded`. The trainer then masks the wind
+        head's loss. Dropping the whole station would discard good data to fix
+        one broken channel.
       - Split boundaries: windows NEVER span across split cutoffs.
 
     Args:
@@ -907,7 +970,12 @@ def build_forecast_windows(
     # Select stations
     holdout_set = set(holdout_stations or [])
     candidate_stations = []
+    _excluded = {str(x) for x in (exclude_stations or [])}
     for st_id in sorted(pipeline.station_hourly.keys()):
+        if str(st_id) in _excluded:
+            # Dead or absent channel: contributing windows would teach the
+            # network that a constant reading is a valid target.
+            continue
         if mode == "station":
             if split == "test" and st_id not in holdout_set:
                 continue
@@ -925,6 +993,15 @@ def build_forecast_windows(
 
     # Quota per station to ensure fair geographic representation
     quota = max(10, max_samples // len(candidate_stations)) if max_samples else None
+
+    # Feature column order: temperature, heat_index, humidity, pressure,
+    # wind_speed, wind_sin, wind_cos, precipitation.
+    _WIND_FEATURE_COLUMNS = (4, 5, 6)
+    _wind_excluded_set = {str(x) for x in (wind_excluded_stations or [])}
+    wind_fill_value = float(np.mean([
+        rec["wind_speed"] for st in pipeline.station_hourly.values()
+        for rec in st.values() if rec.get("wind_speed") is not None
+    ])) if _wind_excluded_set else 0.0
 
     for st_id in candidate_stations:
         st_dict = pipeline.station_hourly[st_id]
@@ -993,6 +1070,20 @@ def build_forecast_windows(
                 ]
                 for r in window_records
             ], dtype=np.float32)
+            # Per-channel wind exclusion, applied to the RAW features so it takes
+            # effect through normalisation. Blanking after normalize_features
+            # would leave the normalised window untouched and change nothing.
+            # The fill is the training-set mean, not zero: feeding a systematic
+            # zero pattern would make "calm" the dominant training example, which
+            # is the very defect being removed.
+            if st_id in _wind_excluded_set:
+                for _r in raw_feats:
+                    for _c in _WIND_FEATURE_COLUMNS:
+                        _r[_c] = wind_fill_value
+                wind_excluded_flag = True
+            else:
+                wind_excluded_flag = False
+
             norm_feats = normalize_features(raw_feats, norm_means, norm_stds)
 
             # Build targets at t0 + h
@@ -1041,6 +1132,7 @@ def build_forecast_windows(
 
                 metadata_list.append({
                     "station_id": st_id,
+            "wind_channel_excluded": wind_excluded_flag,
                     "origin_timestamp": t0.isoformat(),
                     "target_timestamp": t_target.isoformat(),
                     "requested_horizon_hours": horizon,
@@ -1115,6 +1207,7 @@ def build_feature_augmented_forecast_windows(
     holdout_stations: list = None,
     return_metadata: bool = False,
     custom_bounds: Tuple[datetime, datetime] = None,
+    wind_excluded_stations: list = None,
 ):
     """
     Build future-forecast windows for candidate feature-augmented models:
@@ -1139,6 +1232,7 @@ def build_feature_augmented_forecast_windows(
         holdout_stations=holdout_stations,
         return_metadata=True,
         custom_bounds=custom_bounds,
+        wind_excluded_stations=wind_excluded_stations,
     )
     if canonical_res is None:
         return None
