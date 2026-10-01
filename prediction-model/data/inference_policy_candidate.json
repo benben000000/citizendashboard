@@ -1,0 +1,151 @@
+{
+  "policy_version": "2.0.0",
+  "policy_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+  "generated_at": "2026-10-01T06:47:14.771048+00:00",
+  "regenerated_by": "prediction-model/src/refit_policy.py",
+  "regeneration_note": "Sources and calibration coefficients refitted from measured skill. Calibration fitted on TRAIN, source selection and shrinkage chosen on VALIDATION. The TEST split was not read during refitting.",
+  "fitted_model_commit": "86afef5148a341cbb7b5caf4b8cfcbd35a64979f",
+  "dataset_hashes": {
+    "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
+    "weather_csv_path": "weather_telemetry.csv"
+  },
+  "horizons": {
+    "1": {
+      "selected_sources": {
+        "temperature": "learned_model",
+        "humidity": "persistence_fallback",
+        "pressure": "persistence_fallback",
+        "wind_speed": "persistence_fallback",
+        "wind_direction": "persistence_fallback",
+        "heat_index": "derived_from_selected_temp_and_humidity"
+      },
+      "rain_model_weight": 0.8,
+      "rain_persistence_weight": 0.2,
+      "operational_rain_threshold": 0.25,
+      "calibration_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+      "calibration": {
+        "temperature": {
+          "a": 0.992625,
+          "b": 0.40034,
+          "lambda": 0.75,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        }
+      }
+    },
+    "3": {
+      "selected_sources": {
+        "temperature": "learned_model",
+        "humidity": "persistence_fallback",
+        "pressure": "persistence_fallback",
+        "wind_speed": "persistence_fallback",
+        "wind_direction": "persistence_fallback",
+        "heat_index": "derived_from_selected_temp_and_humidity"
+      },
+      "rain_model_weight": 0.6,
+      "rain_persistence_weight": 0.4,
+      "operational_rain_threshold": 0.1,
+      "calibration_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+      "calibration": {
+        "temperature": {
+          "a": 0.991701,
+          "b": 3.113171,
+          "lambda": 1.0,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        }
+      }
+    },
+    "6": {
+      "selected_sources": {
+        "temperature": "learned_model",
+        "humidity": "persistence_fallback",
+        "pressure": "persistence_fallback",
+        "wind_speed": "persistence_fallback",
+        "wind_direction": "persistence_fallback",
+        "heat_index": "derived_from_selected_temp_and_humidity"
+      },
+      "rain_model_weight": 0.45,
+      "rain_persistence_weight": 0.55,
+      "operational_rain_threshold": 0.1,
+      "calibration_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+      "calibration": {
+        "temperature": {
+          "a": 0.92035,
+          "b": 6.650269,
+          "lambda": 0.75,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        }
+      }
+    },
+    "12": {
+      "selected_sources": {
+        "temperature": "learned_model",
+        "humidity": "learned_model",
+        "pressure": "persistence_fallback",
+        "wind_speed": "persistence_fallback",
+        "wind_direction": "persistence_fallback",
+        "heat_index": "derived_from_selected_temp_and_humidity"
+      },
+      "rain_model_weight": 0.45,
+      "rain_persistence_weight": 0.55,
+      "operational_rain_threshold": 0.1,
+      "calibration_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+      "calibration": {
+        "temperature": {
+          "a": 0.734796,
+          "b": 8.029788,
+          "lambda": 0.5,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        },
+        "humidity": {
+          "a": 0.917734,
+          "b": 5.233189,
+          "lambda": 0.25,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        }
+      }
+    },
+    "24": {
+      "selected_sources": {
+        "temperature": "learned_model",
+        "humidity": "persistence_fallback",
+        "pressure": "learned_model",
+        "wind_speed": "learned_model",
+        "wind_direction": "persistence_fallback",
+        "heat_index": "derived_from_selected_temp_and_humidity"
+      },
+      "rain_model_weight": 0.4,
+      "rain_persistence_weight": 0.6,
+      "operational_rain_threshold": 0.1,
+      "calibration_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
+      "calibration": {
+        "temperature": {
+          "a": 0.866768,
+          "b": 3.688693,
+          "lambda": 0.5,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        },
+        "pressure": {
+          "a": 0.972307,
+          "b": 27.895277,
+          "lambda": 0.25,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        },
+        "wind_speed": {
+          "a": 0.667019,
+          "b": 0.48679,
+          "lambda": 0.75,
+          "fitted_on": "train",
+          "selected_on": "validation"
+        }
+      }
+    }
+  }
+}

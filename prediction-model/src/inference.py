@@ -253,7 +253,18 @@ class LNNServerlessPredictor:
                 )
 
             model_weights_path = ckpt_path
-            policy_path = pol_path
+            # The bundle's own policy copy is authoritative BY DEFAULT: it is
+            # hash-pinned above, so serving the bundle means serving the exact
+            # policy that was packaged with those weights.
+            #
+            # An explicit policy_path still wins, because the only legitimate
+            # caller is offline measurement -- refit_policy.py, which must score a
+            # candidate the served policy refuses to load (fitted_model_commit
+            # fail-closed). Measurement reads head outputs, not served values, so
+            # overriding here does not let a policy silently drive a served
+            # forecast; a production call site does not pass policy_path.
+            if policy_path is None:
+                policy_path = pol_path
             self.is_bundled = True
             self.bundle_version = self.bundle_manifest.get("bundle_version", "1.0.0")
 

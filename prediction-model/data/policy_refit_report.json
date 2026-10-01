@@ -1,46 +1,55 @@
 {
   "h1": {
     "selected_sources": {
-      "temperature": "persistence_fallback",
+      "temperature": "learned_model",
       "humidity": "persistence_fallback",
       "pressure": "persistence_fallback",
       "wind_speed": "persistence_fallback",
       "wind_direction": "persistence_fallback",
       "heat_index": "derived_from_selected_temp_and_humidity"
     },
-    "calibration": {}
+    "calibration": {
+      "temperature": {
+        "a": 0.992625,
+        "b": 0.40034,
+        "lambda": 0.75,
+        "fitted_on": "train",
+        "selected_on": "validation"
+      }
+    }
   },
   "h3": {
     "selected_sources": {
-      "temperature": "persistence_fallback",
+      "temperature": "learned_model",
       "humidity": "persistence_fallback",
       "pressure": "persistence_fallback",
       "wind_speed": "persistence_fallback",
       "wind_direction": "persistence_fallback",
       "heat_index": "derived_from_selected_temp_and_humidity"
     },
-    "calibration": {}
+    "calibration": {
+      "temperature": {
+        "a": 0.991701,
+        "b": 3.113171,
+        "lambda": 1.0,
+        "fitted_on": "train",
+        "selected_on": "validation"
+      }
+    }
   },
   "h6": {
     "selected_sources": {
       "temperature": "learned_model",
       "humidity": "persistence_fallback",
       "pressure": "persistence_fallback",
-      "wind_speed": "learned_model",
+      "wind_speed": "persistence_fallback",
       "wind_direction": "persistence_fallback",
       "heat_index": "derived_from_selected_temp_and_humidity"
     },
     "calibration": {
       "temperature": {
-        "a": 1.0,
-        "b": -0.0,
-        "lambda": 0.0,
-        "fitted_on": "train",
-        "selected_on": "validation"
-      },
-      "wind_speed": {
-        "a": 0.685525,
-        "b": 0.558021,
+        "a": 0.92035,
+        "b": 6.650269,
         "lambda": 0.75,
         "fitted_on": "train",
         "selected_on": "validation"
@@ -50,24 +59,24 @@
   "h12": {
     "selected_sources": {
       "temperature": "learned_model",
-      "humidity": "persistence_fallback",
+      "humidity": "learned_model",
       "pressure": "persistence_fallback",
-      "wind_speed": "learned_model",
+      "wind_speed": "persistence_fallback",
       "wind_direction": "persistence_fallback",
       "heat_index": "derived_from_selected_temp_and_humidity"
     },
     "calibration": {
       "temperature": {
-        "a": 0.933945,
-        "b": 1.642678,
-        "lambda": 1.0,
+        "a": 0.734796,
+        "b": 8.029788,
+        "lambda": 0.5,
         "fitted_on": "train",
         "selected_on": "validation"
       },
-      "wind_speed": {
-        "a": 0.761467,
-        "b": 0.403127,
-        "lambda": 0.5,
+      "humidity": {
+        "a": 0.917734,
+        "b": 5.233189,
+        "lambda": 0.25,
         "fitted_on": "train",
         "selected_on": "validation"
       }
@@ -75,17 +84,31 @@
   },
   "h24": {
     "selected_sources": {
-      "temperature": "persistence_fallback",
+      "temperature": "learned_model",
       "humidity": "persistence_fallback",
-      "pressure": "persistence_fallback",
+      "pressure": "learned_model",
       "wind_speed": "learned_model",
       "wind_direction": "persistence_fallback",
       "heat_index": "derived_from_selected_temp_and_humidity"
     },
     "calibration": {
+      "temperature": {
+        "a": 0.866768,
+        "b": 3.688693,
+        "lambda": 0.5,
+        "fitted_on": "train",
+        "selected_on": "validation"
+      },
+      "pressure": {
+        "a": 0.972307,
+        "b": 27.895277,
+        "lambda": 0.25,
+        "fitted_on": "train",
+        "selected_on": "validation"
+      },
       "wind_speed": {
-        "a": 0.673906,
-        "b": 0.499739,
+        "a": 0.667019,
+        "b": 0.48679,
         "lambda": 0.75,
         "fitted_on": "train",
         "selected_on": "validation"

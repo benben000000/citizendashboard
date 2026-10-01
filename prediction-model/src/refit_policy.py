@@ -111,6 +111,50 @@ def clamp_var(v, x):
     return x
 
 
+POLICY_VARS = ["temperature", "humidity", "pressure", "wind_speed", "wind_direction"]
+
+
+def _write_neutral_measurement_policy() -> str:
+    """
+    Write a policy that routes nothing, for measurement only.
+
+    Every cell is persistence and the rain blend is fully model, so the served
+    routing decisions cannot leak into a measurement whose whole purpose is to
+    decide routing. `fitted_model_commit` is left "unknown" so the serving
+    provenance guard skips itself: this policy is explicitly not fitted for any
+    weights and makes no claim to be, which is exactly why it is safe to use
+    against a candidate.
+
+    Written to a fixed filename rather than a temp path so a failed refit leaves
+    an inspectable artefact instead of nothing.
+    """
+    neutral = {
+        "policy_version": "refit-measurement-neutral",
+        "generated_at": "1970-01-01T00:00:00+00:00",
+        "policy_code_commit": "unknown",
+        "fitted_model_commit": "unknown",
+        "regenerated_by": "refit_policy.py (_write_neutral_measurement_policy)",
+        "regeneration_note": (
+            "Measurement scaffold only. Not a deployable policy: it routes every "
+            "cell to persistence and asserts no fitted weights."
+        ),
+        "horizons": {},
+    }
+    for h in HORIZONS:
+        neutral["horizons"][str(h)] = {
+            "selected_sources": {v: "persistence_fallback" for v in POLICY_VARS},
+            "rain_model_weight": 1.0,
+            "rain_persistence_weight": 0.0,
+            "operational_rain_threshold": 0.25,
+            "calibration_code_commit": "unknown",
+        }
+    path = os.path.join(DATA_DIR, "refit_neutral_policy.json")
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(neutral, handle, indent=2)
+        handle.write("\n")
+    return path
+
+
 def main():
     import argparse
 
@@ -131,7 +175,20 @@ def main():
                     help="Where to write the refit policy. Defaults to "
                          "data/inference_policy_refit.json. The live policy is "
                          "never overwritten; it is copied over deliberately.")
+    ap.add_argument("--measure-neutral", action="store_true", default=True,
+                    help="Measure with a routing-neutral policy instead of the "
+                         "served one. Required whenever --bundle-dir points at "
+                         "weights the served policy was not fitted for, which is "
+                         "every real refit FOR a candidate. Measurement is "
+                         "unaffected: collect() reads the head output from "
+                         "diagnostics['raw_learned_predictions'], not the "
+                         "policy-served value.")
+    ap.add_argument("--measure-served", dest="measure_neutral", action="store_false",
+                    help="Opt out and measure through the served policy. Fails "
+                         "closed against a candidate the served policy was not "
+                         "fitted for; retained for reproducing historical refits.")
     args = ap.parse_args()
+    measure_neutral = args.measure_neutral
 
     weather_csv = args.weather_csv or os.path.join(DATA_DIR, "weather_telemetry.csv")
     bundle_root = args.bundle_dir or os.path.join(DATA_DIR, "bundles")
@@ -159,6 +216,29 @@ def main():
     with open(POLICY_PATH, "r", encoding="utf-8") as f:
         base_policy = json.load(f)
 
+    # Which policy do the predictors load while MEASURING?
+    #
+    # The measurement must not run through the served policy. Serving applies
+    # fitted_model_commit, which compares the policy's fitted weights against
+    # the bundle's weights and refuses to load on a mismatch -- correct for
+    # serving, and fatal here: refitting a policy FOR a candidate is impossible
+    # if the incumbent policy forbids loading that candidate. The tool could only
+    # ever refit for the weights already deployed, which is the one case needing
+    # no refit.
+    #
+    # This was a live bug, not a theoretical one: --bundle-dir already documented
+    # "point this at a candidate's bundles to refit FOR that candidate", and that
+    # path raised the fail-closed error on the first horizon.
+    #
+    # A neutral measurement policy is safe because collect() reads the head output
+    # from diagnostics["raw_learned_predictions"], not the policy-served value. The
+    # head-vs-persistence comparison the refit exists to make is therefore
+    # unaffected by what the policy routes, and there is no circularity.
+    measure_policy_path = None
+    if measure_neutral:
+        measure_policy_path = _write_neutral_measurement_policy()
+        print(f"measuring with neutral policy (not the served one): "
+              f"{os.path.basename(measure_policy_path)}")
     # Which weights is this policy fitted against? Taken from the bundle
     # checkpoint, per horizon, and asserted consistent across horizons.
     fitted_model_commit = None
@@ -183,7 +263,8 @@ def main():
 
     for h in HORIZONS:
         predictor = LNNServerlessPredictor(
-            bundle_dir=os.path.join(bundle_root, f"h{h}"))
+            bundle_dir=os.path.join(bundle_root, f"h{h}"),
+            policy_path=measure_policy_path)
         print(f"\n+{h}h  collecting TRAIN ...", flush=True)
         tr_head, tr_pers, tr_truth = collect(pipe, predictor, "train", h)
         print(f"     collecting VAL   ...", flush=True)
