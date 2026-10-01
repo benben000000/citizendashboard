@@ -132,7 +132,20 @@ def verify(
                               data_dir=DATA_DIR)
     scored, pending, unmatched, skipped = 0, 0, 0, 0
     duplicate = 0
-    seen_identities: set = set()
+    # Seeded from the records already on disk, not left empty.
+    #
+    # The identity set has to start as the union of what has already been
+    # verified and what is being verified now. Starting empty is subtly wrong:
+    # `already` only holds record_ids, so a republished forecast from a PREVIOUS
+    # run is not in it, passes the first check, and is scored and written again.
+    # The duplicates were stopped within a single run but not across runs, which
+    # is why the file held 20,398 lines for 2,591 unique forecasts -- an 8x
+    # inflation that anyone reading the file line count would take for real
+    # evidence volume.
+    seen_identities: set = {
+        (r.get("station_id"), r.get("origin_timestamp_utc"), _num(r.get("horizon_hours")))
+        for r in read_records(verification_path)
+    }
     per_var_abs: Dict[str, List[float]] = {}
     # Counts per producer, NOT a pooled mean. A mean absolute error across degC,
     # %RH, hPa and m/s is not a quantity -- the units do not share a scale, and
@@ -209,7 +222,11 @@ def verify(
 
         writer.write({
             "schema_version": 1,
-            "record_id": f"ver-{rid}",
+            # record_id is derived from the FORECAST identity, not from the audit
+            # record's own id. Two audit records for the same forecast therefore
+            # produce the same verification id, which makes a duplicate visible
+            # as a repeated key downstream instead of hiding behind a unique id.
+            "record_id": f"ver-{p.get('station_id')}-{p.get('origin_timestamp_utc')}-{horizon:g}h",
             "prediction_record_id": rid,
             "verified_at_utc": ref.isoformat().replace("+00:00", "Z"),
             "station_id": p.get("station_id"),
