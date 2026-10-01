@@ -41,6 +41,11 @@ from model import GarciaWeatherLNN, WeatherWaterLNN
 
 DEFAULT_SEED = 42
 
+# Escape hatch for the one legitimate case: regenerating a release bundle's own
+# source checkpoint. Off by default, and consulted only when no explicit
+# save_path was given.
+ALLOW_RELEASE_SOURCE_OVERWRITE = os.getenv("ALLOW_RELEASE_SOURCE_OVERWRITE") == "1"
+
 
 def set_reproducibility_seed(seed: int = DEFAULT_SEED):
     """Seed all pseudo-random number generators for deterministic reproducibility."""
@@ -153,7 +158,39 @@ def train_mf1_model(
     pipeline = get_telemetry_pipeline()
 
     if save_path is None:
-        save_path = os.path.join(DATA_DIR, f"lnn_weather_water_h{horizon}.pt")
+        # Refuse to write over the release source checkpoints.
+        #
+        # generate_bundles.py treats data/lnn_weather_water_h<N>.pt as the
+        # RELEASE SOURCE: it hashes that file and compares the hash against the
+        # checkpoint_sha256 recorded inside every shipped bundle manifest. A
+        # routine training run therefore does not merely add an artifact, it
+        # silently invalidates the integrity of all five live bundles -- and the
+        # running ingestor serves from those bundles.
+        #
+        # This happened for real on 2026-10-01: a five-horizon training run
+        # overwrote all five sources, and `generate_bundles.py --check-only`
+        # then failed with "Checkpoint hash mismatch" on every horizon. It was
+        # only caught because the check happened to be run. Nothing else
+        # complained: the ingestor kept serving, the dashboard kept rendering,
+        # and the audit trail kept growing, all from bundles whose recorded
+        # provenance no longer described the bytes on disk.
+        #
+        # Training output belongs in a directory of its own. Overwriting a
+        # release input has to be an explicit, deliberate act.
+        if ALLOW_RELEASE_SOURCE_OVERWRITE:
+            save_path = os.path.join(DATA_DIR, f"lnn_weather_water_h{horizon}.pt")
+            print(f"  WARNING: overwriting the release source checkpoint at {save_path}")
+        else:
+            save_path = os.path.join(
+                os.environ.get("TRAIN_OUTPUT_DIR",
+                               os.path.join(DATA_DIR, "train_output")),
+                f"lnn_weather_water_h{horizon}.pt")
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            print(f"  checkpoint -> {save_path}")
+            print(f"  (release sources in {DATA_DIR} are protected; set "
+                  f"TRAIN_OUTPUT_DIR to change this, or "
+                  f"ALLOW_RELEASE_SOURCE_OVERWRITE=1 if you really mean to "
+                  f"replace a release input)")
 
     # Load canonical train and validation splits
     print(f"Loading canonical datasets (horizon={horizon}h, seq_len={DEFAULT_SEQ_LEN})...")
