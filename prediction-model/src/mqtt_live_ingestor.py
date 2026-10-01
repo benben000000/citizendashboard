@@ -40,11 +40,34 @@ PRIVATE_KEY_PATH = os.environ["MQTT_PRIVATE_KEY_PATH"]
 CACHE_PATH = Path(os.getenv("MQTT_LIVE_CACHE_PATH", str(ROOT / "prediction-model/data/mqtt_live_predictions.json")))
 STATION_CACHE_MAX_AGE_SECONDS = int(os.getenv("MQTT_STATION_CACHE_MAX_AGE_SECONDS", "900"))
 HISTORY_PATH = Path(os.getenv("MQTT_OBSERVATION_HISTORY_PATH", str(ROOT / "prediction-model/data/mqtt_observation_history.json")))
+EVENTS_PATH = Path(os.getenv("MQTT_EVENT_LOG_PATH", str(ROOT / "prediction-model/data/ingestor_events.jsonl")))
 SEQUENCE_LENGTH = int(os.getenv("MQTT_PREDICTION_SEQUENCE_LENGTH", "24"))
 PREDICTION_INTERVAL_SECONDS = int(os.getenv("MQTT_PREDICTION_INTERVAL_SECONDS", "300"))
 NO_MESSAGE_TIMEOUT_SECONDS = int(os.getenv("MQTT_NO_MESSAGE_TIMEOUT_SECONDS", "180"))
 HISTORY_MAX_AGE_SECONDS = int(os.getenv("MQTT_HISTORY_MAX_AGE_SECONDS", "3600"))
-MAX_SEQUENCE_GAP_SECONDS = int(os.getenv("MQTT_MAX_SEQUENCE_GAP_SECONDS", "180"))
+
+# Largest gap the live sequence will span before the window is discarded.
+#
+# The old value was 180s against a station publish cadence of ~60s, which meant a
+# single missed cycle destroyed a 24-sample window. Refilling costs 24 minutes
+# (24 samples x 60s), so a two-minute upstream hiccup cost 24 minutes of
+# evidence. Measured on 2026-10-01: one such event produced a 93-minute hole in
+# the prediction audit trail.
+#
+# Raising it to 300s tolerates roughly four consecutive missed cycles while
+# still discarding the window for any genuine outage. The justification is that
+# dt_sequence is a real input to the network (inference.py feeds dt_arr as a
+# tensor), so the model is told the true elapsed time rather than being misled.
+# Training sequences step 1 hour -- dataset.py builds each window as
+# t0 - timedelta(hours=step) and rejects any incomplete step -- so the trained dt
+# is 3600s. A live gap of 300s is therefore well INSIDE the range the network
+# saw in training, while the nominal 60s live cadence sits 60x below it. The
+# limit is deliberate, not incidental: a 68-minute upstream silence is still
+# rejected, because that is a hole the model cannot interpolate across.
+#
+# Still configurable so a deployment with a different publish cadence can match
+# its own, rather than inheriting a number tuned to someone else's stations.
+MAX_SEQUENCE_GAP_SECONDS = int(os.getenv("MQTT_MAX_SEQUENCE_GAP_SECONDS", "300"))
 
 STOP = threading.Event()
 CACHE_LOCK = threading.Lock()
@@ -89,6 +112,33 @@ def load_json(path: Path) -> dict[str, Any]:
         return {}
 
 
+def record_event(kind: str, **fields: Any) -> None:
+    """
+    Append one operational event to the ingestor event trail.
+
+    Deliberately a third file, not a third record type in the prediction or
+    observation trails. Those two are a matched pair -- a forecast and the
+    truth it will later be scored against -- and mixing operational notes into
+    them would force every reader to filter. Operational events answer a
+    different question: not "what did we predict" but "what happened to the
+    pipeline while it was predicting".
+
+    Best effort like every other write here: a dropped event line must never
+    cost an observation or a forecast.
+    """
+    try:
+        EVENTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        line = json.dumps(
+            {"kind": kind,
+             "recorded_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+             **fields},
+            ensure_ascii=False, default=str)
+        with EVENTS_PATH.open("a", encoding="utf-8", newline="\n") as sink:
+            sink.write(line + "\n")
+    except Exception as exc:  # noqa: BLE001 - never break the ingestor
+        print(f"Event write skipped: {type(exc).__name__}: {exc}")
+
+
 def write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=path.parent) as temp:
@@ -120,9 +170,21 @@ def parse_timestamp(value: Any) -> float | None:
         return None
 
 
+# Fields every frame must carry to be usable as a model sample. Named once so
+# the rejection path and the diagnostic that explains it cannot drift apart.
+REQUIRED_TELEMETRY_FIELDS = (
+    "temperature_c", "humidity_pct", "pressure_hpa",
+    "wind_speed_kmh", "wind_direction_deg", "rain_mm",
+)
+
+# station_id -> the missing-field tuple last reported for it. Process-local by
+# design: it suppresses repeat reporting, and losing it on restart costs one
+# duplicate event, which is a far better failure than a flooded trail.
+_incomplete_seen: dict[str, tuple[str, ...]] = {}
+
+
 def observed_features(raw: dict[str, float | None]) -> list[float] | None:
-    required = ("temperature_c", "humidity_pct", "pressure_hpa", "wind_speed_kmh", "wind_direction_deg", "rain_mm")
-    if any(raw.get(key) is None for key in required):
+    if any(raw.get(key) is None for key in REQUIRED_TELEMETRY_FIELDS):
         return None
     temperature = float(raw["temperature_c"])
     humidity = float(raw["humidity_pct"])
@@ -144,15 +206,57 @@ def record_observation(station_id: str, timestamp: str, raw: dict[str, float | N
     history = load_json(HISTORY_PATH)
     stations = history.setdefault("stations", {})
     now_epoch = parse_timestamp(timestamp)
+    # Age pruning happens BEFORE the gap check, which means an outage longer
+    # than HISTORY_MAX_AGE_SECONDS empties the window here and the gap check
+    # never sees a discontinuity to report. That is the 68-minute silence of
+    # 2026-10-01: samples were dropped by the age filter, not by the gap rule,
+    # so nothing was recorded and the discard was invisible. Pruning is counted
+    # so both causes are visible.
+    stored = stations.get(station_id, [])
+    # A station can publish constantly and still never produce a sample, if its
+    # frames are missing a required field. That is not a transient: observed on
+    # 2026-10-01, three stations sent 2,661 messages and contributed zero
+    # samples, because observed_features() requires six fields and these frames
+    # lack them. Nothing in the trail said so -- the station simply never
+    # appeared, which reads identically to a station that has gone offline.
+    #
+    # Reported once per station per distinct missing-field set, not once per
+    # message: a broken station publishes every 60s, and an event per message
+    # would bury every other event in the trail within an hour.
+    if features is None and raw:
+        missing = tuple(sorted(k for k in REQUIRED_TELEMETRY_FIELDS if raw.get(k) is None))
+        if missing and _incomplete_seen.get(station_id) != missing:
+            _incomplete_seen[station_id] = missing
+            record_event("incomplete_frame", station_id=station_id, at=timestamp,
+                         missing_fields=list(missing),
+                         note="frames rejected: no forecast is possible from this station "
+                              "until the missing fields are published")
+    elif features is not None:
+        _incomplete_seen.pop(station_id, None)
     station_history = [
-        entry for entry in stations.get(station_id, [])
+        entry for entry in stored
         if now_epoch is not None
         and (entry_epoch := parse_timestamp(entry.get("timestamp"))) is not None
         and 0 <= now_epoch - entry_epoch <= HISTORY_MAX_AGE_SECONDS
     ]
+    if stored and not station_history and features is not None:
+        record_event("history_pruned", station_id=station_id, at=timestamp,
+                     dropped_samples=len(stored),
+                     max_age_seconds=HISTORY_MAX_AGE_SECONDS,
+                     reason="every stored sample was older than the history window")
     if features is not None:
         last_epoch = parse_timestamp(station_history[-1].get("timestamp")) if station_history else None
         if now_epoch is not None and last_epoch is not None and now_epoch - last_epoch > MAX_SEQUENCE_GAP_SECONDS:
+            # Record WHY the window was discarded. Without this, an upstream
+            # outage is indistinguishable in the audit trail from a station that
+            # simply stopped predicting: both look like an absence of records. A
+            # 93-minute hole found by reading timestamps is a bug you find in
+            # production; a hole that is written down when it happens is a fact
+            # you can report to whoever asked about coverage.
+            record_event("sequence_reset", station_id=station_id, at=timestamp,
+                         gap_seconds=round(now_epoch - last_epoch, 1),
+                         discarded_samples=len(station_history),
+                         limit_seconds=MAX_SEQUENCE_GAP_SECONDS)
             station_history = []
         station_history.append({"timestamp": timestamp, "features": features, "water_level_m": raw.get("water_level_m")})
         del station_history[:-SEQUENCE_LENGTH]
@@ -193,7 +297,7 @@ def _producer_label(source: object) -> str:
 
 
 def audit_prediction(station_id: str, timestamp: str, prediction: dict[str, Any] | None,
-                     error: str | None) -> None:
+                     error: str | None, audit_path: str | None = None) -> None:
     """
     Append one record to the prediction audit trail.
 
@@ -211,7 +315,23 @@ def audit_prediction(station_id: str, timestamp: str, prediction: dict[str, Any]
         # every value "lln" claimed model authorship for numbers the network never
         # produced, which corrupts the audit trail and, once records mature, would
         # attribute persistence error to the model in verify_predictions.py.
-        selected = (prediction or {}).get("selected_source_by_variable") or {}
+        #
+        # NOTE THE TWO LEVELS. The predictor returns a wrapper whose "forecast"
+        # key holds the operational dict, and selected_source_by_variable lives
+        # INSIDE that operational dict (inference.py, alongside the temperature
+        # and pressure keys). Reading it from the wrapper finds nothing, so
+        # `selected` was always {} and every producer fell through to "unknown".
+        # The same nested lookup is attempted on the wrapper for compatibility
+        # with a flatter shape, but the nested one is the real location -- which
+        # is why this silently produced "unknown" rather than raising.
+        selected = {}
+        for container in ((prediction or {}).get("forecast"),
+                          prediction or {}):
+            if isinstance(container, dict):
+                candidate = container.get("selected_source_by_variable")
+                if isinstance(candidate, dict) and candidate:
+                    selected = candidate
+                    break
         if not isinstance(selected, dict):
             selected = {}
         variables = {}
@@ -224,7 +344,7 @@ def audit_prediction(station_id: str, timestamp: str, prediction: dict[str, Any]
             horizon = int(str((prediction or {}).get("horizon", "1h")).rstrip("h"))
         except (TypeError, ValueError):
             horizon = 1
-        get_audit().record(
+        get_audit(audit_path).record(
             station_id=station_id,
             horizon_hours=horizon,
             forecast=forecast,
@@ -413,7 +533,22 @@ def on_message(topic: str, payload: bytes, **_: Any) -> None:
 
 
 def main() -> None:
+    """
+    Subscribe to the live topic and forecast from what arrives, forever.
+
+    Supervised, not fire-and-forget. The evidence this produces is the only
+    thing that cannot be manufactured or back-filled, so an ingestor that dies
+    quietly costs a day of verification that no later run recovers. Every exit
+    path is therefore recorded, and the process reports a non-zero exit code so
+    a supervisor (Windows Task Scheduler, Docker restart policy, systemd) can
+    bring it back rather than leaving a dead process looking healthy.
+    """
     global LAST_MESSAGE_AT
+    record_event("ingestor_start", pid=os.getpid(),
+                 sequence_length=SEQUENCE_LENGTH,
+                 max_sequence_gap_seconds=MAX_SEQUENCE_GAP_SECONDS,
+                 no_message_timeout_seconds=NO_MESSAGE_TIMEOUT_SECONDS,
+                 horizons=list(OPERATIONAL_HORIZONS))
     required_paths = [CA_PATH, CERT_PATH, PRIVATE_KEY_PATH]
     missing = [path for path in required_paths if not Path(path).is_file()]
     if missing:
@@ -423,6 +558,12 @@ def main() -> None:
     host_resolver = io.DefaultHostResolver(event_loop_group)
     bootstrap = io.ClientBootstrap(event_loop_group, host_resolver)
 
+    # Bounded exponential backoff. A flat 10s retry against a broker that is
+    # down is a hot loop: it burns CPU and floods the log with connect attempts
+    # while producing nothing. Capped so a long outage still recovers promptly
+    # once the broker returns.
+    backoff_seconds = 10
+    max_backoff_seconds = 300
     while not STOP.is_set():
         connection = None
         try:
@@ -441,24 +582,48 @@ def main() -> None:
             connection.connect().result(timeout=20)
             connection.subscribe(topic=TOPIC, qos=mqtt.QoS.AT_LEAST_ONCE, callback=on_message)[0].result(timeout=20)
             LAST_MESSAGE_AT = time.monotonic()
+            backoff_seconds = 10
             print(f"MQTT connected: {ENDPOINT}:{PORT}, subscribed to {TOPIC} as {CLIENT_ID}")
+            record_event("mqtt_connected", endpoint=ENDPOINT, topic=TOPIC, client_id=CLIENT_ID)
             while not STOP.wait(1):
-                if time.monotonic() - LAST_MESSAGE_AT > NO_MESSAGE_TIMEOUT_SECONDS:
+                silence = time.monotonic() - LAST_MESSAGE_AT
+                if silence > NO_MESSAGE_TIMEOUT_SECONDS:
+                    # Upstream silence, not a local fault: the subscription was
+                    # accepted and the broker is healthy, the stations simply went
+                    # quiet. Recorded with its real duration because "the link
+                    # dropped" and "the stations stopped publishing" are different
+                    # answers to "why is there a hole in the evidence here".
+                    record_event("upstream_silence", silence_seconds=round(silence, 1),
+                                 threshold_seconds=NO_MESSAGE_TIMEOUT_SECONDS)
                     raise TimeoutError(
-                        f"No MQTT messages received for {NO_MESSAGE_TIMEOUT_SECONDS}s; reconnecting"
+                        f"No MQTT messages for {NO_MESSAGE_TIMEOUT_SECONDS}s (silent {silence:.0f}s)"
                     )
         except Exception as error:
-            print(f"MQTT connection failed ({error}); retrying in 10 seconds")
-            STOP.wait(10)
+            record_event("mqtt_error", error=f"{type(error).__name__}: {error}",
+                         retry_in_seconds=backoff_seconds)
+            print(f"MQTT connection failed ({error}); retrying in {backoff_seconds} seconds", flush=True)
+            STOP.wait(backoff_seconds)
+            backoff_seconds = min(backoff_seconds * 2, max_backoff_seconds)
         finally:
             if connection is not None:
                 try:
                     connection.disconnect().result(timeout=10)
                 except Exception:
                     pass
+    record_event("ingestor_stop", reason="stop_requested")
 
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, lambda *_: STOP.set())
     signal.signal(signal.SIGTERM, lambda *_: STOP.set())
-    main()
+    try:
+        main()
+    except Exception as error:  # noqa: BLE001
+        # Exit non-zero and say why. This process is the only source of
+        # verification evidence, so a silent death is the expensive kind of
+        # failure: the dashboard keeps serving the last cached values, which
+        # look exactly like a healthy system. A supervisor can only restart what
+        # it can see failing.
+        record_event("ingestor_crash", error=f"{type(error).__name__}: {error}")
+        print(f"Ingestor stopped: {type(error).__name__}: {error}", flush=True)
+        raise SystemExit(1)
