@@ -1,9 +1,9 @@
-## Pipeline status -- 2026-10-01T02:28:04.032736Z
+## Pipeline status -- 2026-10-01T02:58:04.946622Z
 
 **OK**
 
-- scored: **2591**   pending: 0   duplicate publishes excluded: 7916
-- stations verified: **15**   predictions published: 7916
+- scored: **2591**   pending: 0   duplicate publishes excluded: 8341
+- stations verified: **15**   predictions published: 8441
 
 | horizon | scored forecasts | stations | variable entries by producer |
 |---|---|---|---|
@@ -16,13 +16,14 @@
 Counts are forecasts (one per station and horizon); the producer split is counted over variable entries, so it is roughly four times larger and is not comparable to the scored column.
 
 ### Recent pipeline events (last 15 min)
-- `watchdog_check` at 2026-10-01T02:13:30.213983Z
-- `watchdog_check` at 2026-10-01T02:18:30.218088Z
-- `watchdog_check` at 2026-10-01T02:23:30.635992Z
-- `watchdog_check` at 2026-10-01T02:26:20.774132Z
+- `watchdog_check` at 2026-10-01T02:43:30.507867Z
+- `watchdog_check` at 2026-10-01T02:48:30.520671Z
+- `sequence_reset` KT-8CEE47DC5194 at 2026-10-01T02:52:18.602845Z
+- `watchdog_check` at 2026-10-01T02:53:30.753037Z
+- `watchdog_check` at 2026-10-01T02:57:52.232741Z
 
 ### File freshness (minutes since last write)
 - `mqtt_live_predictions.json`: 0.0 min
 - `observation_audit.jsonl`: 0.0 min
-- `prediction_audit.jsonl`: 0.1 min
-- `prediction_verification.jsonl`: 0.0 min
+- `prediction_audit.jsonl`: 0.0 min
+- `prediction_verification.jsonl`: 30.1 min

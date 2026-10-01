@@ -98,6 +98,15 @@ prediction-model/data/weather_telemetry_current.csv
 # scratch arms and ablation runs kept for reproducibility of the analysis.
 prediction-model/data/candidate_artifacts_windfix/
 prediction-model/data/candidate_artifacts_leaky_olddata/
+# Same relationship as candidate_artifacts_windfix/: an experiment arm trained on
+# the refetched corpus, not a release candidate. Its manifest and scorecards are
+# the reproducible part; the binary checkpoints are rebuildable from the corpus
+# and the seed, and are not worth ~1.4MB of repository weight per arm.
+#
+# Ignored deliberately rather than by accident. A candidate that is NOT ignored
+# is a candidate someone could mistake for the release bundle, and the release
+# gate reads provenance from exactly these manifest files.
+prediction-model/data/candidate_artifacts_fresh/
 prediction-model/data/seed_sweep/
 prediction-model/data/seed_sweep_analysis.json
 prediction-model/data/nwp_benchmark_candidate_*.json

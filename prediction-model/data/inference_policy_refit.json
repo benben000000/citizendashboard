@@ -1,7 +1,7 @@
 {
   "policy_version": "2.0.0",
   "policy_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
-  "generated_at": "",
+  "generated_at": "2026-09-30T12:31:50.140967+00:00",
   "regenerated_by": "prediction-model/src/refit_policy.py",
   "regeneration_note": "Sources and calibration coefficients refitted from measured skill. Calibration fitted on TRAIN, source selection and shrinkage chosen on VALIDATION. The TEST split was not read during refitting.",
   "dataset_hashes": {
@@ -59,8 +59,8 @@
           "selected_on": "validation"
         },
         "wind_speed": {
-          "a": 0.686043,
-          "b": 0.553712,
+          "a": 0.685525,
+          "b": 0.558021,
           "lambda": 0.75,
           "fitted_on": "train",
           "selected_on": "validation"
@@ -89,8 +89,8 @@
           "selected_on": "validation"
         },
         "wind_speed": {
-          "a": 0.761377,
-          "b": 0.400885,
+          "a": 0.761467,
+          "b": 0.403127,
           "lambda": 0.5,
           "fitted_on": "train",
           "selected_on": "validation"
@@ -112,8 +112,8 @@
       "calibration_code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
       "calibration": {
         "wind_speed": {
-          "a": 0.674093,
-          "b": 0.498611,
+          "a": 0.673906,
+          "b": 0.499739,
           "lambda": 0.75,
           "fitted_on": "train",
           "selected_on": "validation"

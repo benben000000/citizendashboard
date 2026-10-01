@@ -23,3 +23,48 @@
 {"kind": "incomplete_frame", "recorded_at_utc": "2026-10-01T00:07:56.052854Z", "station_id": "KT-184AAD182EC8", "at": "2026-10-01T00:07:56.031580Z", "missing_fields": ["wind_direction_deg"], "note": "frames rejected: no forecast is possible from this station until the missing fields are published"}
 {"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:08:30.058491Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.3}
 {"kind": "incomplete_frame", "recorded_at_utc": "2026-10-01T00:08:37.552960Z", "station_id": "KT-A86039DC5194", "at": "2026-10-01T00:08:37.528418Z", "missing_fields": ["humidity_pct", "pressure_hpa", "rain_mm", "temperature_c", "wind_speed_kmh"], "note": "frames rejected: no forecast is possible from this station until the missing fields are published"}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T00:11:17.680809Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T00:11:17.642887Z", "gap_seconds": 180.0, "discarded_samples": 17, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:13:30.216151Z", "state": "HEALTHY", "reason": "cache 2s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.6}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:18:30.086606Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.9}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:23:08.727077Z", "state": "HEALTHY", "reason": "cache 5s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 5.2}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:23:30.143045Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.5}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:28:30.514595Z", "state": "HEALTHY", "reason": "cache 2s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.8}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:33:30.297211Z", "state": "HEALTHY", "reason": "cache 2s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.6}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T00:35:17.825376Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T00:35:17.804908Z", "gap_seconds": 180.0, "discarded_samples": 22, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:38:29.946813Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.2}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:43:30.660117Z", "state": "HEALTHY", "reason": "cache 2s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.9}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:48:30.234916Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.4}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:53:30.382203Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.4}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T00:54:17.898046Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T00:54:17.872722Z", "gap_seconds": 180.0, "discarded_samples": 17, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T00:58:30.102648Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.2}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:03:30.949374Z", "state": "HEALTHY", "reason": "cache 2s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 2.0}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T01:04:18.446563Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T01:04:18.414480Z", "gap_seconds": 180.5, "discarded_samples": 7, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:08:30.431324Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.5}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:13:30.455734Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.5}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:18:30.442035Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.4}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:23:30.517386Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.5}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:28:30.364922Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.3}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:33:30.890962Z", "state": "HEALTHY", "reason": "cache 2s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.8}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:38:30.390230Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.2}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:43:30.265074Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.1}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:48:30.655225Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.5}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:53:30.118765Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.9}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T01:55:18.629193Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T01:55:18.604997Z", "gap_seconds": 180.4, "discarded_samples": 24, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T01:58:30.238286Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.0}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T02:01:18.335030Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T02:01:18.311368Z", "gap_seconds": 180.0, "discarded_samples": 2, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:03:30.456183Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.1}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:08:30.388201Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.0}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:13:30.213983Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.9}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:18:30.218088Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.8}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:23:30.635992Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.2}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:26:20.774132Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.9}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:28:30.296229Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.9}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T02:31:18.461885Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T02:31:18.440128Z", "gap_seconds": 180.0, "discarded_samples": 24, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:33:30.354434Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.9}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:38:30.514283Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.0}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:43:30.507867Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.0}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:48:30.520671Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.9}
+{"kind": "sequence_reset", "recorded_at_utc": "2026-10-01T02:52:18.602845Z", "station_id": "KT-8CEE47DC5194", "at": "2026-10-01T02:52:18.576865Z", "gap_seconds": 180.0, "discarded_samples": 17, "limit_seconds": 180}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:53:30.753037Z", "state": "HEALTHY", "reason": "cache 1s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 1.2}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:57:52.232741Z", "state": "HEALTHY", "reason": "cache 11s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 11.5}
+{"kind": "watchdog_check", "recorded_at_utc": "2026-10-01T02:58:30.096985Z", "state": "HEALTHY", "reason": "cache 0s old, 2 process(es)", "pids": [14728, 18416], "cache_age_seconds": 0.5}

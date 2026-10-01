@@ -292,6 +292,65 @@ class StationHourClimatology:
 
 
 # ============================================================================
+# STAGE 3 -- proposed fix. DESCRIBED ONLY; deliberately NOT implemented.
+# model.py and train_predictive_quality.py are owned by other agents.
+# ============================================================================
+STAGE3_PROPOSAL = """
+ORDER MATTERS. Fix the measurement before touching the model. Flipping the policy
+on the strength of a benchmark that scores the policy is circular, so item 1 is a
+prerequisite for every other item being trustworthy.
+
+1) BENCHMARK (prediction-model/src/benchmark_vs_nwp.py -- owned by another agent).
+   Score `o["diagnostics"]["raw_learned_predictions"]["relative_humidity_pct"]`
+   instead of `o["relative_humidity_pct"]`. The latter is the POLICY OUTPUT: with
+   humidity routed to persistence_fallback, inference.py:694 replaces the head with
+   origin_humidity, so the "LNN" humidity row is persistence re-measured and can
+   never show skill. Adding a `humidity_policy_output` row alongside `humidity` would
+   make the substitution visible instead of silent. Same for temperature and pressure.
+
+2) POLICY (data/inference_policy.json, via refit_policy.py).
+   refit_policy already reads the raw head through raw_learned_predictions, so its
+   own selection is NOT circular -- but it uses MIN_MARGIN = 0.01 (1%). Measured
+   head margins on the training corpus are +11.5% (6h) and +26.6% (12h), which clear
+   1%; on the current corpus +12.3% (1h), +5.2% (3h), +32.4% (6h), +42.6% (12h).
+   Re-run the refit AFTER the benchmark fix and flip humidity to `learned_model` at
+   the horizons whose margin clears the threshold. Leave 24h on persistence: the head
+   delta sd ratio is 0.01 at 24h on BOTH corpora -- it emits an almost constant
+   residual, and no control beats persistence there.
+
+3) LOSS WEIGHT (train_predictive_quality.py:939 -- owned by another agent).
+   `loss_rh = 0.05 * smooth_l1(...)` against `loss_t = 1.0 * ...`: humidity receives
+   5% of one temperature head's gradient while sharing a 32-dim trunk, and
+   checkpoint selection divides humidity MAE by 10.0. Raise loss_rh to ~0.5-1.0 and
+   normalise the selection term by each head's own persistence baseline instead of
+   the hard-coded 10.0. Expect this to help; it is NOT the reason the head looked
+   useless, because the head was never actually scored.
+
+4) DISPERSION (model.py:471 `rh_head` -- owned by another agent).
+   Delta-sd ratio is 0.23 at 1h, 0.45 at 3h, ~0.77 at 6h/12h, but 0.01 at 24h: the
+   head is over-shrunk at short range and effectively constant at 24h. A per-head
+   learned affine on the delta fitted on TRAIN (the existing `{a,b}` calibration
+   mechanism already does this) recovers most of it -- measured optimal rescale
+   factors are 0.52-0.82 at 1-12h, i.e. the served head is systematically too
+   aggressive in amplitude, not too weak.
+
+5) THE REAL CEILING IS A TABULAR MODEL, NOT THE TRUNK.
+   A histogram GBDT on the SAME 75 features beats the neural head at every horizon
+   where humidity is beatable at all (3.88 vs 7.87 MAE at 6h on the current corpus;
+   4.52 vs 9.26 at 12h). `station_hour_climatology` -- a trivial per-(station, hour)
+   mean -- also beats persistence at 6h and 12h on the current corpus. The dominant
+   structure is the DIURNAL CYCLE plus station identity, not temporal dynamics.
+   The highest-leverage change is therefore to feed the candidate a learned delta
+   from a strong tabular model on the same features, or to replace the humidity head
+   with one, rather than to keep tuning trunk depth or CfC dynamics.
+
+6) WHAT NOT TO DO.
+   Do not re-tune the humidity head against the current benchmark numbers. They are
+   persistence. Any 'improvement' measured that way is unmeasurable by construction.
+"""
+
+
+# ============================================================================
 # helpers
 # ============================================================================
 def mae(a, b):
@@ -335,6 +394,22 @@ def _json_default(o):
     return str(o)
 
 
+def corpus_fingerprint(path):
+    """Pin the exact input. weather_telemetry_current.csv is a refetched corpus that
+    other agents can regenerate underneath a run, so a number without its input
+    hash is not reproducible."""
+    import hashlib
+    h = hashlib.sha256()
+    size = 0
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+            size += len(chunk)
+    return {"sha256": h.hexdigest(), "bytes": size,
+            "mtime_utc": datetime.fromtimestamp(os.path.getmtime(path),
+                                               timezone.utc).isoformat()}
+
+
 def build_windows(pipe, split, horizon, nm, ns, fm, fs, max_samples=None):
     from dataset import build_feature_augmented_forecast_windows, DEFAULT_SEQ_LEN
     res = build_feature_augmented_forecast_windows(
@@ -359,7 +434,7 @@ def _arrays(meta):
 # ============================================================================
 # STAGE 1 -- measure the raw humidity head (bypassing the serving policy)
 # ============================================================================
-def score_head(ckpt_path, pipe, horizon, verbose=True):
+def score_head(ckpt_path, pipe, horizon):
     import torch
     from model import GarciaWeatherLNNFeatured
 
@@ -419,17 +494,15 @@ def score_head(ckpt_path, pipe, horizon, verbose=True):
 # STAGE 0 -- prove the published "no skill" number is the serving path, not the head
 # ============================================================================
 def stage0_serving_artifact(pipe, horizons, cap):
-    import torch
     from dataset import build_forecast_windows, DEFAULT_SEQ_LEN
     from inference import LNNServerlessPredictor
 
     policy = {}
     try:
         with open(os.path.join(DATA, "inference_policy.json"), "r", encoding="utf-8") as fh:
-            for h in horizons:
-                policy[str(h)] = (json.load(open(os.path.join(DATA, "inference_policy.json"),
-                                                encoding="utf-8"))["horizons"]
-                                  .get(str(h), {}).get("selected_sources", {}).get("humidity"))
+            table = json.load(fh).get("horizons", {})
+        policy = {str(h): table.get(str(h), {}).get("selected_sources", {}).get("humidity")
+                  for h in horizons}
     except Exception:
         pass
 
@@ -540,19 +613,17 @@ def inspect_loss_weight():
     except Exception as exc:
         return {**out, "error": str(exc)}
 
-    m = re.search(r"^\s*(loss_rh\s*=\s*[0-9.]+\s*\*\s*nn\.functional\.smooth_l1_loss\([^)]*\))",
-                  src, re.M)
-    out["loss_rh_line"] = m.group(1).strip() if m else None
-    out["loss_rh_weight"] = float(m.group(1).split("=")[1].split("*")[0].strip()) if m else None
+    def _grab(name):
+        """Match `loss_x = [<w> *] nn.functional.smooth_l1_loss(...)`; w defaults to 1.0."""
+        m = re.search(r"^\s*(loss_%s\s*=\s*(?:([0-9.]+)\s*\*\s*)?"
+                      r"nn\.functional\.smooth_l1_loss\([^)]*\))" % name, src, re.M)
+        if not m:
+            return None, None
+        return m.group(1).strip(), float(m.group(2)) if m.group(2) else 1.0
 
-    m = re.search(r"^\s*(loss_t\s*=\s*[0-9.]+\s*\*\s*nn\.functional\.smooth_l1_loss\([^)]*\))",
-                  src, re.M)
-    out["loss_t_line"] = m.group(1).strip() if m else None
-    out["loss_t_weight"] = float(m.group(1).split("=")[1].split("*")[0].strip()) if m else None
-
-    m = re.search(r"^\s*(loss_p\s*=\s*[0-9.]+\s*\*\s*nn\.functional\.smooth_l1_loss\([^)]*\))",
-                  src, re.M)
-    out["loss_p_line"] = m.group(1).strip() if m else None
+    out["loss_rh_line"], out["loss_rh_weight"] = _grab("rh")
+    out["loss_t_line"], out["loss_t_weight"] = _grab("t")
+    out["loss_p_line"], out["loss_p_weight"] = _grab("p")
 
     out["total_loss_line"] = (re.search(r"^\s*(total_loss\s*=\s*.+)$", src, re.M) or
                               re.match(r"", "")).group(1).strip() or None
@@ -573,7 +644,6 @@ def inspect_loss_weight():
             "noise. Under-training is therefore expected -- but it is NOT the reason "
             "the head looked useless, because the head was never actually scored.")
     return out
-
 
 def context_feature_diagnostics(ctx, fm, fs, delta):
     from dataset import FEATURE_AUGMENTED_SCHEMA
@@ -715,6 +785,7 @@ def run_corpus(csv_path, label, horizons, args):
 
     out = {
         "label": label, "corpus_file": os.path.basename(csv_path),
+        "corpus_fingerprint": safe(lambda: corpus_fingerprint(csv_path)),
         "stations": int(len(pipe.station_hourly)),
         "range": [str(pipe.time_range_min), str(pipe.time_range_max)],
         "train_end": str(pipe.train_end), "test_start": str(pipe.test_start),
@@ -825,7 +896,15 @@ def main():
         "horizons": horizons,
         "policy_current_humidity_source": args.policy_humidity,
         "stage2_loss_weight": inspect_loss_weight(),
+        "stage3_proposed_fix_not_implemented": STAGE3_PROPOSAL,
         "sklearn_available": False,
+        "reproducibility_warning": (
+            "weather_telemetry_current.csv is a refetched corpus and can be regenerated "
+            "by other agents mid-run, which moves the chronological split boundaries and "
+            "therefore the numbers. Every corpus block carries a sha256/bytes fingerprint: "
+            "a result is only comparable against the same fingerprint. The "
+            "weather_telemetry.csv numbers are stable (file unchanged since 2026-08-28) "
+            "and are the ones the published benchmark used."),
         "sklearn_note": ("scikit-learn is not installed in this venv. The strong non-neural "
                          "control is a self-contained NumPy histogram gradient-boosted "
                          "regression tree (250 trees, lr 0.05, depth 3, 64 bins) plus the "

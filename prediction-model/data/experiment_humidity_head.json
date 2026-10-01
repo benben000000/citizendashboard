@@ -1,6 +1,6 @@
 {
   "experiment": "humidity_head_measure_diagnose_adjudicate",
-  "generated_at": "2026-09-30T10:53:36.747209+00:00",
+  "generated_at": "2026-09-30T11:29:12.885242+00:00",
   "python": "3.11.16",
   "numpy": "2.4.6",
   "torch": "2.13.0+cpu",
@@ -22,14 +22,19 @@
     "source": "train_predictive_quality.py",
     "loss_rh_line": "loss_rh = 0.05 * nn.functional.smooth_l1_loss(out[\"humidity\"], b_tgt_w[:, 1:2])",
     "loss_rh_weight": 0.05,
-    "loss_t_line": null,
-    "loss_t_weight": null,
+    "loss_t_line": "loss_t = nn.functional.smooth_l1_loss(out[\"temperature\"], b_tgt_w[:, 0:1])",
+    "loss_t_weight": 1.0,
     "loss_p_line": "loss_p = 0.1 * nn.functional.smooth_l1_loss(out[\"pressure\"], b_tgt_w[:, 2:3])",
+    "loss_p_weight": 0.1,
     "total_loss_line": "total_loss = loss_t + loss_rh + loss_p + loss_ws + 2.0 * loss_uv + 2.0 * loss_bce + loss_vol",
     "selection_divisor_line": "v_scores.append(float(np.mean(np.abs(v_rh - val_tgt_w_np[:, 1])) / 10.0))",
-    "selection_divisor": 10.0
+    "selection_divisor": 10.0,
+    "humidity_to_temperature_gradient_ratio": 0.05,
+    "note": "loss_rh is weighted 0.05 against loss_t 1.0: the humidity head receives 5% of one temperature head's gradient budget while sharing a single 32-dim trunk with it. Checkpoint selection then divides humidity MAE by 10.0, so an epoch that improves humidity substantially can still lose to temperature noise. Under-training is therefore expected -- but it is NOT the reason the head looked useless, because the head was never actually scored."
   },
+  "stage3_proposed_fix_not_implemented": "\nORDER MATTERS. Fix the measurement before touching the model. Flipping the policy\non the strength of a benchmark that scores the policy is circular, so item 1 is a\nprerequisite for every other item being trustworthy.\n\n1) BENCHMARK (prediction-model/src/benchmark_vs_nwp.py -- owned by another agent).\n   Score `o[\"diagnostics\"][\"raw_learned_predictions\"][\"relative_humidity_pct\"]`\n   instead of `o[\"relative_humidity_pct\"]`. The latter is the POLICY OUTPUT: with\n   humidity routed to persistence_fallback, inference.py:694 replaces the head with\n   origin_humidity, so the \"LNN\" humidity row is persistence re-measured and can\n   never show skill. Adding a `humidity_policy_output` row alongside `humidity` would\n   make the substitution visible instead of silent. Same for temperature and pressure.\n\n2) POLICY (data/inference_policy.json, via refit_policy.py).\n   refit_policy already reads the raw head through raw_learned_predictions, so its\n   own selection is NOT circular -- but it uses MIN_MARGIN = 0.01 (1%). Measured\n   head margins on the training corpus are +11.5% (6h) and +26.6% (12h), which clear\n   1%; on the current corpus +12.3% (1h), +5.2% (3h), +32.4% (6h), +42.6% (12h).\n   Re-run the refit AFTER the benchmark fix and flip humidity to `learned_model` at\n   the horizons whose margin clears the threshold. Leave 24h on persistence: the head\n   delta sd ratio is 0.01 at 24h on BOTH corpora -- it emits an almost constant\n   residual, and no control beats persistence there.\n\n3) LOSS WEIGHT (train_predictive_quality.py:939 -- owned by another agent).\n   `loss_rh = 0.05 * smooth_l1(...)` against `loss_t = 1.0 * ...`: humidity receives\n   5% of one temperature head's gradient while sharing a 32-dim trunk, and\n   checkpoint selection divides humidity MAE by 10.0. Raise loss_rh to ~0.5-1.0 and\n   normalise the selection term by each head's own persistence baseline instead of\n   the hard-coded 10.0. Expect this to help; it is NOT the reason the head looked\n   useless, because the head was never actually scored.\n\n4) DISPERSION (model.py:471 `rh_head` -- owned by another agent).\n   Delta-sd ratio is 0.23 at 1h, 0.45 at 3h, ~0.77 at 6h/12h, but 0.01 at 24h: the\n   head is over-shrunk at short range and effectively constant at 24h. A per-head\n   learned affine on the delta fitted on TRAIN (the existing `{a,b}` calibration\n   mechanism already does this) recovers most of it -- measured optimal rescale\n   factors are 0.52-0.82 at 1-12h, i.e. the served head is systematically too\n   aggressive in amplitude, not too weak.\n\n5) THE REAL CEILING IS A TABULAR MODEL, NOT THE TRUNK.\n   A histogram GBDT on the SAME 75 features beats the neural head at every horizon\n   where humidity is beatable at all (3.88 vs 7.87 MAE at 6h on the current corpus;\n   4.52 vs 9.26 at 12h). `station_hour_climatology` -- a trivial per-(station, hour)\n   mean -- also beats persistence at 6h and 12h on the current corpus. The dominant\n   structure is the DIURNAL CYCLE plus station identity, not temporal dynamics.\n   The highest-leverage change is therefore to feed the candidate a learned delta\n   from a strong tabular model on the same features, or to replace the humidity head\n   with one, rather than to keep tuning trunk depth or CfC dynamics.\n\n6) WHAT NOT TO DO.\n   Do not re-tune the humidity head against the current benchmark numbers. They are\n   persistence. Any 'improvement' measured that way is unmeasurable by construction.\n",
   "sklearn_available": false,
+  "reproducibility_warning": "weather_telemetry_current.csv is a refetched corpus and can be regenerated by other agents mid-run, which moves the chronological split boundaries and therefore the numbers. Every corpus block carries a sha256/bytes fingerprint: a result is only comparable against the same fingerprint. The weather_telemetry.csv numbers are stable (file unchanged since 2026-08-28) and are the ones the published benchmark used.",
   "sklearn_note": "scikit-learn is not installed in this venv. The strong non-neural control is a self-contained NumPy histogram gradient-boosted regression tree (250 trees, lr 0.05, depth 3, 64 bins) plus the repository's own GBM and Ridge, plus a station x hour climatology.",
   "stage0_serving_artifact": {
     "claim": "published LNN-production humidity MAE == persistence MAE because the serving policy discards the head output",
@@ -49,59 +54,59 @@
     },
     "per_horizon": {
       "1": {
-        "n_sampled": 150,
+        "n_sampled": 200,
         "policy_sourced": "persistence_fallback",
-        "served_mae": 50.242298866666665,
-        "persistence_mae_same_rows": 1.8030857333333343,
-        "raw_head_mae_same_rows": 49.68896553333334,
-        "served_equals_round_origin": false,
-        "served_minus_persistence": 48.43921313333333,
-        "raw_head_beats_persistence": false,
-        "raw_head_improvement_pct": -2655.773872242569
+        "served_mae": 2.0450797000000005,
+        "persistence_mae_same_rows": 2.041855950000001,
+        "raw_head_mae_same_rows": 1.9079298,
+        "served_equals_round_origin": true,
+        "served_minus_persistence": 0.0032237499999996366,
+        "raw_head_beats_persistence": true,
+        "raw_head_improvement_pct": 6.559040073321568
       },
       "3": {
-        "n_sampled": 150,
+        "n_sampled": 200,
         "policy_sourced": "persistence_fallback",
-        "served_mae": 50.97334093333333,
-        "persistence_mae_same_rows": 3.7665124666666663,
-        "raw_head_mae_same_rows": 49.61134093333334,
-        "served_equals_round_origin": false,
-        "served_minus_persistence": 47.206828466666664,
-        "raw_head_beats_persistence": false,
-        "raw_head_improvement_pct": -1217.1691683590518
+        "served_mae": 4.4413531,
+        "persistence_mae_same_rows": 4.438608650000001,
+        "raw_head_mae_same_rows": 3.679205900000001,
+        "served_equals_round_origin": true,
+        "served_minus_persistence": 0.002744449999998899,
+        "raw_head_beats_persistence": true,
+        "raw_head_improvement_pct": 17.109026946991595
       },
       "6": {
-        "n_sampled": 150,
+        "n_sampled": 200,
         "policy_sourced": "persistence_fallback",
-        "served_mae": 52.32425826666668,
-        "persistence_mae_same_rows": 6.661941933333333,
-        "raw_head_mae_same_rows": 49.85326466666667,
-        "served_equals_round_origin": false,
-        "served_minus_persistence": 45.66231633333335,
-        "raw_head_beats_persistence": false,
-        "raw_head_improvement_pct": -648.3293184712938
+        "served_mae": 7.2205904,
+        "persistence_mae_same_rows": 7.22196455,
+        "raw_head_mae_same_rows": 6.233882099999999,
+        "served_equals_round_origin": true,
+        "served_minus_persistence": -0.001374150000000185,
+        "raw_head_beats_persistence": true,
+        "raw_head_improvement_pct": 13.681629744360919
       },
       "12": {
-        "n_sampled": 150,
+        "n_sampled": 200,
         "policy_sourced": "persistence_fallback",
-        "served_mae": 52.80934626666666,
-        "persistence_mae_same_rows": 9.659449466666667,
-        "raw_head_mae_same_rows": 40.1704788,
-        "served_equals_round_origin": false,
-        "served_minus_persistence": 43.14989679999999,
-        "raw_head_beats_persistence": false,
-        "raw_head_improvement_pct": -315.8671665359645
+        "served_mae": 9.51707645,
+        "persistence_mae_same_rows": 9.52052755,
+        "raw_head_mae_same_rows": 6.469421850000001,
+        "served_equals_round_origin": true,
+        "served_minus_persistence": -0.0034511000000012615,
+        "raw_head_beats_persistence": true,
+        "raw_head_improvement_pct": 32.04765370381182
       },
       "24": {
-        "n_sampled": 150,
+        "n_sampled": 200,
         "policy_sourced": "persistence_fallback",
-        "served_mae": 55.83942313333333,
-        "persistence_mae_same_rows": 6.495359333333332,
-        "raw_head_mae_same_rows": 55.18627940000001,
-        "served_equals_round_origin": false,
-        "served_minus_persistence": 49.344063799999994,
-        "raw_head_beats_persistence": false,
-        "raw_head_improvement_pct": -749.6262726650281
+        "served_mae": 5.6264788999999995,
+        "persistence_mae_same_rows": 5.623374799999999,
+        "raw_head_mae_same_rows": 5.039394199999999,
+        "served_equals_round_origin": true,
+        "served_minus_persistence": 0.00310410000000072,
+        "raw_head_beats_persistence": true,
+        "raw_head_improvement_pct": 10.384877778376065
       }
     },
     "conclusion": "The published humidity MAE is persistence re-measured through the serving path. It is a tautology and says nothing about the head. The raw head, read from diagnostics.raw_learned_predictions, does beat persistence on the same rows."
@@ -110,24 +115,29 @@
     "primary (corpus named in the brief)": {
       "label": "primary (corpus named in the brief)",
       "corpus_file": "weather_telemetry_current.csv",
-      "stations": 15,
+      "corpus_fingerprint": {
+        "sha256": "938912148be8af9902a2a1871c70de79538fd52f23695a79473fff09d6c4816b",
+        "bytes": 6319385,
+        "mtime_utc": "2026-09-30T11:12:41.667088+00:00"
+      },
+      "stations": 16,
       "range": [
         "2026-06-20 00:00:00+00:00",
-        "2026-09-29 23:00:00+00:00"
+        "2026-09-30 11:00:00+00:00"
       ],
-      "train_end": "2026-08-20 04:00:00+00:00",
-      "test_start": "2026-09-11 14:00:00+00:00",
+      "train_end": "2026-08-20 12:00:00+00:00",
+      "test_start": "2026-09-12 00:00:00+00:00",
       "stage1_measure": {
         "1": {
-          "n_test": 3209,
-          "candidate_mae": 2.2133335554566247,
-          "persistence_mae": 2.5241080107876495,
-          "relative_improvement_pct": 12.312248683607141,
+          "n_test": 3593,
+          "candidate_mae": 2.417084053912412,
+          "persistence_mae": 2.743587611509125,
+          "relative_improvement_pct": 11.900606207254231,
           "beats_persistence": true,
-          "candidate_bias": 0.7092364951566764,
-          "persistence_bias": -0.004937163241289898,
-          "rmse_candidate": 3.7010763118072254,
-          "clamp_saturation_fraction": 0.03552508569647865,
+          "candidate_bias": 0.7487831589083656,
+          "persistence_bias": -0.010512440158776367,
+          "rmse_candidate": 3.942158069733851,
+          "clamp_saturation_fraction": 0.026718619537990537,
           "manifest": {
             "checkpoint": "candidate_h1h.pt",
             "horizon_hours": 1,
@@ -139,15 +149,15 @@
           "manifest_train_weather_sha256": "86ce906453aa071e"
         },
         "3": {
-          "n_test": 3177,
-          "candidate_mae": 6.223668754563729,
-          "persistence_mae": 6.567839409229835,
-          "relative_improvement_pct": 5.240241626225523,
+          "n_test": 3556,
+          "candidate_mae": 6.762168187637285,
+          "persistence_mae": 7.133942576749975,
+          "relative_improvement_pct": 5.211345411222246,
           "beats_persistence": true,
-          "candidate_bias": 4.988494544410233,
-          "persistence_bias": -0.04342385064712541,
-          "rmse_candidate": 8.79589006421094,
-          "clamp_saturation_fraction": 0.3031161473087819,
+          "candidate_bias": 5.380495092939214,
+          "persistence_bias": -0.04331306343693468,
+          "rmse_candidate": 9.430636178385004,
+          "clamp_saturation_fraction": 0.26631046119235097,
           "manifest": {
             "checkpoint": "candidate_h3h.pt",
             "horizon_hours": 3,
@@ -159,15 +169,15 @@
           "manifest_train_weather_sha256": "86ce906453aa071e"
         },
         "6": {
-          "n_test": 3132,
-          "candidate_mae": 7.872554500373131,
-          "persistence_mae": 11.644767476458773,
-          "relative_improvement_pct": 32.39406011078882,
+          "n_test": 3506,
+          "candidate_mae": 8.71058083879379,
+          "persistence_mae": 12.430002945329,
+          "relative_improvement_pct": 29.9229382558828,
           "beats_persistence": true,
-          "candidate_bias": 7.460173026758032,
-          "persistence_bias": -0.06576320430637464,
-          "rmse_candidate": 10.574238116706548,
-          "clamp_saturation_fraction": 0.4339080459770115,
+          "candidate_bias": 8.275070088996422,
+          "persistence_bias": 0.007191650443492523,
+          "rmse_candidate": 11.635377620912863,
+          "clamp_saturation_fraction": 0.399030233884769,
           "manifest": {
             "checkpoint": "candidate_h6h.pt",
             "horizon_hours": 6,
@@ -179,15 +189,15 @@
           "manifest_train_weather_sha256": "86ce906453aa071e"
         },
         "12": {
-          "n_test": 3046,
-          "candidate_mae": 9.261777477162221,
-          "persistence_mae": 16.124381440188337,
-          "relative_improvement_pct": 42.56041689712073,
+          "n_test": 3411,
+          "candidate_mae": 10.591180670737758,
+          "persistence_mae": 16.90592458453641,
+          "relative_improvement_pct": 37.35225412974249,
           "beats_persistence": true,
-          "candidate_bias": 9.118677670340839,
-          "persistence_bias": -0.038948310854059066,
-          "rmse_candidate": 12.339354928982731,
-          "clamp_saturation_fraction": 0.5840446487196324,
+          "candidate_bias": 10.460951579939263,
+          "persistence_bias": 0.2532063279598677,
+          "rmse_candidate": 14.062181925751496,
+          "clamp_saturation_fraction": 0.5848724714160071,
           "manifest": {
             "checkpoint": "candidate_h12h.pt",
             "horizon_hours": 12,
@@ -199,15 +209,15 @@
           "manifest_train_weather_sha256": "86ce906453aa071e"
         },
         "24": {
-          "n_test": 2891,
-          "candidate_mae": 3.1971857983946363,
-          "persistence_mae": 3.1990362763074933,
-          "relative_improvement_pct": 0.05784485554483611,
+          "n_test": 3235,
+          "candidate_mae": 3.5975268505402433,
+          "persistence_mae": 3.59805874957319,
+          "relative_improvement_pct": 0.014782944636740835,
           "beats_persistence": true,
-          "candidate_bias": 0.12154553084827027,
-          "persistence_bias": 0.061418901218849214,
-          "rmse_candidate": 5.28318989852917,
-          "clamp_saturation_fraction": 0.0017295053614666206,
+          "candidate_bias": 0.26271459103439876,
+          "persistence_bias": 0.19514135079740813,
+          "rmse_candidate": 5.826708093277814,
+          "clamp_saturation_fraction": 0.0012364760432766616,
           "manifest": {
             "checkpoint": "candidate_h24h.pt",
             "horizon_hours": 24,
@@ -222,318 +232,318 @@
       "stage1_distribution": {
         "1": {
           "prediction": {
-            "mean": 88.0530371019572,
-            "sd": 11.5617359763568,
-            "min": 53.419464111328125,
+            "mean": 86.55647401201868,
+            "sd": 12.30371057077914,
+            "min": 49.47063446044922,
             "max": 100.0,
-            "p05": 63.17799682617188,
-            "p50": 92.00780487060547,
-            "p95": 99.86217803955078
+            "p05": 61.249375915527345,
+            "p50": 90.71643829345703,
+            "p95": 99.7240966796875
           },
           "target": {
-            "mean": 87.34380060680053,
-            "sd": 11.814266446459998,
-            "min": 50.77262049999999,
+            "mean": 85.80769085311032,
+            "sd": 12.583505268538255,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 62.12316103333334,
-            "p50": 91.27860449999999,
-            "p95": 99.5056235
+            "p05": 60.024414133333345,
+            "p50": 90.01332000000001,
+            "p95": 99.31691350000001
           },
           "origin_persistence": {
-            "mean": 87.33886344355923,
-            "sd": 11.845725987011257,
-            "min": 50.77262049999999,
+            "mean": 85.79717841295152,
+            "sd": 12.6038431035983,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 62.0043235,
-            "p50": 91.29078649999995,
-            "p95": 99.50676256666667
+            "p05": 59.99186103333334,
+            "p50": 90.01566550000001,
+            "p95": 99.32415686666666
           },
           "predicted_delta": {
-            "mean": 0.7141736583979663,
-            "sd": 0.9688842044487017,
-            "min": -1.9873708051757575,
+            "mean": 0.7592955990671421,
+            "sd": 1.000476279922751,
+            "min": -9.743516409993518,
             "max": 4.846339870605469,
-            "p05": -0.43491610930992125,
-            "p50": 0.4636964011756959,
-            "p95": 2.7261596232422125
+            "p05": -0.40121275452470956,
+            "p50": 0.48767200830079105,
+            "p95": 2.8001121680663985
           },
           "true_delta": {
-            "mean": 0.004937163241289898,
-            "sd": 4.1392380365256125,
-            "min": -16.14187166666666,
-            "max": 29.88739299999999,
-            "p05": -7.248562260796627,
-            "p50": 0.1580611666666698,
-            "p95": 6.1698590666666675
+            "mean": 0.010512440158776367,
+            "sd": 4.386457981468008,
+            "min": -16.141871666666674,
+            "max": 29.887393000000017,
+            "p05": -7.646255899999996,
+            "p50": 0.16417583333334562,
+            "p95": 6.750819200000025
           },
-          "pred_delta_sd_ratio": 0.23407308202597651,
-          "clamp_saturation_fraction": 0.03552508569647865
+          "pred_delta_sd_ratio": 0.22808295078844532,
+          "clamp_saturation_fraction": 0.026718619537990537
         },
         "3": {
           "prediction": {
-            "mean": 92.35472556004031,
-            "sd": 9.611666530028174,
+            "mean": 91.26009785123296,
+            "sd": 10.249043053946629,
             "min": 60.43199920654297,
             "max": 100.0,
-            "p05": 70.69188385009765,
-            "p50": 96.43580627441406,
+            "p05": 69.25411796569824,
+            "p50": 95.34043502807617,
             "p95": 100.0
           },
           "target": {
-            "mean": 87.36623101563008,
-            "sd": 11.78769769240612,
-            "min": 50.77262049999999,
+            "mean": 85.87960275829373,
+            "sd": 12.587630312383148,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 62.1815216,
-            "p50": 91.27860449999999,
-            "p95": 99.49231933333331
+            "p05": 59.997690958333344,
+            "p50": 90.13757266666667,
+            "p95": 99.33276758333334
           },
           "origin_persistence": {
-            "mean": 87.32280716498295,
-            "sd": 11.85106868839887,
-            "min": 50.77262049999999,
+            "mean": 85.83628969485679,
+            "sd": 12.620473115827991,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 62.038776500000004,
-            "p50": 91.28789983333336,
-            "p95": 99.50672229999999
+            "p05": 59.96189061864408,
+            "p50": 90.07158999999999,
+            "p95": 99.33276758333334
           },
           "predicted_delta": {
-            "mean": 5.0319183950573585,
-            "sd": 4.420372363806007,
-            "min": -4.688092639160146,
-            "max": 17.03067242008464,
-            "p05": -0.19092611894533604,
-            "p50": 3.9119099804687636,
-            "p95": 13.568843120800782
+            "mean": 5.423808156376148,
+            "sd": 4.511815567865345,
+            "min": -4.6880926391601605,
+            "max": 17.32879112467449,
+            "p05": 0.0,
+            "p50": 4.33211609733074,
+            "p95": 13.979622677775076
           },
           "true_delta": {
-            "mean": 0.04342385064712541,
-            "sd": 9.837815439407894,
-            "min": -31.777339000000033,
-            "max": 43.24039550000003,
-            "p05": -18.881212199999986,
-            "p50": 0.5832699999999562,
-            "p95": 15.931274066666663
+            "mean": 0.04331306343693468,
+            "sd": 10.390732607973726,
+            "min": -31.777338999999998,
+            "max": 43.24039550000001,
+            "p05": -19.632878791666684,
+            "p50": 0.6441098333333493,
+            "p95": 17.321469875000005
           },
-          "pred_delta_sd_ratio": 0.4493245874586213,
-          "clamp_saturation_fraction": 0.3031161473087819
+          "pred_delta_sd_ratio": 0.4342153472800398,
+          "clamp_saturation_fraction": 0.26631046119235097
         },
         "6": {
           "prediction": {
-            "mean": 94.78671730158429,
-            "sd": 6.932597376483058,
+            "mean": 94.27322820520918,
+            "sd": 7.152948743293047,
             "min": 66.47657012939453,
             "max": 100.0,
-            "p05": 80.02035140991211,
-            "p50": 98.20162200927734,
+            "p05": 79.30942916870117,
+            "p50": 97.48824691772461,
             "p95": 100.0
           },
           "target": {
-            "mean": 87.32654427482628,
-            "sd": 11.799302124412584,
-            "min": 50.77262049999999,
+            "mean": 85.99815811621275,
+            "sd": 12.567313692564372,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 62.09136240833334,
-            "p50": 91.21572483333334,
-            "p95": 99.48565821666666
+            "p05": 60.037956416666674,
+            "p50": 90.27614425,
+            "p95": 99.35235291666665
           },
           "origin_persistence": {
-            "mean": 87.26078107051987,
-            "sd": 11.877060852308784,
-            "min": 50.77262049999999,
+            "mean": 86.00534976665624,
+            "sd": 12.500219860313635,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 62.017243375,
-            "p50": 91.2276525,
-            "p95": 99.505219
+            "p05": 60.30448495833335,
+            "p50": 90.25733666666665,
+            "p95": 99.34054416666666
           },
           "predicted_delta": {
-            "mean": 7.525936231064409,
-            "sd": 12.075522914503166,
+            "mean": 8.267878438552927,
+            "sd": 12.284178046056645,
             "min": -21.974901221842444,
             "max": 43.050538270833336,
-            "p05": -9.9552363175293,
-            "p50": 4.9985376220531705,
-            "p95": 31.188529449218727
+            "p05": -9.182521770467101,
+            "p50": 5.722571992757167,
+            "p95": 31.78866539245606
           },
           "true_delta": {
-            "mean": 0.06576320430637464,
-            "sd": 15.599865275715269,
-            "min": -44.86427633333331,
-            "max": 47.358831166666626,
-            "p05": -29.653727783333334,
-            "p50": 1.3916380833333122,
-            "p95": 25.701776575000014
+            "mean": -0.007191650443492523,
+            "sd": 16.373186813756316,
+            "min": -44.86427633333334,
+            "max": 50.673150000000014,
+            "p05": -30.721370083333312,
+            "p50": 1.5189990833333482,
+            "p95": 26.39005925
           },
-          "pred_delta_sd_ratio": 0.7740786667755046,
-          "clamp_saturation_fraction": 0.4339080459770115
+          "pred_delta_sd_ratio": 0.7502618876696506,
+          "clamp_saturation_fraction": 0.399030233884769
         },
         "12": {
           "prediction": {
-            "mean": 96.30607112801866,
-            "sd": 5.513882758901841,
+            "mean": 96.52096096185322,
+            "sd": 5.318516521994691,
             "min": 73.6574935913086,
             "max": 100.0,
-            "p05": 84.49408721923828,
+            "p05": 84.99612808227539,
             "p50": 100.0,
             "p95": 100.0
           },
           "target": {
-            "mean": 87.18739345767783,
-            "sd": 11.889039944126264,
-            "min": 50.77262049999999,
+            "mean": 86.06000938191397,
+            "sd": 12.575264121879405,
+            "min": 47.47277433333332,
             "max": 100.0,
-            "p05": 61.890675500000015,
-            "p50": 91.12256051754385,
-            "p95": 99.47537612500001
+            "p05": 60.16586266666667,
+            "p50": 90.35662933333333,
+            "p95": 99.393645
           },
           "origin_persistence": {
-            "mean": 87.14844514682378,
-            "sd": 11.972892721707005,
-            "min": 50.77262049999999,
+            "mean": 86.31321570987383,
+            "sd": 12.31773353882442,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 61.94341358333334,
-            "p50": 91.18751316666669,
-            "p95": 99.51266504166665
+            "p05": 60.70976033333332,
+            "p50": 90.46796966666668,
+            "p95": 99.35111991666666
           },
           "predicted_delta": {
-            "mean": 9.157625981194899,
-            "sd": 15.074275571484241,
+            "mean": 10.207745251979395,
+            "sd": 15.268788741270127,
             "min": -18.494520449218754,
-            "max": 48.997379999999986,
-            "p05": -10.33148522509767,
-            "p50": 6.350035583333337,
-            "p95": 38.047914375000005
+            "max": 52.52722566666668,
+            "p05": -10.06520625227865,
+            "p50": 7.355700666666607,
+            "p95": 39.24044475000001
           },
           "true_delta": {
-            "mean": 0.038948310854059066,
-            "sd": 19.33929302452944,
+            "mean": -0.2532063279598677,
+            "sd": 20.176967398851215,
             "min": -46.82554133333333,
-            "max": 48.19614533333334,
-            "p05": -31.95025641666668,
-            "p50": 0.10080566666664481,
-            "p95": 31.480238653248563
+            "max": 51.288623333333355,
+            "p05": -33.18267533333332,
+            "p50": -0.1367638333333332,
+            "p95": 32.14995226271189
           },
-          "pred_delta_sd_ratio": 0.779463631496996,
-          "clamp_saturation_fraction": 0.5840446487196324
+          "pred_delta_sd_ratio": 0.7567434907061139,
+          "clamp_saturation_fraction": 0.5848724714160071
         },
         "24": {
           "prediction": {
-            "mean": 87.57973429555507,
-            "sd": 11.813652828707397,
-            "min": 50.909671783447266,
+            "mean": 86.16101073275394,
+            "sd": 12.39022948831575,
+            "min": 46.83165740966797,
             "max": 100.0,
-            "p05": 62.33586883544922,
-            "p50": 91.6877212524414,
-            "p95": 99.53409957885742
+            "p05": 60.79163703918457,
+            "p50": 90.4195327758789,
+            "p95": 99.33991317749023
           },
           "target": {
-            "mean": 87.4581887647068,
-            "sd": 11.820831576068512,
-            "min": 50.77262049999999,
+            "mean": 85.89829614171953,
+            "sd": 12.557286285661284,
+            "min": 47.47277433333332,
             "max": 100.0,
-            "p05": 62.212482083333335,
-            "p50": 91.42146533333333,
-            "p95": 99.52978725000003
+            "p05": 60.26328546666667,
+            "p50": 90.21070166666667,
+            "p95": 99.33777338333333
           },
           "origin_persistence": {
-            "mean": 87.51960766592566,
-            "sd": 11.84544589603172,
-            "min": 50.77262049999999,
+            "mean": 86.09343749251694,
+            "sd": 12.422267235541115,
+            "min": 46.661250166666655,
             "max": 100.0,
-            "p05": 62.21930882142857,
-            "p50": 91.63134283333335,
-            "p95": 99.51157141666667
+            "p05": 60.6773704,
+            "p50": 90.35655299999999,
+            "p95": 99.3230519
           },
           "predicted_delta": {
-            "mean": 0.060126629629421065,
-            "sd": 0.047161790742904795,
-            "min": -0.08585497119139518,
-            "max": 0.16936875606413082,
-            "p05": -0.017498525065100523,
-            "p50": 0.059263137858067694,
-            "p95": 0.13455851585861822
+            "mean": 0.06757324023699067,
+            "sd": 0.04727737510187074,
+            "min": -0.062254678222657844,
+            "max": 0.17621660416665463,
+            "p05": -0.012954296289065326,
+            "p50": 0.06743071158855685,
+            "p95": 0.14086469248045003
           },
           "true_delta": {
-            "mean": -0.061418901218849214,
-            "sd": 5.28678785450662,
+            "mean": -0.19514135079740813,
+            "sd": 5.825032343145191,
             "min": -38.516551000000014,
-            "max": 42.31497833333334,
-            "p05": -7.972419499999994,
-            "p50": -0.08026266666672655,
-            "p95": 7.975876227011483
+            "max": 48.62543000000003,
+            "p05": -9.196573633333328,
+            "p50": -0.15948316666667495,
+            "p95": 8.372663099999988
           },
-          "pred_delta_sd_ratio": 0.008920689091525139,
-          "clamp_saturation_fraction": 0.0017295053614666206
+          "pred_delta_sd_ratio": 0.008116242505933213,
+          "clamp_saturation_fraction": 0.0012364760432766616
         }
       },
       "stage1_underdispersion": {
         "1": {
-          "delta_sd_pred": 0.9688842044487017,
-          "delta_sd_target": 4.1392380365256125,
-          "delta_sd_ratio": 0.23407308202597651,
-          "delta_corr_pred_vs_target": 0.608047471672017,
-          "delta_r2": 0.20050587784513596,
-          "pred_sd_vs_target_sd": 0.9786249555782733,
+          "delta_sd_pred": 1.000476279922751,
+          "delta_sd_target": 4.386457981468008,
+          "delta_sd_ratio": 0.22808295078844532,
+          "delta_corr_pred_vs_target": 0.5995187229762903,
+          "delta_r2": 0.19231852587838083,
+          "pred_sd_vs_target_sd": 0.977764963594153,
           "verdict": "UNDER_DISPERSED: real but heavily shrunk signal (delta sd is 0.23x target). Mean regression; amplification or a variance-aware loss helps.",
-          "optimal_rescale_alpha": 1.1300000000000001,
-          "mae_at_optimal_alpha": 2.2104580944859027,
-          "persistence_mae": 2.5241080107876495,
+          "optimal_rescale_alpha": 1.1500000000000001,
+          "mae_at_optimal_alpha": 2.411986799584582,
+          "persistence_mae": 2.743587611509125,
           "rescaling_beats_persistence": true,
           "optimal_alpha_below_one": false
         },
         "3": {
-          "delta_sd_pred": 4.420372363806007,
-          "delta_sd_target": 9.837815439407894,
-          "delta_sd_ratio": 0.4493245874586213,
-          "delta_corr_pred_vs_target": 0.734012266469998,
-          "delta_r2": 0.20060349759751306,
-          "pred_sd_vs_target_sd": 0.8153981193647517,
-          "verdict": "VARIANCE_OK: delta spread 0.45x target with correlation +0.734. The head is neither empty nor collapsed to the mean.",
-          "optimal_rescale_alpha": 0.54,
-          "mae_at_optimal_alpha": 5.513350682994765,
-          "persistence_mae": 6.567839409229835,
+          "delta_sd_pred": 4.511815567865345,
+          "delta_sd_target": 10.390732607973726,
+          "delta_sd_ratio": 0.4342153472800398,
+          "delta_corr_pred_vs_target": 0.7288297154408591,
+          "delta_r2": 0.17626097112825012,
+          "pred_sd_vs_target_sd": 0.8142154479913569,
+          "verdict": "VARIANCE_OK: delta spread 0.43x target with correlation +0.729. The head is neither empty nor collapsed to the mean.",
+          "optimal_rescale_alpha": 0.55,
+          "mae_at_optimal_alpha": 6.034239725720303,
+          "persistence_mae": 7.133942576749975,
           "rescaling_beats_persistence": true,
           "optimal_alpha_below_one": true
         },
         "6": {
-          "delta_sd_pred": 12.075522914503166,
-          "delta_sd_target": 15.599865275715269,
-          "delta_sd_ratio": 0.7740786667755046,
-          "delta_corr_pred_vs_target": 0.8839044839044481,
-          "delta_r2": 0.5405307237320778,
-          "pred_sd_vs_target_sd": 0.5875430007118485,
-          "verdict": "VARIANCE_OK: delta spread 0.77x target with correlation +0.884. The head is neither empty nor collapsed to the mean.",
-          "optimal_rescale_alpha": 0.73,
-          "mae_at_optimal_alpha": 6.926567170757582,
-          "persistence_mae": 11.644767476458773,
+          "delta_sd_pred": 12.284178046056645,
+          "delta_sd_target": 16.373186813756316,
+          "delta_sd_ratio": 0.7502618876696506,
+          "delta_corr_pred_vs_target": 0.8752425054576327,
+          "delta_r2": 0.49499633346241023,
+          "pred_sd_vs_target_sd": 0.5691708600800813,
+          "verdict": "VARIANCE_OK: delta spread 0.75x target with correlation +0.875. The head is neither empty nor collapsed to the mean.",
+          "optimal_rescale_alpha": 0.71,
+          "mae_at_optimal_alpha": 7.6302555359234425,
+          "persistence_mae": 12.430002945329,
           "rescaling_beats_persistence": true,
           "optimal_alpha_below_one": true
         },
         "12": {
-          "delta_sd_pred": 15.074275571484241,
-          "delta_sd_target": 19.33929302452944,
-          "delta_sd_ratio": 0.779463631496996,
-          "delta_corr_pred_vs_target": 0.9126680759090617,
-          "delta_r2": 0.5928975412850799,
-          "pred_sd_vs_target_sd": 0.46377863854565937,
-          "verdict": "VARIANCE_OK: delta spread 0.78x target with correlation +0.913. The head is neither empty nor collapsed to the mean.",
-          "optimal_rescale_alpha": 0.8200000000000001,
-          "mae_at_optimal_alpha": 8.442686925607406,
-          "persistence_mae": 16.124381440188337,
+          "delta_sd_pred": 15.268788741270127,
+          "delta_sd_target": 20.176967398851215,
+          "delta_sd_ratio": 0.7567434907061139,
+          "delta_corr_pred_vs_target": 0.8957678485041997,
+          "delta_r2": 0.5142714401581363,
+          "pred_sd_vs_target_sd": 0.4229347765937679,
+          "verdict": "VARIANCE_OK: delta spread 0.76x target with correlation +0.896. The head is neither empty nor collapsed to the mean.",
+          "optimal_rescale_alpha": 0.8,
+          "mae_at_optimal_alpha": 9.565726183180377,
+          "persistence_mae": 16.90592458453641,
           "rescaling_beats_persistence": true,
           "optimal_alpha_below_one": true
         },
         "24": {
-          "delta_sd_pred": 0.047161790742904795,
-          "delta_sd_target": 5.28678785450662,
-          "delta_sd_ratio": 0.008920689091525139,
-          "delta_corr_pred_vs_target": 0.11034953274868521,
-          "delta_r2": 0.0013606491392892384,
-          "pred_sd_vs_target_sd": 0.9993927036930592,
+          "delta_sd_pred": 0.04727737510187074,
+          "delta_sd_target": 5.825032343145191,
+          "delta_sd_ratio": 0.008116242505933213,
+          "delta_corr_pred_vs_target": 0.09391822575035927,
+          "delta_r2": -0.0005754444179832952,
+          "pred_sd_vs_target_sd": 0.9866964252032471,
           "verdict": "UNDER_DISPERSED: real but heavily shrunk signal (delta sd is 0.01x target). Mean regression; amplification or a variance-aware loss helps.",
-          "optimal_rescale_alpha": 2.35,
-          "mae_at_optimal_alpha": 3.1963225170967537,
-          "persistence_mae": 3.1990362763074933,
+          "optimal_rescale_alpha": 0.97,
+          "mae_at_optimal_alpha": 3.5975259774711077,
+          "persistence_mae": 3.59805874957319,
           "rescaling_beats_persistence": true,
           "optimal_alpha_below_one": false
         }
@@ -559,82 +569,82 @@
               {
                 "index": 5,
                 "name": "humidity_lag_12h",
-                "sd_normalised": 0.9385083121947109,
+                "sd_normalised": 0.9639492295764315,
                 "sd_raw_from_train": 12.84515380859375,
                 "degenerate": false,
-                "corr_with_delta": 0.017390409555584418
+                "corr_with_delta": 0.022896748283611174
               },
               {
                 "index": 6,
                 "name": "humidity_lag_1h",
-                "sd_normalised": 0.9462592892083549,
+                "sd_normalised": 1.0063090800149714,
                 "sd_raw_from_train": 12.54446029663086,
                 "degenerate": false,
-                "corr_with_delta": -0.3651111257772886
+                "corr_with_delta": -0.3623039810167419
               },
               {
                 "index": 7,
                 "name": "humidity_lag_24h",
-                "sd_normalised": 0.9114682305062359,
+                "sd_normalised": 0.9485365565653109,
                 "sd_raw_from_train": 13.015578269958496,
                 "degenerate": false,
-                "corr_with_delta": 0.09834020205186879
+                "corr_with_delta": 0.10989314750836288
               },
               {
                 "index": 8,
                 "name": "humidity_lag_3h",
-                "sd_normalised": 0.944488518543054,
+                "sd_normalised": 1.0026500977717807,
                 "sd_raw_from_train": 12.600611686706543,
                 "degenerate": false,
-                "corr_with_delta": -0.5022463164133274
+                "corr_with_delta": -0.5018108642732961
               },
               {
                 "index": 9,
                 "name": "humidity_lag_6h",
-                "sd_normalised": 0.941195812280257,
+                "sd_normalised": 0.9819741155577257,
                 "sd_raw_from_train": 12.695402145385742,
                 "degenerate": false,
-                "corr_with_delta": -0.4153217879395264
+                "corr_with_delta": -0.4294037802796847
               },
               {
                 "index": 10,
                 "name": "humidity_mean_12h",
-                "sd_normalised": 0.8710955572208149,
+                "sd_normalised": 0.9103138811077557,
                 "sd_raw_from_train": 9.6023530960083,
                 "degenerate": false,
-                "corr_with_delta": -0.4452021393198118
+                "corr_with_delta": -0.45459024261371456
               },
               {
                 "index": 11,
                 "name": "humidity_mean_24h",
-                "sd_normalised": 0.7372127476993189,
+                "sd_normalised": 0.7627460350646926,
                 "sd_raw_from_train": 7.81790018081665,
                 "degenerate": false,
-                "corr_with_delta": -0.03399341101855695
+                "corr_with_delta": -0.04099388635063482
               },
               {
                 "index": 12,
                 "name": "humidity_mean_3h",
-                "sd_normalised": 0.9452692856962898,
+                "sd_normalised": 1.0052432934847906,
                 "sd_raw_from_train": 12.12066650390625,
                 "degenerate": false,
-                "corr_with_delta": -0.3467394199758855
+                "corr_with_delta": -0.3428544213538781
               },
               {
                 "index": 13,
                 "name": "humidity_mean_6h",
-                "sd_normalised": 0.9301938976232362,
+                "sd_normalised": 0.9869315716504893,
                 "sd_raw_from_train": 11.358351707458496,
                 "degenerate": false,
-                "corr_with_delta": -0.46725317903451885
+                "corr_with_delta": -0.4674751604162301
               },
               {
                 "index": 42,
                 "name": "t0_humidity",
-                "sd_normalised": 0.9465076557470491,
+                "sd_normalised": 1.0070833995830621,
                 "sd_raw_from_train": 12.515192985534668,
                 "degenerate": false,
-                "corr_with_delta": -0.1823046405381842
+                "corr_with_delta": -0.17864548316429268
               }
             ],
             "any_degenerate_features": [],
@@ -642,131 +652,132 @@
               {
                 "index": 4,
                 "name": "hour_sin",
-                "sd_normalised": 1.0028689216602449,
+                "sd_normalised": 1.004284971170267,
                 "sd_raw_from_train": 0.7039259672164917,
                 "degenerate": false,
-                "corr_with_delta": -0.5436857698647257
+                "corr_with_delta": -0.5553635983435937
               },
               {
                 "index": 65,
                 "name": "temp_min_6h",
-                "sd_normalised": 1.0479393385558187,
+                "sd_normalised": 1.1099157616560587,
                 "sd_raw_from_train": 2.3180580139160156,
                 "degenerate": false,
-                "corr_with_delta": 0.5404180356084279
+                "corr_with_delta": 0.5243136454759457
               },
               {
                 "index": 52,
                 "name": "temp_lag_3h",
-                "sd_normalised": 1.0871616330313794,
+                "sd_normalised": 1.1132202159725755,
                 "sd_raw_from_train": 3.210418224334717,
                 "degenerate": false,
-                "corr_with_delta": 0.5224168881699017
+                "corr_with_delta": 0.5127151128305252
               },
               {
                 "index": 58,
                 "name": "temp_mean_12h",
-                "sd_normalised": 0.999933965205942,
+                "sd_normalised": 1.032869395650929,
                 "sd_raw_from_train": 2.1727397441864014,
                 "degenerate": false,
-                "corr_with_delta": 0.5183593347975775
+                "corr_with_delta": 0.5093799101126794
               },
               {
                 "index": 8,
                 "name": "humidity_lag_3h",
-                "sd_normalised": 0.944488518543054,
+                "sd_normalised": 1.0026500977717807,
                 "sd_raw_from_train": 12.600611686706543,
                 "degenerate": false,
-                "corr_with_delta": -0.5022463164133274
+                "corr_with_delta": -0.5018108642732961
               },
               {
                 "index": 61,
                 "name": "temp_mean_6h",
-                "sd_normalised": 1.0838311896097825,
+                "sd_normalised": 1.1108258869355787,
                 "sd_raw_from_train": 2.8007113933563232,
                 "degenerate": false,
-                "corr_with_delta": 0.48864308354431174
+                "corr_with_delta": 0.47889571283207527
               },
               {
                 "index": 13,
                 "name": "humidity_mean_6h",
-                "sd_normalised": 0.9301938976232362,
+                "sd_normalised": 0.9869315716504893,
                 "sd_raw_from_train": 11.358351707458496,
                 "degenerate": false,
-                "corr_with_delta": -0.46725317903451885
+                "corr_with_delta": -0.4674751604162301
               },
               {
                 "index": 54,
                 "name": "temp_max_12h",
-                "sd_normalised": 0.9628762318494859,
+                "sd_normalised": 0.9458892026969864,
                 "sd_raw_from_train": 3.0064704418182373,
                 "degenerate": false,
-                "corr_with_delta": 0.4643142931991867
+                "corr_with_delta": 0.467318820017863
               },
               {
                 "index": 53,
                 "name": "temp_lag_6h",
-                "sd_normalised": 1.0766751763988354,
+                "sd_normalised": 1.0918526856110453,
                 "sd_raw_from_train": 3.2361395359039307,
                 "degenerate": false,
-                "corr_with_delta": 0.457312086971395
+                "corr_with_delta": 0.46279669536014606
               },
               {
                 "index": 10,
                 "name": "humidity_mean_12h",
-                "sd_normalised": 0.8710955572208149,
+                "sd_normalised": 0.9103138811077557,
                 "sd_raw_from_train": 9.6023530960083,
                 "degenerate": false,
-                "corr_with_delta": -0.4452021393198118
+                "corr_with_delta": -0.45459024261371456
               }
             ]
           },
           "non_neural_controls": {
-            "n_train": 8193,
-            "n_test": 3209,
-            "persistence_mae_test": 2.5241080107876495,
-            "true_delta_sd_test": 4.1392380365256125,
+            "n_train": 8307,
+            "n_test": 3593,
+            "persistence_mae_test": 2.743587611509125,
+            "true_delta_sd_test": 4.386457981468008,
             "models": {
               "station_hour_climatology": {
                 "description": "mean target RH per (station, hour_of_day), fitted on train",
-                "test_mae": 6.789261030923247,
+                "test_mae": 6.754449210013161,
                 "beats_persistence": false
               },
               "ridge_delta": {
                 "alpha": 10.0,
-                "selection_mae_on_train_tail": 1.6723542479823732,
-                "test_mae": 1.739279334412836,
+                "selection_mae_on_train_tail": 2.0693863346119614,
+                "test_mae": 1.8972589999104634,
                 "beats_persistence": true
               },
               "histo_gbdt_delta": {
                 "config": "250 trees, lr 0.05, depth 3, 64 bins, 0.9 row subsample",
-                "test_mae": 1.5993013083494882,
+                "test_mae": 1.7449155084916053,
                 "beats_persistence": true,
-                "delta_corr_test": 0.7628383096843495,
-                "delta_sd_ratio_test": 0.6284828868453075
+                "delta_corr_test": 0.7575808137826044,
+                "delta_sd_ratio_test": 0.5985401479988528
               },
               "histo_gbdt_absolute": {
-                "test_mae": 1.674400506059676,
+                "test_mae": 1.813283795408882,
                 "beats_persistence": true
               },
               "repo_RidgeWeatherModel": {
-                "test_mae": 1.7169935716452287,
+                "test_mae": 1.8610899051560577,
                 "beats_persistence": true
               },
               "repo_GradientBoostedWeatherModel": {
                 "config": "25 depth-1 stumps, lr 0.1 (repository default)",
-                "test_mae": 4.8925528254762245,
+                "test_mae": 5.081953892688559,
                 "beats_persistence": false
               }
             },
             "gbdt_optimal_rescale": {
-              "alpha": 1.0400000000000027,
-              "test_mae": 1.5985707120222061,
+              "alpha": 1.0800000000000027,
+              "test_mae": 1.7402416314283167,
               "beats_persistence": true
             },
             "best_non_neural_model": "histo_gbdt_delta",
-            "best_non_neural_test_mae": 1.5993013083494882,
-            "best_non_neural_improvement_pct": 36.63895120516553,
+            "best_non_neural_test_mae": 1.7449155084916053,
+            "best_non_neural_improvement_pct": 36.400226434474774,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": true
           }
         },
@@ -790,214 +801,215 @@
               {
                 "index": 5,
                 "name": "humidity_lag_12h",
-                "sd_normalised": 0.941029359744237,
+                "sd_normalised": 0.9650285458760334,
                 "sd_raw_from_train": 12.84515380859375,
                 "degenerate": false,
-                "corr_with_delta": 0.0942719464045128
+                "corr_with_delta": 0.10661110817495519
               },
               {
                 "index": 6,
                 "name": "humidity_lag_1h",
-                "sd_normalised": 0.94753005389127,
+                "sd_normalised": 1.0067940959489963,
                 "sd_raw_from_train": 12.54446029663086,
                 "degenerate": false,
-                "corr_with_delta": -0.5573347000960951
+                "corr_with_delta": -0.5517655231192002
               },
               {
                 "index": 7,
                 "name": "humidity_lag_24h",
-                "sd_normalised": 0.911988551540022,
+                "sd_normalised": 0.9497950074816922,
                 "sd_raw_from_train": 13.015578269958496,
                 "degenerate": false,
-                "corr_with_delta": -0.1291135324841686
+                "corr_with_delta": -0.10741375877101704
               },
               {
                 "index": 8,
                 "name": "humidity_lag_3h",
-                "sd_normalised": 0.9457899084489851,
+                "sd_normalised": 0.9936745467912056,
                 "sd_raw_from_train": 12.600611686706543,
                 "degenerate": false,
-                "corr_with_delta": -0.62585309733719
+                "corr_with_delta": -0.6316843723831056
               },
               {
                 "index": 9,
                 "name": "humidity_lag_6h",
-                "sd_normalised": 0.9429262849740517,
+                "sd_normalised": 0.9739635490990654,
                 "sd_raw_from_train": 12.695402145385742,
                 "degenerate": false,
-                "corr_with_delta": -0.41670263432826643
+                "corr_with_delta": -0.43104194427595793
               },
               {
                 "index": 10,
                 "name": "humidity_mean_12h",
-                "sd_normalised": 0.8718533483656974,
+                "sd_normalised": 0.9040705604805443,
                 "sd_raw_from_train": 9.6023530960083,
                 "degenerate": false,
-                "corr_with_delta": -0.5198140839562693
+                "corr_with_delta": -0.5289909057711346
               },
               {
                 "index": 11,
                 "name": "humidity_mean_24h",
-                "sd_normalised": 0.7363217061821455,
+                "sd_normalised": 0.761454628927314,
                 "sd_raw_from_train": 7.81790018081665,
                 "degenerate": false,
-                "corr_with_delta": -0.037197557283451255
+                "corr_with_delta": -0.03413200517777316
               },
               {
                 "index": 12,
                 "name": "humidity_mean_3h",
-                "sd_normalised": 0.9461680532738974,
+                "sd_normalised": 1.004900782241304,
                 "sd_raw_from_train": 12.12066650390625,
                 "degenerate": false,
-                "corr_with_delta": -0.5513093153726283
+                "corr_with_delta": -0.5460912868554383
               },
               {
                 "index": 13,
                 "name": "humidity_mean_6h",
-                "sd_normalised": 0.9312456072154399,
+                "sd_normalised": 0.9812937085623884,
                 "sd_raw_from_train": 11.358351707458496,
                 "degenerate": false,
-                "corr_with_delta": -0.624499710691907
+                "corr_with_delta": -0.6271324212280703
               },
               {
                 "index": 42,
                 "name": "t0_humidity",
-                "sd_normalised": 0.9469345537357138,
+                "sd_normalised": 1.0084121862252942,
                 "sd_raw_from_train": 12.515192985534668,
                 "degenerate": false,
-                "corr_with_delta": -0.4214846165847583
+                "corr_with_delta": -0.4148184372797845
               }
             ],
             "any_degenerate_features": [],
             "top10_abs_corr_with_delta": [
               {
-                "index": 61,
-                "name": "temp_mean_6h",
-                "sd_normalised": 1.0841320050104057,
-                "sd_raw_from_train": 2.8007113933563232,
+                "index": 4,
+                "name": "hour_sin",
+                "sd_normalised": 1.0011045906459846,
+                "sd_raw_from_train": 0.7039259672164917,
                 "degenerate": false,
-                "corr_with_delta": 0.66552182402797
+                "corr_with_delta": -0.6664303349627962
               },
               {
                 "index": 52,
                 "name": "temp_lag_3h",
-                "sd_normalised": 1.0876685261565526,
+                "sd_normalised": 1.1056584528950482,
                 "sd_raw_from_train": 3.210418224334717,
                 "degenerate": false,
-                "corr_with_delta": 0.6642145244626898
+                "corr_with_delta": 0.6570707444315447
               },
               {
-                "index": 65,
-                "name": "temp_min_6h",
-                "sd_normalised": 1.0494094493178403,
-                "sd_raw_from_train": 2.3180580139160156,
+                "index": 61,
+                "name": "temp_mean_6h",
+                "sd_normalised": 1.106258669720938,
+                "sd_raw_from_train": 2.8007113933563232,
                 "degenerate": false,
-                "corr_with_delta": 0.6557722875623175
+                "corr_with_delta": 0.6545712110334682
               },
               {
                 "index": 54,
                 "name": "temp_max_12h",
-                "sd_normalised": 0.9589628424901204,
+                "sd_normalised": 0.9455805529105819,
                 "sd_raw_from_train": 3.0064704418182373,
                 "degenerate": false,
-                "corr_with_delta": 0.6548280324365322
+                "corr_with_delta": 0.6538334290295309
               },
               {
-                "index": 4,
-                "name": "hour_sin",
-                "sd_normalised": 0.9997691278117611,
-                "sd_raw_from_train": 0.7039259672164917,
+                "index": 65,
+                "name": "temp_min_6h",
+                "sd_normalised": 1.1079267047572423,
+                "sd_raw_from_train": 2.3180580139160156,
                 "degenerate": false,
-                "corr_with_delta": -0.6508036111881482
-              },
-              {
-                "index": 66,
-                "name": "temp_std_12h",
-                "sd_normalised": 1.019238695306363,
-                "sd_raw_from_train": 1.0954376459121704,
-                "degenerate": false,
-                "corr_with_delta": 0.6381674304772105
+                "corr_with_delta": 0.642426060659412
               },
               {
                 "index": 8,
                 "name": "humidity_lag_3h",
-                "sd_normalised": 0.9457899084489851,
+                "sd_normalised": 0.9936745467912056,
                 "sd_raw_from_train": 12.600611686706543,
                 "degenerate": false,
-                "corr_with_delta": -0.62585309733719
+                "corr_with_delta": -0.6316843723831056
+              },
+              {
+                "index": 66,
+                "name": "temp_std_12h",
+                "sd_normalised": 1.0104031493445658,
+                "sd_raw_from_train": 1.0954376459121704,
+                "degenerate": false,
+                "corr_with_delta": 0.6290493211124281
               },
               {
                 "index": 13,
                 "name": "humidity_mean_6h",
-                "sd_normalised": 0.9312456072154399,
+                "sd_normalised": 0.9812937085623884,
                 "sd_raw_from_train": 11.358351707458496,
                 "degenerate": false,
-                "corr_with_delta": -0.624499710691907
+                "corr_with_delta": -0.6271324212280703
               },
               {
                 "index": 58,
                 "name": "temp_mean_12h",
-                "sd_normalised": 0.9996020156523417,
+                "sd_normalised": 1.0256206115124622,
                 "sd_raw_from_train": 2.1727397441864014,
                 "degenerate": false,
-                "corr_with_delta": 0.606443400268566
+                "corr_with_delta": 0.5955458828031094
               },
               {
                 "index": 64,
                 "name": "temp_min_3h",
-                "sd_normalised": 1.091385692107265,
+                "sd_normalised": 1.1291939632894086,
                 "sd_raw_from_train": 2.8470613956451416,
                 "degenerate": false,
-                "corr_with_delta": 0.600854895299414
+                "corr_with_delta": 0.5825837914160649
               }
             ]
           },
           "non_neural_controls": {
-            "n_train": 8185,
-            "n_test": 3177,
-            "persistence_mae_test": 6.567839409229835,
-            "true_delta_sd_test": 9.837815439407894,
+            "n_train": 8299,
+            "n_test": 3556,
+            "persistence_mae_test": 7.133942576749975,
+            "true_delta_sd_test": 10.390732607973726,
             "models": {
               "station_hour_climatology": {
                 "description": "mean target RH per (station, hour_of_day), fitted on train",
-                "test_mae": 6.772306481308447,
-                "beats_persistence": false
+                "test_mae": 6.726254014602041,
+                "beats_persistence": true
               },
               "ridge_delta": {
-                "alpha": 1000.0,
-                "selection_mae_on_train_tail": 3.4928565156515847,
-                "test_mae": 3.922929112248261,
+                "alpha": 1.0,
+                "selection_mae_on_train_tail": 4.133057403088642,
+                "test_mae": 3.7901392962529536,
                 "beats_persistence": true
               },
               "histo_gbdt_delta": {
                 "config": "250 trees, lr 0.05, depth 3, 64 bins, 0.9 row subsample",
-                "test_mae": 3.110996426790202,
+                "test_mae": 3.443008744270819,
                 "beats_persistence": true,
-                "delta_corr_test": 0.8723864087014072,
-                "delta_sd_ratio_test": 0.7395342391319824
+                "delta_corr_test": 0.8717167810010958,
+                "delta_sd_ratio_test": 0.6999776301062075
               },
               "histo_gbdt_absolute": {
-                "test_mae": 3.1917747626227064,
+                "test_mae": 3.4566332947694454,
                 "beats_persistence": true
               },
               "repo_RidgeWeatherModel": {
-                "test_mae": 3.467576728284692,
+                "test_mae": 3.6893118233342426,
                 "beats_persistence": true
               },
               "repo_GradientBoostedWeatherModel": {
                 "config": "25 depth-1 stumps, lr 0.1 (repository default)",
-                "test_mae": 6.934512089117077,
+                "test_mae": 7.267278237542016,
                 "beats_persistence": false
               }
             },
             "gbdt_optimal_rescale": {
-              "alpha": 1.0600000000000027,
-              "test_mae": 3.100969953440564,
+              "alpha": 1.1200000000000028,
+              "test_mae": 3.3841017654279737,
               "beats_persistence": true
             },
             "best_non_neural_model": "histo_gbdt_delta",
-            "best_non_neural_test_mae": 3.110996426790202,
-            "best_non_neural_improvement_pct": 52.63287920197478,
+            "best_non_neural_test_mae": 3.443008744270819,
+            "best_non_neural_improvement_pct": 51.7376442657132,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": true
           }
         },
@@ -1021,82 +1033,82 @@
               {
                 "index": 5,
                 "name": "humidity_lag_12h",
-                "sd_normalised": 1.0248750804119287,
+                "sd_normalised": 1.0536687658021973,
                 "sd_raw_from_train": 11.77440357208252,
                 "degenerate": false,
-                "corr_with_delta": 0.30710654500001994
+                "corr_with_delta": 0.32471000747304074
               },
               {
                 "index": 6,
                 "name": "humidity_lag_1h",
-                "sd_normalised": 1.016355303073138,
+                "sd_normalised": 1.0613966161140578,
                 "sd_raw_from_train": 11.720349311828613,
                 "degenerate": false,
-                "corr_with_delta": -0.7242782018451535
+                "corr_with_delta": -0.7191460563312172
               },
               {
                 "index": 7,
                 "name": "humidity_lag_24h",
-                "sd_normalised": 0.9784135478674958,
+                "sd_normalised": 1.0174532655606956,
                 "sd_raw_from_train": 12.137032508850098,
                 "degenerate": false,
-                "corr_with_delta": -0.4428177634066467
+                "corr_with_delta": -0.4214949658403036
               },
               {
                 "index": 8,
                 "name": "humidity_lag_3h",
-                "sd_normalised": 1.0173464444952578,
+                "sd_normalised": 1.0509623316936751,
                 "sd_raw_from_train": 11.745408058166504,
                 "degenerate": false,
-                "corr_with_delta": -0.6576899756975194
+                "corr_with_delta": -0.6633071757896101
               },
               {
                 "index": 9,
                 "name": "humidity_lag_6h",
-                "sd_normalised": 1.0233292182879887,
+                "sd_normalised": 1.0515025613477242,
                 "sd_raw_from_train": 11.755383491516113,
                 "degenerate": false,
-                "corr_with_delta": -0.33178416525395404
+                "corr_with_delta": -0.33372885196209484
               },
               {
                 "index": 10,
                 "name": "humidity_mean_12h",
-                "sd_normalised": 0.9717520988780646,
+                "sd_normalised": 1.0008394816839716,
                 "sd_raw_from_train": 8.638941764831543,
                 "degenerate": false,
-                "corr_with_delta": -0.49290712089628724
+                "corr_with_delta": -0.49195203429605844
               },
               {
                 "index": 11,
                 "name": "humidity_mean_24h",
-                "sd_normalised": 0.8959591995542155,
+                "sd_normalised": 0.926490882233274,
                 "sd_raw_from_train": 6.409871578216553,
                 "degenerate": false,
-                "corr_with_delta": -0.033752605580523946
+                "corr_with_delta": -0.014037809335169281
               },
               {
                 "index": 12,
                 "name": "humidity_mean_3h",
-                "sd_normalised": 1.0160879830842786,
+                "sd_normalised": 1.0614837559691057,
                 "sd_raw_from_train": 11.309660911560059,
                 "degenerate": false,
-                "corr_with_delta": -0.7258777801065157
+                "corr_with_delta": -0.7204429428090111
               },
               {
                 "index": 13,
                 "name": "humidity_mean_6h",
-                "sd_normalised": 1.0055055249048404,
+                "sd_normalised": 1.0412823890720007,
                 "sd_raw_from_train": 10.536042213439941,
                 "degenerate": false,
-                "corr_with_delta": -0.7089338554880469
+                "corr_with_delta": -0.7115232030672105
               },
               {
                 "index": 42,
                 "name": "t0_humidity",
-                "sd_normalised": 1.0147852716874097,
+                "sd_normalised": 1.0680284607664132,
                 "sd_raw_from_train": 11.70401382446289,
                 "degenerate": false,
-                "corr_with_delta": -0.661690720319189
+                "corr_with_delta": -0.6508071682412492
               }
             ],
             "any_degenerate_features": [],
@@ -1104,131 +1116,132 @@
               {
                 "index": 61,
                 "name": "temp_mean_6h",
-                "sd_normalised": 1.1406498694661409,
+                "sd_normalised": 1.1473883684930686,
                 "sd_raw_from_train": 2.6607353687286377,
                 "degenerate": false,
-                "corr_with_delta": 0.7686488793049274
+                "corr_with_delta": 0.7555048965623871
               },
               {
                 "index": 64,
                 "name": "temp_min_3h",
-                "sd_normalised": 1.1563379635034337,
+                "sd_normalised": 1.17879327471406,
                 "sd_raw_from_train": 2.6911959648132324,
                 "degenerate": false,
-                "corr_with_delta": 0.7649722105944984
+                "corr_with_delta": 0.7441181778134085
               },
               {
                 "index": 60,
                 "name": "temp_mean_3h",
-                "sd_normalised": 1.1535038250668395,
+                "sd_normalised": 1.1645490066656972,
                 "sd_raw_from_train": 2.9097752571105957,
                 "degenerate": false,
-                "corr_with_delta": 0.7617933023739591
-              },
-              {
-                "index": 50,
-                "name": "temp_lag_1h",
-                "sd_normalised": 1.1502084014595122,
-                "sd_raw_from_train": 3.0366501808166504,
-                "degenerate": false,
-                "corr_with_delta": 0.7578556995184552
+                "corr_with_delta": 0.7422400894692734
               },
               {
                 "index": 57,
                 "name": "temp_max_6h",
-                "sd_normalised": 1.1208633107450985,
+                "sd_normalised": 1.1104428788988172,
                 "sd_raw_from_train": 3.3026163578033447,
                 "degenerate": false,
-                "corr_with_delta": 0.748741396789791
+                "corr_with_delta": 0.7396592529715621
               },
               {
-                "index": 66,
-                "name": "temp_std_12h",
-                "sd_normalised": 1.072670909230786,
-                "sd_raw_from_train": 1.0385798215866089,
+                "index": 50,
+                "name": "temp_lag_1h",
+                "sd_normalised": 1.160516032438129,
+                "sd_raw_from_train": 3.0366501808166504,
                 "degenerate": false,
-                "corr_with_delta": 0.7266629681033318
+                "corr_with_delta": 0.7388332667570056
               },
               {
                 "index": 12,
                 "name": "humidity_mean_3h",
-                "sd_normalised": 1.0160879830842786,
+                "sd_normalised": 1.0614837559691057,
                 "sd_raw_from_train": 11.309660911560059,
                 "degenerate": false,
-                "corr_with_delta": -0.7258777801065157
+                "corr_with_delta": -0.7204429428090111
               },
               {
                 "index": 6,
                 "name": "humidity_lag_1h",
-                "sd_normalised": 1.016355303073138,
+                "sd_normalised": 1.0613966161140578,
                 "sd_raw_from_train": 11.720349311828613,
                 "degenerate": false,
-                "corr_with_delta": -0.7242782018451535
+                "corr_with_delta": -0.7191460563312172
+              },
+              {
+                "index": 66,
+                "name": "temp_std_12h",
+                "sd_normalised": 1.0582631630574215,
+                "sd_raw_from_train": 1.0385798215866089,
+                "degenerate": false,
+                "corr_with_delta": 0.7124889053787744
+              },
+              {
+                "index": 13,
+                "name": "humidity_mean_6h",
+                "sd_normalised": 1.0412823890720007,
+                "sd_raw_from_train": 10.536042213439941,
+                "degenerate": false,
+                "corr_with_delta": -0.7115232030672105
               },
               {
                 "index": 56,
                 "name": "temp_max_3h",
-                "sd_normalised": 1.1415046704555583,
+                "sd_normalised": 1.1431692438834253,
                 "sd_raw_from_train": 3.233571767807007,
                 "degenerate": false,
-                "corr_with_delta": 0.72223328874945
-              },
-              {
-                "index": 52,
-                "name": "temp_lag_3h",
-                "sd_normalised": 1.1462915438596115,
-                "sd_raw_from_train": 3.0478358268737793,
-                "degenerate": false,
-                "corr_with_delta": 0.7089519855827036
+                "corr_with_delta": 0.7042417232624436
               }
             ]
           },
           "non_neural_controls": {
-            "n_train": 8173,
-            "n_test": 3132,
-            "persistence_mae_test": 11.644767476458773,
-            "true_delta_sd_test": 15.599865275715269,
+            "n_train": 8287,
+            "n_test": 3506,
+            "persistence_mae_test": 12.430002945329,
+            "true_delta_sd_test": 16.373186813756316,
             "models": {
               "station_hour_climatology": {
                 "description": "mean target RH per (station, hour_of_day), fitted on train",
-                "test_mae": 6.779499246876963,
+                "test_mae": 6.704797687900182,
                 "beats_persistence": true
               },
               "ridge_delta": {
-                "alpha": 1.0,
-                "selection_mae_on_train_tail": 4.281249140696644,
-                "test_mae": 6.214437700572028,
+                "alpha": 0.1,
+                "selection_mae_on_train_tail": 5.391638568815697,
+                "test_mae": 5.145610868038169,
                 "beats_persistence": true
               },
               "histo_gbdt_delta": {
                 "config": "250 trees, lr 0.05, depth 3, 64 bins, 0.9 row subsample",
-                "test_mae": 3.8816338436606572,
+                "test_mae": 4.264165733462287,
                 "beats_persistence": true,
-                "delta_corr_test": 0.9316423471647903,
-                "delta_sd_ratio_test": 0.8379061659941164
+                "delta_corr_test": 0.930857672624314,
+                "delta_sd_ratio_test": 0.7833726250101808
               },
               "histo_gbdt_absolute": {
-                "test_mae": 3.9090281419519584,
+                "test_mae": 4.205834884269968,
                 "beats_persistence": true
               },
               "repo_RidgeWeatherModel": {
-                "test_mae": 4.678717244330977,
+                "test_mae": 4.881468667324066,
                 "beats_persistence": true
               },
               "repo_GradientBoostedWeatherModel": {
                 "config": "25 depth-1 stumps, lr 0.1 (repository default)",
-                "test_mae": 7.242274948848729,
+                "test_mae": 7.813584753725161,
                 "beats_persistence": true
               }
             },
             "gbdt_optimal_rescale": {
-              "alpha": 1.0200000000000027,
-              "test_mae": 3.879592175723929,
+              "alpha": 1.1000000000000028,
+              "test_mae": 4.145470168723772,
               "beats_persistence": true
             },
-            "best_non_neural_model": "histo_gbdt_delta",
-            "best_non_neural_test_mae": 3.8816338436606572,
-            "best_non_neural_improvement_pct": 66.6662829334478,
+            "best_non_neural_model": "histo_gbdt_absolute",
+            "best_non_neural_test_mae": 4.205834884269968,
+            "best_non_neural_improvement_pct": 66.16384643858467,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": true
           }
         },
@@ -1252,82 +1265,82 @@
               {
                 "index": 5,
                 "name": "humidity_lag_12h",
-                "sd_normalised": 0.9248902469779331,
+                "sd_normalised": 0.9700465478078955,
                 "sd_raw_from_train": 12.84515380859375,
                 "degenerate": false,
-                "corr_with_delta": 0.7364312048850441
+                "corr_with_delta": 0.7458633315229867
               },
               {
                 "index": 6,
                 "name": "humidity_lag_1h",
-                "sd_normalised": 0.9576789556618582,
+                "sd_normalised": 0.9844865618072649,
                 "sd_raw_from_train": 12.54446029663086,
                 "degenerate": false,
-                "corr_with_delta": -0.767985786832153
+                "corr_with_delta": -0.7619391101184892
               },
               {
                 "index": 7,
                 "name": "humidity_lag_24h",
-                "sd_normalised": 0.9198397642810399,
+                "sd_normalised": 0.9406779415429638,
                 "sd_raw_from_train": 13.015578269958496,
                 "degenerate": false,
-                "corr_with_delta": -0.7145753136616478
+                "corr_with_delta": -0.7002053124185675
               },
               {
                 "index": 8,
                 "name": "humidity_lag_3h",
-                "sd_normalised": 0.9569039255904449,
+                "sd_normalised": 0.9815653864801682,
                 "sd_raw_from_train": 12.600611686706543,
                 "degenerate": false,
-                "corr_with_delta": -0.5428048220930184
+                "corr_with_delta": -0.53768767619834
               },
               {
                 "index": 9,
                 "name": "humidity_lag_6h",
-                "sd_normalised": 0.9497845126998687,
+                "sd_normalised": 0.9767698084713681,
                 "sd_raw_from_train": 12.695402145385742,
                 "degenerate": false,
-                "corr_with_delta": -0.018900482445180628
+                "corr_with_delta": -0.006930626663367797
               },
               {
                 "index": 10,
                 "name": "humidity_mean_12h",
-                "sd_normalised": 0.8747446511378876,
+                "sd_normalised": 0.9029668687043674,
                 "sd_raw_from_train": 9.6023530960083,
                 "degenerate": false,
-                "corr_with_delta": -0.12669286915869904
+                "corr_with_delta": -0.10909001320441757
               },
               {
                 "index": 11,
                 "name": "humidity_mean_24h",
-                "sd_normalised": 0.729893320607668,
+                "sd_normalised": 0.7568183679701224,
                 "sd_raw_from_train": 7.81790018081665,
                 "degenerate": false,
-                "corr_with_delta": -0.0338089161437377
+                "corr_with_delta": 0.005042731196470238
               },
               {
                 "index": 12,
                 "name": "humidity_mean_3h",
-                "sd_normalised": 0.9559778896919433,
+                "sd_normalised": 0.982826893514056,
                 "sd_raw_from_train": 12.12066650390625,
                 "degenerate": false,
-                "corr_with_delta": -0.7782307158761503
+                "corr_with_delta": -0.7720067044578854
               },
               {
                 "index": 13,
                 "name": "humidity_mean_6h",
-                "sd_normalised": 0.9406308415318241,
+                "sd_normalised": 0.9664464923480982,
                 "sd_raw_from_train": 11.358351707458496,
                 "degenerate": false,
-                "corr_with_delta": -0.6359381052849022
+                "corr_with_delta": -0.628662813888101
               },
               {
                 "index": 42,
                 "name": "t0_humidity",
-                "sd_normalised": 0.9566686449478906,
+                "sd_normalised": 0.9842224203156459,
                 "sd_raw_from_train": 12.515192985534668,
                 "degenerate": false,
-                "corr_with_delta": -0.8119489493271246
+                "corr_with_delta": -0.806124081192944
               }
             ],
             "any_degenerate_features": [],
@@ -1335,131 +1348,132 @@
               {
                 "index": 3,
                 "name": "hour_cos",
-                "sd_normalised": 0.9958619901957598,
+                "sd_normalised": 0.9948040819736612,
                 "sd_raw_from_train": 0.7102327346801758,
                 "degenerate": false,
-                "corr_with_delta": -0.8964009733286775
+                "corr_with_delta": -0.8950865968415183
               },
               {
                 "index": 45,
                 "name": "t0_temperature",
-                "sd_normalised": 1.1012751546204964,
+                "sd_normalised": 1.0950371572088462,
                 "sd_raw_from_train": 3.186638355255127,
                 "degenerate": false,
-                "corr_with_delta": 0.8444388200868672
+                "corr_with_delta": 0.8285910186150977
               },
               {
                 "index": 56,
                 "name": "temp_max_3h",
-                "sd_normalised": 1.0961556306201925,
+                "sd_normalised": 1.0847370759949906,
                 "sd_raw_from_train": 3.3862690925598145,
                 "degenerate": false,
-                "corr_with_delta": 0.8361277889437295
-              },
-              {
-                "index": 60,
-                "name": "temp_mean_3h",
-                "sd_normalised": 1.1048612963497917,
-                "sd_raw_from_train": 3.057589292526245,
-                "degenerate": false,
-                "corr_with_delta": 0.8160127328040376
+                "corr_with_delta": 0.8230662218308541
               },
               {
                 "index": 42,
                 "name": "t0_humidity",
-                "sd_normalised": 0.9566686449478906,
+                "sd_normalised": 0.9842224203156459,
                 "sd_raw_from_train": 12.515192985534668,
                 "degenerate": false,
-                "corr_with_delta": -0.8119489493271246
+                "corr_with_delta": -0.806124081192944
+              },
+              {
+                "index": 60,
+                "name": "temp_mean_3h",
+                "sd_normalised": 1.0996365204402356,
+                "sd_raw_from_train": 3.057589292526245,
+                "degenerate": false,
+                "corr_with_delta": 0.8006178465976294
               },
               {
                 "index": 50,
                 "name": "temp_lag_1h",
-                "sd_normalised": 1.1004717774782078,
+                "sd_normalised": 1.0949032326939965,
                 "sd_raw_from_train": 3.1952996253967285,
                 "degenerate": false,
-                "corr_with_delta": 0.8026509886863622
+                "corr_with_delta": 0.7877283562358117
               },
               {
                 "index": 49,
                 "name": "temp_lag_12h",
-                "sd_normalised": 1.0566394440551594,
+                "sd_normalised": 1.0717841943556403,
                 "sd_raw_from_train": 3.278029680252075,
                 "degenerate": false,
-                "corr_with_delta": -0.7906229296106592
+                "corr_with_delta": -0.7787722779078267
               },
               {
                 "index": 12,
                 "name": "humidity_mean_3h",
-                "sd_normalised": 0.9559778896919433,
+                "sd_normalised": 0.982826893514056,
                 "sd_raw_from_train": 12.12066650390625,
                 "degenerate": false,
-                "corr_with_delta": -0.7782307158761503
+                "corr_with_delta": -0.7720067044578854
               },
               {
                 "index": 14,
                 "name": "is_daylight",
-                "sd_normalised": 1.0000259658087338,
+                "sd_normalised": 1.000029371916854,
                 "sd_raw_from_train": 0.4999852776527405,
                 "degenerate": false,
-                "corr_with_delta": 0.7733354155163307
+                "corr_with_delta": 0.7714206415976712
               },
               {
                 "index": 6,
                 "name": "humidity_lag_1h",
-                "sd_normalised": 0.9576789556618582,
+                "sd_normalised": 0.9844865618072649,
                 "sd_raw_from_train": 12.54446029663086,
                 "degenerate": false,
-                "corr_with_delta": -0.767985786832153
+                "corr_with_delta": -0.7619391101184892
               }
             ]
           },
           "non_neural_controls": {
-            "n_train": 8149,
-            "n_test": 3046,
-            "persistence_mae_test": 16.124381440188337,
-            "true_delta_sd_test": 19.33929302452944,
+            "n_train": 8263,
+            "n_test": 3411,
+            "persistence_mae_test": 16.90592458453641,
+            "true_delta_sd_test": 20.176967398851215,
             "models": {
               "station_hour_climatology": {
                 "description": "mean target RH per (station, hour_of_day), fitted on train",
-                "test_mae": 6.785510259260707,
+                "test_mae": 6.608772162006241,
                 "beats_persistence": true
               },
               "ridge_delta": {
                 "alpha": 100.0,
-                "selection_mae_on_train_tail": 4.2208576988303665,
-                "test_mae": 10.34060195428935,
+                "selection_mae_on_train_tail": 5.89114728280789,
+                "test_mae": 8.29396509879571,
                 "beats_persistence": true
               },
               "histo_gbdt_delta": {
                 "config": "250 trees, lr 0.05, depth 3, 64 bins, 0.9 row subsample",
-                "test_mae": 4.5172758008544065,
+                "test_mae": 4.390464196912573,
                 "beats_persistence": true,
-                "delta_corr_test": 0.9557916350155868,
-                "delta_sd_ratio_test": 0.9151374545764848
+                "delta_corr_test": 0.9579893150679404,
+                "delta_sd_ratio_test": 0.8837911238417574
               },
               "histo_gbdt_absolute": {
-                "test_mae": 4.302515544680423,
+                "test_mae": 4.121929277805529,
                 "beats_persistence": true
               },
               "repo_RidgeWeatherModel": {
-                "test_mae": 6.541526974419019,
+                "test_mae": 6.536488792969388,
                 "beats_persistence": true
               },
               "repo_GradientBoostedWeatherModel": {
                 "config": "25 depth-1 stumps, lr 0.1 (repository default)",
-                "test_mae": 6.257047271274916,
+                "test_mae": 6.718258601348796,
                 "beats_persistence": true
               }
             },
             "gbdt_optimal_rescale": {
-              "alpha": 1.0000000000000027,
-              "test_mae": 4.517275800854408,
+              "alpha": 1.0400000000000027,
+              "test_mae": 4.349274672772911,
               "beats_persistence": true
             },
             "best_non_neural_model": "histo_gbdt_absolute",
-            "best_non_neural_test_mae": 4.302515544680423,
-            "best_non_neural_improvement_pct": 73.31670947725875,
+            "best_non_neural_test_mae": 4.121929277805529,
+            "best_non_neural_improvement_pct": 75.61843330606244,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": true
           }
         },
@@ -1483,82 +1497,82 @@
               {
                 "index": 5,
                 "name": "humidity_lag_12h",
-                "sd_normalised": 0.9354451881181393,
+                "sd_normalised": 0.962904138044253,
                 "sd_raw_from_train": 12.84515380859375,
                 "degenerate": false,
-                "corr_with_delta": 0.0053818330170184074
+                "corr_with_delta": 0.003962789612348331
               },
               {
                 "index": 6,
                 "name": "humidity_lag_1h",
-                "sd_normalised": 0.9461845320656466,
+                "sd_normalised": 0.9926435272341334,
                 "sd_raw_from_train": 12.54446029663086,
                 "degenerate": false,
-                "corr_with_delta": -0.17458724522279034
+                "corr_with_delta": -0.15202809489660676
               },
               {
                 "index": 7,
                 "name": "humidity_lag_24h",
-                "sd_normalised": 0.9091131449759977,
+                "sd_normalised": 0.9483188010741316,
                 "sd_raw_from_train": 13.015578269958496,
                 "degenerate": false,
-                "corr_with_delta": -0.022228557525907897
+                "corr_with_delta": -0.0012115267131691159
               },
               {
                 "index": 8,
                 "name": "humidity_lag_3h",
-                "sd_normalised": 0.9421421461495944,
+                "sd_normalised": 0.9897663599243165,
                 "sd_raw_from_train": 12.600611686706543,
                 "degenerate": false,
-                "corr_with_delta": -0.07317534970651463
+                "corr_with_delta": -0.04832334532402806
               },
               {
                 "index": 9,
                 "name": "humidity_lag_6h",
-                "sd_normalised": 0.9376365944284785,
+                "sd_normalised": 0.9811984502339807,
                 "sd_raw_from_train": 12.695402145385742,
                 "degenerate": false,
-                "corr_with_delta": -0.01600287672977282
+                "corr_with_delta": -0.0062513752318707864
               },
               {
                 "index": 10,
                 "name": "humidity_mean_12h",
-                "sd_normalised": 0.8631731263524466,
+                "sd_normalised": 0.9015774450285812,
                 "sd_raw_from_train": 9.6023530960083,
                 "degenerate": false,
-                "corr_with_delta": -0.08037016252797442
+                "corr_with_delta": -0.0654252256449848
               },
               {
                 "index": 11,
                 "name": "humidity_mean_24h",
-                "sd_normalised": 0.7179994567353214,
+                "sd_normalised": 0.7495977483509034,
                 "sd_raw_from_train": 7.81790018081665,
                 "degenerate": false,
-                "corr_with_delta": -0.05122292704157625
+                "corr_with_delta": -0.03678762599958688
               },
               {
                 "index": 12,
                 "name": "humidity_mean_3h",
-                "sd_normalised": 0.9446330508043157,
+                "sd_normalised": 0.9906099861263297,
                 "sd_raw_from_train": 12.12066650390625,
                 "degenerate": false,
-                "corr_with_delta": -0.17852697566518475
+                "corr_with_delta": -0.1555142808933314
               },
               {
                 "index": 13,
                 "name": "humidity_mean_6h",
-                "sd_normalised": 0.9269267234106074,
+                "sd_normalised": 0.9724447898040187,
                 "sd_raw_from_train": 11.358351707458496,
                 "degenerate": false,
-                "corr_with_delta": -0.12390645338468996
+                "corr_with_delta": -0.10038868525587363
               },
               {
                 "index": 42,
                 "name": "t0_humidity",
-                "sd_normalised": 0.946485274785056,
+                "sd_normalised": 0.9925749638525284,
                 "sd_raw_from_train": 12.515192985534668,
                 "degenerate": false,
-                "corr_with_delta": -0.22780796174524975
+                "corr_with_delta": -0.2111542341577502
               }
             ],
             "any_degenerate_features": [],
@@ -1566,181 +1580,202 @@
               {
                 "index": 42,
                 "name": "t0_humidity",
-                "sd_normalised": 0.946485274785056,
+                "sd_normalised": 0.9925749638525284,
                 "sd_raw_from_train": 12.515192985534668,
                 "degenerate": false,
-                "corr_with_delta": -0.22780796174524975
+                "corr_with_delta": -0.2111542341577502
               },
               {
                 "index": 2,
                 "name": "dry_spell_hours",
-                "sd_normalised": 0.9906259430472438,
+                "sd_normalised": 1.002199561345499,
                 "sd_raw_from_train": 9.527730941772461,
                 "degenerate": false,
-                "corr_with_delta": 0.18684379140787155
-              },
-              {
-                "index": 45,
-                "name": "t0_temperature",
-                "sd_normalised": 1.087952665546796,
-                "sd_raw_from_train": 3.186638355255127,
-                "degenerate": false,
-                "corr_with_delta": 0.18293322696381922
-              },
-              {
-                "index": 12,
-                "name": "humidity_mean_3h",
-                "sd_normalised": 0.9446330508043157,
-                "sd_raw_from_train": 12.12066650390625,
-                "degenerate": false,
-                "corr_with_delta": -0.17852697566518475
-              },
-              {
-                "index": 6,
-                "name": "humidity_lag_1h",
-                "sd_normalised": 0.9461845320656466,
-                "sd_raw_from_train": 12.54446029663086,
-                "degenerate": false,
-                "corr_with_delta": -0.17458724522279034
-              },
-              {
-                "index": 64,
-                "name": "temp_min_3h",
-                "sd_normalised": 1.0852089873069972,
-                "sd_raw_from_train": 2.8470613956451416,
-                "degenerate": false,
-                "corr_with_delta": 0.16310665677310218
+                "corr_with_delta": 0.18873680567022108
               },
               {
                 "index": 22,
                 "name": "precip_sum_3h",
-                "sd_normalised": 1.0398000245566268,
+                "sd_normalised": 1.0321712404717844,
                 "sd_raw_from_train": 5.855019569396973,
                 "degenerate": false,
-                "corr_with_delta": -0.14949948217009776
+                "corr_with_delta": -0.17128792762072953
               },
               {
-                "index": 60,
-                "name": "temp_mean_3h",
-                "sd_normalised": 1.0910167935506654,
-                "sd_raw_from_train": 3.057589292526245,
+                "index": 45,
+                "name": "t0_temperature",
+                "sd_normalised": 1.097648980270198,
+                "sd_raw_from_train": 3.186638355255127,
                 "degenerate": false,
-                "corr_with_delta": 0.1419069759167944
+                "corr_with_delta": 0.1684053490337061
               },
               {
-                "index": 50,
-                "name": "temp_lag_1h",
-                "sd_normalised": 1.086653400013244,
-                "sd_raw_from_train": 3.1952996253967285,
+                "index": 12,
+                "name": "humidity_mean_3h",
+                "sd_normalised": 0.9906099861263297,
+                "sd_raw_from_train": 12.12066650390625,
                 "degenerate": false,
-                "corr_with_delta": 0.13977650032887448
+                "corr_with_delta": -0.1555142808933314
               },
               {
-                "index": 65,
-                "name": "temp_min_6h",
-                "sd_normalised": 1.042223944378191,
-                "sd_raw_from_train": 2.3180580139160156,
+                "index": 6,
+                "name": "humidity_lag_1h",
+                "sd_normalised": 0.9926435272341334,
+                "sd_raw_from_train": 12.54446029663086,
                 "degenerate": false,
-                "corr_with_delta": 0.1352190103386895
+                "corr_with_delta": -0.15202809489660676
+              },
+              {
+                "index": 23,
+                "name": "precip_sum_6h",
+                "sd_normalised": 1.0827579704762171,
+                "sd_raw_from_train": 8.90111255645752,
+                "degenerate": false,
+                "corr_with_delta": -0.14851715337583074
+              },
+              {
+                "index": 64,
+                "name": "temp_min_3h",
+                "sd_normalised": 1.1084889154903597,
+                "sd_raw_from_train": 2.8470613956451416,
+                "degenerate": false,
+                "corr_with_delta": 0.14535458944033167
+              },
+              {
+                "index": 43,
+                "name": "t0_precipitation",
+                "sd_normalised": 0.9916281350412183,
+                "sd_raw_from_train": 2.846557855606079,
+                "degenerate": false,
+                "corr_with_delta": -0.13921018526225556
+              },
+              {
+                "index": 16,
+                "name": "precip_lag_1h",
+                "sd_normalised": 1.0117032032213071,
+                "sd_raw_from_train": 2.8470027446746826,
+                "degenerate": false,
+                "corr_with_delta": -0.13746723704141373
               }
             ]
           },
           "non_neural_controls": {
-            "n_train": 8101,
-            "n_test": 2891,
-            "persistence_mae_test": 3.1990362763074933,
-            "true_delta_sd_test": 5.28678785450662,
+            "n_train": 8215,
+            "n_test": 3235,
+            "persistence_mae_test": 3.59805874957319,
+            "true_delta_sd_test": 5.825032343145191,
             "models": {
               "station_hour_climatology": {
                 "description": "mean target RH per (station, hour_of_day), fitted on train",
-                "test_mae": 6.672158131949635,
+                "test_mae": 6.64675505378452,
                 "beats_persistence": false
               },
               "ridge_delta": {
-                "alpha": 1000.0,
-                "selection_mae_on_train_tail": 4.13596045306665,
-                "test_mae": 11.579976018408347,
+                "alpha": 100.0,
+                "selection_mae_on_train_tail": 5.747701125441852,
+                "test_mae": 11.229371509977016,
                 "beats_persistence": false
               },
               "histo_gbdt_delta": {
                 "config": "250 trees, lr 0.05, depth 3, 64 bins, 0.9 row subsample",
-                "test_mae": 5.617869186620442,
+                "test_mae": 7.470962705916065,
                 "beats_persistence": false,
-                "delta_corr_test": 0.32995708792283013,
-                "delta_sd_ratio_test": 1.1094179171338865
+                "delta_corr_test": 0.30066580902332285,
+                "delta_sd_ratio_test": 1.2175505588974074
               },
               "histo_gbdt_absolute": {
-                "test_mae": 5.865287892149931,
+                "test_mae": 7.019304251525109,
                 "beats_persistence": false
               },
               "repo_RidgeWeatherModel": {
-                "test_mae": 6.678962198257319,
+                "test_mae": 7.480263126655233,
                 "beats_persistence": false
               },
               "repo_GradientBoostedWeatherModel": {
                 "config": "25 depth-1 stumps, lr 0.1 (repository default)",
-                "test_mae": 5.113294599280147,
+                "test_mae": 5.418763449137653,
                 "beats_persistence": false
               }
             },
             "gbdt_optimal_rescale": {
-              "alpha": 0.12000000000000188,
-              "test_mae": 3.1413078140004034,
+              "alpha": 0.08000000000000185,
+              "test_mae": 3.5580298439836064,
               "beats_persistence": true
             },
             "best_non_neural_model": "repo_GradientBoostedWeatherModel",
-            "best_non_neural_test_mae": 5.113294599280147,
-            "best_non_neural_improvement_pct": -59.838593802449715,
+            "best_non_neural_test_mae": 5.418763449137653,
+            "best_non_neural_improvement_pct": -50.60241720012044,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": false
           }
         }
       },
       "verdict": {
         "1": {
-          "head_relative_improvement_pct": 12.312248683607141,
+          "head_relative_improvement_pct": 11.900606207254231,
           "best_non_neural_model": "histo_gbdt_delta",
-          "best_non_neural_improvement_pct": 36.63895120516553,
+          "best_non_neural_improvement_pct": 36.400226434474774,
+          "skill_margin_threshold_pct": 1.0,
           "humidity_beatable": true,
+          "head_margin_clears_threshold": true,
+          "non_neural_margin_clears_threshold": true,
           "policy_current_choice": "persistence_fallback",
           "policy_is_wrong": true
         },
         "3": {
-          "head_relative_improvement_pct": 5.240241626225523,
+          "head_relative_improvement_pct": 5.211345411222246,
           "best_non_neural_model": "histo_gbdt_delta",
-          "best_non_neural_improvement_pct": 52.63287920197478,
+          "best_non_neural_improvement_pct": 51.7376442657132,
+          "skill_margin_threshold_pct": 1.0,
           "humidity_beatable": true,
+          "head_margin_clears_threshold": true,
+          "non_neural_margin_clears_threshold": true,
           "policy_current_choice": "persistence_fallback",
           "policy_is_wrong": true
         },
         "6": {
-          "head_relative_improvement_pct": 32.39406011078882,
-          "best_non_neural_model": "histo_gbdt_delta",
-          "best_non_neural_improvement_pct": 66.6662829334478,
+          "head_relative_improvement_pct": 29.9229382558828,
+          "best_non_neural_model": "histo_gbdt_absolute",
+          "best_non_neural_improvement_pct": 66.16384643858467,
+          "skill_margin_threshold_pct": 1.0,
           "humidity_beatable": true,
+          "head_margin_clears_threshold": true,
+          "non_neural_margin_clears_threshold": true,
           "policy_current_choice": "persistence_fallback",
           "policy_is_wrong": true
         },
         "12": {
-          "head_relative_improvement_pct": 42.56041689712073,
+          "head_relative_improvement_pct": 37.35225412974249,
           "best_non_neural_model": "histo_gbdt_absolute",
-          "best_non_neural_improvement_pct": 73.31670947725875,
+          "best_non_neural_improvement_pct": 75.61843330606244,
+          "skill_margin_threshold_pct": 1.0,
           "humidity_beatable": true,
+          "head_margin_clears_threshold": true,
+          "non_neural_margin_clears_threshold": true,
           "policy_current_choice": "persistence_fallback",
           "policy_is_wrong": true
         },
         "24": {
-          "head_relative_improvement_pct": 0.05784485554483611,
+          "head_relative_improvement_pct": 0.014782944636740835,
           "best_non_neural_model": "repo_GradientBoostedWeatherModel",
-          "best_non_neural_improvement_pct": -59.838593802449715,
-          "humidity_beatable": true,
+          "best_non_neural_improvement_pct": -50.60241720012044,
+          "skill_margin_threshold_pct": 1.0,
+          "humidity_beatable": false,
+          "head_margin_clears_threshold": false,
+          "non_neural_margin_clears_threshold": false,
           "policy_current_choice": "persistence_fallback",
-          "policy_is_wrong": true
+          "policy_is_wrong": false
         }
       }
     },
     "training corpus (behind the published numbers)": {
       "label": "training corpus (behind the published numbers)",
       "corpus_file": "weather_telemetry.csv",
+      "corpus_fingerprint": {
+        "sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+        "bytes": 97452892,
+        "mtime_utc": "2026-08-28T04:16:02.609176+00:00"
+      },
       "stations": 16,
       "range": [
         "2026-06-20 10:00:00+00:00",
@@ -2398,6 +2433,7 @@
             "best_non_neural_model": "histo_gbdt_delta",
             "best_non_neural_test_mae": 1.7174734993253304,
             "best_non_neural_improvement_pct": -2.4439277778823976,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": false
           }
         },
@@ -2629,6 +2665,7 @@
             "best_non_neural_model": "histo_gbdt_absolute",
             "best_non_neural_test_mae": 3.4159522389218084,
             "best_non_neural_improvement_pct": -5.0027902882616,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": false
           }
         },
@@ -2860,7 +2897,8 @@
             "best_non_neural_model": "repo_RidgeWeatherModel",
             "best_non_neural_test_mae": 4.859727220916956,
             "best_non_neural_improvement_pct": 0.5034009134984618,
-            "anything_beats_persistence": true
+            "skill_margin_threshold_pct": 1.0,
+            "anything_beats_persistence": false
           }
         },
         "12": {
@@ -3091,6 +3129,7 @@
             "best_non_neural_model": "repo_RidgeWeatherModel",
             "best_non_neural_test_mae": 5.294012564815306,
             "best_non_neural_improvement_pct": 16.789627923829105,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": true
           }
         },
@@ -3322,6 +3361,7 @@
             "best_non_neural_model": "repo_RidgeWeatherModel",
             "best_non_neural_test_mae": 5.108825794932458,
             "best_non_neural_improvement_pct": -15.760705890471371,
+            "skill_margin_threshold_pct": 1.0,
             "anything_beats_persistence": false
           }
         }
@@ -3331,15 +3371,21 @@
           "head_relative_improvement_pct": 0.7805882515922076,
           "best_non_neural_model": "histo_gbdt_delta",
           "best_non_neural_improvement_pct": -2.4439277778823976,
-          "humidity_beatable": true,
+          "skill_margin_threshold_pct": 1.0,
+          "humidity_beatable": false,
+          "head_margin_clears_threshold": false,
+          "non_neural_margin_clears_threshold": false,
           "policy_current_choice": "persistence_fallback",
-          "policy_is_wrong": true
+          "policy_is_wrong": false
         },
         "3": {
           "head_relative_improvement_pct": -3.0748401735809447,
           "best_non_neural_model": "histo_gbdt_absolute",
           "best_non_neural_improvement_pct": -5.0027902882616,
+          "skill_margin_threshold_pct": 1.0,
           "humidity_beatable": false,
+          "head_margin_clears_threshold": false,
+          "non_neural_margin_clears_threshold": false,
           "policy_current_choice": "persistence_fallback",
           "policy_is_wrong": false
         },
@@ -3347,7 +3393,10 @@
           "head_relative_improvement_pct": 11.531511024974145,
           "best_non_neural_model": "repo_RidgeWeatherModel",
           "best_non_neural_improvement_pct": 0.5034009134984618,
+          "skill_margin_threshold_pct": 1.0,
           "humidity_beatable": true,
+          "head_margin_clears_threshold": true,
+          "non_neural_margin_clears_threshold": false,
           "policy_current_choice": "persistence_fallback",
           "policy_is_wrong": true
         },
@@ -3355,7 +3404,10 @@
           "head_relative_improvement_pct": 26.6078438526067,
           "best_non_neural_model": "repo_RidgeWeatherModel",
           "best_non_neural_improvement_pct": 16.789627923829105,
+          "skill_margin_threshold_pct": 1.0,
           "humidity_beatable": true,
+          "head_margin_clears_threshold": true,
+          "non_neural_margin_clears_threshold": true,
           "policy_current_choice": "persistence_fallback",
           "policy_is_wrong": true
         },
@@ -3363,9 +3415,12 @@
           "head_relative_improvement_pct": 0.29994336545541556,
           "best_non_neural_model": "repo_RidgeWeatherModel",
           "best_non_neural_improvement_pct": -15.760705890471371,
-          "humidity_beatable": true,
+          "skill_margin_threshold_pct": 1.0,
+          "humidity_beatable": false,
+          "head_margin_clears_threshold": false,
+          "non_neural_margin_clears_threshold": false,
           "policy_current_choice": "persistence_fallback",
-          "policy_is_wrong": true
+          "policy_is_wrong": false
         }
       }
     }
@@ -3375,15 +3430,15 @@
     "beatable": [
       "primary (corpus named in the brief)/12h",
       "primary (corpus named in the brief)/1h",
-      "primary (corpus named in the brief)/24h",
       "primary (corpus named in the brief)/3h",
       "primary (corpus named in the brief)/6h",
       "training corpus (behind the published numbers)/12h",
-      "training corpus (behind the published numbers)/1h",
-      "training corpus (behind the published numbers)/24h",
       "training corpus (behind the published numbers)/6h"
     ],
     "not_beatable": [
+      "primary (corpus named in the brief)/24h",
+      "training corpus (behind the published numbers)/1h",
+      "training corpus (behind the published numbers)/24h",
       "training corpus (behind the published numbers)/3h"
     ],
     "unknown": [],
@@ -3394,5 +3449,5 @@
       "implication": "any head that beats persistence by a clear margin also beats every NWP humidity source, because NWP grid-cell humidity is far worse than station persistence near the ground"
     }
   },
-  "elapsed_seconds": 357.9
+  "elapsed_seconds": 598.3
 }
