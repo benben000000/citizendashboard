@@ -1,0 +1,323 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at_utc": "2026-10-01T04:46:39Z",
+  "gate": "prediction-model/src/release_gate.py",
+  "recommendation": "PROMOTE_ALL",
+  "promotion_decision_computed": true,
+  "exit_code": 0,
+  "exit_code_meaning": "gate ran; decision complete; act on the listed promotions",
+  "decision_inputs_used": {
+    "corpus_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+    "channels": [
+      "rain_occurrence"
+    ],
+    "horizons": [
+      1
+    ],
+    "split_used_for_decision": "validation",
+    "split_used_for_reporting": "test",
+    "incumbent": "incumbent",
+    "challenger": "challenger"
+  },
+  "rule": {
+    "statement": "A challenger replaces the incumbent for a (channel, horizon) cell only if it beats it by more than a paired 2-sigma standard error on the validation period AND is ahead in both chronological halves of that period. Every channel is decided independently.",
+    "difference": "mean_difference = mean(incumbent_row_error - candidate_row_error); positive means the challenger is better",
+    "row_error": "absolute |y - yhat| for MAE channels; Brier term (p - y)^2 for rain_occurrence",
+    "sigma_multiplier": 2.0,
+    "significance_comparison": "strictly greater than; a cell sitting exactly at the multiple does NOT promote",
+    "half_split_requirement": "mean_difference > 0 in the 'early' and 'late' halves independently; the magnitude of each half is not itself tested at 2 sigma",
+    "min_paired_rows": 30,
+    "min_paired_rows_per_half": 10,
+    "decision_split": "validation",
+    "test_split": "reporting only; a decision input labelled 'test' is rejected",
+    "missing_evidence": "INSUFFICIENT_EVIDENCE; there is no default that turns absence into a promotion",
+    "rejected_cells": "recorded explicitly with a reason; never omitted"
+  },
+  "integrity": {
+    "corpus": {
+      "candidate": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+      "baseline": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+      "policy": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+      "status": "PASS"
+    },
+    "policy_corpus": {
+      "status": "PASS"
+    },
+    "policy": {
+      "policy_version": "2.0.0",
+      "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
+      "cells_resolved": 25,
+      "read_error": null,
+      "undecidable_channels": [
+        "heat_index",
+        "wind_direction"
+      ],
+      "status": "PASS"
+    },
+    "baseline_document": {
+      "status": "PASS"
+    },
+    "baseline_drift": {
+      "status": "PASS",
+      "tolerance_rel": 0.01,
+      "cells_checked": 25,
+      "cells_total": 25,
+      "drifted": [],
+      "not_rechecked": [],
+      "newly_covered": [],
+      "justification": null,
+      "excluded_fields": [
+        "captured",
+        "captured_at",
+        "captured_at_utc",
+        "recorded_at_utc",
+        "generated_at",
+        "generated_at_utc",
+        "evaluated_at_utc",
+        "timestamp",
+        "timestamp_utc"
+      ],
+      "details": {
+        "humidity|h1": {
+          "status": "MATCH",
+          "recorded": 1.677,
+          "fresh": 1.6773735019797626,
+          "delta": 0.0003735019797626027,
+          "allowed": 0.01677
+        },
+        "humidity|h3": {
+          "status": "MATCH",
+          "recorded": 3.253,
+          "fresh": 3.253294418189924,
+          "delta": 0.0002944181899238174,
+          "allowed": 0.03253
+        },
+        "humidity|h6": {
+          "status": "MATCH",
+          "recorded": 4.884,
+          "fresh": 4.8844105457025915,
+          "delta": 0.0004105457025911363,
+          "allowed": 0.04884
+        },
+        "humidity|h12": {
+          "status": "MATCH",
+          "recorded": 6.362,
+          "fresh": 6.361866122641509,
+          "delta": -0.00013387735849068605,
+          "allowed": 0.06362
+        },
+        "humidity|h24": {
+          "status": "MATCH",
+          "recorded": 4.413,
+          "fresh": 4.4134322681451605,
+          "delta": 0.0004322681451602861,
+          "allowed": 0.04413
+        },
+        "pressure|h1": {
+          "status": "MATCH",
+          "recorded": 0.394,
+          "fresh": 0.3942008358996919,
+          "delta": 0.00020083589969188687,
+          "allowed": 0.00394
+        },
+        "pressure|h3": {
+          "status": "MATCH",
+          "recorded": 0.931,
+          "fresh": 0.9311144003566661,
+          "delta": 0.00011440035666610004,
+          "allowed": 0.00931
+        },
+        "pressure|h6": {
+          "status": "MATCH",
+          "recorded": 1.315,
+          "fresh": 1.315276716689406,
+          "delta": 0.0002767166894059869,
+          "allowed": 0.01315
+        },
+        "pressure|h12": {
+          "status": "MATCH",
+          "recorded": 0.797,
+          "fresh": 0.7966708962264145,
+          "delta": -0.0003291037735855262,
+          "allowed": 0.007970000000000001
+        },
+        "pressure|h24": {
+          "status": "MATCH",
+          "recorded": 1.075,
+          "fresh": 1.0745668346774206,
+          "delta": -0.00043316532257930973,
+          "allowed": 0.01075
+        },
+        "rain_occurrence|h1": {
+          "status": "MATCH",
+          "recorded": 0.1373,
+          "fresh": 0.13728214342278924,
+          "delta": -1.7856577210761948e-05,
+          "allowed": 0.001373
+        },
+        "rain_occurrence|h3": {
+          "status": "MATCH",
+          "recorded": 0.1859,
+          "fresh": 0.18589874944271068,
+          "delta": -1.2505572893339867e-06,
+          "allowed": 0.0018590000000000002
+        },
+        "rain_occurrence|h6": {
+          "status": "MATCH",
+          "recorded": 0.2209,
+          "fresh": 0.22087819008640291,
+          "delta": -2.1809913597098385e-05,
+          "allowed": 0.002209
+        },
+        "rain_occurrence|h12": {
+          "status": "MATCH",
+          "recorded": 0.2364,
+          "fresh": 0.23637939528301888,
+          "delta": -2.0604716981120763e-05,
+          "allowed": 0.002364
+        },
+        "rain_occurrence|h24": {
+          "status": "MATCH",
+          "recorded": 0.2506,
+          "fresh": 0.25059216683467744,
+          "delta": -7.833165322546076e-06,
+          "allowed": 0.002506
+        },
+        "temperature|h1": {
+          "status": "MATCH",
+          "recorded": 0.594,
+          "fresh": 0.5936618521777387,
+          "delta": -0.00033814782226126994,
+          "allowed": 0.00594
+        },
+        "temperature|h3": {
+          "status": "MATCH",
+          "recorded": 1.137,
+          "fresh": 1.136779852875613,
+          "delta": -0.00022014712438700457,
+          "allowed": 0.01137
+        },
+        "temperature|h6": {
+          "status": "MATCH",
+          "recorded": 1.477,
+          "fresh": 1.4771981127785359,
+          "delta": 0.00019811277853576392,
+          "allowed": 0.014770000000000002
+        },
+        "temperature|h12": {
+          "status": "MATCH",
+          "recorded": 1.647,
+          "fresh": 1.6473721320754717,
+          "delta": 0.00037213207547170946,
+          "allowed": 0.016470000000000002
+        },
+        "temperature|h24": {
+          "status": "MATCH",
+          "recorded": 1.406,
+          "fresh": 1.4059376612903227,
+          "delta": -6.233870967720101e-05,
+          "allowed": 0.01406
+        },
+        "wind_speed|h1": {
+          "status": "MATCH",
+          "recorded": 0.88,
+          "fresh": 0.8799506088869337,
+          "delta": -4.9391113066343806e-05,
+          "allowed": 0.0088
+        },
+        "wind_speed|h3": {
+          "status": "MATCH",
+          "recorded": 1.101,
+          "fresh": 1.1013491850200625,
+          "delta": 0.0003491850200625368,
+          "allowed": 0.01101
+        },
+        "wind_speed|h6": {
+          "status": "MATCH",
+          "recorded": 1.217,
+          "fresh": 1.2172260745793544,
+          "delta": 0.0002260745793543073,
+          "allowed": 0.01217
+        },
+        "wind_speed|h12": {
+          "status": "MATCH",
+          "recorded": 1.243,
+          "fresh": 1.2431294834905662,
+          "delta": 0.00012948349056607356,
+          "allowed": 0.012430000000000002
+        },
+        "wind_speed|h24": {
+          "status": "MATCH",
+          "recorded": 1.18,
+          "fresh": 1.1803511431451614,
+          "delta": 0.00035114314516149214,
+          "allowed": 0.0118
+        }
+      }
+    }
+  },
+  "counts": {
+    "PROMOTE": 1,
+    "REJECT": 0,
+    "INSUFFICIENT_EVIDENCE": 0
+  },
+  "summary": {
+    "promoted": [
+      "rain_occurrence|h1"
+    ],
+    "rejected": [],
+    "insufficient_evidence": [],
+    "promotions_beating_persistence": [],
+    "promotions_beating_served_model": [
+      "rain_occurrence|h1"
+    ]
+  },
+  "cells": {
+    "rain_occurrence|h1": {
+      "channel": "rain_occurrence",
+      "horizon": 1,
+      "verdict": "PROMOTE",
+      "reason": "PROMOTED_2_SIGMA_BOTH_HALVES",
+      "detail": "mean paired difference 0.09097399695916684 exceeds 2 sigma (0.012290061469570363) and the challenger is ahead in both chronological halves",
+      "evidence": {
+        "metric": "brier_score",
+        "unit": "dimensionless",
+        "better": "lower_is_better",
+        "row_error": "squared",
+        "decision_split": "validation",
+        "incumbent": 0.4841249328932893,
+        "challenger": 0.3931509359341225,
+        "absolute_improvement": 0.0909739969591668,
+        "relative_improvement": 0.18791429810374852,
+        "n_pairs": 2727,
+        "mean_difference": 0.09097399695916684,
+        "stderr": 0.006145030734785182,
+        "required_difference": 0.012290061469570363,
+        "sigma": 14.804482009209531,
+        "halves": {
+          "early": {
+            "n_pairs": 1363,
+            "mean_difference": 0.12493328201280095,
+            "stderr": 0.008600169331850843,
+            "ahead": true
+          },
+          "late": {
+            "n_pairs": 1364,
+            "mean_difference": 0.05703960874208232,
+            "stderr": 0.008685933576525568,
+            "ahead": true
+          }
+        },
+        "stderr_source": "SUPPLIED",
+        "evidence_sources": {
+          "early": "build_promotion_evidence.py:rain_occurrence+1h:early",
+          "full": "build_promotion_evidence.py:rain_occurrence+1h:full",
+          "late": "build_promotion_evidence.py:rain_occurrence+1h:late"
+        },
+        "incumbent_source": "rain_blend",
+        "incumbent_source_detail": "rain_model_weight=0.8, rain_persistence_weight=0.2",
+        "promotion_class": "BEATS_SERVED_MODEL"
+      }
+    }
+  }
+}

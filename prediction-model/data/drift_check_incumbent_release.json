@@ -1,0 +1,198 @@
+{
+  "status": "MATCH",
+  "tolerance_rel": 0.02,
+  "checked": 25,
+  "drifted": [],
+  "missing": [],
+  "newly_covered": [],
+  "justification": null,
+  "excluded_fields": [
+    "captured",
+    "captured_at",
+    "captured_at_utc",
+    "recorded_at_utc",
+    "generated_at",
+    "generated_at_utc",
+    "evaluated_at_utc",
+    "timestamp",
+    "timestamp_utc"
+  ],
+  "clean": true,
+  "details": {
+    "temperature|1": {
+      "status": "MATCH",
+      "recorded": 0.594,
+      "fresh": 0.5936618521777387,
+      "delta": -0.00033814782226126994,
+      "allowed": 0.01188
+    },
+    "temperature|3": {
+      "status": "MATCH",
+      "recorded": 1.137,
+      "fresh": 1.136779852875613,
+      "delta": -0.00022014712438700457,
+      "allowed": 0.02274
+    },
+    "temperature|6": {
+      "status": "MATCH",
+      "recorded": 1.477,
+      "fresh": 1.4771981127785359,
+      "delta": 0.00019811277853576392,
+      "allowed": 0.029540000000000004
+    },
+    "temperature|12": {
+      "status": "MATCH",
+      "recorded": 1.647,
+      "fresh": 1.6473721320754717,
+      "delta": 0.00037213207547170946,
+      "allowed": 0.032940000000000004
+    },
+    "temperature|24": {
+      "status": "MATCH",
+      "recorded": 1.406,
+      "fresh": 1.4059376612903227,
+      "delta": -6.233870967720101e-05,
+      "allowed": 0.02812
+    },
+    "humidity|1": {
+      "status": "MATCH",
+      "recorded": 1.677,
+      "fresh": 1.6773735019797626,
+      "delta": 0.0003735019797626027,
+      "allowed": 0.03354
+    },
+    "humidity|3": {
+      "status": "MATCH",
+      "recorded": 3.253,
+      "fresh": 3.253294418189924,
+      "delta": 0.0002944181899238174,
+      "allowed": 0.06506
+    },
+    "humidity|6": {
+      "status": "MATCH",
+      "recorded": 4.884,
+      "fresh": 4.8844105457025915,
+      "delta": 0.0004105457025911363,
+      "allowed": 0.09768
+    },
+    "humidity|12": {
+      "status": "MATCH",
+      "recorded": 6.362,
+      "fresh": 6.361866122641509,
+      "delta": -0.00013387735849068605,
+      "allowed": 0.12724
+    },
+    "humidity|24": {
+      "status": "MATCH",
+      "recorded": 4.413,
+      "fresh": 4.4134322681451605,
+      "delta": 0.0004322681451602861,
+      "allowed": 0.08826
+    },
+    "pressure|1": {
+      "status": "MATCH",
+      "recorded": 0.394,
+      "fresh": 0.3942008358996919,
+      "delta": 0.00020083589969188687,
+      "allowed": 0.00788
+    },
+    "pressure|3": {
+      "status": "MATCH",
+      "recorded": 0.931,
+      "fresh": 0.9311144003566661,
+      "delta": 0.00011440035666610004,
+      "allowed": 0.01862
+    },
+    "pressure|6": {
+      "status": "MATCH",
+      "recorded": 1.315,
+      "fresh": 1.315276716689406,
+      "delta": 0.0002767166894059869,
+      "allowed": 0.0263
+    },
+    "pressure|12": {
+      "status": "MATCH",
+      "recorded": 0.797,
+      "fresh": 0.7966708962264145,
+      "delta": -0.0003291037735855262,
+      "allowed": 0.015940000000000003
+    },
+    "pressure|24": {
+      "status": "MATCH",
+      "recorded": 1.075,
+      "fresh": 1.0745668346774206,
+      "delta": -0.00043316532257930973,
+      "allowed": 0.0215
+    },
+    "wind_speed|1": {
+      "status": "MATCH",
+      "recorded": 0.88,
+      "fresh": 0.8799506088869337,
+      "delta": -4.9391113066343806e-05,
+      "allowed": 0.0176
+    },
+    "wind_speed|3": {
+      "status": "MATCH",
+      "recorded": 1.101,
+      "fresh": 1.1013491850200625,
+      "delta": 0.0003491850200625368,
+      "allowed": 0.02202
+    },
+    "wind_speed|6": {
+      "status": "MATCH",
+      "recorded": 1.217,
+      "fresh": 1.2172260745793544,
+      "delta": 0.0002260745793543073,
+      "allowed": 0.02434
+    },
+    "wind_speed|12": {
+      "status": "MATCH",
+      "recorded": 1.243,
+      "fresh": 1.2431294834905662,
+      "delta": 0.00012948349056607356,
+      "allowed": 0.024860000000000004
+    },
+    "wind_speed|24": {
+      "status": "MATCH",
+      "recorded": 1.18,
+      "fresh": 1.1803511431451614,
+      "delta": 0.00035114314516149214,
+      "allowed": 0.0236
+    },
+    "rain_occurrence|1": {
+      "status": "MATCH",
+      "recorded": 0.1373,
+      "fresh": 0.13728214342278924,
+      "delta": -1.7856577210761948e-05,
+      "allowed": 0.002746
+    },
+    "rain_occurrence|3": {
+      "status": "MATCH",
+      "recorded": 0.1859,
+      "fresh": 0.18589874944271068,
+      "delta": -1.2505572893339867e-06,
+      "allowed": 0.0037180000000000004
+    },
+    "rain_occurrence|6": {
+      "status": "MATCH",
+      "recorded": 0.2209,
+      "fresh": 0.22087819008640291,
+      "delta": -2.1809913597098385e-05,
+      "allowed": 0.004418
+    },
+    "rain_occurrence|12": {
+      "status": "MATCH",
+      "recorded": 0.2364,
+      "fresh": 0.23637939528301888,
+      "delta": -2.0604716981120763e-05,
+      "allowed": 0.004728
+    },
+    "rain_occurrence|24": {
+      "status": "MATCH",
+      "recorded": 0.2506,
+      "fresh": 0.25059216683467744,
+      "delta": -7.833165322546076e-06,
+      "allowed": 0.005012
+    }
+  }
+}
