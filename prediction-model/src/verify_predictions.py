@@ -48,6 +48,12 @@ from prediction_audit import (  # noqa: E402
 
 DATA_DIR = os.path.abspath(os.path.join(HERE, "..", "data"))
 VERIFICATION_PATH = os.path.join(DATA_DIR, "prediction_verification.jsonl")
+# Named explicitly rather than left to read_records' implicit PREDICTION_AUDIT_PATH
+# default. Both paths are now resolved here, so a caller passing None gets this
+# module's idea of where the trail is instead of a silent fallback buried in a
+# reader three frames away -- which is what made the verification trail resolve
+# to the prediction trail and the verifier score nothing.
+PREDICTION_PATH = os.path.join(DATA_DIR, "prediction_audit.jsonl")
 
 # How far from the target time an observation may be and still count.
 DEFAULT_TOLERANCE_MINUTES = 30.0
@@ -115,10 +121,20 @@ def verify(
     failure to score must not be mistaken for a failure to predict.
     """
     ref = now or datetime.now(timezone.utc)
-    predictions = read_records(prediction_path)
+    # Resolve both trail paths before reading either. read_records() and
+    # read_observations() each fall back to an environment default when handed
+    # None, so passing the raw argument means "None" is indistinguishable from
+    # "deliberately use the default" -- and when the caller relies on the
+    # defaults, the fallback for the verification trail is the PREDICTION trail.
+    # That mistake made `already` a set of the prediction file's own record_ids
+    # (so already_verified always read 0) and seeded the identity set with every
+    # forecast in that file (so every forecast scored as a duplicate of itself).
+    resolved_prediction = prediction_path or PREDICTION_PATH
+    resolved_verification = verification_path or VERIFICATION_PATH
+    predictions = read_records(resolved_prediction)
     observations = read_observations(observation_path)
     already = {r.get("prediction_record_id")
-               for r in read_records(verification_path)}
+               for r in read_records(resolved_verification)}
 
     by_station: Dict[str, List[Dict[str, Any]]] = {}
     for o in observations:
@@ -142,9 +158,19 @@ def verify(
     # is why the file held 20,398 lines for 2,591 unique forecasts -- an 8x
     # inflation that anyone reading the file line count would take for real
     # evidence volume.
+    # Seeded from the records already on disk, not left empty.
+    #
+    # The identity set has to start as the union of what has already been
+    # verified and what is being verified now. Starting empty is subtly wrong:
+    # `already` only holds record_ids, so a republished forecast from a PREVIOUS
+    # run is not in it, passes the first check, and is scored and written again.
+    # The duplicates were stopped within a single run but not across runs, which
+    # is why the file held 20,398 lines for 2,591 unique forecasts -- an 8x
+    # inflation that anyone reading the file line count would take for real
+    # evidence volume.
     seen_identities: set = {
         (r.get("station_id"), r.get("origin_timestamp_utc"), _num(r.get("horizon_hours")))
-        for r in read_records(verification_path)
+        for r in read_records(resolved_verification)
     }
     per_var_abs: Dict[str, List[float]] = {}
     # Counts per producer, NOT a pooled mean. A mean absolute error across degC,
