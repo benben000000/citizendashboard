@@ -1,0 +1,209 @@
+{
+  "generated_at_utc": "2026-10-01T21:15:57.548130Z",
+  "forecasts_scored": 6822,
+  "min_rows": 30,
+  "persistence_tolerance_minutes": 30.0,
+  "counts": {
+    "computable": 16,
+    "skill": 4,
+    "tie": 12,
+    "regression": 0,
+    "insufficient": 0
+  },
+  "cells": {
+    "temperature|1": {
+      "n": 2841,
+      "served_mae": 0.593768,
+      "persistence_mae": 0.593749,
+      "skill_pct": -0.0032,
+      "status": "TIE",
+      "producers": {
+        "lln": 735,
+        "unknown": 195,
+        "persistence": 1911
+      }
+    },
+    "humidity|1": {
+      "n": 2841,
+      "served_mae": 2.111411,
+      "persistence_mae": 2.111789,
+      "skill_pct": 0.0179,
+      "status": "TIE",
+      "producers": {
+        "lln": 735,
+        "unknown": 195,
+        "persistence": 1911
+      }
+    },
+    "pressure|1": {
+      "n": 2844,
+      "served_mae": 0.351019,
+      "persistence_mae": 0.351087,
+      "skill_pct": 0.0195,
+      "status": "TIE",
+      "producers": {
+        "lln": 735,
+        "unknown": 195,
+        "persistence": 1914
+      }
+    },
+    "wind_speed|1": {
+      "n": 2844,
+      "served_mae": 0.715707,
+      "persistence_mae": 0.71611,
+      "skill_pct": 0.0563,
+      "status": "TIE",
+      "producers": {
+        "lln": 735,
+        "unknown": 195,
+        "persistence": 1914
+      }
+    },
+    "temperature|3": {
+      "n": 2331,
+      "served_mae": 1.720513,
+      "persistence_mae": 1.720537,
+      "skill_pct": 0.0014,
+      "status": "TIE",
+      "producers": {
+        "lln": 706,
+        "unknown": 200,
+        "persistence": 1425
+      }
+    },
+    "humidity|3": {
+      "n": 2331,
+      "served_mae": 5.287844,
+      "persistence_mae": 5.287449,
+      "skill_pct": -0.0075,
+      "status": "TIE",
+      "producers": {
+        "lln": 706,
+        "unknown": 200,
+        "persistence": 1425
+      }
+    },
+    "pressure|3": {
+      "n": 2331,
+      "served_mae": 0.995994,
+      "persistence_mae": 0.995979,
+      "skill_pct": -0.0016,
+      "status": "TIE",
+      "producers": {
+        "lln": 706,
+        "unknown": 200,
+        "persistence": 1425
+      }
+    },
+    "wind_speed|3": {
+      "n": 2331,
+      "served_mae": 0.917678,
+      "persistence_mae": 0.917709,
+      "skill_pct": 0.0034,
+      "status": "TIE",
+      "producers": {
+        "lln": 706,
+        "unknown": 200,
+        "persistence": 1425
+      }
+    },
+    "temperature|6": {
+      "n": 1476,
+      "served_mae": 2.992212,
+      "persistence_mae": 3.355489,
+      "skill_pct": 10.8263,
+      "status": "SKILL",
+      "producers": {
+        "lln": 1476
+      }
+    },
+    "humidity|6": {
+      "n": 1476,
+      "served_mae": 10.59993,
+      "persistence_mae": 10.600062,
+      "skill_pct": 0.0012,
+      "status": "TIE",
+      "producers": {
+        "lln": 545,
+        "persistence": 931
+      }
+    },
+    "pressure|6": {
+      "n": 1476,
+      "served_mae": 1.695123,
+      "persistence_mae": 1.695084,
+      "skill_pct": -0.0023,
+      "status": "TIE",
+      "producers": {
+        "lln": 545,
+        "persistence": 931
+      }
+    },
+    "wind_speed|6": {
+      "n": 1476,
+      "served_mae": 0.963237,
+      "persistence_mae": 1.163622,
+      "skill_pct": 17.2208,
+      "status": "SKILL",
+      "producers": {
+        "lln": 1476
+      }
+    },
+    "temperature|12": {
+      "n": 171,
+      "served_mae": 2.186295,
+      "persistence_mae": 6.101685,
+      "skill_pct": 64.169,
+      "status": "SKILL",
+      "producers": {
+        "lln": 171
+      }
+    },
+    "humidity|12": {
+      "n": 171,
+      "served_mae": 20.059982,
+      "persistence_mae": 20.057873,
+      "skill_pct": -0.0105,
+      "status": "TIE",
+      "producers": {
+        "persistence": 171
+      }
+    },
+    "pressure|12": {
+      "n": 171,
+      "served_mae": 1.896064,
+      "persistence_mae": 1.895994,
+      "skill_pct": -0.0037,
+      "status": "TIE",
+      "producers": {
+        "persistence": 171
+      }
+    },
+    "wind_speed|12": {
+      "n": 171,
+      "served_mae": 1.468863,
+      "persistence_mae": 2.582317,
+      "skill_pct": 43.1184,
+      "status": "SKILL",
+      "producers": {
+        "lln": 171
+      }
+    },
+    "temperature|24": {
+      "n": 0,
+      "status": "NO_ROWS"
+    },
+    "humidity|24": {
+      "n": 0,
+      "status": "NO_ROWS"
+    },
+    "pressure|24": {
+      "n": 0,
+      "status": "NO_ROWS"
+    },
+    "wind_speed|24": {
+      "n": 0,
+      "status": "NO_ROWS"
+    }
+  }
+}
