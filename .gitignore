@@ -107,6 +107,24 @@ prediction-model/data/candidate_artifacts_leaky_olddata/
 # is a candidate someone could mistake for the release bundle, and the release
 # gate reads provenance from exactly these manifest files.
 prediction-model/data/candidate_artifacts_fresh/
+
+# Training scratch from the 2026-10-01/02 rain retrain, and the rehearsal area
+# used to verify the gated policy end to end without touching production.
+#
+# data_rehearsal/ in particular is a 97 MB copy of the corpus plus a full set of
+# packaged bundles. It exists so a dry run could be proven on the real serving
+# path -- hash-pinned policies, real validation features -- before anything was
+# deployed. It is a rehearsal, not an artefact, and nothing reads it after the
+# run. The gates it fed (promotion_verdict_full_retrain.json,
+# inference_policy_gated.json) ARE tracked, because those are the durable results.
+prediction-model/data/retrain_release_corpus/
+prediction-model/data/retrain_release_corpus_pq/
+prediction-model/data/train_output/
+prediction-model/data/bundles_staging_rain_h1/
+prediction-model/data_rehearsal/
+# Measurement scaffold written by refit_policy.py --measure-neutral. Routes every
+# cell to persistence and asserts no fitted weights; regenerated on each refit.
+prediction-model/data/refit_neutral_policy.json
 prediction-model/data/seed_sweep/
 prediction-model/data/seed_sweep_analysis.json
 prediction-model/data/nwp_benchmark_candidate_*.json
