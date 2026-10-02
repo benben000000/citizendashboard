@@ -243,7 +243,15 @@ KNOWN_INDEPENDENT_SCORERS = [
     ("train_spatial_cfc.py", 145, "main", ["maes"]),
     ("validate.py", 144, "compute_continuous_metrics", ["mae"]),
     ("validate.py", 424, "compute_water_metrics", ["mae_meters"]),
-    ("verify_predictions.py", 103, "verify",
+    # verify() moved 103 -> 109 on 2026-10-02, when both trail paths were
+    # resolved explicitly at the top of the function. The ledger pins line
+    # numbers deliberately: a scorer that silently changes position is a scorer
+    # whose identity can no longer be confirmed. Keys are unchanged.
+    #
+    # verify() was ALREADY in this ledger before that edit. The companion test
+    # reported it as a new independent scorer only because the recorded line no
+    # longer matched the recorded name, which is the ledger working as intended.
+    ("verify_predictions.py", 109, "verify",
      ["mae_by_variable", "mae_by_variable_and_producer"]),
 ]
 
