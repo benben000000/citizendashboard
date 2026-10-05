@@ -20,7 +20,6 @@ import {
   Wind,
   CloudRain,
   Waves,
-  Sun,
   Droplets,
 } from "lucide-react";
 
@@ -218,14 +217,7 @@ export default function PredictionWeatherForecast({
     targetData.condition === "rain" ||
     targetData.condition === "storm";
 
-  // UV index is governed by the forecasting engine, which quarantines it
-  // (BLOCKED_BY_SENSOR_CALIBRATION: raw sensors report up to 11.0 at midnight)
-  // and raises on any UV request. The previous implementation computed a
-  // clear-sky solar-zenith proxy in the browser and rendered it as a reading,
-  // which put an unvalidated number in front of users under a label the model
-  // explicitly withholds. The status is rendered instead.
-  const uvBlocked = weather.uvIndex?.status === "BLOCKED_BY_SENSOR_CALIBRATION";
-  const uvReason = weather.uvIndex?.reason ?? "";
+
 
   // The weather dashboard should only describe risks measured or forecast for
   // the selected station. Flood-stage risk belongs to a water-level station.
@@ -556,44 +548,30 @@ export default function PredictionWeatherForecast({
                   </div>
                 </div>
 
-                {/* 4. UV Index Card — blocked by the engine, never synthesised */}
-                <div
-                  className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5"
-                  data-testid="uv-index-card"
-                  data-uv-status={weather.uvIndex?.status ?? "BLOCKED_BY_SENSOR_CALIBRATION"}
-                >
+                {/* 4. Chance of Rain Card — always shown so rain probability is never hidden */}
+                <div className="glass flex min-h-32 md:min-h-36 flex-col justify-between p-4 md:p-4.5">
                   <div className="flex items-center gap-2">
-                    <Sun className="h-4 w-4 md:h-4.5 md:w-4.5 text-light/50 shrink-0" />
+                    <CloudRain className="h-4 w-4 md:h-4.5 md:w-4.5 text-light shrink-0" />
                     <span className="text-xs md:text-sm text-light font-medium leading-tight">
-                      {t("cards.uvIndex")}
+                      {t("cards.rainChance")} ({horizon})
                     </span>
                   </div>
 
-                  {uvBlocked ? (
-                    <>
-                      <div className="my-auto flex items-baseline gap-1 text-light/60">
-                        <span className="text-lg md:text-xl font-bold leading-none">—</span>
-                        <span className="text-[11px] font-medium leading-tight">
-                          {t("cards.uvWithheld")}
-                        </span>
-                      </div>
-                      <div
-                        className="text-[10px] font-semibold leading-tight text-amber-300/90 line-clamp-2"
-                        title={uvReason}
-                      >
-                        {t("cards.uvBlockedReason")}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="my-auto flex items-baseline gap-1 text-light">
-                        <span className="text-2xl md:text-3xl font-bold leading-none">—</span>
-                      </div>
-                      <div className="text-[11px] font-semibold text-light/85 truncate">
-                        {t("cards.uvWithheld")}
-                      </div>
-                    </>
-                  )}
+                  <div className="my-auto flex items-baseline gap-1 text-light">
+                    <span className="text-2xl md:text-3xl font-bold leading-none">
+                      {targetData.rainProbability}
+                    </span>
+                    <span className="text-xs font-medium">%</span>
+                    {targetData.conformalBounds && (
+                      <span className="text-[10px] text-light/75 ml-1 font-mono tracking-tight bg-white/10 px-1.5 py-0.5 rounded-full">
+                        ±1σ: {targetData.conformalBounds.likelyLower}–{targetData.conformalBounds.likelyUpper}%
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] font-semibold text-light/85 truncate">
+                    {targetData.precipitationMm > 0 ? `~${targetData.precipitationMm.toFixed(1)} mm volume` : willItRainText}
+                  </div>
                 </div>
               </>
             )}
