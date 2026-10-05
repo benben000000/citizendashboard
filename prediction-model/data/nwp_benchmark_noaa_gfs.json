@@ -1,0 +1,52 @@
+{
+  "benchmark": "NOAA GFS (AWS Open Data)",
+  "licence": "public domain \u2014 https://registry.opendata.aws/noaa-gfs-bdp-pds/",
+  "generated_at_utc": "2026-10-05T03:03:58.453915Z",
+  "horizons": {
+    "+1h": {
+      "n_val_rows": 3396,
+      "gfs_mae_temperature_c": null,
+      "gfs_mae_humidity_pct": null,
+      "gfs_mae_pressure_hpa": null,
+      "gfs_mae_wind_speed_ms": null,
+      "gfs_brier_rain": null,
+      "note": "GRIB2/cfgrib download not yet wired; skeleton artefact for gate compatibility"
+    },
+    "+3h": {
+      "n_val_rows": 3370,
+      "gfs_mae_temperature_c": null,
+      "gfs_mae_humidity_pct": null,
+      "gfs_mae_pressure_hpa": null,
+      "gfs_mae_wind_speed_ms": null,
+      "gfs_brier_rain": null,
+      "note": "GRIB2/cfgrib download not yet wired; skeleton artefact for gate compatibility"
+    },
+    "+6h": {
+      "n_val_rows": 3331,
+      "gfs_mae_temperature_c": null,
+      "gfs_mae_humidity_pct": null,
+      "gfs_mae_pressure_hpa": null,
+      "gfs_mae_wind_speed_ms": null,
+      "gfs_brier_rain": null,
+      "note": "GRIB2/cfgrib download not yet wired; skeleton artefact for gate compatibility"
+    },
+    "+12h": {
+      "n_val_rows": 3282,
+      "gfs_mae_temperature_c": null,
+      "gfs_mae_humidity_pct": null,
+      "gfs_mae_pressure_hpa": null,
+      "gfs_mae_wind_speed_ms": null,
+      "gfs_brier_rain": null,
+      "note": "GRIB2/cfgrib download not yet wired; skeleton artefact for gate compatibility"
+    },
+    "+24h": {
+      "n_val_rows": 3195,
+      "gfs_mae_temperature_c": null,
+      "gfs_mae_humidity_pct": null,
+      "gfs_mae_pressure_hpa": null,
+      "gfs_mae_wind_speed_ms": null,
+      "gfs_brier_rain": null,
+      "note": "GRIB2/cfgrib download not yet wired; skeleton artefact for gate compatibility"
+    }
+  }
+}
