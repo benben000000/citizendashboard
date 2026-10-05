@@ -52,7 +52,8 @@ function row(o,hot){
     + "</tr>";
 }
 function poll(){
-  fetch("/api/prediction/mqtt/live",{cache:"no-store"})
+  var base = (location.origin && location.origin !== 'null' && location.protocol !== 'file:') ? location.origin : 'http://localhost';
+  fetch(base + "/api/prediction/mqtt/live",{cache:"no-store"})
   .then(function(r){return r.json();})
   .then(function(j){
     polls++;

@@ -41,12 +41,11 @@ def build_payload():
     now = time.time()
     if _cache["payload"] is not None and now - _cache["at"] < CACHE_SECONDS:
         return _cache["payload"]
-    raw = read_jsonl_tail(Path("prediction-model/data/prediction_audit.jsonl"), MAX_RECORDS)
+    raw = read_jsonl_tail(AUDIT, MAX_RECORDS)
     rows = []
     stations = set()
     horizons = {}
-    pipe = get_telemetry_pipeline()
-    for rec in read_jsonl_tail(Path("prediction-model/data/prediction_audit.jsonl"), MAX_RECORDS):
+    for rec in raw:
         fc = rec.get("forecast_raw") or {}
         vars = rec.get("variables") or {}
         def prod(k): return (vars.get(k) or {}).get("producer")
@@ -55,7 +54,7 @@ def build_payload():
         if hz is not None: horizons[hz] = horizons.get(hz, 0) + 1
         rows.append({
             "ts": rec.get("recorded_at_utc"), "origin": fc.get("forecast_origin_timestamp") or rec.get("origin_timestamp_utc"),
-            "valid": fc.get("target_timestamp"), "station": sid, "hz": horizon,
+            "valid": fc.get("target_timestamp"), "station": sid, "hz": hz,
             "temperature_c": num(fc.get("temperature_c")), "heat_index_c": num(fc.get("heat_index_c")),
             "humidity_pct": num(fc.get("relative_humidity_pct")), "pressure_hpa": num(fc.get("pressure_hpa")),
             "pressure_tendency": fc.get("pressure_tendency"),
@@ -93,7 +92,21 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args): pass
     def _send(self, code, body, ctype):
         b = body if isinstance(body, bytes) else body.encode("utf-8")
-        self.send_response(code); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(b))); self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(b)
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(b)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.end_headers()
+        self.wfile.write(b)
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.end_headers()
     def do_GET(self):
         if urlparse(self.path).path == "/api/logs":
             try: self._send(200, json.dumps(build_payload()), "application/json")
@@ -179,7 +192,8 @@ function draw(){
   g.fillStyle='#333';g.fillText(fmt(pts[0].ts)+'  ->  '+fmt(pts[pts.length-1].ts)+'   ('+pts.length+' +1h points)',70,cv.height-8);
 }
 function load(){
-  fetch('/api/logs',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+  var base = (location.origin && location.origin !== 'null' && location.protocol !== 'file:') ? location.origin : 'http://127.0.0.1:8090';
+  fetch(base + '/api/logs',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
     if(d.error){document.getElementById('gen').textContent='ERROR '+d.error;return;}
     DATA=d;var added=0,i;
     for(i=0;i<d.rows.length;i++){
