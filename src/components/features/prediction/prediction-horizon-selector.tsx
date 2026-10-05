@@ -15,8 +15,6 @@ const HORIZONS: Array<{ value: PredictionHorizon; label: string }> = [
   { value: "6h", label: "6h" },
   { value: "12h", label: "12h" },
   { value: "24h", label: "24h" },
-  { value: "48h", label: "48h" },
-  { value: "72h", label: "72h" },
 ];
 
 export default function PredictionHorizonSelector({

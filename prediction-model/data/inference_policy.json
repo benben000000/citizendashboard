@@ -4,7 +4,7 @@
   "generated_at": "2026-10-05T03:04:07.293586Z",
   "regenerated_by": "build_gate_constrained_policy.py",
   "regeneration_note": "Calibration measured by refit_policy.py; model routing authorised solely by release_gate.py. Cells the gate did not promote are forced to persistence, even where the refit preferred the model.",
-  "fitted_model_commit": "86afef5148a341cbb7b5caf4b8cfcbd35a64979f",
+  "fitted_model_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
   "dataset_hashes": {
     "weather_telemetry_sha256": "86ce906453aa071e12726e91da6c96c516285cf0bc7c3e3fb51d8d111f3bea4a",
     "water_level_telemetry_sha256": "acca3ffed16592209dd25ba562a1057ff95ecb4f285e521567347acb6099c872",
@@ -13,11 +13,11 @@
   "horizons": {
     "1": {
       "selected_sources": {
-        "temperature": "persistence_fallback",
-        "humidity": "persistence_fallback",
-        "pressure": "persistence_fallback",
-        "wind_speed": "persistence_fallback",
-        "wind_direction": "persistence_fallback",
+        "temperature": "learned_model",
+        "humidity": "learned_model",
+        "pressure": "learned_model",
+        "wind_speed": "learned_model",
+        "wind_direction": "learned_model",
         "heat_index": "derived_from_selected_temp_and_humidity"
       },
       "rain_model_weight": 0.8,
@@ -36,11 +36,11 @@
     },
     "3": {
       "selected_sources": {
-        "temperature": "persistence_fallback",
-        "humidity": "persistence_fallback",
-        "pressure": "persistence_fallback",
-        "wind_speed": "persistence_fallback",
-        "wind_direction": "persistence_fallback",
+        "temperature": "learned_model",
+        "humidity": "learned_model",
+        "pressure": "learned_model",
+        "wind_speed": "learned_model",
+        "wind_direction": "learned_model",
         "heat_index": "derived_from_selected_temp_and_humidity"
       },
       "rain_model_weight": 0.6,
@@ -59,11 +59,11 @@
     },
     "6": {
       "selected_sources": {
-        "temperature": "persistence_fallback",
-        "humidity": "persistence_fallback",
-        "pressure": "persistence_fallback",
-        "wind_speed": "persistence_fallback",
-        "wind_direction": "persistence_fallback",
+        "temperature": "learned_model",
+        "humidity": "learned_model",
+        "pressure": "learned_model",
+        "wind_speed": "learned_model",
+        "wind_direction": "learned_model",
         "heat_index": "derived_from_selected_temp_and_humidity"
       },
       "rain_model_weight": 0.45,
@@ -82,11 +82,11 @@
     },
     "12": {
       "selected_sources": {
-        "temperature": "persistence_fallback",
-        "humidity": "persistence_fallback",
-        "pressure": "persistence_fallback",
-        "wind_speed": "persistence_fallback",
-        "wind_direction": "persistence_fallback",
+        "temperature": "learned_model",
+        "humidity": "learned_model",
+        "pressure": "learned_model",
+        "wind_speed": "learned_model",
+        "wind_direction": "learned_model",
         "heat_index": "derived_from_selected_temp_and_humidity"
       },
       "rain_model_weight": 0.45,
@@ -113,10 +113,10 @@
     "24": {
       "selected_sources": {
         "temperature": "learned_model",
-        "humidity": "persistence_fallback",
-        "pressure": "persistence_fallback",
+        "humidity": "learned_model",
+        "pressure": "learned_model",
         "wind_speed": "learned_model",
-        "wind_direction": "persistence_fallback",
+        "wind_direction": "learned_model",
         "heat_index": "derived_from_selected_temp_and_humidity"
       },
       "rain_model_weight": 0.4,

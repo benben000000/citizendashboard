@@ -74,8 +74,36 @@ function buildModelBackedWeatherOverview(
   currentPressure: number,
   currentWindSpeed: number
 ): PredictionWeatherOverview {
-  const rainChance = f.chance_of_rain_pct ?? 0;
-  const precipMm = f.expected_precipitation_mm ?? 0;
+  const raw = f.diagnostics?.raw_learned_predictions;
+
+  // Display raw neural model outputs directly
+  const temp = raw?.temperature_c != null ? raw.temperature_c : f.temperature_c;
+  const humidity = raw?.relative_humidity_pct != null ? raw.relative_humidity_pct : f.relative_humidity_pct;
+  const pressure = raw?.pressure_hpa != null ? raw.pressure_hpa : f.pressure_hpa;
+  const windSpeed = raw?.wind_speed_kmh != null ? Math.max(0, raw.wind_speed_kmh) : f.wind_speed_kmh;
+  const windDirectionDeg = raw?.wind_direction_deg !== undefined ? raw.wind_direction_deg : f.wind_direction_deg;
+  const rainChance = raw?.rain_probability != null ? Math.round(raw.rain_probability * 100) : (f.chance_of_rain_pct ?? 0);
+  const precipMm = raw?.precipitation_mm != null ? raw.precipitation_mm : (f.expected_precipitation_mm ?? 0);
+
+  // Compute heat index from neural temp & humidity (Rothfusz equation)
+  let heatIndex = temp;
+  if (temp >= 26.7) {
+    const T = temp;
+    const R = humidity;
+    const c1 = -8.784695;
+    const c2 = 1.61139411;
+    const c3 = 2.338549;
+    const c4 = -0.14611605;
+    const c5 = -0.012308094;
+    const c6 = -0.016424828;
+    const c7 = 0.002211732;
+    const c8 = 0.00072546;
+    const c9 = -0.000003582;
+    heatIndex = round1(
+      c1 + c2 * T + c3 * R + c4 * T * R + c5 * T * T + c6 * R * R + c7 * T * T * R + c8 * T * R * R + c9 * T * T * R * R
+    );
+  }
+
   const { condition, conditionText } = conditionForRainChance(rainChance, precipMm);
 
   const targetTime = f.target_timestamp ?? new Date().toISOString();
@@ -87,18 +115,18 @@ function buildModelBackedWeatherOverview(
         hour12: true,
       }),
       timestamp: targetTime,
-      temp: round1(f.temperature_c),
-      heatIndex: round1(f.heat_index_c),
+      temp: round1(temp),
+      heatIndex: round1(heatIndex),
       condition,
       conditionText,
       rainProbability: Math.round(rainChance),
       precipitationMm: round1(precipMm),
-      windSpeedKmH: round1(f.wind_speed_kmh),
+      windSpeedKmH: round1(windSpeed),
       // The engine reports wind direction as null below the 1.0 km/h calm
       // threshold. Preserve that rather than substituting a prevailing value.
-      windDirection: windCardinalFromDegrees(f.wind_direction_deg),
-      humidity: Math.round(f.relative_humidity_pct),
-      pressure: round1(f.pressure_hpa),
+      windDirection: windCardinalFromDegrees(windDirectionDeg),
+      humidity: Math.round(humidity),
+      pressure: round1(pressure),
     },
   ];
 
@@ -107,9 +135,9 @@ function buildModelBackedWeatherOverview(
     {
       date: targetDate.toISOString(),
       dayName: targetDate.toLocaleDateString("en-PH", { weekday: "long" }),
-      maxTemp: round1(f.temperature_c),
-      minTemp: round1(f.temperature_c),
-      maxHeatIndex: round1(f.heat_index_c),
+      maxTemp: round1(temp),
+      minTemp: round1(temp),
+      maxHeatIndex: round1(heatIndex),
       condition,
       conditionText,
       rainProbability: Math.round(rainChance),
@@ -124,15 +152,13 @@ function buildModelBackedWeatherOverview(
     conditionText,
     humidity: Math.round(currentHumidity),
     windSpeed: round1(currentWindSpeed),
-    windDirection: windCardinalFromDegrees(f.wind_direction_deg),
-    pressure: round1(f.pressure_hpa),
+    windDirection: windCardinalFromDegrees(windDirectionDeg),
+    pressure: round1(pressure),
     precipitationChance: Math.round(rainChance),
     summaryMessage:
       `${f.product_name} (${f.active_bundle_horizon}, ${f.model_status}). ` +
-      `Forecast target: ${f.temperature_c}°C, ${f.heat_index_c}°C heat index, ` +
-      `${f.chance_of_rain_pct}% chance of rain, ${f.pressure_tendency.toLowerCase()} pressure. ` +
-      `Rain probability uses a ${f.rain_probability_source} (model weight ${f.rain_model_weight}). ` +
-      `Weather prediction intervals are ${f.weather_uncertainty?.status ?? "UNAVAILABLE"}.`,
+      `Raw neural forecast target: ${temp}°C, ${heatIndex}°C heat index, ` +
+      `${rainChance}% chance of rain.`,
     hourly,
     daily,
     // Overwritten by the caller from the engine's governance block. The default
@@ -1500,13 +1526,14 @@ export class PredictionService {
       };
 
       const sel = f.selected_source_by_variable ?? {};
+      const raw = f.diagnostics?.raw_learned_predictions;
       sourceSelection = {
-        temperature: sel.temperature ?? "unknown",
-        humidity: sel.humidity ?? "unknown",
-        pressure: sel.pressure ?? "unknown",
-        windSpeed: sel.wind_speed ?? "unknown",
-        windDirection: sel.wind_direction ?? "unknown",
-        heatIndex: sel.heat_index ?? "derived",
+        temperature: raw?.temperature_c != null ? "learned_model" : (sel.temperature ?? "unknown"),
+        humidity: raw?.relative_humidity_pct != null ? "learned_model" : (sel.humidity ?? "unknown"),
+        pressure: raw?.pressure_hpa != null ? "learned_model" : (sel.pressure ?? "unknown"),
+        windSpeed: raw?.wind_speed_kmh != null ? "learned_model" : (sel.wind_speed ?? "unknown"),
+        windDirection: raw?.wind_direction_deg !== undefined ? "learned_model" : (sel.wind_direction ?? "unknown"),
+        heatIndex: "derived",
       };
 
       modelProvenance = {

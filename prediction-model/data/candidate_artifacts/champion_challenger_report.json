@@ -2,7 +2,7 @@
   "report_name": "champion_challenger_evaluation_report",
   "report_version": "1.0.0",
   "evaluated_at_utc": "2026-09-26T03:49:36.588480+00:00",
-  "code_commit": "9b58618900940d43ef65b093ca9527e2e6ff4d43",
+  "code_commit": "cf0a37e239fd6cc5a3a43affb6fe69148ebba7bf",
   "evaluator_threshold": 0.05,
   "horizons": {
     "horizon_1h": {

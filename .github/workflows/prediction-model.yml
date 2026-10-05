@@ -101,7 +101,7 @@ jobs:
         run: |
           python -c "
           import os, re, sys
-          pattern = re.compile(r'([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)')
+          pattern = re.compile(r'(?<![A-Za-z0-9+.-])([A-Za-z]:[\\/]|/home/\w+|/Users/\w+)')
           data_dir = 'prediction-model/data'
           violations = []
           for f in os.listdir(data_dir):

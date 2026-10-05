@@ -109,9 +109,7 @@ export default function PredictionWeatherForecast({
       : targetPoint
         ? Math.round(targetPoint.rainfallAccumulationMm > 0 ? 75 : 15)
         : 20;
-    const precipitationMm = targetPoint
-      ? targetPoint.rainfallAccumulationMm
-      : hourlyMatch?.precipitationMm ?? 0.0;
+    const precipitationMm = hourlyMatch?.precipitationMm ?? (targetPoint ? targetPoint.rainfallAccumulationMm : 0.0);
     const windSpeedKmH = hourlyMatch ? hourlyMatch.windSpeedKmH : weather.windSpeed;
     const windDirection = hourlyMatch?.windDirection ?? weather.windDirection ?? "NE";
     const humidity = hourlyMatch ? hourlyMatch.humidity : weather.humidity;
