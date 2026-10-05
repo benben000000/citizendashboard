@@ -1,31 +1,27 @@
-## Pipeline status -- 2026-10-01T23:58:04.487341Z
+## Pipeline status -- 2026-10-05T02:58:04.965214Z
 
 **OK**
 
-- scored: **80**   pending: 896   duplicate publishes excluded: 440
-- stations verified: **17**   predictions published: 1704
+- scored: **82**   pending: 3275   duplicate publishes excluded: 1288
+- stations verified: **17**   predictions published: 10780
 
 | horizon | scored forecasts | stations | variable entries by producer |
 |---|---|---|---|
-| +1h | 3036 | 17 | persistence 8424, lln 2940, unknown 780 |
-| +3h | 2332 | 15 | persistence 5704, lln 2824, unknown 800 |
-| +6h | 1476 | 15 | lln 4042, persistence 1862 |
-| +12h | 171 | 15 | lln 342, persistence 342 |
-| +24h | 0 | 0 | no matured records yet |
+| +1h | 10565 | 17 | persistence 38250, lln 2940, unknown 1053 |
+| +3h | 7994 | 17 | persistence 28062, lln 2824, unknown 1073 |
+| +6h | 5024 | 15 | lln 11054, persistence 8874, unknown 167 |
+| +12h | 1559 | 15 | persistence 3116, lln 3062, unknown 4 |
+| +24h | 1 | 1 | persistence 3, lln 1 |
 
 Counts are forecasts (one per station and horizon); the producer split is counted over variable entries, so it is roughly four times larger and is not comparable to the scored column.
 
 ### Recent pipeline events (last 15 min)
-- `watchdog_check` at 2026-10-01T23:43:29.925577Z
-- `sequence_reset` KT-6CBD47DC5194 at 2026-10-01T23:44:07.383561Z
-- `sequence_reset` KT-8CEE47DC5194 at 2026-10-01T23:48:24.958027Z
-- `watchdog_check` at 2026-10-01T23:48:29.987672Z
-- `watchdog_check` at 2026-10-01T23:53:29.937767Z
-- `sequence_reset` KT-6CBD47DC5194 at 2026-10-01T23:54:07.493076Z
-- `sequence_reset` KT-8CEE47DC5194 at 2026-10-01T23:56:24.915414Z
+- `watchdog_check` at 2026-10-05T02:43:30.928219Z
+- `watchdog_check` at 2026-10-05T02:48:30.584560Z
+- `watchdog_check` at 2026-10-05T02:53:30.752945Z
 
 ### File freshness (minutes since last write)
 - `mqtt_live_predictions.json`: 0.0 min
 - `observation_audit.jsonl`: 0.0 min
-- `prediction_audit.jsonl`: 0.4 min
+- `prediction_audit.jsonl`: 0.1 min
 - `prediction_verification.jsonl`: 5.4 min

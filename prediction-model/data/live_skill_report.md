@@ -1,6 +1,6 @@
 # Live verified skill against persistence
 
-Generated 2026-10-01T21:15:57.542048Z
+Generated 2026-10-02T00:23:29.978391Z
 
 Measured on forecasts the production system actually published, scored
 against later station observations. No held-out split, no simulation: the
@@ -12,14 +12,14 @@ reading are dropped rather than defaulted.
 
 | horizon | variable | n | served MAE | persistence MAE | skill | verdict |
 |---|---|---|---|---|---|---|
-| +1h | temperature (degC) | 2841 | 0.5938 | 0.5937 | -0.0% | ties persistence |
-| +1h | humidity (%RH) | 2841 | 2.1114 | 2.1118 | +0.0% | ties persistence |
-| +1h | pressure (hPa) | 2844 | 0.3510 | 0.3511 | +0.0% | ties persistence |
-| +1h | wind_speed (m/s) | 2844 | 0.7157 | 0.7161 | +0.1% | ties persistence |
-| +3h | temperature (degC) | 2331 | 1.7205 | 1.7205 | +0.0% | ties persistence |
-| +3h | humidity (%RH) | 2331 | 5.2878 | 5.2874 | -0.0% | ties persistence |
-| +3h | pressure (hPa) | 2331 | 0.9960 | 0.9960 | -0.0% | ties persistence |
-| +3h | wind_speed (m/s) | 2331 | 0.9177 | 0.9177 | +0.0% | ties persistence |
+| +1h | temperature (degC) | 3033 | 0.6251 | 0.6251 | -0.0% | ties persistence |
+| +1h | humidity (%RH) | 3033 | 2.1853 | 2.1854 | +0.0% | ties persistence |
+| +1h | pressure (hPa) | 3036 | 0.3777 | 0.3777 | +0.0% | ties persistence |
+| +1h | wind_speed (m/s) | 3036 | 0.7036 | 0.7040 | +0.1% | ties persistence |
+| +3h | temperature (degC) | 2358 | 1.7553 | 1.7553 | +0.0% | ties persistence |
+| +3h | humidity (%RH) | 2358 | 5.4004 | 5.4000 | -0.0% | ties persistence |
+| +3h | pressure (hPa) | 2358 | 1.0061 | 1.0061 | -0.0% | ties persistence |
+| +3h | wind_speed (m/s) | 2358 | 0.9176 | 0.9176 | +0.0% | ties persistence |
 | +6h | temperature (degC) | 1476 | 2.9922 | 3.3555 | +10.8% | beats persistence |
 | +6h | humidity (%RH) | 1476 | 10.5999 | 10.6001 | +0.0% | ties persistence |
 | +6h | pressure (hPa) | 1476 | 1.6951 | 1.6951 | -0.0% | ties persistence |

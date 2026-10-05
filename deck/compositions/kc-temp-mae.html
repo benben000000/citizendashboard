@@ -1,0 +1,273 @@
+<!-- hyperframes-registry-item: mk-line-graph (adapted: kc-temp-mae) -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: transparent;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="kc-temp-mae"
+      data-width="1920"
+      data-height="700"
+      data-start="0"
+      data-duration="14"
+    >
+      <style>
+        #root {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          background: transparent;
+          font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+          color: #eef2f8;
+        }
+        .kctm-svg {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 700px;
+          overflow: visible;
+        }
+        .kctm-line {
+          fill: none;
+          stroke-width: 6;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+        .kctm-dot {
+          stroke-width: 4;
+          fill: #0e131c;
+        }
+        .kctm-axis {
+          stroke: rgba(154, 167, 188, 0.28);
+          stroke-width: 2;
+        }
+        .kctm-grid {
+          stroke: #1e2634;
+          stroke-width: 1;
+          opacity: 0;
+        }
+        .kctm-xlabel {
+          position: absolute;
+          font-weight: 500;
+          font-size: 30px;
+          color: #9aa7bc;
+          transform: translateX(-50%);
+          white-space: nowrap;
+        }
+        .kctm-legend {
+          position: absolute;
+          display: flex;
+          gap: 44px;
+        }
+        .kctm-legend-item {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          font-weight: 500;
+          font-size: 28px;
+          color: #9aa7bc;
+        }
+        .kctm-legend-dot {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+        }
+        .kctm-axtitle {
+          position: absolute;
+          font-size: 24px;
+          color: #8a97ad;
+          font-weight: 400;
+        }
+      </style>
+
+      <svg class="kctm-svg" viewBox="0 0 1920 700"></svg>
+      <div class="kctm-labels"></div>
+
+      <script>
+        (function () {
+          window.__timelines = window.__timelines || {};
+
+          /* ---- Temperature MAE (deg C), test split, lower is better ---- */
+          var CONFIG = {
+            series: [
+              {
+                name: "KloudTrack (served)",
+                color: "#34d399",
+                values: [0.5937, 1.1368, 1.4772, 1.6474, 1.4059],
+              },
+              {
+                name: "Persistence",
+                color: "#64748b",
+                values: [0.5936, 1.1367, 1.6987, 2.1619, 1.4059],
+              },
+              {
+                name: "ECMWF IFS",
+                color: "#fb7185",
+                values: [1.2624, 1.2668, 1.274, 1.288, 1.3327],
+              },
+            ],
+            xLabels: ["+1h", "+3h", "+6h", "+12h", "+24h"],
+            area: { x: 150, y: 30, w: 1620, h: 440 },
+          };
+
+          var NS = "http://www.w3.org/2000/svg";
+          var svg = document.querySelector(".kctm-svg");
+          var labels = document.querySelector(".kctm-labels");
+          var A = CONFIG.area;
+
+          var max = 0;
+          CONFIG.series.forEach(function (s) {
+            s.values.forEach(function (v) {
+              if (v > max) max = v;
+            });
+          });
+          max *= 1.15;
+          var n = CONFIG.series[0].values.length;
+          function px(i) {
+            return A.x + (i / (n - 1)) * A.w;
+          }
+          function py(v) {
+            return A.y + A.h - (v / max) * A.h;
+          }
+
+          var axis = document.createElementNS(NS, "line");
+          axis.setAttribute("class", "kctm-axis");
+          axis.setAttribute("x1", A.x - 24);
+          axis.setAttribute("y1", A.y + A.h);
+          axis.setAttribute("x2", A.x + A.w + 24);
+          axis.setAttribute("y2", A.y + A.h);
+          svg.appendChild(axis);
+
+          var gridLines = [];
+          for (var gi = 1; gi <= 4; gi++) {
+            var gy = A.y + A.h - (gi / 4) * A.h;
+            var gl = document.createElementNS(NS, "line");
+            gl.setAttribute("class", "kctm-grid");
+            gl.setAttribute("x1", A.x - 24);
+            gl.setAttribute("y1", gy);
+            gl.setAttribute("x2", A.x + A.w + 24);
+            gl.setAttribute("y2", gy);
+            svg.appendChild(gl);
+            gridLines.push(gl);
+          }
+
+          var paths = [];
+          var allDots = [];
+          CONFIG.series.forEach(function (s, si) {
+            var d = s.values
+              .map(function (v, i) {
+                return (i === 0 ? "M" : "L") + px(i) + " " + py(v);
+              })
+              .join(" ");
+            var path = document.createElementNS(NS, "path");
+            path.setAttribute("class", "kctm-line");
+            path.setAttribute("d", d);
+            path.setAttribute("stroke", s.color);
+            if (si === 2) path.setAttribute("stroke-dasharray", "18 14");
+            svg.appendChild(path);
+            paths.push(path);
+
+            s.values.forEach(function (v, i) {
+              var dot = document.createElementNS(NS, "circle");
+              dot.setAttribute("class", "kctm-dot");
+              dot.setAttribute("cx", px(i));
+              dot.setAttribute("cy", py(v));
+              dot.setAttribute("r", 11);
+              dot.setAttribute("stroke", s.color);
+              svg.appendChild(dot);
+              allDots.push({ el: dot, si: si, i: i });
+            });
+          });
+
+          CONFIG.xLabels.forEach(function (t, i) {
+            var xl = document.createElement("div");
+            xl.className = "kctm-xlabel";
+            xl.textContent = t;
+            xl.style.left = px(i) + "px";
+            xl.style.top = A.y + A.h + 28 + "px";
+            labels.appendChild(xl);
+          });
+
+          var title = document.createElement("div");
+          title.className = "kctm-axtitle";
+          title.textContent = "Mean absolute error (deg C) — lower is better";
+          title.style.left = A.x + "px";
+          title.style.top = A.y + A.h + 84 + "px";
+          labels.appendChild(title);
+
+          var legend = document.createElement("div");
+          legend.className = "kctm-legend";
+          legend.style.left = A.x + "px";
+          legend.style.top = A.y + A.h + 130 + "px";
+          CONFIG.series.forEach(function (s) {
+            var item = document.createElement("div");
+            item.className = "kctm-legend-item";
+            var dot = document.createElement("span");
+            dot.className = "kctm-legend-dot";
+            dot.style.background = s.color;
+            item.appendChild(dot);
+            item.appendChild(document.createTextNode(s.name));
+            legend.appendChild(item);
+          });
+          labels.appendChild(legend);
+
+          var tl = gsap.timeline({ paused: true });
+          var DRAW = 1.4;
+
+          gsap.set([axis, legend], { opacity: 0 });
+          tl.to(axis, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0.2);
+          tl.to(
+            gridLines,
+            { opacity: 1, duration: 0.5, stagger: 0.12, ease: "power2.out" },
+            0.4,
+          );
+          tl.to(title, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0.2);
+          Array.prototype.forEach.call(
+            labels.querySelectorAll(".kctm-xlabel"),
+            function (xl, i) {
+              gsap.set(xl, { opacity: 0, y: 10 });
+              tl.to(xl, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.25 + i * 0.05);
+            },
+          );
+
+          CONFIG.series.forEach(function (s, si) {
+            var t0 = 0.6 + si * 0.45;
+            var path = paths[si];
+            var len = path.getTotalLength();
+            gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
+            tl.to(path, { strokeDashoffset: 0, duration: DRAW, ease: "power2.inOut" }, t0);
+          });
+
+          allDots.forEach(function (d) {
+            var t0 = 0.6 + d.si * 0.45;
+            var td = t0 + (d.i / (n - 1)) * DRAW * 0.92;
+            gsap.set(d.el, { scale: 0, transformOrigin: "50% 50%" });
+            tl.to(d.el, { scale: 1, duration: 0.35, ease: "back.out(1.2)" }, td);
+          });
+
+          tl.to(legend, { opacity: 1, duration: 0.5, ease: "power2.out" }, 2.6);
+
+          window.__timelines["kc-temp-mae"] = tl;
+        })();
+      </script>
+    </div>
+  </body>
+</html>

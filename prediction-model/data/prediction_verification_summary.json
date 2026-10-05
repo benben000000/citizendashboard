@@ -1,51 +1,51 @@
 {
-  "predictions_seen": 1639,
-  "observations_seen": 43995,
-  "scored": 80,
-  "pending": 896,
-  "unmatched": 0,
-  "already_verified": 223,
-  "duplicate_publishes": 440,
+  "predictions_seen": 10710,
+  "observations_seen": 16772,
+  "scored": 82,
+  "pending": 3275,
+  "unmatched": 2266,
+  "already_verified": 3799,
+  "duplicate_publishes": 1288,
   "tolerance_minutes": 30.0,
   "mae_by_variable": {
-    "humidity": 6.8588,
-    "pressure": 0.9641,
-    "temperature": 2.1886,
-    "wind_speed": 0.6428
+    "humidity": 4.5406,
+    "pressure": 0.7004,
+    "temperature": 1.3832,
+    "wind_speed": 1.1988
   },
   "n_by_variable_and_producer": {
     "humidity": {
-      "persistence": 80
+      "persistence": 82
     },
     "pressure": {
-      "persistence": 80
+      "persistence": 82
     },
     "temperature": {
-      "persistence": 80
+      "persistence": 82
     },
     "wind_speed": {
-      "persistence": 80
+      "persistence": 82
     }
   },
   "mae_by_variable_and_producer": {
     "humidity": {
-      "persistence": 6.8588
+      "persistence": 4.5406
     },
     "pressure": {
-      "persistence": 0.9641
+      "persistence": 0.7004
     },
     "temperature": {
-      "persistence": 2.1886
+      "persistence": 1.3832
     },
     "wind_speed": {
-      "persistence": 0.6428
+      "persistence": 1.1988
     }
   },
   "writer": {
     "path": "prediction-model/data/prediction_verification.jsonl",
     "exists": true,
-    "bytes": 7465504,
-    "written": 80,
+    "bytes": 27095597,
+    "written": 82,
     "errors": 0,
     "max_bytes": 33554432,
     "keep": 5

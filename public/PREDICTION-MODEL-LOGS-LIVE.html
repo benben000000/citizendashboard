@@ -1,0 +1,116 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>prediction model logs - LIVE</title>
+<style>
+body{font-family:ui-monospace,Consolas,monospace;font-size:12px;margin:12px;background:#fff;color:#000}
+h1{font-size:17px;margin:0 0 4px}
+.meta{font-size:12px;margin-bottom:8px;color:#222}
+#live{color:#080;font-weight:bold}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #bbb;padding:2px 6px;white-space:nowrap;text-align:left}
+th{position:sticky;top:0;background:#e8e8e8;font-size:11px}
+tr:nth-child(even){background:#f7f7f7}
+tr.hot{background:#fff3a0}
+.wrap{max-height:84vh;overflow:auto;border:1px solid #999}
+</style></head>
+<body>
+<h1>prediction model logs &mdash; LIVE POLLING</h1>
+<div class="meta">
+poll <b id="n">0</b> &nbsp;|&nbsp; active stations <b id="st">-</b>
+&nbsp;|&nbsp; rows <b id="rc">-</b> &nbsp;|&nbsp; cache age <b id="age">-</b>
+&nbsp;|&nbsp; rows changed this poll <span id="live">0</span>
+&nbsp;|&nbsp; every 3s, same-origin
+</div>
+<div class="wrap"><table><thead><tr>
+<th>recorded UTC</th><th>station</th><th>hz</th>
+<th>temp C</th><th>heat idx C</th><th>humid %</th>
+<th>press hPa</th><th>press tend</th><th>wind km/h</th><th>wind deg</th>
+<th>rain %</th><th>precip mm</th><th>uv uncal</th><th>light uncal</th>
+<th>temp prod</th><th>hum prod</th><th>press prod</th><th>wind prod</th>
+<th>trusted</th><th>rain src</th><th>valid at UTC</th>
+</tr></thead><tbody id="tb"></tbody></table></div>
+<script>
+var seen={}, polls=0;
+function esc(v){
+  if(v===null||v===undefined||v==="") return "";
+  return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+}
+function fmt(v){
+  if(v===null||v===undefined) return "";
+  var s=String(v);
+  if(s.indexOf("T")>0) return s.replace("T"," ").slice(0,19);
+  return s;
+}
+function cell(c,v){ return "<td>"+esc(fmt(v))+(c==="t"||c==="h"?' class="ts"':"")+"</td>"; }
+function row(o,hot){
+  return "<tr"+(hot?' class="hot"':"")+">"
+    + cell("",o.ts)+cell("",o.sid)+cell("",o.hz)
+    + cell("h",o.t)+cell("h",o.hi)+cell("h",o.hu)
+    + cell("h",o.pr)+cell("h",o.pt)+cell("h",o.ws)+cell("h",o.wd)
+    + cell("h",o.cr)+cell("h",o.pm)+cell("h",o.uv)+cell("h",o.li)
+    + cell("h",o.pt_prod)+cell("h",o.hu_prod)+cell("h",o.pr_prod)+cell("h",o.ws_prod)
+    + cell("h",o.tr)+cell("h",o.rs)+cell("h",o.tgt)
+    + "</tr>";
+}
+function poll(){
+  fetch("/api/prediction/mqtt/live",{cache:"no-store"})
+  .then(function(r){return r.json();})
+  .then(function(j){
+    polls++;
+    var d=(j && j.data)||{};
+    var st=d.stations||{};
+    var rows=[];
+    Object.keys(st).forEach(function(sid){
+      var s=st[sid];
+      var preds=s.operational_predictions||{};
+      Object.keys(preds).sort().forEach(function(hz){
+        var p=preds[hz];
+        var f=(p&&p.forecast)||{};
+        var src=f.selected_source_by_variable||{};
+        rows.push({
+          key:sid+"|"+hz,
+          ts:s.timestamp||null, sid:sid, hz:hz,
+          t:f.temperature_c, hi:f.heat_index_c, hu:f.relative_humidity_pct,
+          pr:f.pressure_hpa, pt:f.pressure_tendency,
+          ws:f.wind_speed_kmh, wd:f.wind_direction_deg,
+          cr:f.chance_of_rain_pct, pm:f.expected_precipitation_mm,
+          uv:f.uv_index, li:f.light_intensity,
+          pt_prod:src.temperature, hu_prod:src.humidity,
+          pr_prod:src.pressure, ws_prod:src.wind_speed,
+          tr:(f.input_quality_gate||{}).learned_output_trusted,
+          rs:f.rain_probability_source, tgt:f.target_timestamp
+        });
+      });
+    });
+    var changed=0, hot={};
+    rows.forEach(function(o){
+      var sig=JSON.stringify([o.ts,o.t,o.hi,o.hu,o.pr,o.ws,o.cr,o.tr]);
+      if(seen[o.key]!==undefined && seen[o.key]!==sig){ changed++; hot[o.key]=1; }
+      seen[o.key]=sig;
+    });
+    rows.sort(function(a,b){ return a.sid===b.sid ? String(a.hz).localeCompare(String(b.hz)) : String(a.sid).localeCompare(String(b.sid)); });
+    var html=rows.map(function(o){ return row(o,hot[o.key]); }).join("");
+    document.getElementById("tb").innerHTML=html;
+    document.getElementById("n").textContent=polls;
+    document.getElementById("st").textContent=d.total_active_stations!==undefined?d.total_active_stations:"-";
+    document.getElementById("rc").textContent=rows.length;
+    var a="-";
+    if(d.last_updated){
+      var t=Date.parse(d.last_updated);
+      if(!isNaN(t)) a=((Date.now()-t)/1000).toFixed(0)+"s";
+    }
+    document.getElementById("age").textContent=a;
+    document.getElementById("live").textContent=changed;
+    setTimeout(function(){
+      var e=document.getElementById("live");
+      if(e) e.style.color="#000";
+    },1200);
+    document.getElementById("live").style.color = changed>0 ? "#0a0" : "#000";
+  })
+  .catch(function(err){
+    document.getElementById("age").textContent="fetch failed: "+err;
+  });
+}
+poll();
+setInterval(poll,3000);
+</script>
+</body></html>

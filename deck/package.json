@@ -1,0 +1,13 @@
+{
+  "name": "citizen-prediction-deck",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.8.96 present",
+    "studio": "npx --yes hyperframes@0.8.96 preview --background",
+    "check": "npx --yes hyperframes@0.8.96 check",
+    "lint": "npx --yes hyperframes@0.8.96 lint",
+    "snapshot": "npx --yes hyperframes@0.8.96 snapshot",
+    "publish": "npx --yes hyperframes@0.8.96 publish"
+  }
+}

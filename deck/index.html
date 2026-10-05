@@ -1,0 +1,2096 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Citizen Prediction — Kloudtrack</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --bg: #070910;
+        --panel: #0e131c;
+        --panel-2: #131a25;
+        --line: #1e2634;
+        --line-2: #2b3648;
+        --ink: #eef2f8;
+        --ink-2: #9aa7bc;
+        --ink-3: #8a97ad;
+        --us: #34d399;
+        --them: #60a5fa;
+        --warn: #fbbf24;
+        --bad: #fb7185;
+        --neut: #64748b;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      /* ---------- scene shell ---------- */
+      .scene {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background:
+          radial-gradient(1250px 720px at 16% -12%, #16223c 0%, rgba(22, 34, 60, 0) 62%),
+          radial-gradient(980px 640px at 94% 112%, #0f2130 0%, rgba(15, 33, 48, 0) 60%),
+          var(--bg);
+        font-family: var(--sans);
+        color: var(--ink);
+      }
+
+      .bg-grid {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+        background-size: 72px 72px;
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .pad {
+        position: absolute;
+        inset: 0;
+        padding: 82px 120px 70px;
+      }
+
+      .pad.c {
+        padding-left: 150px;
+        padding-right: 150px;
+      }
+
+      .clip,
+      .el {
+        position: absolute;
+      }
+
+      /* ---------- type ---------- */
+      .kicker {
+        font-family: var(--mono);
+        font-size: 21px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      h1.head {
+        font-size: 62px;
+        line-height: 1.08;
+        font-weight: 650;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+      }
+      h1.head.tight {
+        font-size: 54px;
+        line-height: 1.1;
+      }
+      h1.head.big {
+        font-size: 72px;
+      }
+
+      .note {
+        font-size: 27px;
+        line-height: 1.42;
+        color: var(--ink-2);
+      }
+
+      .src {
+        font-family: var(--mono);
+        font-size: 19px;
+        color: var(--ink-3);
+      }
+
+      /* ---------- tiles ---------- */
+      .tiles {
+        display: flex;
+        gap: 20px;
+      }
+      .tile {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 30px 30px 32px;
+      }
+      .tile .num {
+        font-size: 74px;
+        font-weight: 680;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        color: var(--us);
+        font-variant-numeric: tabular-nums;
+      }
+      .tile .num.warn {
+        color: var(--warn);
+      }
+      .tile .lbl {
+        font-size: 24px;
+        color: var(--ink-2);
+        margin-top: 16px;
+        line-height: 1.36;
+      }
+
+      /* ---------- pipeline ---------- */
+      .stage {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-top: 4px solid var(--us);
+        border-radius: 12px;
+        padding: 22px 22px 24px;
+        height: 300px;
+      }
+      .stage.gate {
+        border-top-color: var(--warn);
+      }
+      .stage .n {
+        font-family: var(--mono);
+        font-size: 19px;
+        color: var(--ink-3);
+        letter-spacing: 0.12em;
+      }
+      .stage h3 {
+        font-size: 27px;
+        font-weight: 640;
+        margin: 12px 0 14px;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .stage p {
+        font-size: 21px;
+        color: var(--ink-2);
+        line-height: 1.42;
+      }
+
+      /* ---------- caveats ---------- */
+      .caveat {
+        border-left: 6px solid var(--warn);
+        background: rgba(251, 191, 36, 0.07);
+        padding: 22px 28px;
+        font-size: 26px;
+        line-height: 1.42;
+        color: #f3e0b4;
+        border-radius: 0 10px 10px 0;
+      }
+      .caveat.bad {
+        border-left-color: var(--bad);
+        background: rgba(251, 113, 133, 0.07);
+        color: #f6ccd4;
+      }
+      .caveat.us {
+        border-left-color: var(--us);
+        background: rgba(52, 211, 153, 0.07);
+        color: #c5f0dd;
+      }
+
+      /* ---------- policy matrix ---------- */
+      .pgrid {
+        display: grid;
+        grid-template-columns: 300px repeat(4, 1fr);
+        gap: 14px 20px;
+        align-items: center;
+      }
+      .pgrid .ph {
+        font-family: var(--mono);
+        font-size: 19px;
+        letter-spacing: 0.1em;
+        color: var(--ink-3);
+        text-transform: uppercase;
+      }
+      .pgrid .ph.r {
+        text-align: center;
+      }
+      .pgrid .hz {
+        font-family: var(--mono);
+        font-size: 27px;
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .pcell {
+        border-radius: 10px;
+        padding: 16px 10px;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 22px;
+        font-weight: 600;
+      }
+      .pcell.p {
+        background: rgba(100, 116, 139, 0.14);
+        border: 1px solid #313d4f;
+        color: #b6c2d4;
+      }
+      .pcell.l {
+        background: rgba(52, 211, 153, 0.13);
+        border: 1px solid #1d7a5c;
+        color: var(--us);
+      }
+
+      /* ---------- lists ---------- */
+      .rows {
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+      }
+      .row {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 15px 24px;
+        display: grid;
+        align-items: center;
+        gap: 24px;
+      }
+      .row .idx {
+        font-family: var(--mono);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--warn);
+      }
+      .row .nm {
+        font-size: 26px;
+        font-weight: 620;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .row .ds {
+        font-size: 23px;
+        color: var(--ink-2);
+        line-height: 1.36;
+      }
+      .row.plain .idx {
+        color: var(--us);
+      }
+      .row.plain .nm {
+        width: 620px;
+      }
+      .tag {
+        font-family: var(--mono);
+        font-size: 19px;
+        color: var(--ink-3);
+        border: 1px solid var(--line-2);
+        border-radius: 999px;
+        padding: 7px 16px;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      /* ---------- stat block ---------- */
+      .bigstat {
+        font-family: var(--mono);
+        font-size: 44px;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+      }
+      .bigstat em {
+        font-style: normal;
+        color: var(--us);
+      }
+
+      /* ---------- columns ---------- */
+      .colhead {
+        font-family: var(--mono);
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        color: var(--ink-3);
+        text-transform: uppercase;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line-2);
+      }
+      .colhead.us {
+        color: var(--us);
+      }
+      .colhead.bad {
+        color: var(--bad);
+      }
+
+      .kv {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(30, 38, 52, 0.75);
+        font-size: 24px;
+        color: var(--ink-2);
+      }
+      .kv .v {
+        font-family: var(--mono);
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .kv .v.us {
+        color: var(--us);
+      }
+      .kv .v.bad {
+        color: var(--bad);
+      }
+
+      /* ---------- mono blocks ---------- */
+      .mono {
+        font-family: var(--mono);
+        font-size: 23px;
+        line-height: 1.62;
+        color: var(--ink-2);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px 28px;
+      }
+      .mono b {
+        color: var(--us);
+        font-weight: 600;
+      }
+
+      .strip {
+        font-family: var(--mono);
+        font-size: 21px;
+        line-height: 1.5;
+        color: var(--ink-2);
+        background: var(--panel-2);
+        border: 1px solid var(--line-2);
+        border-radius: 10px;
+        padding: 20px 26px;
+      }
+
+      .bullets {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      .bullets li {
+        font-size: 25px;
+        line-height: 1.42;
+        color: var(--ink-2);
+        padding-left: 30px;
+        position: relative;
+      }
+      .bullets li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 13px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--us);
+      }
+      .bullets.warn li::before {
+        background: var(--warn);
+      }
+
+      /* ---------- table ---------- */
+      table.tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 23px;
+        font-variant-numeric: tabular-nums;
+      }
+      .tbl th {
+        font-family: var(--mono);
+        font-size: 18px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-3);
+        text-align: right;
+        padding: 0 0 12px;
+        border-bottom: 1px solid var(--line-2);
+      }
+      .tbl th:first-child {
+        text-align: left;
+      }
+      .tbl td {
+        padding: 12px 0;
+        text-align: right;
+        border-bottom: 1px solid rgba(30, 38, 52, 0.7);
+        color: var(--ink-2);
+      }
+      .tbl td:first-child {
+        text-align: left;
+        color: var(--ink);
+        font-weight: 550;
+      }
+      .tbl td.us {
+        color: var(--us);
+      }
+      .tbl td.bad {
+        color: var(--bad);
+      }
+    </style>
+  </head>
+
+  <body>
+    <script type="application/hyperframes-slideshow+json">
+      {
+        "slides": [
+          {
+            "sceneId": "s-title",
+            "notes": "Open on the thesis, not the company. The last line is the credibility anchor — say it out loud: every number here comes from one file, read once, and the rest of the deck is sourced from it.",
+            "fragments": [3.6]
+          },
+          {
+            "sceneId": "s-problem",
+            "notes": "The whole business case in one slide. Do not oversell: we are not claiming to beat a global model, we are claiming the gap between its update cycles is real and currently unserved.",
+            "fragments": [11.2, 13.6]
+          },
+          {
+            "sceneId": "s-system",
+            "notes": "Walk left to right. Land hard on stage 04 — the policy gate. That is the part an engineer will care about and a CEO will underestimate. Hotspot opens the engineering deep dive.",
+            "fragments": [21.2, 24.4],
+            "hotspots": [
+              {
+                "id": "h-eng",
+                "label": "Open the architecture deep dive",
+                "target": "eng",
+                "region": { "x": 4, "y": 24, "w": 20, "h": 9 }
+              }
+            ]
+          },
+          {
+            "sceneId": "s-rain",
+            "fragments": [36.5, 41.0],
+            "notes": "The strongest result. Bars below the line at +1h to +12h, crossing above at +24h. Advance once for the full chart, again for the caveat. Do not skip the caveat — it is the reason the first number is believable."
+          },
+          {
+            "sceneId": "s-wind",
+            "notes": "Give the caveat equal billing with the result. If the mechanical engineer in the room is the one who knows those anemometers are dead, they should hear you say it first. Hotspot opens the hardware deep dive.",
+            "fragments": [51.0, 55.0],
+            "hotspots": [
+              {
+                "id": "h-hw",
+                "label": "Open the sensor & hardware deep dive",
+                "target": "hw",
+                "region": { "x": 55, "y": 24, "w": 22, "h": 9 }
+              }
+            ]
+          },
+          {
+            "sceneId": "s-policy",
+            "fragments": [65.4, 68.0],
+            "notes": "This is the slide that buys the rest of the deck its credibility. Volunteers the fact that most of what ships is persistence. Say it plainly and do not apologise for it — it was a measured decision."
+          },
+          {
+            "sceneId": "s-temp",
+            "notes": "Where we lose, stated without hedging. Temperature is not our product; rain and wind are. Hotspot opens the research deep dive for anyone who wants to interrogate the method.",
+            "fragments": [79.5],
+            "hotspots": [
+              {
+                "id": "h-sci",
+                "label": "Open the methods & falsification deep dive",
+                "target": "sci",
+                "region": { "x": 4, "y": 24, "w": 22, "h": 9 }
+              }
+            ]
+          },
+          {
+            "sceneId": "s-defects",
+            "notes": "Seven defects, each with a number it corrupted. Frame it as the reason to trust the remainder. Advance through the list; engineers lean in here. Do not rush it.",
+            "fragments": [93.5, 97.5]
+          },
+          {
+            "sceneId": "s-plan",
+            "notes": "Ordered by measured headroom, not effort. Items 1 and 2 are gating items — no external wind or +24h claim exists until they run. Hotspot opens the business deep dive.",
+            "fragments": [106.5, 110.5],
+            "hotspots": [
+              {
+                "id": "h-biz",
+                "label": "Open the business deep dive",
+                "target": "biz",
+                "region": { "x": 74, "y": 24, "w": 22, "h": 9 }
+              }
+            ]
+          },
+          {
+            "sceneId": "s-close",
+            "notes": "Three columns: what is true, what is not, what we need. Close on the bottom line — a decision-support prototype that says so out loud."
+          }
+        ],
+        "slideSequences": [
+          {
+            "id": "eng",
+            "label": "Software engineer deep dive",
+            "slides": [
+              {
+                "sceneId": "b-eng-arch",
+                "notes": "Fail-closed inference is the design centrepiece. Every one of these is a refusal to guess. This is the answer to 'what happens when the policy file is wrong'."
+              },
+              {
+                "sceneId": "b-eng-prov",
+                "notes": "Provenance and the audit pair. The sharp point is at the bottom: producer is not policy_source. If someone writes a dashboard off the wrong field they will ship a wrong claim."
+              }
+            ]
+          },
+          {
+            "id": "sci",
+            "label": "Researcher deep dive",
+            "slides": [
+              {
+                "sceneId": "b-sci-meth",
+                "notes": "The closed-form cell and the anti-leakage protocol. The zero-initialised residual head is the elegant part — at init the network IS persistence, so a failed run degrades to persistence rather than to noise."
+              },
+              {
+                "sceneId": "b-sci-fals",
+                "notes": "The honest weak point. Persistence error peaking at 12-14h then declining is unusual and we have a hypothesis (diurnal phase) that we have NOT tested. The test is stated: re-benchmark at +18h and +30h."
+              }
+            ]
+          },
+          {
+            "id": "hw",
+            "label": "Mechanical engineer deep dive",
+            "slides": [
+              {
+                "sceneId": "b-hw-stack",
+                "notes": "What the hardware actually reports and what we do to it. The mm/h vs mm integration point is the one most people get wrong — worth being explicit."
+              },
+              {
+                "sceneId": "b-hw-need",
+                "notes": "The ask. Three dead anemometers are corrupting the headline result, and one rostered station returns nothing. Both are concrete, cheap, and unglamorous fixes."
+              }
+            ]
+          },
+          {
+            "id": "biz",
+            "label": "CEO deep dive",
+            "slides": [
+              {
+                "sceneId": "b-biz-what",
+                "notes": "Position, not hype. No per-call metering cost and no vendor lock-in are the two economics that matter. The adoption wedge is a commuter decision surface, not a forecasting product."
+              },
+              {
+                "sceneId": "b-biz-buy",
+                "notes": "What the money does. Two gating items first, then the humidity gate — the largest unclaimed, already-measured gain in the system."
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <div id="root" data-composition-id="deck" data-start="0" data-duration="222" data-width="1920" data-height="1080">
+
+    <!-- ============================= 1. TITLE ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-title" data-composition-id="s-title"
+      data-start="0"
+      data-duration="6"
+      data-label="Title"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+
+      <div class="hf-dynamic-grid" aria-hidden="true"></div>
+      <style>
+        .hf-dynamic-grid {
+          --hf-grid-size: 72px;
+          --hf-grid-line: 1px;
+          --hf-grid-color: rgba(255, 255, 255, 0.16);
+          --hf-grid-x: 0px;
+          --hf-grid-y: 0px;
+          --hf-grid-opacity: 1;
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: var(--hf-grid-opacity);
+          background-image:
+            linear-gradient(var(--hf-grid-color) var(--hf-grid-line), transparent var(--hf-grid-line)),
+            linear-gradient(90deg, var(--hf-grid-color) var(--hf-grid-line), transparent var(--hf-grid-line));
+          background-size: var(--hf-grid-size) var(--hf-grid-size);
+          background-position: var(--hf-grid-x) var(--hf-grid-y);
+        }
+      </style>
+
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 40px; width: 1680px"
+        >
+          Kloudtech Inc &middot; Central Luzon, Philippines &middot; IP clearance complete
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 150px; width: 1520px"
+        >
+          <h1 class="head big" id="t1-head">
+            Hyper-local nowcasting for the fifteen minutes that decide whether a street floods
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 430px; width: 1420px"
+        >
+          <p class="note" id="t1-lead" style="font-size: 31px">
+            Sixteen ground stations, a continuous-time liquid neural network, and an open
+            benchmark against seven operational NWP models &mdash; published with its caveats.
+          </p>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 880px; width: 1600px"
+        >
+          <p class="src" id="t1-src">
+            Every figure in this deck is read from
+            prediction-model/data/nwp_benchmark_production.json &mdash; test split 2026-08-15
+            &rarr; 2026-08-26, 16 stations, opened once.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 2. PROBLEM ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-problem" data-composition-id="s-problem"
+      data-start="6"
+      data-duration="9"
+      data-label="The gap"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 20px; width: 1680px"
+        >
+          The gap
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 80px; width: 1620px"
+        >
+          <h1 class="head tight" id="t2-head">
+            Global models forecast 25&nbsp;km squares every six to twelve hours. A cloudburst
+            floods a street in fifteen minutes.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 330px; width: 540px"
+        >
+          <div class="tile" id="t2-t1" style="height: 300px">
+            <div class="num">0.25&deg;</div>
+            <div class="lbl">
+              ECMWF and GFS grid resolution &mdash; roughly 25&nbsp;km across. An entire barangay
+              reads one forecast value.
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 560px; top: 330px; width: 540px"
+        >
+          <div class="tile" id="t2-t2" style="height: 300px">
+            <div class="num warn">6&ndash;12 h</div>
+            <div class="lbl">
+              Model update cycle. Every decision made between cycles is unobserved and
+              unforecast.
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 1120px; top: 330px; width: 540px"
+        >
+          <div class="tile" id="t2-t3" style="height: 300px">
+            <div class="num">1&ndash;5 km</div>
+            <div class="lbl">
+              Our station spacing &mdash; dense enough to catch the convective cell that actually
+              causes the flood.
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 690px; width: 1620px"
+        >
+          <p class="note" id="t2-note" style="font-size: 29px">
+            We are not trying to beat a global model at its own game. We are trying to own the
+            gap between its update cycles.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 3. SYSTEM ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-system" data-composition-id="s-system"
+      data-start="15"
+      data-duration="13"
+      data-label="System"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 20px; width: 1680px"
+        >
+          System
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 80px; width: 1560px"
+        >
+          <h1 class="head tight" id="t3-head">
+            Sixteen stations, a continuous-time model, and a gate that decides when to trust it.
+          </h1>
+        </div>
+
+        <div class="el" style="left: 0; top: 300px; width: 320px">
+          <div class="stage" id="t3-s1">
+            <div class="n">01 / PHYSICAL</div>
+            <h3>Ground stations</h3>
+            <p>
+              16 automated weather stations. One-minute MQTT over mutual TLS. 756,156 raw rows
+              ingested since June.
+            </p>
+          </div>
+        </div>
+
+        <div class="el" style="left: 340px; top: 300px; width: 320px">
+          <div class="stage" id="t3-s2">
+            <div class="n">02 / QUALITY CONTROL</div>
+            <h3>Quarantine</h3>
+            <p>
+              22,955 rows rejected on physical bounds and year-range rules before anything is
+              trained.
+            </p>
+          </div>
+        </div>
+
+        <div class="el" style="left: 680px; top: 300px; width: 320px">
+          <div class="stage" id="t3-s3">
+            <div class="n">03 / MODEL</div>
+            <h3>Closed-form CfC</h3>
+            <p>
+              decay = e<sup>&minus;&Delta;t&middot;w</sup>. 24-step window, 75 context features
+              computed at origin only.
+            </p>
+          </div>
+        </div>
+
+        <div class="el" style="left: 1020px; top: 300px; width: 320px">
+          <div class="stage gate" id="t3-s4">
+            <div class="n">04 / POLICY GATE</div>
+            <h3>Source selection</h3>
+            <p>
+              Per-variable, per-horizon routing. 15 of 20 benchmarked cells serve persistence.
+            </p>
+          </div>
+        </div>
+
+        <div class="el" style="left: 1360px; top: 300px; width: 320px">
+          <div class="stage" id="t3-s5">
+            <div class="n">05 / CITIZEN API</div>
+            <h3>Edge delivery</h3>
+            <p>
+              Next.js route handlers, 13.7&ndash;17.6&nbsp;ms. Every response stamped with policy
+              version and commit.
+            </p>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 660px; width: 1620px"
+        >
+          <p class="note" id="t3-note" style="font-size: 29px">
+            The gate is the point. A model trusted only where it measurably wins is a product; a
+            model trusted everywhere is a liability.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 4. RAIN ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-rain" data-composition-id="s-rain"
+      data-start="28"
+      data-duration="16"
+      data-label="Rain occurrence result"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad c">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1620px"
+        >
+          Result 01 &mdash; Rain occurrence
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t4-head" style="font-size: 50px">
+            Rain occurrence ranks first of ten against seven NWP models, +1&nbsp;h through +12&nbsp;h.
+          </h1>
+        </div>
+      </div>
+
+      
+
+      <div class="el"
+        style="position: absolute; left: 150px; top: 916px; width: 1620px"
+      >
+        <div class="caveat" id="t4-cav">
+          The margin decays from <b>+43.2%</b> at +1&nbsp;h to <b>+2.1%</b> at +12&nbsp;h. At
+          +24&nbsp;h we rank <b>third</b> of ten &mdash; climatology and DWD ICON both beat us.
+          Both facts belong in the same sentence.
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 5. WIND ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-wind" data-composition-id="s-wind"
+      data-start="44"
+      data-duration="15"
+      data-label="Wind result and instrument defect"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Result 02 &mdash; Wind speed
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t5-head" style="font-size: 48px">
+            Wind beats all seven NWP models at +6&nbsp;h and +12&nbsp;h &mdash; against a ground
+            truth with three dead anemometers.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 280px; width: 800px"
+        >
+          <div id="t5-left">
+            <div class="colhead us" style="margin-bottom: 6px">The result</div>
+            <div class="kv">
+              <span>MAE at +6 h &mdash; KloudTrack</span><span class="v us">1.2168 m/s</span>
+            </div>
+            <div class="kv">
+              <span>MAE at +6 h &mdash; ECMWF IFS</span><span class="v">1.9340 m/s</span>
+            </div>
+            <div class="kv">
+              <span>MAE at +12 h &mdash; KloudTrack</span><span class="v us">1.2428 m/s</span>
+            </div>
+            <div class="kv">
+              <span>MAE at +12 h &mdash; ECMWF IFS</span><span class="v">1.9186 m/s</span>
+            </div>
+            <div class="kv">
+              <span>Versus persistence</span><span class="v us">+7.8% / +17.8%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 880px; top: 280px; width: 800px"
+        >
+          <div id="t5-right">
+            <div class="colhead bad" style="margin-bottom: 6px">The instrument defect</div>
+            <div class="kv">
+              <span>Station <code style="font-family: var(--mono)">Bkpj1zRO</code></span
+              ><span class="v bad">ratio 0.0000</span>
+            </div>
+            <div class="kv">
+              <span>Station <code style="font-family: var(--mono)">4VAl2p9k</code></span
+              ><span class="v bad">ratio 0.0000</span>
+            </div>
+            <div class="kv">
+              <span>Station <code style="font-family: var(--mono)">95pM7BAV</code></span
+              ><span class="v bad">ratio 0.0014</span>
+            </div>
+            <div class="kv">
+              <span>Station vs NWP, Pearson r</span><span class="v bad">0.358</span>
+            </div>
+            <div class="kv">
+              <span>Anemometers reading zero</span><span class="v bad">3 of 11</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 830px; width: 1620px"
+        >
+          <p class="note" id="t5-note" style="font-size: 27px">
+            Three of eleven anemometers read effectively zero at all times. A model scored against
+            a sensor reading 0.0 registers as maximally wrong. Re-running without them is item one
+            on the plan &mdash; until then, this is the number we have.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 6. POLICY ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-policy" data-composition-id="s-policy"
+      data-start="59"
+      data-duration="13"
+      data-label="Source-selection policy"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          The honest slide
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t6-head" style="font-size: 52px">
+            Most of what a citizen receives is not the neural network.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 160px; width: 1620px"
+        >
+          <p class="note" id="t6-sub" style="font-size: 26px">
+            <code style="font-family: var(--mono)">inference_policy.json</code> v2.0.0 routes
+            each (horizon &times; variable) cell independently &mdash; to the learned model, or to
+            the last observation.
+          </p>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 300px; width: 1620px"
+        >
+          <div class="pgrid" id="t6-grid">
+            <div class="ph">Horizon</div>
+            <div class="ph r">Temperature</div>
+            <div class="ph r">Humidity</div>
+            <div class="ph r">Pressure</div>
+            <div class="ph r">Wind speed</div>
+
+            <div class="hz">+1 h</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+
+            <div class="hz">+3 h</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+
+            <div class="hz">+6 h</div>
+            <div class="pcell l">learned</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell l">learned</div>
+
+            <div class="hz">+12 h</div>
+            <div class="pcell l">learned</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell l">learned</div>
+
+            <div class="hz">+24 h</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell p">persistence</div>
+            <div class="pcell l">learned</div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 700px; width: 1620px"
+        >
+          <p class="bigstat" id="t6-stat">
+            <em>15 of 20</em> benchmarked cells serve persistence &nbsp;&middot;&nbsp; including
+            wind direction, <em>20 of 25</em>
+          </p>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 830px; width: 1620px"
+        >
+          <p class="note" id="t6-note" style="font-size: 26px">
+            This is a measured decision, not a modelling failure. The gate opens only where the
+            network earned its residual &mdash; and the headroom we are discarding is itself
+            measured, not assumed.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 7. TEMPERATURE ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-temp" data-composition-id="s-temp"
+      data-start="72"
+      data-duration="14"
+      data-label="Where we lose"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad c">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1620px"
+        >
+          Where we lose
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t7-head" style="font-size: 46px">
+            We lose to ECMWF on temperature at +6&nbsp;h and +12&nbsp;h.
+          </h1>
+        </div>
+      </div>
+
+      <div class="el"
+        style="position: absolute; left: 150px; top: 912px; width: 1620px"
+      >
+        <div class="caveat bad" id="t7-cav">
+          At +6&nbsp;h we beat persistence by 13.0% and lose to ECMWF
+          (1.477 vs 1.274). ECMWF also has the lowest MAE of any method at +1&nbsp;h and
+          +3&nbsp;h &mdash; where the policy serves persistence, not the network.
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 8. DEFECTS ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-defects" data-composition-id="s-defects"
+      data-start="86"
+      data-duration="14"
+      data-label="Seven silent defects"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Why the remaining numbers can be trusted
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t8-head" style="font-size: 50px">
+            Seven silent defects, each of which produced a number we believed.
+          </h1>
+        </div>
+
+        <div class="el" style="left: 0; top: 250px; width: 1680px">
+          <div class="rows" style="gap: 9px">
+            <div class="row" style="grid-template-columns: 50px 400px 1fr; height: 66px" id="t8-r1">
+              <span class="idx">01</span><span class="nm">NWP wind units</span>
+              <span class="ds">km/h compared against m/s &mdash; every NWP wind error inflated 3.6&times;. We appeared 6&times; better than ECMWF when we were about 1.4&times; better.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 50px 400px 1fr; height: 66px" id="t8-r2">
+              <span class="idx">02</span><span class="nm">NWP window selection</span>
+              <span class="ds">Longest-wins cache selection picked a window with <i>zero</i> overlap with the test period. All seven models scored n/a &mdash; and the report still printed a rank.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 50px 400px 1fr; height: 66px" id="t8-r3">
+              <span class="idx">03</span><span class="nm">Candidate input space</span>
+              <span class="ds">Candidates were scored on de-normalised input. +12&nbsp;h temperature &ldquo;degraded 35.7%&rdquo; and the architecture was rejected on a harness bug.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 50px 400px 1fr; height: 66px" id="t8-r4">
+              <span class="idx">04</span><span class="nm">Promotion audit arity</span>
+              <span class="ds">A missing tuple field raised on every run, silently skipping the promotion audit while leaving complete-looking artifacts on disk and a non-zero exit code.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 50px 400px 1fr; height: 66px" id="t8-r5">
+              <span class="idx">05</span><span class="nm">Bias sign</span>
+              <span class="ds">Benchmark and dashboard used opposite conventions &mdash; the same forecast read as over-predicting on one screen and under-predicting on the other.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 50px 400px 1fr; height: 66px" id="t8-r6">
+              <span class="idx">06</span><span class="nm">ReLU wind floor</span>
+              <span class="ds">Zero gradient on the negative side. The head learned &minus;5.75&nbsp;m/s and 70% of windows clamped to 0.0 &mdash; a plausible calm forecast from a dead unit.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 50px 400px 1fr; height: 66px" id="t8-r7">
+              <span class="idx">07</span><span class="nm">Seed sweep measured nothing</span>
+              <span class="ds">Both arms loaded the same model.py. Two architectures matched to six decimals &mdash; roughly six hours of compute produced no result.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 830px; width: 1680px"
+        >
+          <p class="note" id="t8-note" style="font-size: 26px">
+            All seven are written up in
+            <code style="font-family: var(--mono)">prediction-model/docs/known-limitations.md</code>
+            &sect;6, each with the check that now catches it.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 9. PLAN ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-plan" data-composition-id="s-plan"
+      data-start="100"
+      data-duration="14"
+      data-label="What moves the numbers"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          What moves the numbers
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t9-head" style="font-size: 50px">
+            Six items, ordered by measured headroom rather than by effort.
+          </h1>
+        </div>
+
+        <div class="el" style="left: 0; top: 250px; width: 1680px">
+          <div class="rows" style="gap: 12px">
+            <div class="row plain" style="grid-template-columns: 50px 1fr 250px; height: 84px" id="t9-r1">
+              <span class="idx">01</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Re-run the wind benchmark with the three dead anemometers excluded &mdash; the
+                margin needs to be the real margin
+              </span>
+              <span class="tag">gating</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 250px; height: 84px" id="t9-r2">
+              <span class="idx">02</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Test +24&nbsp;h at offset horizons (+18&nbsp;h, +30&nbsp;h) to settle the
+                diurnal-phase hypothesis
+              </span>
+              <span class="tag">gating</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 250px; height: 84px" id="t9-r3">
+              <span class="idx">03</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Open the humidity gate selectively &mdash; the head shows real skill at
+                +12&nbsp;h and we are discarding all of it
+              </span>
+              <span class="tag">+19.7% @ +12h</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 250px; height: 84px" id="t9-r4">
+              <span class="idx">04</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Re-run the seed sweep with verified per-seed variance, to size the run-to-run
+                noise band
+              </span>
+              <span class="tag">noise floor</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 250px; height: 84px" id="t9-r5">
+              <span class="idx">05</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Repair or retire <code style="font-family: var(--mono)">wkAWlzlm</code> &mdash; a
+                rostered station whose history endpoint answers with zero rows
+              </span>
+              <span class="tag">data</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 250px; height: 84px" id="t9-r6">
+              <span class="idx">06</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Revisit pressure only against a product that publishes absolute mean-sea-level
+                pressure
+              </span>
+              <span class="tag">pressure</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 890px; width: 1680px"
+        >
+          <p class="note" id="t9-note" style="font-size: 27px">
+            Until items 01 and 02 run, no external claim about wind skill or +24&nbsp;h skill is
+            supportable.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= 10. CLOSE ============================= -->
+    <div
+      class="clip scene"
+      id="slide-s-close" data-composition-id="s-close"
+      data-start="114"
+      data-duration="10"
+      data-label="The position"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          The position
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t10-head" style="font-size: 50px">
+            A genuine short-lead result, published with its caveats.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 270px; width: 530px"
+        >
+          <div id="t10-c1">
+            <div class="colhead us" style="margin-bottom: 10px">What is true</div>
+            <ul class="bullets">
+              <li>Rain occurrence ranks 1st of 10, +1&nbsp;h to +12&nbsp;h</li>
+              <li>Wind beats all seven NWP models at +6&nbsp;h and +12&nbsp;h</li>
+              <li>Seven silent defects found, fixed and regression-guarded</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 575px; top: 270px; width: 530px"
+        >
+          <div id="t10-c2">
+            <div class="colhead bad" style="margin-bottom: 10px">What is not</div>
+            <ul class="bullets warn">
+              <li>Not a replacement for ECMWF on temperature</li>
+              <li>Not forecasting pressure or humidity &mdash; those serve persistence</li>
+              <li>Not for life safety; flood and evacuation claims are out of the core</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 1150px; top: 270px; width: 530px"
+        >
+          <div id="t10-c3">
+            <div class="colhead" style="margin-bottom: 10px">What we need</div>
+            <ul class="bullets">
+              <li>Fund gating items 01 and 02</li>
+              <li>Doppler radar reflectivity as an independent verification source</li>
+              <li>Three replacement anemometers and gauges at mountain-foot sites</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 790px; width: 1680px"
+        >
+          <div class="caveat us" id="t10-line">
+            Until the rain margin survives +24&nbsp;h and the wind margin survives a repaired
+            ground truth, this is a decision-support prototype &mdash; and we will keep saying so.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================= BRANCH: SOFTWARE ENGINEER ======================= -->
+    <div
+      class="clip scene"
+      id="slide-b-eng-arch" data-composition-id="b-eng-arch"
+      data-start="124"
+      data-duration="12"
+      data-label="Fail-closed inference"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; software engineer
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t11-head" style="font-size: 52px">
+            Inference refuses to run rather than guess.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 230px; width: 1680px"
+        >
+          <div id="t11-list">
+            <div class="kv">
+              <span>No <code style="font-family: var(--mono)">inference_policy.json</code></span
+              ><span class="v bad">raise</span>
+            </div>
+            <div class="kv">
+              <span>Requested horizon absent from the table</span
+              ><span class="v bad">raise &mdash; never substitute the 1&nbsp;h policy</span>
+            </div>
+            <div class="kv">
+              <span><code style="font-family: var(--mono)">policy_code_commit</code> &ne; bundle model commit</span
+              ><span class="v bad">raise</span>
+            </div>
+            <div class="kv">
+              <span>Bundle <code style="font-family: var(--mono)">policy_sha256</code> &ne; policy file hash</span
+              ><span class="v bad">raise &mdash; tamper or corruption</span>
+            </div>
+            <div class="kv">
+              <span>Missing manifest, checkpoint or policy</span
+              ><span class="v bad">raise</span>
+            </div>
+            <div class="kv">
+              <span>Audit append fails</span
+              ><span class="v us">logged and swallowed</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 810px; width: 1680px"
+        >
+          <div class="strip" id="t11-stack">
+            Next.js 14 App Router &middot; TypeScript 5 &middot; Python 3.11 (PyTorch, NumPy)
+            &middot; AWS IoT Core MQTT mTLS v3.1.1 &middot; Recharts &middot; next-intl<br />
+            A failed audit append may cost you an auditable forecast. It must never cost a live
+            user theirs.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="clip scene"
+      id="slide-b-eng-prov" data-composition-id="b-eng-prov"
+      data-start="136"
+      data-duration="12"
+      data-label="Provenance and audit"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; software engineer
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t12-head" style="font-size: 52px">
+            Every forecast response carries its own provenance.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 220px; width: 830px"
+        >
+          <div class="mono" id="t12-fields">
+            policy_version<br />
+            policy_code_commit<br />
+            rain_probability_source<br />
+            rain_model_weight<br />
+            rain_persistence_weight<br />
+            rain_operational_threshold<br />
+            model_status: <b>RESEARCH_PROTOTYPE</b><br />
+            not_for_life_safety: <b>true</b>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 870px; top: 220px; width: 810px"
+        >
+          <div id="t12-trails">
+            <div class="colhead" style="margin-bottom: 10px">Two append-only trails</div>
+            <div class="kv">
+              <span><code style="font-family: var(--mono)">prediction_audit.jsonl</code></span
+              ><span class="v">what we said</span>
+            </div>
+            <div class="kv">
+              <span><code style="font-family: var(--mono)">observation_audit.jsonl</code></span
+              ><span class="v">what actually happened</span>
+            </div>
+            <p class="note" style="font-size: 23px; margin-top: 16px">
+              A prediction cannot be scored without the second trail. Three commits ship per
+              bundle: <code style="font-family: var(--mono)">implementation</code>,
+              <code style="font-family: var(--mono)">artifact</code>,
+              <code style="font-family: var(--mono)">model_weights</code>.
+            </p>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 780px; width: 1680px"
+        >
+          <div class="caveat" id="t12-warn">
+            <code style="font-family: var(--mono)">producer: "lln"</code> appears even for
+            variables the policy served from persistence &mdash; the network ran and its output was
+            then gated. Read <code style="font-family: var(--mono)">policy_version</code> and
+            cross-reference the policy file. Never infer the source from
+            <code style="font-family: var(--mono)">producer</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================= BRANCH: RESEARCHER ======================= -->
+    <div
+      class="clip scene"
+      id="slide-b-sci-meth" data-composition-id="b-sci-meth"
+      data-start="148"
+      data-duration="13"
+      data-label="Method and protocol"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; researcher
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t13-head" style="font-size: 48px">
+            A closed-form continuous-time cell, and a protocol built so leakage is impossible.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 210px; width: 1680px"
+        >
+          <div class="mono" id="t13-eq" style="font-size: 24px">
+            w &nbsp;&nbsp;&nbsp;&nbsp; = softplus(W_time &middot; [x ; h])<br />
+            decay = exp(&minus;&Delta;t &middot; w)<br />
+            h&prime; &nbsp;&nbsp;= <b>decay</b> &middot; h + (1 &minus; <b>decay</b>) &middot;
+            &sigma;(W_gate &middot; [x ; h]) &middot; tanh(W_state &middot; [x ; h])
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 400px; width: 1680px"
+        >
+          <ul class="bullets" id="t13-bul" style="gap: 17px">
+            <li>
+              Continuous time is the point: a one-minute gap and a three-hour gap produce different
+              decays, and the ingest is irregular one-minute data binned to hours with holes.
+            </li>
+            <li>
+              8 sequence features plus 75 context features, all computed at origin
+              <i>t</i><sub>0</sub> only. Nothing in the context vector derives from the target
+              hour.
+            </li>
+            <li>
+              Zero-initialised residual heads: at initialisation the network <i>is</i>
+              persistence. Training must earn every departure, so a failed run degrades to
+              persistence rather than to noise.
+            </li>
+            <li>
+              Rain is modelled in two stages &mdash; occurrence &times; conditional amount &mdash;
+              so the ~57% of dry hours do not wash out the heavy-rain response.
+            </li>
+          </ul>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 830px; width: 1680px"
+        >
+          <div class="strip" id="t13-proto">
+            chronological 60/20/20 &middot; 48&nbsp;h embargo (seq_len 24 + max_horizon 24)
+            &middot; normalisation fitted on TRAIN only &middot; test split read exactly once
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="clip scene"
+      id="slide-b-sci-fals" data-composition-id="b-sci-fals"
+      data-start="161"
+      data-duration="13"
+      data-label="What would falsify this"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; researcher
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t14-head" style="font-size: 46px">
+            Persistence error peaks at 12&ndash;14&nbsp;h, then falls. We can explain that. We have
+            not tested it.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 250px; width: 1680px"
+        >
+          <table class="tbl" id="t14-tbl">
+            <thead>
+              <tr>
+                <th>Persistence MAE, fixed origin set (n = 1,956)</th>
+                <th>+1 h</th>
+                <th>+6 h</th>
+                <th>+12 h</th>
+                <th>+18 h</th>
+                <th>+24 h</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Temperature (&deg;C)</td>
+                <td>0.588</td>
+                <td>1.687</td>
+                <td class="bad">2.158</td>
+                <td>1.884</td>
+                <td>1.402</td>
+              </tr>
+              <tr>
+                <td>Humidity (%RH)</td>
+                <td>1.652</td>
+                <td>4.844</td>
+                <td class="bad">6.316</td>
+                <td>5.459</td>
+                <td>4.355</td>
+              </tr>
+              <tr>
+                <td>Pressure (hPa)</td>
+                <td>0.391</td>
+                <td>1.299</td>
+                <td class="us">0.810</td>
+                <td class="bad">1.559</td>
+                <td>1.074</td>
+              </tr>
+              <tr>
+                <td>Wind (m/s)</td>
+                <td>0.863</td>
+                <td>1.291</td>
+                <td class="bad">1.486</td>
+                <td>1.300</td>
+                <td>1.167</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 520px; width: 1680px"
+        >
+          <p class="note" id="t14-hyp" style="font-size: 25px">
+            All four variables peak near 12&ndash;14&nbsp;h and decline toward 24&nbsp;h on an
+            identical origin set, so window composition cannot explain it. Consistent with a
+            strong ~24-hour periodic component: a 24-hour lead returns to the same diurnal phase
+            and partially cancels the anti-phase maximum at 12&nbsp;h.
+          </p>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 650px; width: 1680px"
+        >
+          <ul class="bullets warn" id="t14-open" style="gap: 13px">
+            <li style="font-size: 24px">
+              Untested. The test is to re-benchmark at +18&nbsp;h and +30&nbsp;h. Until it runs,
+              every +24&nbsp;h figure in the repository is provisional.
+            </li>
+            <li style="font-size: 24px">
+              Humidity headroom of +19.7% at +12&nbsp;h exists and is discarded, because the
+              promotion rule demands skill on a minimum number of horizons at once.
+            </li>
+            <li style="font-size: 24px">
+              The seed-sweep noise band is unmeasured, so no effect smaller than it can honestly be
+              promoted.
+            </li>
+          </ul>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 890px; width: 1680px"
+        >
+          <p class="src" id="t14-attr">
+            LTC / CfC &mdash; Hasani, Lechner, Amini, Rus (Nature Machine Intelligence 2021, 2022)
+            &middot; Neural ODEs &mdash; Chen et al. (NeurIPS 2018) &middot; PINNs &mdash; Raissi,
+            Perdikaris, Karniadakis (J. Comput. Phys. 2019)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================= BRANCH: MECHANICAL ENGINEER ======================= -->
+    <div
+      class="clip scene"
+      id="slide-b-hw-stack" data-composition-id="b-hw-stack"
+      data-start="174"
+      data-duration="12"
+      data-label="Sensor stack"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; mechanical engineer
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t15-head" style="font-size: 50px">
+            Sixteen stations on the model corpus, twenty-three across the wider network.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 230px; width: 1680px"
+        >
+          <div class="rows" style="gap: 13px">
+            <div class="row" style="grid-template-columns: 320px 1fr; height: 92px" id="t15-r1">
+              <span class="nm" style="font-size: 24px">Measured channels</span>
+              <span class="ds">Temperature, relative humidity, barometric pressure, wind speed and direction, precipitation (tipping bucket).</span>
+            </div>
+            <div class="row" style="grid-template-columns: 320px 1fr; height: 92px" id="t15-r2">
+              <span class="nm" style="font-size: 24px">Barometric standardisation</span>
+              <span class="ds">Readings are reduced to mean-sea-level pressure with the WMO hypsometric relation. This is what stops mountain stations tripping false cyclone alerts.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 320px 1fr; height: 92px" id="t15-r3">
+              <span class="nm" style="font-size: 24px">Rain rate is not rain depth</span>
+              <span class="ds">Gauges report mm/h. 8.0&nbsp;mm/h for 15 minutes is <b style="color: var(--us)">2.0&nbsp;mm</b> on the ground. Summing raw snapshots instead of integrating reports four times the water that fell.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 320px 1fr; height: 92px" id="t15-r4">
+              <span class="nm" style="font-size: 24px">Water level</span>
+              <span class="ds">Ultrasonic gauges (e.g. Calumpit WLMS <code style="font-family: var(--mono)">O3z0j5bG</code> on the Pampanga/Angat). Currently an internal beta experiment, flagged <code style="font-family: var(--mono)">not_for_life_safety</code> and excluded from the commercial core.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 320px 1fr; height: 92px" id="t15-r5">
+              <span class="nm" style="font-size: 24px">Not scored</span>
+              <span class="ds">UV index reports 11.0 at midnight; light intensity is an uncalibrated photometric sensor with no orientation metadata. Both are excluded from skill claims rather than smoothed over.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="clip scene"
+      id="slide-b-hw-need" data-composition-id="b-hw-need"
+      data-start="186"
+      data-duration="12"
+      data-label="What we need from hardware"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; mechanical engineer
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t16-head" style="font-size: 50px">
+            Three anemometers are corrupting every wind number in the benchmark.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 220px; width: 820px"
+        >
+          <div id="t16-left">
+            <div class="colhead bad" style="margin-bottom: 10px">Dead or silent</div>
+            <div class="kv">
+              <span><code style="font-family: var(--mono)">Bkpj1zRO</code></span
+              ><span class="v bad">ratio 0.0000</span>
+            </div>
+            <div class="kv">
+              <span><code style="font-family: var(--mono)">4VAl2p9k</code></span
+              ><span class="v bad">ratio 0.0000</span>
+            </div>
+            <div class="kv">
+              <span><code style="font-family: var(--mono)">95pM7BAV</code></span
+              ><span class="v bad">ratio 0.0014</span>
+            </div>
+            <div class="kv">
+              <span><code style="font-family: var(--mono)">wkAWlzlm</code></span
+              ><span class="v bad">zero rows returned</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="el"
+          style="left: 870px; top: 220px; width: 810px"
+        >
+          <ul class="bullets" id="t16-asks" style="gap: 16px">
+            <li style="font-size: 24px">
+              Replace or recalibrate those three anemometers. Until then the headline wind result
+              is measured against a broken instrument.
+            </li>
+            <li style="font-size: 24px">
+              Repair or retire <code style="font-family: var(--mono)">wkAWlzlm</code>. A rostered
+              station that answers with nothing fails the freshness check by design.
+            </li>
+            <li style="font-size: 24px">
+              Send calibration metadata and drift history, not just live values. The pipeline
+              already gates on sensor health; it cannot reason about drift it cannot see.
+            </li>
+            <li style="font-size: 24px">
+              Open question for you: a siting and shielding review against the coastal / valley
+              separation the model assumes.
+            </li>
+          </ul>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 850px; width: 1680px"
+        >
+          <div class="caveat" id="t16-note">
+            A station on the roster that returns nothing is the exact failure the freshness monitor
+            was written for &mdash; one of sixteen answering with silence, in a pipeline that still
+            reports success.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================= BRANCH: CEO ======================= -->
+    <div
+      class="clip scene"
+      id="slide-b-biz-what" data-composition-id="b-biz-what"
+      data-start="198"
+      data-duration="12"
+      data-label="Business position"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; CEO
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t17-head" style="font-size: 52px">
+            A decision-support layer over PAGASA &mdash; not a replacement for it.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 240px; width: 1680px"
+        >
+          <div class="rows" style="gap: 14px">
+            <div class="row" style="grid-template-columns: 400px 1fr; height: 96px" id="t17-r1">
+              <span class="nm" style="font-size: 25px">Complement, do not compete</span>
+              <span class="ds">Early awareness for commuters and barangay response, published alongside official bulletins &mdash; never as a warning in place of one.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 400px 1fr; height: 96px" id="t17-r2">
+              <span class="nm" style="font-size: 25px">No vendor lock-in</span>
+              <span class="ds">Zero recurring third-party API fees. Original code on permissive MIT and BSD dependencies, with freedom-to-operate cleared.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 400px 1fr; height: 96px" id="t17-r3">
+              <span class="nm" style="font-size: 25px">Commodity CPU inference</span>
+              <span class="ds">Roughly 84 microseconds per step. There is no GPU line item and no per-call metering cost in the serving path.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 400px 1fr; height: 96px" id="t17-r4">
+              <span class="nm" style="font-size: 25px">The honest position</span>
+              <span class="ds">One defensible technical result, a published list of what the system does not do, and a research-prototype flag on every response.</span>
+            </div>
+            <div class="row" style="grid-template-columns: 400px 1fr; height: 96px" id="t17-r5">
+              <span class="nm" style="font-size: 25px">Adoption wedge</span>
+              <span class="ds">Bilingual English and Tagalog. A commuter decision surface: is the road passable, should I bring an umbrella, is water coming off the mountain.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="clip scene"
+      id="slide-b-biz-buy" data-composition-id="b-biz-buy"
+      data-start="210"
+      data-duration="12"
+      data-label="What the next tranche buys"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid"></div>
+      <div class="pad">
+        <div class="el kicker"
+          style="left: 0; top: 14px; width: 1680px"
+        >
+          Deep dive &mdash; CEO
+        </div>
+        <div class="el"
+          style="left: 0; top: 56px; width: 1620px"
+        >
+          <h1 class="head tight" id="t18-head" style="font-size: 52px">
+            Two prerequisites, then the largest unclaimed gain in the system.
+          </h1>
+        </div>
+
+        <div class="el"
+          style="left: 0; top: 250px; width: 1680px"
+        >
+          <div class="rows" style="gap: 15px">
+            <div class="row plain" style="grid-template-columns: 50px 1fr 210px; height: 100px" id="t18-r1">
+              <span class="idx">01</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Gating items 01 and 02 &mdash; exclude the dead anemometers, test the offset
+                horizons. No credible wind or +24&nbsp;h claim exists until both run.
+              </span>
+              <span class="tag">prerequisite</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 210px; height: 100px" id="t18-r2">
+              <span class="idx">02</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Then the humidity gate. Measured headroom of +19.7% at +12&nbsp;h is currently
+                discarded by a rule that demands simultaneous skill across horizons.
+              </span>
+              <span class="tag">+19.7% headroom</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 210px; height: 100px" id="t18-r3">
+              <span class="idx">03</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Scale is configuration, not engineering. The engine is topology-agnostic &mdash; a
+                new province means registering stations and uploading a 30&nbsp;m DEM.
+              </span>
+              <span class="tag">per region</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 210px; height: 100px" id="t18-r4">
+              <span class="idx">04</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                Cost structure &mdash; commodity CPU inference, MQTT ingest, existing station
+                hardware. The marginal cost of a new region is the stations.
+              </span>
+              <span class="tag">low COGS</span>
+            </div>
+            <div class="row plain" style="grid-template-columns: 50px 1fr 210px; height: 100px" id="t18-r5">
+              <span class="idx">05</span>
+              <span class="ds" style="font-size: 25px; color: var(--ink)">
+                The ask: <b style="color: var(--us)">[ EDIT: amount and instrument ]</b>
+              </span>
+              <span class="tag">to complete</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+<div
+        class="clip"
+        data-composition-id="kc-rain-brier"
+        data-composition-src="compositions/kc-rain-brier.html"
+        data-start="28"
+        data-duration="16"
+        data-width="1920"
+        data-height="700"
+        data-track-index="3"
+        style="position: absolute; left: 0; top: 196px; width: 1920px; height: 700px"
+      ></div>
+
+<div
+        class="clip"
+        data-composition-id="kc-temp-mae"
+        data-composition-src="compositions/kc-temp-mae.html"
+        data-start="72"
+        data-duration="14"
+        data-width="1920"
+        data-height="700"
+        data-track-index="3"
+        style="position: absolute; left: 0; top: 196px; width: 1920px; height: 700px"
+      ></div>
+
+    <script>
+      /* ------------------------------------------------------------------
+         The deck is one root composition ("deck") of 222s. Slides are timed
+         clips inside it and the slideshow controller seeks this single
+         timeline to each slide's hold time.
+         ------------------------------------------------------------------ */
+      (function () {
+        var DECK = null;
+        function T() {
+          if (!DECK) {
+            window.__timelines = window.__timelines || {};
+            DECK = gsap.timeline({ paused: true });
+            window.__timelines["deck"] = DECK;
+          }
+          return DECK;
+        }
+
+        function inUp(tl, sel, at, dy, dur) {
+          tl.fromTo(
+            sel,
+            { opacity: 0, y: dy === undefined ? 18 : dy },
+            { opacity: 1, y: 0, duration: dur || 0.55, ease: "power2.out" },
+            at,
+          );
+        }
+
+        /* ---- 1. title ---- */
+        var t1 = T("s-title");
+        inUp(t1, "#t1-head", 0.7, 26);
+        inUp(t1, "#t1-lead", 1.6, 20);
+        inUp(t1, "#t1-src", 2.5, 12);
+        t1.to(".hf-dynamic-grid", { "--hf-grid-y": "-72px", duration: 8, ease: "none" }, 0);
+
+        /* ---- 2. problem ---- */
+        var t2 = T("s-problem");
+        inUp(t2, "#t2-head", 6.7, 22);
+        inUp(t2, "#t2-t1", 8.0, 22);
+        inUp(t2, "#t2-t2", 10.4, 22);
+        inUp(t2, "#t2-t3", 12.8, 22);
+        inUp(t2, "#t2-note", 12.8, 14);
+
+        /* ---- 3. system ---- */
+        var t3 = T("s-system");
+        inUp(t3, "#t3-head", 15.7, 22);
+        inUp(t3, "#t3-s1", 17.2, 20);
+        inUp(t3, "#t3-s2", 18.8, 20);
+        inUp(t3, "#t3-s3", 20.4, 20);
+        inUp(t3, "#t3-s4", 22.0, 20);
+        inUp(t3, "#t3-s5", 23.6, 20);
+        inUp(t3, "#t3-note", 24.4, 14);
+
+        /* ---- 4. rain (chart is its own sub-composition timeline) ---- */
+        var t4 = T("s-rain");
+        inUp(t4, "#t4-head", 28.7, 22);
+        inUp(t4, "#t4-cav", 40.2, 14);
+
+        /* ---- 5. wind ---- */
+        var t5 = T("s-wind");
+        inUp(t5, "#t5-head", 44.7, 22);
+        inUp(t5, "#t5-left", 46.0, 22);
+        inUp(t5, "#t5-right", 50.2, 22);
+        inUp(t5, "#t5-note", 54.4, 14);
+
+        /* ---- 6. policy ---- */
+        var t6 = T("s-policy");
+        inUp(t6, "#t6-head", 59.7, 22);
+        inUp(t6, "#t6-sub", 60.2, 14);
+        inUp(t6, "#t6-grid", 61.0, 16);
+        inUp(t6, "#t6-stat", 64.6, 16);
+        inUp(t6, "#t6-note", 67.0, 14);
+
+        /* ---- 7. temperature ---- */
+        var t7 = T("s-temp");
+        inUp(t7, "#t7-head", 72.7, 22);
+        inUp(t7, "#t7-cav", 77.6, 14);
+
+        /* ---- 8. defects ---- */
+        var t8 = T("s-defects");
+        inUp(t8, "#t8-head", 86.7, 22);
+        for (var i8 = 0; i8 < 7; i8++) inUp(t8, "#t8-r" + (i8 + 1), 88.0 + i8 * 0.55, 16, 0.5);
+        inUp(t8, "#t8-note", 92.6, 14);
+
+        /* ---- 9. plan ---- */
+        var t9 = T("s-plan");
+        inUp(t9, "#t9-head", 100.7, 22);
+        for (var i9 = 0; i9 < 6; i9++) inUp(t9, "#t9-r" + (i9 + 1), 102.4 + i9 * 0.5, 16, 0.5);
+        inUp(t9, "#t9-note", 109.0, 14);
+
+        /* ---- 10. close ---- */
+        var t10 = T("s-close");
+        inUp(t10, "#t10-head", 114.7, 22);
+        inUp(t10, "#t10-c1", 115.4, 20);
+        inUp(t10, "#t10-c2", 116.2, 20);
+        inUp(t10, "#t10-c3", 117.0, 20);
+        inUp(t10, "#t10-line", 118.2, 14);
+
+        /* ---- branch: software engineer ---- */
+        var t11 = T("b-eng-arch");
+        inUp(t11, "#t11-head", 124.7, 22);
+        inUp(t11, "#t11-list", 125.4, 18);
+        inUp(t11, "#t11-stack", 126.6, 16);
+
+        var t12 = T("b-eng-prov");
+        inUp(t12, "#t12-head", 136.7, 22);
+        inUp(t12, "#t12-fields", 137.3, 18);
+        inUp(t12, "#t12-trails", 138.1, 18);
+        inUp(t12, "#t12-warn", 139.4, 14);
+
+        /* ---- branch: researcher ---- */
+        var t13 = T("b-sci-meth");
+        inUp(t13, "#t13-head", 148.7, 22);
+        inUp(t13, "#t13-eq", 149.3, 18);
+        inUp(t13, "#t13-bul", 150.1, 18);
+        inUp(t13, "#t13-proto", 151.4, 16);
+
+        var t14 = T("b-sci-fals");
+        inUp(t14, "#t14-head", 161.7, 22);
+        inUp(t14, "#t14-tbl", 162.4, 18);
+        inUp(t14, "#t14-hyp", 163.4, 16);
+        inUp(t14, "#t14-open", 164.2, 16);
+        inUp(t14, "#t14-attr", 165.2, 12);
+
+        /* ---- branch: mechanical engineer ---- */
+        var t15 = T("b-hw-stack");
+        inUp(t15, "#t15-head", 174.7, 22);
+        for (var i15 = 0; i15 < 5; i15++) inUp(t15, "#t15-r" + (i15 + 1), 175.4 + i15 * 0.5, 16, 0.5);
+
+        var t16 = T("b-hw-need");
+        inUp(t16, "#t16-head", 186.7, 22);
+        inUp(t16, "#t16-left", 187.3, 18);
+        inUp(t16, "#t16-asks", 188.1, 18);
+        inUp(t16, "#t16-note", 189.4, 14);
+
+        /* ---- branch: CEO ---- */
+        var t17 = T("b-biz-what");
+        inUp(t17, "#t17-head", 198.7, 22);
+        for (var i17 = 0; i17 < 5; i17++) inUp(t17, "#t17-r" + (i17 + 1), 199.3 + i17 * 0.5, 16, 0.5);
+
+        var t18 = T("b-biz-buy");
+        inUp(t18, "#t18-head", 210.7, 22);
+        for (var i18 = 0; i18 < 5; i18++) inUp(t18, "#t18-r" + (i18 + 1), 211.4 + i18 * 0.55, 16, 0.5);
+      })();
+    </script>
+  </body>
+</html>

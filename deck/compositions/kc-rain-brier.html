@@ -1,0 +1,290 @@
+<!-- hyperframes-registry-item: data-chart (adapted: kc-rain-brier) -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=700" />
+    <title>Rain occurrence Brier score</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="kc-rain-brier"
+      data-width="1920"
+      data-height="700"
+      data-start="0"
+      data-duration="16"
+    >
+      <style>
+        #root {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+          color: #eef2f8;
+          overflow: hidden;
+        }
+        .kcrb-headline {
+          position: absolute;
+          left: 150px;
+          top: 0;
+          font-size: 36px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          clip-path: inset(0 100% 0 0);
+          white-space: nowrap;
+        }
+        .kcrb-subtitle {
+          position: absolute;
+          left: 150px;
+          top: 48px;
+          font-size: 22px;
+          color: #9aa7bc;
+          clip-path: inset(0 100% 0 0);
+          white-space: nowrap;
+        }
+        .kcrb-key {
+          position: absolute;
+          left: 150px;
+          top: 92px;
+          display: flex;
+          gap: 44px;
+          opacity: 0;
+        }
+        .kcrb-key-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .kcrb-key-box {
+          width: 16px;
+          height: 16px;
+          background-color: #34d399;
+        }
+        .kcrb-key-line {
+          width: 30px;
+          height: 4px;
+          background-color: #60a5fa;
+        }
+        .kcrb-key-text {
+          font-size: 23px;
+          color: #9aa7bc;
+        }
+        .kcrb-chart-svg {
+          position: absolute;
+          left: 0;
+          top: 140px;
+          width: 1920px;
+          height: 520px;
+          overflow: visible;
+        }
+        .kcrb-source {
+          position: absolute;
+          left: 150px;
+          top: 668px;
+          font-size: 19px;
+          color: #8a97ad;
+          font-family: ui-monospace, "SF Mono", Menlo, monospace;
+          opacity: 0;
+        }
+        .kcrb-grid-line {
+          stroke: #1e2634;
+          stroke-width: 1;
+          opacity: 0;
+        }
+        .kcrb-axis-label {
+          font-size: 30px;
+          fill: #9aa7bc;
+          text-anchor: middle;
+          font-weight: 500;
+        }
+        .kcrb-bar {
+          fill: #34d399;
+        }
+        .kcrb-bar-label {
+          font-size: 30px;
+          fill: #34d399;
+          text-anchor: middle;
+          font-weight: 700;
+          opacity: 0;
+        }
+      </style>
+
+      <div class="kcrb-headline">Rain occurrence &mdash; Brier score, lower is better</div>
+      <div class="kcrb-subtitle">
+        Held-out test split 2026-08-15 &rarr; 08-26 &middot; 16 stations &middot; 1&ndash;5&nbsp;km
+        spacing &middot; 1,984&ndash;2,273 windows per horizon
+      </div>
+
+      <div class="kcrb-key">
+        <div class="kcrb-key-item">
+          <div class="kcrb-key-box"></div>
+          <span class="kcrb-key-text">KloudTrack &mdash; CfC/LNN + source-selection policy</span>
+        </div>
+        <div class="kcrb-key-item">
+          <div class="kcrb-key-line"></div>
+          <span class="kcrb-key-text"
+            >Best of seven NWP models &mdash; DWD ICON (0.2415&ndash;0.2440, effectively flat)</span
+          >
+        </div>
+      </div>
+
+      <svg class="kcrb-chart-svg" viewBox="0 0 1920 520" preserveAspectRatio="none">
+        <g class="kcrb-gridlines"></g>
+        <g class="kcrb-bars"></g>
+        <g class="kcrb-bar-labels"></g>
+        <g class="kcrb-line">
+          <path
+            class="kcrb-best-path"
+            fill="none"
+            stroke="#60a5fa"
+            stroke-width="4"
+            stroke-linejoin="round"
+          />
+          <circle class="kcrb-line-dot" r="9" fill="#60a5fa" style="opacity: 0" />
+        </g>
+        <g class="kcrb-x-labels"></g>
+        <line x1="150" y1="500" x2="1770" y2="500" stroke="#3a465c" stroke-width="2" />
+      </svg>
+
+      <div class="kcrb-source">
+        prediction-model/data/nwp_benchmark_production.json &rarr; _rain_brier
+      </div>
+
+      <script>
+        (function () {
+          var svg = document.querySelector(".kcrb-chart-svg");
+          var tl = gsap.timeline({ paused: true });
+
+          /* ---- Verified benchmark of record. Lower Brier is better. ---- */
+          var horizons = ["+1h", "+3h", "+6h", "+12h", "+24h"];
+          var kloud = [0.1373, 0.1859, 0.2209, 0.2364, 0.2506];
+          var bestNwp = [0.2416, 0.2415, 0.2428, 0.2415, 0.244];
+
+          var START_X = 150;
+          var CHART_W = 1620;
+          var START_Y = 460;
+          var CHART_H = 380;
+          var BAR_W = 150;
+          var MAX = 0.3;
+          var STEP = 0.05;
+
+          var spacing = (CHART_W - BAR_W * horizons.length) / (horizons.length + 1);
+          function getX(i) {
+            return START_X + spacing + i * (BAR_W + spacing) + BAR_W / 2;
+          }
+          function getY(v) {
+            return START_Y - (v / MAX) * CHART_H;
+          }
+
+          var gridGroup = svg.querySelector(".kcrb-gridlines");
+          var xAxisGroup = svg.querySelector(".kcrb-x-labels");
+          var barsGroup = svg.querySelector(".kcrb-bars");
+          var barLabelsGroup = svg.querySelector(".kcrb-bar-labels");
+          var bestPath = svg.querySelector(".kcrb-best-path");
+          var lineDot = svg.querySelector(".kcrb-line-dot");
+
+          for (var g = 1; g * STEP <= MAX + 1e-9; g++) {
+            var y = getY(g * STEP);
+            var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", START_X);
+            line.setAttribute("y1", y);
+            line.setAttribute("x2", START_X + CHART_W);
+            line.setAttribute("y2", y);
+            line.setAttribute("class", "kcrb-grid-line");
+            gridGroup.appendChild(line);
+          }
+
+          var pts = [];
+          horizons.forEach(function (hz, i) {
+            var x = getX(i);
+
+            var bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            bar.setAttribute("x", x - BAR_W / 2);
+            bar.setAttribute("y", START_Y);
+            bar.setAttribute("width", BAR_W);
+            bar.setAttribute("height", 0);
+            bar.setAttribute("class", "kcrb-bar");
+            barsGroup.appendChild(bar);
+
+            var bl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            bl.setAttribute("x", x);
+            bl.setAttribute("y", getY(kloud[i]) - 16);
+            bl.setAttribute("class", "kcrb-bar-label");
+            bl.textContent = kloud[i].toFixed(3);
+            barLabelsGroup.appendChild(bl);
+
+            pts.push(x + "," + getY(bestNwp[i]));
+
+            var xl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            xl.setAttribute("x", x);
+            xl.setAttribute("y", START_Y + 44);
+            xl.setAttribute("class", "kcrb-axis-label");
+            xl.textContent = hz;
+            xAxisGroup.appendChild(xl);
+          });
+
+          bestPath.setAttribute("d", "M " + pts.join(" L "));
+          var len = bestPath.getTotalLength();
+          bestPath.style.strokeDasharray = len;
+          bestPath.style.strokeDashoffset = len;
+
+          tl.to(".kcrb-headline", { clipPath: "inset(0 0% 0 0)", duration: 1.0, ease: "power1.inOut" }, 0);
+          tl.to(
+            ".kcrb-subtitle",
+            { clipPath: "inset(0 0% 0 0)", duration: 1.0, ease: "power1.inOut" },
+            0.2,
+          );
+          tl.to(".kcrb-key", { opacity: 1, duration: 0.4, ease: "power2.out" }, 0.9);
+          tl.to(
+            ".kcrb-grid-line",
+            { opacity: 1, duration: 0.5, stagger: 0.12, ease: "power2.out" },
+            0.5,
+          );
+
+          var bars = barsGroup.querySelectorAll(".kcrb-bar");
+          var barLabels = barLabelsGroup.querySelectorAll(".kcrb-bar-label");
+
+          bars.forEach(function (bar, i) {
+            var h = (kloud[i] / MAX) * CHART_H;
+            var at = 1.4 + i * 0.55;
+            tl.to(
+              bar,
+              { attr: { height: h, y: START_Y - h }, duration: 0.75, ease: "power2.out" },
+              at,
+            );
+            tl.to(barLabels[i], { opacity: 1, duration: 0.3, ease: "power2.out" }, at + 0.75);
+          });
+
+          var lineAt = 1.4 + (horizons.length - 1) * 0.55 + 0.5;
+          tl.to(bestPath, { strokeDashoffset: 0, duration: 2.6, ease: "none" }, lineAt);
+          horizons.forEach(function (_, i) {
+            tl.set(lineDot, { attr: { cx: getX(i), cy: getY(bestNwp[i]) }, opacity: 1 }, lineAt);
+          });
+
+          tl.to(".kcrb-source", { opacity: 1, duration: 0.5, ease: "power2.out" }, 6.4);
+
+          window.__timelines = window.__timelines || {};
+          window.__timelines["kc-rain-brier"] = tl;
+        })();
+      </script>
+    </div>
+  </body>
+</html>

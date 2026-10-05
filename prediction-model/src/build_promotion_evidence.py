@@ -54,6 +54,7 @@ import math
 import os
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -70,6 +71,17 @@ from dataset import (  # noqa: E402
     build_feature_augmented_forecast_windows,
     DEFAULT_SEQ_LEN,
 )
+
+
+def apply_calibration(raw_val, cal, var, hz):
+    if not cal or hz not in cal:
+        return raw_val
+    var_cal = cal[hz].get(var, {})
+    if not var_cal:
+        return raw_val
+    a = var_cal.get("a", 1.0)
+    b = var_cal.get("b", 0.0)
+    return a * raw_val + b
 
 HORIZONS = [1, 3, 6, 12, 24]
 MAE_CHANNELS = ["temperature", "humidity", "pressure", "wind_speed"]
@@ -139,7 +151,7 @@ def paired_block(inc_err, cand_err, order_key, label, source):
     }, {}
 
 
-def channel_row_errors(channel, cand_out, inc, meta):
+def channel_row_errors(channel, cand_out, inc, meta, calibration=None, h=None):
     """
     Per-row error for one channel, for both models, in the same row order.
 
@@ -155,14 +167,21 @@ def channel_row_errors(channel, cand_out, inc, meta):
     # verifiable from the evidence itself rather than trusted.
     keys = [f"{m['target_timestamp']}@{m['station_id']}" for m in meta]
 
+    # In the scoring loop, AFTER getting p_c but BEFORE computing errors:
+    # For rain (Brier):
     if channel == RAIN_CHANNEL:
         y = np.array([float(m.get("target_precipitation", 0.0) or 0.0) > 0.1
                       for m in meta], float)
         p_c = torch.sigmoid(cand_out["rain_prob"]).squeeze(-1).numpy()
+        p_c = apply_calibration(p_c, calibration, "rain_occurrence", h)
         return ((p_c - y) ** 2).tolist(), ((inc_rain - y) ** 2).tolist(), keys
 
+    # For continuous variables:
     y = np.array([float(m[f"target_{channel}"]) for m in meta], float)
     p_c = cand_out[channel].squeeze(-1).numpy()
+    var_name = {"temperature_c": "temperature", "relative_humidity_pct": "humidity", 
+                "pressure_hpa": "pressure", "wind_speed_kmh": "wind_speed"}.get(channel, channel)
+    p_c = apply_calibration(p_c, calibration, var_name, h)
     return np.abs(p_c - y).tolist(), np.abs(inc_pred[channel] - y).tolist(), keys
 
 
@@ -182,6 +201,14 @@ def main() -> int:
     ap.add_argument("--horizons", default=None)
     ap.add_argument("--channels", default=",".join(MAE_CHANNELS) + "," + RAIN_CHANNEL)
     args = ap.parse_args()
+
+    candidate_dir = args.candidate_dir
+    # --- Load candidate calibration ---
+    calibration = {}
+    for h_cal in [1, 3, 6, 12, 24]:
+        cal_path = Path(candidate_dir) / f"candidate_h{h_cal}h_calibration.json"
+        if cal_path.exists():
+            calibration[h_cal] = json.loads(cal_path.read_text(encoding="utf-8"))
 
     horizons = ([int(x) for x in args.horizons.split(",")] if args.horizons
                 else HORIZONS)
@@ -307,7 +334,8 @@ def main() -> int:
         for channel in channels:
             key = f"{channel}|{h}"
             c_err, i_err, keys = channel_row_errors(
-                channel, cand_out, (inc_pred, inc_rain), meta)
+                channel, cand_out, (inc_pred, inc_rain), meta,
+                calibration=calibration, h=h)
 
             # Chronological halves, keyed on the target timestamp.
             order = sorted(range(n), key=lambda i: (meta[i]["target_timestamp"],
